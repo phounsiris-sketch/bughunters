@@ -243,15 +243,12 @@ function devAutoLogin() {
 
 /* ---------- Initialise auth listener ---------- */
 function initAuth() {
-  // Simple player-pick login (no Firebase auth needed)
-  if (devAutoLogin()) {
-    showAppPage();
-    initApp();
-    return;
-  }
-  // Show login form and load player list from Firestore
-  showAuthPage();
-  loadLoginPlayerList();
+  // No login — go straight to app
+  currentUser = { uid: 'shared-user', email: 'shared@godsmash.local' };
+  currentUserProfile = { email: 'shared@godsmash.local', displayName: 'Player', phone: null, avatarUrl: null };
+  seedFirestoreData();
+  showAppPage();
+  initApp();
   return;
 
   handleEmailLinkSignIn();

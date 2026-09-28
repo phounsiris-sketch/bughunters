@@ -72,27 +72,26 @@ function renderSettings() {
 
   var html = "";
 
-  // ─── 1. Profile Card ─────────────────────────────
+  // ─── 1. Players Card ─────────────────────────────
   html += '<div class="card">';
-  html += '<div class="card-title">\uD83D\uDC64 ' + t("profile") + '</div>';
+  html += '<div class="card-title">\uD83D\uDC65 ' + t("playerRoster") + '</div>';
 
-  if (currentUserProfile) {
-    html += '<div class="settings-item" style="border:none;padding:8px 0;margin-bottom:0">';
+  for (var pi = 0; pi < settingsUsers.length; pi++) {
+    var player = settingsUsers[pi];
+    var pInitial = (player.displayName || "?").charAt(0).toUpperCase();
+    var pColor = COLORS[pi % COLORS.length];
+    html += '<div class="settings-item">';
     html += '<div class="settings-left">';
-    var initial = (currentUserProfile.displayName || "?").charAt(0).toUpperCase();
-    html += '<div class="person-avatar" style="background:' + COLORS[0] + ';width:36px;height:36px;font-size:16px">' + initial + '</div>';
+    html += '<div class="person-avatar" style="background:' + pColor + ';width:32px;height:32px;font-size:13px">' + pInitial + '</div>';
     html += '<div>';
-    html += '<div style="font-size:14px;font-weight:600">' + (currentUserProfile.displayName || "") + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' + (currentUser ? currentUser.email : "") + '</div>';
-    if (currentUserProfile.phone) {
-      html += '<div style="font-size:11px;color:var(--text-muted)">\uD83D\uDCDE ' + currentUserProfile.phone + '</div>';
-    }
+    html += '<div class="settings-label">' + (player.displayName || "") + '</div>';
+    if (player.phone) html += '<div style="font-size:11px;color:var(--text-muted)">' + player.phone + '</div>';
     html += '</div></div>';
-    html += '<button class="edit-btn" onclick="showEditProfileModal()">' + t("editProfile") + '</button>';
+    html += '<button class="delete-btn" onclick="deleteSettingsPlayer(\'' + (player.id || player.uid) + '\')">\u2715</button>';
     html += '</div>';
   }
 
-  html += '<button class="btn-danger" style="margin-top:8px;padding:8px;font-size:13px" onclick="logoutUser()">' + t("logout") + '</button>';
+  html += '<button class="add-btn-dashed" onclick="showAddPlayerModal()">+ ' + t("addPlayer") + '</button>';
   html += '</div>';
 
   // ─── 2. QR Codes Card ────────────────────────────
@@ -119,7 +118,7 @@ function renderSettings() {
     html += '<div style="font-size:11px;color:var(--text-muted)">\uD83D\uDCCD ' + (c.location || "") + '</div>';
     html += '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<div class="settings-value">' + c.price + 'K/hr</div>';
+    html += '<div class="settings-value">' + (c.pricePerHour || c.price || 0) + 'K/hr</div>';
     html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">\u2715</button>';
     html += '</div></div>';
   }
@@ -138,7 +137,7 @@ function renderSettings() {
     html += '<div class="settings-label">' + sb.name + '</div>';
     html += '</div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<div class="settings-value">' + sb.price + 'K/' + t("tubes") + '</div>';
+    html += '<div class="settings-value">' + (sb.pricePerTube || sb.price || 0) + 'K/' + t("tubes") + '</div>';
     html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + sb.id + '\')">\u2715</button>';
     html += '</div></div>';
   }
@@ -260,7 +259,7 @@ function showAddCourtModal() {
     dbAddCourt({
       name: name,
       location: location,
-      price: price,
+      pricePerHour: price,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     })
       .then(function () {
@@ -301,7 +300,8 @@ function showAddShuttlecockModal() {
 
     dbAddShuttlecock({
       name: name,
-      price: price,
+      pricePerTube: price,
+      cocksPerTube: 12,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     })
       .then(function () {
@@ -376,6 +376,48 @@ function deleteSettingsCourt(id) {
     .catch(function (error) {
       showToast(error.message);
     });
+}
+
+function showAddPlayerModal() {
+  document.getElementById("modalTitle").textContent = t("addPlayer");
+  document.getElementById("modalBody").innerHTML =
+    '<div class="form-group">' +
+      '<label class="form-label">' + t("name") + '</label>' +
+      '<input class="form-input" id="mPlayerName" placeholder="' + t("name") + '">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">' + t("phone") + '</label>' +
+      '<input class="form-input" id="mPlayerPhone" placeholder="020 xxxx xxxx">' +
+    '</div>';
+
+  modalCallback = function () {
+    var name = document.getElementById("mPlayerName").value.trim();
+    var phone = document.getElementById("mPlayerPhone").value.trim();
+
+    if (!name) { showToast(t("name")); return; }
+
+    var uid = 'player-' + name.toLowerCase().replace(/\s/g, '-') + '-' + Date.now();
+    fsdb.collection('users').doc(uid).set({
+      email: name.toLowerCase().replace(/\s/g, '') + '@godsmash.local',
+      displayName: name,
+      phone: phone || null,
+      avatarUrl: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+      closeModal();
+      showToast(name + ' added!');
+    }).catch(function(error) {
+      showToast(error.message);
+    });
+  };
+  openModal();
+}
+
+function deleteSettingsPlayer(id) {
+  if (!confirm(t("delete") + "?")) return;
+  fsdb.collection('users').doc(id).delete()
+    .then(function() { showToast(t("delete") + " \u2714"); })
+    .catch(function(error) { showToast(error.message); });
 }
 
 function deleteSettingsShuttlecock(id) {
