@@ -19,11 +19,11 @@ function loadPolls() {
     pollsUnsubscribe = null;
   }
 
-  dbGetCourts().then(function (courts) {
+  dbGetCourts(function (courts) {
     allCourts = courts;
   });
 
-  dbGetUsers().then(function (users) {
+  dbGetUsers(function (users) {
     allUsers = users;
   });
 
