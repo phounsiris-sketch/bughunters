@@ -93,18 +93,18 @@ function saveProfile() {
 
 /* ---------- Logout ---------- */
 function logoutUser() {
-  localStorage.removeItem('dev_player');
+  localStorage.removeItem('dev_uid');
+  localStorage.removeItem('dev_name');
   currentUser = null;
   currentUserProfile = null;
   showAuthPage();
-  // Also sign out Firebase if authenticated
+  loadLoginPlayerList();
   try { auth.signOut(); } catch(e) {}
 }
 
-/* ---------- Dev bypass — simple name/password login ---------- */
-var DEV_PASSWORD = 'smash2024';
+/* ---------- Simple player-pick login (no password) ---------- */
 
-var DEV_PLAYERS = [
+var DEFAULT_PLAYERS = [
   { uid: 'player-joung', name: 'Joung' },
   { uid: 'player-bob', name: 'Bob' },
   { uid: 'player-mee', name: 'Mee' },
@@ -116,44 +116,93 @@ var DEV_PLAYERS = [
   { uid: 'player-bua', name: 'Bua' }
 ];
 
-var DEV_COURTS = [
+var DEFAULT_COURTS = [
   { name: 'Joung Court', location: 'Vientiane', pricePerHour: 200 },
   { name: 'Bob Court', location: 'Vientiane', pricePerHour: 150 }
 ];
 
-var DEV_SHUTTLECOCKS = [
+var DEFAULT_SHUTTLECOCKS = [
   { name: 'RSL', pricePerTube: 120, cocksPerTube: 12 },
   { name: 'Yonex', pricePerTube: 150, cocksPerTube: 12 }
 ];
 
+function loadLoginPlayerList() {
+  var select = document.getElementById('devNameSelect');
+  if (!select) return;
+
+  // Try loading from Firestore first, fallback to defaults
+  fsdb.collection('users').orderBy('displayName').get().then(function(snap) {
+    select.innerHTML = '<option value="">-- Who are you? --</option>';
+    if (snap.empty) {
+      // Seed default players and use them
+      seedFirestoreData();
+      DEFAULT_PLAYERS.forEach(function(p) {
+        select.innerHTML += '<option value="' + p.uid + '">' + p.name + '</option>';
+      });
+    } else {
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        select.innerHTML += '<option value="' + doc.id + '">' + d.displayName + '</option>';
+      });
+    }
+  }).catch(function() {
+    // Firestore not available — use defaults
+    select.innerHTML = '<option value="">-- Who are you? --</option>';
+    DEFAULT_PLAYERS.forEach(function(p) {
+      select.innerHTML += '<option value="' + p.uid + '">' + p.name + '</option>';
+    });
+  });
+}
+
 function devLogin() {
   var nameSelect = document.getElementById('devNameSelect');
-  var passInput = document.getElementById('devPassword');
-  var selectedName = nameSelect ? nameSelect.value : '';
-  var password = passInput ? passInput.value : '';
+  var selectedUid = nameSelect ? nameSelect.value : '';
+  var selectedText = nameSelect ? nameSelect.options[nameSelect.selectedIndex].text : '';
 
-  if (!selectedName) { showToast('Select your name'); return; }
-  if (password !== DEV_PASSWORD) { showToast('Wrong password'); return; }
+  if (!selectedUid) { showToast('Select your name'); return; }
 
-  var player = DEV_PLAYERS.find(function(p) { return p.name === selectedName; });
-  if (!player) return;
+  currentUser = { uid: selectedUid, email: selectedText.toLowerCase().replace(/\s/g, '') + '@godsmash.local' };
+  currentUserProfile = { email: currentUser.email, displayName: selectedText, phone: null, avatarUrl: null };
 
-  currentUser = { uid: player.uid, email: player.name.toLowerCase() + '@godsmash.local' };
-  currentUserProfile = { email: currentUser.email, displayName: player.name, phone: null, avatarUrl: null };
-
-  // Save selected player for auto-login
-  localStorage.setItem('dev_player', selectedName);
-
-  // Seed all players, courts, shuttlecocks into Firestore
-  seedFirestoreData();
+  localStorage.setItem('dev_uid', selectedUid);
+  localStorage.setItem('dev_name', selectedText);
 
   showAppPage();
   initApp();
 }
 
+function showAddNewPlayer() {
+  var name = prompt('Enter new player name:');
+  if (!name || !name.trim()) return;
+  name = name.trim();
+
+  var uid = 'player-' + name.toLowerCase().replace(/\s/g, '-') + '-' + Date.now();
+
+  fsdb.collection('users').doc(uid).set({
+    email: name.toLowerCase().replace(/\s/g, '') + '@godsmash.local',
+    displayName: name,
+    phone: null,
+    avatarUrl: null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function() {
+    // Add to select and auto-select
+    var select = document.getElementById('devNameSelect');
+    if (select) {
+      var opt = document.createElement('option');
+      opt.value = uid;
+      opt.textContent = name;
+      select.appendChild(opt);
+      select.value = uid;
+    }
+    showToast(name + ' added!');
+  }).catch(function(e) {
+    showToast('Error: ' + e.message);
+  });
+}
+
 function seedFirestoreData() {
-  // Seed all players as users
-  DEV_PLAYERS.forEach(function(p) {
+  // Seed players
+  DEFAULT_PLAYERS.forEach(function(p) {
     fsdb.collection('users').doc(p.uid).set({
       email: p.name.toLowerCase() + '@godsmash.local',
       displayName: p.name,
@@ -163,10 +212,10 @@ function seedFirestoreData() {
     }, { merge: true }).catch(function() {});
   });
 
-  // Seed courts (check if empty first)
+  // Seed courts
   fsdb.collection('courts').get().then(function(snap) {
     if (snap.empty) {
-      DEV_COURTS.forEach(function(c) {
+      DEFAULT_COURTS.forEach(function(c) {
         fsdb.collection('courts').add(c).catch(function() {});
       });
     }
@@ -175,7 +224,7 @@ function seedFirestoreData() {
   // Seed shuttlecocks
   fsdb.collection('shuttlecocks').get().then(function(snap) {
     if (snap.empty) {
-      DEV_SHUTTLECOCKS.forEach(function(s) {
+      DEFAULT_SHUTTLECOCKS.forEach(function(s) {
         fsdb.collection('shuttlecocks').add(s).catch(function() {});
       });
     }
@@ -183,28 +232,26 @@ function seedFirestoreData() {
 }
 
 function devAutoLogin() {
-  var saved = localStorage.getItem('dev_player');
-  if (!saved) return false;
+  var savedUid = localStorage.getItem('dev_uid');
+  var savedName = localStorage.getItem('dev_name');
+  if (!savedUid || !savedName) return false;
 
-  var player = DEV_PLAYERS.find(function(p) { return p.name === saved; });
-  if (!player) return false;
-
-  currentUser = { uid: player.uid, email: player.name.toLowerCase() + '@godsmash.local' };
-  currentUserProfile = { email: currentUser.email, displayName: player.name, phone: null, avatarUrl: null };
+  currentUser = { uid: savedUid, email: savedName.toLowerCase().replace(/\s/g, '') + '@godsmash.local' };
+  currentUserProfile = { email: currentUser.email, displayName: savedName, phone: null, avatarUrl: null };
   return true;
 }
 
 /* ---------- Initialise auth listener ---------- */
 function initAuth() {
-  // DEV BYPASS: use simple name/password login
-  // Remove this block once Firebase email link auth is working
+  // Simple player-pick login (no Firebase auth needed)
   if (devAutoLogin()) {
     showAppPage();
     initApp();
     return;
   }
-  // Show bypass login form
+  // Show login form and load player list from Firestore
   showAuthPage();
+  loadLoginPlayerList();
   return;
 
   handleEmailLinkSignIn();

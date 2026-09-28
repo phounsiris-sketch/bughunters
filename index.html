@@ -21,22 +21,11 @@
     <div class="login-form">
       <div class="form-group">
         <select class="form-select" id="devNameSelect">
-          <option value="">-- Select your name --</option>
-          <option value="Joung">Joung</option>
-          <option value="Bob">Bob</option>
-          <option value="Mee">Mee</option>
-          <option value="Ton">Ton</option>
-          <option value="John">John</option>
-          <option value="Nith">Nith</option>
-          <option value="Bird">Bird</option>
-          <option value="Na">Na</option>
-          <option value="Bua">Bua</option>
+          <option value="">-- Who are you? --</option>
         </select>
       </div>
-      <div class="form-group">
-        <input type="password" class="form-input" id="devPassword" placeholder="Password">
-      </div>
-      <button class="btn-primary" onclick="devLogin()">Login</button>
+      <button class="btn-primary" onclick="devLogin()" style="margin-bottom:8px">Enter</button>
+      <button class="btn-secondary" onclick="showAddNewPlayer()">+ Add New Player</button>
     </div>
   </div>
   <div id="profile-page" class="profile-setup" style="display:none">
