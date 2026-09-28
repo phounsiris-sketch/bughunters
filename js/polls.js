@@ -27,19 +27,27 @@ function loadPolls() {
     allUsers = users;
   });
 
-  pollsUnsubscribe = fsdb.collection("polls")
-    .orderBy("createdAt", "desc")
-    .onSnapshot(function (snapshot) {
-      var polls = [];
-      snapshot.forEach(function (doc) {
-        var data = doc.data();
-        data.id = doc.id;
-        polls.push(data);
+  try {
+    pollsUnsubscribe = fsdb.collection("polls")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(function (snapshot) {
+        var polls = [];
+        snapshot.forEach(function (doc) {
+          var data = doc.data();
+          data.id = doc.id;
+          polls.push(data);
+        });
+        renderPolls(polls);
+      }, function (error) {
+        console.error('Polls snapshot error:', error);
+        showToast('DB: ' + error.message);
+        renderPolls([]);
       });
-      renderPolls(polls);
-    }, function (error) {
-      showToast(error.message);
-    });
+  } catch (e) {
+    console.error('Polls load error:', e);
+    showToast('Load error: ' + e.message);
+    renderPolls([]);
+  }
 }
 
 /* ---------- Render polls list ---------- */

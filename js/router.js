@@ -24,25 +24,21 @@ function showPage(page, pushHistory) {
   var pages = document.querySelectorAll(".page");
   for (var i = 0; i < pages.length; i++) {
     pages[i].classList.remove("active");
-    pages[i].style.display = "none";
   }
 
   // Show target page
-  var target = document.getElementById(page + "-page");
+  var target = document.getElementById("page-" + page);
   if (target) {
     target.classList.add("active");
-    target.style.display = "";
   }
 
   // Update bottom nav active state
-  var navBtns = document.querySelectorAll(".nav-btn");
-  for (var j = 0; j < navBtns.length; j++) {
-    navBtns[j].classList.remove("active");
-    var navPage = navBtns[j].getAttribute("data-page");
-    if (navPage === page) {
-      navBtns[j].classList.add("active");
-    }
+  var navItems = document.querySelectorAll(".nav-item");
+  for (var j = 0; j < navItems.length; j++) {
+    navItems[j].classList.remove("active");
   }
+  var activeNav = document.getElementById("nav-" + page);
+  if (activeNav) activeNav.classList.add("active");
 
   // FAB visibility — only show on polls page
   var fab = document.getElementById("fab");
