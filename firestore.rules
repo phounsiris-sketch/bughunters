@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuth() { return request.auth != null; }
+    function isOwner(uid) { return request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+    }
+
+    match /polls/{pollId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth();
+      allow delete: if isAuth();
+
+      match /dinner/{docId} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
+    }
+
+    match /courts/{courtId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    match /shuttlecocks/{id} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    match /settings/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+  }
+}

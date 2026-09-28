@@ -7,436 +7,127 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<title>Badminton Split</title>
-<style>
-:root {
-  --primary: #0d9488;
-  --primary-light: #14b8a6;
-  --accent: #4ade80;
-  --blue: #2563eb;
-  --orange: #f59e0b;
-  --red: #ef4444;
-  --share-green: #25D366;
-}
-
-/* Dark theme (default) */
-[data-theme="dark"] {
-  --bg: #0a1628;
-  --surface: #0f1f35;
-  --card: #162d4a;
-  --border: #1e3a5f;
-  --text: #e0e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
-  --input-bg: #0f1f35;
-  --chip-bg: #0f1f35;
-  --status-payer-bg: rgba(13,148,136,0.2);
-  --status-owes-bg: rgba(37,99,235,0.2);
-  --status-owes-text: #60a5fa;
-}
-
-/* Light theme */
-[data-theme="light"] {
-  --bg: #f0f4f8;
-  --surface: #f8fafb;
-  --card: #ffffff;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --input-bg: #f1f5f9;
-  --chip-bg: #f1f5f9;
-  --status-payer-bg: rgba(13,148,136,0.12);
-  --status-owes-bg: rgba(37,99,235,0.1);
-  --status-owes-text: #2563eb;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Lao', sans-serif;
-  background: var(--bg); color: var(--text);
-  min-height: 100vh; padding-bottom: 70px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Header */
-.app-header {
-  background: linear-gradient(135deg, var(--primary), var(--blue));
-  padding: 16px 20px 20px; position: sticky; top: 0; z-index: 100;
-}
-.header-top { display: flex; justify-content: space-between; align-items: center; }
-.header-title { font-size: 20px; font-weight: 700; color: #fff; }
-.header-controls { display: flex; gap: 8px; align-items: center; }
-.lang-toggle, .theme-toggle {
-  background: rgba(255,255,255,0.15); border: none; border-radius: 16px;
-  color: #fff; font-size: 11px; font-weight: 600; padding: 4px 10px; cursor: pointer;
-}
-.header-sub { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px; }
-
-/* Content */
-.content { padding: 16px; max-width: 480px; margin: 0 auto; }
-.page { display: none; }
-.page.active { display: block; }
-
-/* Cards */
-.card {
-  background: var(--card); border-radius: 16px; padding: 16px;
-  margin-bottom: 12px; border: 1px solid var(--border);
-}
-.card-title {
-  font-size: 12px; color: var(--accent); font-weight: 600;
-  margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-}
-
-/* Form */
-.form-group { margin-bottom: 12px; }
-.form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; display: block; }
-.form-input, .form-select {
-  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px;
-  -webkit-appearance: none; appearance: none;
-}
-.form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234ade80' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; }
-.form-row { display: flex; gap: 10px; }
-.form-row .form-group { flex: 1; }
-.cost-display { display: flex; align-items: center; color: var(--text-muted); font-size: 12px; padding: 10px 0; }
-.cost-display .amount { color: var(--accent); font-weight: 700; margin-left: 4px; }
-
-/* Player chips */
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
-  border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer;
-  border: 1px solid var(--border); background: var(--chip-bg); color: var(--text-muted);
-  transition: all 0.15s;
-}
-.chip.active { background: var(--primary); border-color: var(--primary-light); color: #fff; }
-
-/* Shuttlecock rows */
-.item-row {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 8px 12px; margin-bottom: 8px;
-}
-.item-row .item-name { flex: 1; font-size: 13px; }
-.qty-controls { display: flex; align-items: center; gap: 6px; }
-.qty-btn {
-  width: 28px; height: 28px; border-radius: 50%; background: var(--border);
-  border: none; color: var(--accent); font-size: 16px; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-.qty-num { font-size: 15px; font-weight: 700; min-width: 20px; text-align: center; }
-.item-price { font-size: 12px; color: var(--accent); font-weight: 600; min-width: 60px; text-align: right; }
-.remove-btn { color: var(--red); font-size: 16px; cursor: pointer; border: none; background: none; padding: 4px; }
-
-.add-btn-dashed {
-  width: 100%; background: transparent; border: 1px dashed var(--border);
-  border-radius: 10px; padding: 10px; color: var(--text-dim); font-size: 13px;
-  cursor: pointer; margin-bottom: 8px;
-}
-.subtotal-row {
-  display: flex; justify-content: space-between; padding-top: 8px;
-  border-top: 1px solid var(--border); margin-top: 4px; font-size: 12px;
-}
-.subtotal-label { color: var(--text-muted); }
-.subtotal-value { color: var(--accent); font-weight: 700; }
-
-/* Other cost rows */
-.other-row {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 8px 12px; margin-bottom: 8px;
-}
-.other-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.other-info { flex: 1; }
-.other-player { font-size: 12px; }
-.other-desc { font-size: 11px; color: var(--text-muted); }
-.other-amount { font-size: 13px; font-weight: 700; color: var(--orange); }
-
-/* Buttons */
-.btn-primary {
-  width: 100%; background: linear-gradient(135deg, var(--primary), var(--blue));
-  border: none; border-radius: 12px; padding: 14px; color: #fff;
-  font-size: 16px; font-weight: 600; cursor: pointer;
-}
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-share {
-  width: 100%; background: var(--share-green); border: none; border-radius: 12px;
-  padding: 14px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
-}
-.btn-secondary {
-  width: 100%; background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 12px; color: var(--text); font-size: 14px; cursor: pointer;
-}
-
-/* Session list */
-.session-item {
-  background: var(--card); border-radius: 14px; padding: 14px 16px;
-  margin-bottom: 10px; border: 1px solid var(--border); cursor: pointer;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.session-date { font-size: 14px; font-weight: 600; }
-.session-court { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.session-players { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-.session-total { font-size: 18px; font-weight: 700; color: var(--accent); text-align: right; }
-.session-each { font-size: 11px; color: var(--text-muted); }
-
-/* Split result */
-.split-header { text-align: center; padding: 16px 0; }
-.split-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.split-amount { font-size: 42px; font-weight: 800; color: var(--accent); }
-.split-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-
-.cost-breakdown { display: flex; gap: 8px; margin: 12px 0; }
-.cost-card {
-  flex: 1; background: var(--card); border-radius: 12px; padding: 12px;
-  text-align: center; border: 1px solid var(--border);
-}
-.cost-card.personal { border-color: rgba(245,158,11,0.3); }
-.cost-icon { font-size: 20px; }
-.cost-card-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-.cost-card-label.orange { color: var(--orange); }
-.cost-card-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
-.cost-card-sub { font-size: 9px; color: var(--text-dim); }
-
-.person-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid rgba(128,128,128,0.1);
-}
-.person-row:last-child { border-bottom: none; }
-.person-left { display: flex; align-items: center; gap: 10px; }
-.person-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; color: #fff;
-}
-.person-status {
-  font-size: 10px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 2px;
-}
-.status-payer { background: var(--status-payer-bg); color: var(--accent); }
-.status-owes { background: var(--status-owes-bg); color: var(--status-owes-text); }
-.person-amount { font-size: 16px; font-weight: 700; }
-.person-breakdown { font-size: 10px; color: var(--text-muted); margin-top: 2px; text-align: right; }
-
-/* Messenger preview */
-.messenger-preview {
-  background: #0084ff; border-radius: 14px 14px 4px 14px;
-  padding: 14px; font-size: 12px; line-height: 1.7; color: #fff;
-  white-space: pre-line; margin-top: 12px;
-}
-
-/* Settings */
-.settings-item {
-  background: var(--card); border-radius: 12px; padding: 14px 16px;
-  margin-bottom: 8px; border: 1px solid var(--border);
-  display: flex; justify-content: space-between; align-items: center;
-}
-.settings-left { display: flex; align-items: center; gap: 12px; }
-.settings-icon { font-size: 20px; }
-.settings-label { font-size: 14px; }
-.settings-value { font-size: 13px; color: var(--accent); font-weight: 600; }
-.settings-actions { display: flex; gap: 8px; }
-.edit-btn, .delete-btn {
-  border: none; background: var(--input-bg); border-radius: 8px;
-  padding: 6px 10px; font-size: 12px; cursor: pointer; color: var(--text-muted);
-}
-.delete-btn { color: var(--red); }
-
-/* Bottom nav */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--surface); border-top: 1px solid var(--border);
-  display: flex; padding: 8px 0 env(safe-area-inset-bottom, 12px); z-index: 100;
-}
-.nav-item {
-  flex: 1; text-align: center; font-size: 10px; color: var(--text-dim);
-  cursor: pointer; padding: 4px 0;
-}
-.nav-item.active { color: var(--accent); }
-.nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-
-/* Toast */
-.toast {
-  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-  background: var(--accent); color: #0a1628; padding: 10px 20px;
-  border-radius: 20px; font-size: 13px; font-weight: 600; z-index: 200;
-  opacity: 0; transition: opacity 0.3s; pointer-events: none;
-}
-.toast.show { opacity: 1; }
-
-/* Loading */
-.loading { text-align: center; padding: 40px; color: var(--text-muted); }
-
-/* Modal */
-.modal-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6); z-index: 300; display: none;
-  align-items: center; justify-content: center; padding: 20px;
-}
-.modal-overlay.show { display: flex; }
-.modal {
-  background: var(--card); border-radius: 16px; padding: 20px;
-  width: 100%; max-width: 400px; border: 1px solid var(--border);
-}
-.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-.modal-actions button { flex: 1; }
-.btn-cancel {
-  background: var(--input-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px; color: var(--text); font-size: 14px; cursor: pointer;
-}
-
-/* Back button */
-.back-btn {
-  background: none; border: none; color: #fff; font-size: 20px;
-  cursor: pointer; margin-right: 8px; padding: 4px;
-}
-
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
-
-/* Delete session button */
-.btn-danger {
-  width: 100%; background: transparent; border: 1px solid var(--red);
-  border-radius: 12px; padding: 12px; color: var(--red); font-size: 14px;
-  cursor: pointer; margin-top: 8px;
-}
-</style>
+<link rel="stylesheet" href="css/styles.css">
+<title>Godsmash</title>
 </head>
 <body data-theme="dark">
 
-<div class="app-header">
-  <div class="header-top">
-    <span id="headerTitle" class="header-title">Badminton Split</span>
-    <div class="header-controls">
-      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#9728;&#65039;</button>
+<!-- ==================== AUTH CONTAINER ==================== -->
+<div id="auth-container">
+  <div id="login-page" class="login-page">
+    <div class="login-logo"><iconify-icon icon="solar:shuttlecock-bold" width="64"></iconify-icon></div>
+    <div class="login-title" data-i18n="loginTitle">Godsmash</div>
+    <div class="login-subtitle" data-i18n="loginSubtitle">Badminton booking &amp; cost splitting</div>
+    <div class="login-form">
+      <input type="email" class="form-input" id="loginEmail" placeholder="Enter your email" data-i18n-placeholder="enterEmail">
+      <div class="otp-sent-msg" id="otpSentMsg" style="display:none" data-i18n="checkEmail">Check your email for the login link!</div>
+      <button class="btn-primary" id="sendLinkBtn" onclick="sendLoginLink()" data-i18n="sendLink">Send Login Link</button>
     </div>
   </div>
-  <div class="header-sub" id="headerSub">Book & split in seconds</div>
-</div>
-
-<div class="content">
-  <!-- PAGE: New Session -->
-  <div class="page active" id="page-new">
-    <div class="card">
-      <div class="card-title"><span data-i18n="courtDetails">Court Details</span></div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="court">Court</label>
-        <select class="form-select" id="courtSelect" onchange="updateCourtCost()"></select>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" data-i18n="date">Date</label>
-          <input type="date" class="form-input" id="sessionDate">
-        </div>
-        <div class="form-group">
-          <label class="form-label" data-i18n="startTime">Start Time</label>
-          <input type="time" class="form-input" id="sessionTime" value="18:00">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="duration">Duration (hours)</label>
-        <div class="form-row">
-          <input type="number" class="form-input" id="sessionDuration" value="2" min="1" max="8" style="flex:0 0 70px;text-align:center;" onchange="updateCourtCost()">
-          <div class="cost-display" id="courtCostDisplay"></div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label"><span data-i18n="courtPayer">Court Payer</span></label>
-        <select class="form-select" id="courtPayerSelect" onchange="courtPayer=this.value"></select>
-      </div>
+  <div id="profile-page" class="profile-setup" style="display:none">
+    <h2 data-i18n="profileSetup" style="text-align:center">Set Up Profile</h2>
+    <div class="form-group" style="margin-top:20px">
+      <label class="form-label" data-i18n="displayName">Display Name</label>
+      <input class="form-input" id="profileName">
     </div>
-
-    <div class="card">
-      <div class="card-title"><span data-i18n="players">Players</span></div>
-      <div class="chips" id="playerChips"></div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
-        <span data-i18n="payerHint">Tap to join/leave</span>
-      </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="phone">Phone</label>
+      <input class="form-input" id="profilePhone" placeholder="Optional">
     </div>
-
-    <div class="card">
-      <div class="card-title"><span data-i18n="shuttlecocks">Shuttlecocks</span>
-        <span style="font-size:9px;color:var(--text-muted);text-transform:none;letter-spacing:0;margin-left:4px;" data-i18n="splitEqually">(split equally)</span>
-      </div>
-      <div id="shuttlecockRows"></div>
-      <button class="add-btn-dashed" onclick="showAddShuttlecock()" data-i18n="addBrand">+ Add Shuttlecock Brand</button>
-      <div class="form-group" style="margin-top:8px">
-        <label class="form-label"><span data-i18n="shuttlePayer">Shuttle Payer</span></label>
-        <select class="form-select" id="shuttlePayerSelect" onchange="shuttlePayer=this.value"></select>
-      </div>
-      <div class="subtotal-row">
-        <span class="subtotal-label" data-i18n="shuttleTotal">Shuttlecock Total</span>
-        <span class="subtotal-value" id="shuttleTotal">0K &#8365;</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span data-i18n="otherCosts">Other Costs</span></div>
-      <div style="background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:var(--status-owes-text);">
-        <span data-i18n="otherCostHint">Each item assigned to a player. Not split among group.</span>
-      </div>
-      <div id="otherCostRows"></div>
-      <button class="add-btn-dashed" onclick="showAddOtherCost()" data-i18n="addOtherCost">+ Add Other Cost</button>
-      <div class="subtotal-row">
-        <span class="subtotal-label" data-i18n="otherTotal">Other Total (personal)</span>
-        <span class="subtotal-value" id="otherTotal" style="color:var(--orange);">0K &#8365;</span>
-      </div>
-    </div>
-
-    <button class="btn-primary" onclick="calculateSplit()" id="calcBtn" data-i18n="calculateSplit">Calculate Split</button>
-  </div>
-
-  <!-- PAGE: Sessions History -->
-  <div class="page" id="page-sessions">
-    <div id="sessionsList"></div>
-  </div>
-
-  <!-- PAGE: Split Result -->
-  <div class="page" id="page-result">
-    <div id="resultContent"></div>
-  </div>
-
-  <!-- PAGE: Settings -->
-  <div class="page" id="page-settings">
-    <div class="card">
-      <div class="card-title"><span data-i18n="courts">Courts</span></div>
-      <div id="settingsCourts"></div>
-      <button class="add-btn-dashed" onclick="showAddCourtModal()" data-i18n="addCourt">+ Add New Court</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><span data-i18n="shuttlecockBrands">Shuttlecocks</span></div>
-      <div id="settingsShuttlecocks"></div>
-      <button class="add-btn-dashed" onclick="showAddShuttlecockModal()" data-i18n="addShuttlecockBrand">+ Add New Brand</button>
-    </div>
-    <div class="card">
-      <div class="card-title"><span data-i18n="playerRoster">Players</span></div>
-      <div id="settingsPlayers"></div>
-      <button class="add-btn-dashed" onclick="showAddPlayerModal()" data-i18n="addPlayer">+ Add New Player</button>
-    </div>
+    <button class="btn-primary" onclick="saveProfile()" data-i18n="saveContinue">Save &amp; Continue</button>
   </div>
 </div>
 
-<!-- Bottom Nav -->
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="showPage('new')" id="nav-new">
-    <span class="nav-icon">&#10133;</span><span data-i18n="navNew">New</span>
+<!-- ==================== APP CONTAINER ==================== -->
+<div id="app-container" style="display:none">
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-top">
+      <div style="display:flex;align-items:center">
+        <button class="back-btn" id="backBtn" onclick="goBack()" style="display:none">
+          <iconify-icon icon="solar:arrow-left-bold" width="22"></iconify-icon>
+        </button>
+        <span id="headerTitle" class="header-title">Godsmash</span>
+      </div>
+      <div class="header-controls">
+        <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#9728;&#65039;</button>
+      </div>
+    </div>
+    <div class="header-sub" id="headerSub">Book &amp; split in seconds</div>
   </div>
-  <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
-    <span class="nav-icon">&#128203;</span><span data-i18n="navSessions">Sessions</span>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- PAGE: Polls -->
+    <div class="page active" id="page-polls">
+      <div id="pollsList"></div>
+    </div>
+
+    <!-- PAGE: Create Poll -->
+    <div class="page" id="page-poll-create">
+      <div id="pollCreateContent"></div>
+    </div>
+
+    <!-- PAGE: Sessions List -->
+    <div class="page" id="page-sessions">
+      <div id="sessionsList"></div>
+    </div>
+
+    <!-- PAGE: Session Detail -->
+    <div class="page" id="page-session-detail">
+      <div id="sessionDetailContent"></div>
+    </div>
+
+    <!-- PAGE: Dashboard -->
+    <div class="page" id="page-dashboard">
+      <div class="dashboard-tabs">
+        <button class="dash-tab active" onclick="switchDashTab('balance')" id="tab-balance" data-i18n="balance">Balance</button>
+        <button class="dash-tab" onclick="switchDashTab('spending')" id="tab-spending" data-i18n="spending">Spending</button>
+        <button class="dash-tab" onclick="switchDashTab('activity')" id="tab-activity" data-i18n="activity">Activity</button>
+      </div>
+      <div class="period-toggle" id="periodToggle" style="display:none">
+        <button class="period-btn active" onclick="setPeriod('monthly')" id="period-monthly" data-i18n="monthly">Monthly</button>
+        <button class="period-btn" onclick="setPeriod('quarterly')" id="period-quarterly" data-i18n="quarterly">Quarterly</button>
+        <button class="period-btn" onclick="setPeriod('yearly')" id="period-yearly" data-i18n="yearly">Yearly</button>
+      </div>
+      <div id="dashboardContent"></div>
+    </div>
+
+    <!-- PAGE: Settings -->
+    <div class="page" id="page-settings">
+      <div id="settingsContent"></div>
+    </div>
+
   </div>
-  <div class="nav-item" onclick="showPage('result')" id="nav-result">
-    <span class="nav-icon">&#128202;</span><span data-i18n="navSummary">Summary</span>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="showPage('polls')" id="nav-polls">
+      <span class="nav-icon"><iconify-icon icon="solar:calendar-bold" width="22"></iconify-icon></span>
+      <span data-i18n="navPolls">Polls</span>
+    </div>
+    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
+      <span class="nav-icon"><iconify-icon icon="solar:clipboard-list-bold" width="22"></iconify-icon></span>
+      <span data-i18n="navSessions">Sessions</span>
+    </div>
+    <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard">
+      <span class="nav-icon"><iconify-icon icon="solar:chart-square-bold" width="22"></iconify-icon></span>
+      <span data-i18n="navDashboard">Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+      <span class="nav-icon"><iconify-icon icon="solar:settings-bold" width="22"></iconify-icon></span>
+      <span data-i18n="navSettings">Settings</span>
+    </div>
   </div>
-  <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
-    <span class="nav-icon">&#9881;&#65039;</span><span data-i18n="navSettings">Settings</span>
-  </div>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" onclick="showCreatePoll()">
+    <iconify-icon icon="solar:add-circle-bold" width="28"></iconify-icon>
+  </button>
+
 </div>
 
 <!-- Toast -->
@@ -454,800 +145,32 @@ body {
   </div>
 </div>
 
-<script>
-// ==================== localStorage HELPERS ====================
-function db(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
-function dbSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+<!-- ==================== SCRIPTS ==================== -->
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
+<!-- Icons -->
+<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+
+<!-- Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- App -->
+<script src="js/firebase-config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/router.js"></script>
+<script src="js/db.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/polls.js"></script>
+<script src="js/sessions.js"></script>
+<script src="js/dinner.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
 
-function initDefaults() {
-  if (!localStorage.getItem('bm_init')) {
-    dbSet('bm_courts', [
-      {id:'C001',name:'Joung Court',location:'Vientiane',price:200},
-      {id:'C002',name:'Bob Court',location:'Vientiane',price:150}
-    ]);
-    dbSet('bm_players', [
-      {id:'P001',name:'Joung',phone:''},
-      {id:'P002',name:'Bob',phone:''},
-      {id:'P003',name:'Mee',phone:''},
-      {id:'P004',name:'Ton',phone:''},
-      {id:'P005',name:'John',phone:''},
-      {id:'P006',name:'Nith',phone:''},
-      {id:'P007',name:'Bird',phone:''},
-      {id:'P008',name:'Na',phone:''},
-      {id:'P009',name:'Bua',phone:''},
-      {id:'P010',name:'Other',phone:''}
-    ]);
-    dbSet('bm_shuttlecocks', [
-      {id:'S001',name:'RSL',price:120},
-      {id:'S002',name:'Yonex',price:150}
-    ]);
-    dbSet('bm_sessions', []);
-    localStorage.setItem('bm_init', '1');
-  }
-}
-
-// ==================== STATE ====================
-var courts = [], shuttlecocks = [], players = [];
-var selectedPlayers = {}, courtPayer = '', shuttlePayer = '';
-var sessionShuttlecocks = []; // [{brand, qty, price}]
-var sessionOtherCosts = []; // [{player, desc, amount}]
-var currentLang = localStorage.getItem('bm_lang') || 'en';
-var currentTheme = localStorage.getItem('bm_theme') || 'dark';
-var modalCallback = null;
-
-var COLORS = ['#0d9488','#2563eb','#7c3aed','#db2777','#ea580c','#0284c7','#6366f1','#059669'];
-
-// ==================== I18N ====================
-var i18n = {
-  en: {
-    courtDetails:'Court Details', court:'Court', date:'Date', startTime:'Start Time',
-    duration:'Duration (hours)', players:'Players', payerHint:'Tap to join/leave',
-    courtPayer:'Court Payer', shuttlePayer:'Shuttle Payer', selectPayer:'Select payer...',
-    shuttlecocks:'Shuttlecocks', splitEqually:'(split equally)', addBrand:'+ Add Shuttlecock Brand',
-    shuttleTotal:'Shuttlecock Total', otherCosts:'Other Costs',
-    otherCostHint:'Each item assigned to a player. Not split among group.',
-    addOtherCost:'+ Add Other Cost', otherTotal:'Other Total (personal)',
-    calculateSplit:'Calculate Split', courts:'Courts', addCourt:'+ Add New Court',
-    shuttlecockBrands:'Shuttlecocks', addShuttlecockBrand:'+ Add New Brand',
-    playerRoster:'Players', addPlayer:'+ Add New Player',
-    navNew:'New', navSessions:'Sessions', navSummary:'Summary', navSettings:'Settings',
-    cancel:'Cancel', save:'Save', delete:'Delete',
-    perPerson:'Per Person', payTo:'Pay to', payer:'Payer', owes:'Owes',
-    total:'Total', shared:'Shared', personal:'Personal', notSplit:'not split',
-    copyMessenger:'Copy for Messenger', copied:'Copied!',
-    noSessions:'No sessions yet', createFirst:'Create your first session!',
-    selectBrand:'Select brand', qty:'Qty', cocksUsed:'Cocks used', tubes:'tubes', player:'Player', description:'Description',
-    amount:'Amount (K)', name:'Name', location:'Location', pricePerHour:'Price/Hour (K)',
-    pricePerTube:'Price/Tube (K)', phone:'Phone', courtName:'Court Name', brandName:'Brand Name',
-    headerTitle:'Badminton Split', headerSub:'Book & split in seconds',
-    totalSession:'Total Session', each:'each',
-    deleteSession:'Delete Session', deleteConfirm:'Delete this session?',
-    backToNew:'Back to New Session'
-  },
-  lo: {
-    courtDetails:'\u0ea5\u0eb2\u0e8d\u0ea5\u0eb0\u0ead\u0ebd\u0e94\u0eaa\u0eb0\u0edc\u0eb2\u0ea1', court:'\u0eaa\u0eb0\u0edc\u0eb2\u0ea1', date:'\u0ea7\u0eb1\u0e99\u0e97\u0eb5', startTime:'\u0ec0\u0ea7\u0ea5\u0eb2\u0ec0\u0ea5\u0eb5\u0ec8\u0ea1',
-    duration:'\u0ec4\u0ea5\u0e8d\u0eb0\u0ec0\u0ea7\u0ea5\u0eb2 (\u0e8a\u0ebb\u0ec8\u0ea7\u0ec2\u0ea1\u0e87)', players:'\u0e9c\u0eb9\u0ec9\u0eab\u0ebc\u0eb4\u0ec9\u0e99', payerHint:'\u0ec1\u0e95\u0eb0\u0ec0\u0e9e\u0eb7\u0ec8\u0ead\u0ec0\u0e82\u0ebb\u0ec9\u0eb2/\u0ead\u0ead\u0e81',
-    courtPayer:'\u0e9c\u0eb9\u0ec9\u0e88\u0ec8\u0eb2\u0e8d\u0eaa\u0eb0\u0edc\u0eb2\u0ea1', shuttlePayer:'\u0e9c\u0eb9\u0ec9\u0e88\u0ec8\u0eb2\u0e8d\u0ea5\u0eb9\u0e81\u0e82\u0ebb\u0e99\u0ec4\u0e81\u0ec8', selectPayer:'\u0ec0\u0ea5\u0eb7\u0ead\u0e81\u0e9c\u0eb9\u0ec9\u0e88\u0ec8\u0eb2\u0e8d...',
-    shuttlecocks:'\u0ea5\u0eb9\u0e81\u0e82\u0ebb\u0e99\u0ec4\u0e81\u0ec8', splitEqually:'(\u0ec1\u0e9a\u0ec8\u0e87\u0ec0\u0e97\u0ebb\u0ec8\u0eb2\u0e81\u0eb1\u0e99)', addBrand:'+ \u0ec0\u0e9e\u0eb5\u0ec8\u0ea1\u0e8d\u0eb5\u0ec8\u0eab\u0ecd\u0ec9',
-    shuttleTotal:'\u0ea5\u0ea7\u0ea1\u0ea5\u0eb9\u0e81\u0e82\u0ebb\u0e99\u0ec4\u0e81\u0ec8', otherCosts:'\u0e84\u0ec8\u0eb2\u0ec3\u0e8a\u0ec9\u0e88\u0ec8\u0eb2\u0e8d\u0ead\u0eb7\u0ec8\u0e99',
-    otherCostHint:'\u0ec1\u0e95\u0ec8\u0ea5\u0eb0\u0ea5\u0eb2\u0e8d\u0e81\u0eb2\u0e99\u0e81\u0eb3\u0eab\u0e99\u0ebb\u0e94\u0ec3\u0eab\u0ec9\u0e9c\u0eb9\u0ec9\u0eab\u0ebc\u0eb4\u0ec9\u0e99. \u0e9a\u0ecd\u0ec8\u0ec1\u0e9a\u0ec8\u0e87\u0e81\u0eb1\u0e99.',
-    addOtherCost:'+ \u0ec0\u0e9e\u0eb5\u0ec8\u0ea1\u0e84\u0ec8\u0eb2\u0ec3\u0e8a\u0ec9\u0e88\u0ec8\u0eb2\u0e8d', otherTotal:'\u0ea5\u0ea7\u0ea1\u0e84\u0ec8\u0eb2\u0eaa\u0ec8\u0ea7\u0e99\u0e95\u0ebb\u0ea7',
-    calculateSplit:'\u0e84\u0eb4\u0e94\u0ec4\u0ea5\u0ec8\u0e81\u0eb2\u0e99\u0ec1\u0e9a\u0ec8\u0e87', courts:'\u0eaa\u0eb0\u0edc\u0eb2\u0ea1', addCourt:'+ \u0ec0\u0e9e\u0eb5\u0ec8\u0ea1\u0eaa\u0eb0\u0edc\u0eb2\u0ea1',
-    shuttlecockBrands:'\u0ea5\u0eb9\u0e81\u0e82\u0ebb\u0e99\u0ec4\u0e81\u0ec8', addShuttlecockBrand:'+ \u0ec0\u0e9e\u0eb5\u0ec8\u0ea1\u0e8d\u0eb5\u0ec8\u0eab\u0ecd\u0ec9',
-    playerRoster:'\u0e9c\u0eb9\u0ec9\u0eab\u0ebc\u0eb4\u0ec9\u0e99', addPlayer:'+ \u0ec0\u0e9e\u0eb5\u0ec8\u0ea1\u0e9c\u0eb9\u0ec9\u0eab\u0ebc\u0eb4\u0ec9\u0e99',
-    navNew:'\u0ec3\u0edd\u0ec8', navSessions:'\u0e9b\u0eb0\u0eab\u0ea7\u0eb1\u0e94', navSummary:'\u0eaa\u0eb0\u0eab\u0ebc\u0eb8\u0e9a', navSettings:'\u0e95\u0eb1\u0ec9\u0e87\u0e84\u0ec8\u0eb2',
-    cancel:'\u0e8d\u0ebb\u0e81\u0ec0\u0ea5\u0eb5\u0e81', save:'\u0e9a\u0eb1\u0e99\u0e97\u0eb6\u0e81', delete:'\u0ea5\u0eb6\u0e9a',
-    perPerson:'\u0e95\u0ecd\u0ec8\u0e84\u0ebb\u0e99', payTo:'\u0e88\u0ec8\u0eb2\u0e8d\u0ec3\u0eab\u0ec9', payer:'\u0e9c\u0eb9\u0ec9\u0e88\u0ec8\u0eb2\u0e8d', owes:'\u0e84\u0ec9\u0eb2\u0e87',
-    total:'\u0ea5\u0ea7\u0ea1', shared:'\u0ec1\u0e9a\u0ec8\u0e87\u0e81\u0eb1\u0e99', personal:'\u0eaa\u0ec8\u0ea7\u0e99\u0e95\u0ebb\u0ea7', notSplit:'\u0e9a\u0ecd\u0ec8\u0ec1\u0e9a\u0ec8\u0e87',
-    copyMessenger:'\u0e81\u0ecd\u0ec8\u0e9a\u0e9b\u0eb5\u0ec9\u0eaa\u0eb3\u0ea5\u0eb1\u0e9a Messenger', copied:'\u0e81\u0ecd\u0ec8\u0e9a\u0e9b\u0eb5\u0ec9\u0ec1\u0ea5\u0ec9\u0ea7!',
-    noSessions:'\u0e8d\u0eb1\u0e87\u0e9a\u0ecd\u0ec8\u0ea1\u0eb5\u0ec0\u0e81\u0ea1', createFirst:'\u0eaa\u0ec9\u0eb2\u0e87\u0ec0\u0e81\u0ea1\u0e97\u0eb3\u0ead\u0eb4\u0e94!',
-    selectBrand:'\u0ec0\u0ea5\u0eb7\u0ead\u0e81\u0e8d\u0eb5\u0ec8\u0eab\u0ecd\u0ec9', qty:'\u0e88\u0eb3\u0e99\u0ea7\u0e99', cocksUsed:'\u0e88\u0eb3\u0e99\u0ea7\u0e99\u0ea5\u0eb9\u0e81\u0e97\u0eb5\u0ec8\u0ec3\u0e8a\u0ec9', tubes:'\u0eab\u0ebc\u0ead\u0e94', player:'\u0e9c\u0eb9\u0ec9\u0eab\u0ebc\u0eb4\u0ec9\u0e99', description:'\u0ea5\u0eb2\u0e8d\u0ea5\u0eb0\u0ead\u0ebd\u0e94',
-    amount:'\u0e88\u0eb3\u0e99\u0ea7\u0e99 (K)', name:'\u0e8a\u0eb7\u0ec8', location:'\u0eaa\u0eb0\u0e96\u0eb2\u0e99\u0e97\u0eb5\u0ec8', pricePerHour:'\u0ea5\u0eb2\u0e84\u0eb2/\u0e8a\u0ea1 (K)',
-    pricePerTube:'\u0ea5\u0eb2\u0e84\u0eb2/\u0eab\u0ebc\u0ead\u0e94 (K)', phone:'\u0ec2\u0e97\u0ea5\u0eb0\u0eaa\u0eb1\u0e9a', courtName:'\u0e8a\u0eb7\u0ec8\u0eaa\u0eb0\u0edc\u0eb2\u0ea1', brandName:'\u0e8a\u0eb7\u0ec8\u0e8d\u0eb5\u0ec8\u0eab\u0ecd\u0ec9',
-    headerTitle:'\u0ec1\u0e9a\u0ec8\u0e87\u0ec0\u0e87\u0eb4\u0e99\u0ec1\u0e9a\u0e94', headerSub:'\u0e88\u0ead\u0e87 \u0ec1\u0ea5\u0eb0 \u0ec1\u0e9a\u0ec8\u0e87\u0ec0\u0e87\u0eb4\u0e99\u0e87\u0ec8\u0eb2\u0e8d\u0ec6',
-    totalSession:'\u0ea5\u0ea7\u0ea1\u0e97\u0eb1\u0e87\u0edd\u0ebb\u0e94', each:'\u0e95\u0ecd\u0ec8\u0e84\u0ebb\u0e99',
-    deleteSession:'\u0ea5\u0eb6\u0e9a\u0ec0\u0e81\u0ea1', deleteConfirm:'\u0ea5\u0eb6\u0e9a\u0ec0\u0e81\u0ea1\u0e99\u0eb5\u0ec9\u0e9a\u0ecd?',
-    backToNew:'\u0e81\u0eb1\u0e9a\u0ec4\u0e9b\u0eaa\u0ec9\u0eb2\u0e87\u0ec0\u0e81\u0ea1\u0ec3\u0edd\u0ec8'
-  }
-};
-
-function t(key) { return i18n[currentLang][key] || i18n.en[key] || key; }
-
-function applyI18n() {
-  document.querySelectorAll('[data-i18n]').forEach(function(el) {
-    el.textContent = t(el.dataset.i18n);
-  });
-  document.getElementById('headerTitle').textContent = t('headerTitle');
-  document.getElementById('headerSub').textContent = t('headerSub');
-  document.getElementById('langBtn').textContent = currentLang === 'en' ? '\u0ea5\u0eb2\u0ea7' : 'EN';
-}
-
-function toggleLang() {
-  currentLang = currentLang === 'en' ? 'lo' : 'en';
-  localStorage.setItem('bm_lang', currentLang);
-  applyI18n();
-  renderAll();
-}
-
-function toggleTheme() {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', currentTheme);
-  document.getElementById('themeBtn').textContent = currentTheme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
-  localStorage.setItem('bm_theme', currentTheme);
-}
-
-// ==================== NAVIGATION ====================
-function showPage(page) {
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-  document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
-
-  if (page === 'sessions') loadSessions();
-  if (page === 'settings') renderSettings();
-}
-
-// ==================== INIT ====================
-function init() {
-  initDefaults();
-  document.body.setAttribute('data-theme', currentTheme);
-  document.getElementById('themeBtn').textContent = currentTheme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
-  document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
-  loadMasterData();
-  applyI18n();
-}
-
-function loadMasterData() {
-  courts = db('bm_courts');
-  shuttlecocks = db('bm_shuttlecocks');
-  players = db('bm_players');
-  renderAll();
-}
-
-// ==================== RENDER ====================
-function renderAll() {
-  renderCourtSelect();
-  updateCourtCost();
-  renderPlayerChips();
-  renderShuttlecockRows();
-  renderOtherCostRows();
-  renderSettings();
-}
-
-function renderCourtSelect() {
-  var sel = document.getElementById('courtSelect');
-  sel.innerHTML = '';
-  courts.forEach(function(c) {
-    var opt = document.createElement('option');
-    opt.value = c.name;
-    opt.textContent = c.name + ' (' + c.price + 'K/hr)';
-    sel.appendChild(opt);
-  });
-}
-
-function updateCourtCost() {
-  var courtName = document.getElementById('courtSelect').value;
-  var duration = parseInt(document.getElementById('sessionDuration').value) || 0;
-  var court = courts.find(function(c) { return c.name === courtName; });
-  var cost = court ? court.price * duration : 0;
-  document.getElementById('courtCostDisplay').innerHTML =
-    '\u00D7 ' + (court ? court.price : 0) + 'K/hr = <span class="amount">' + cost + 'K \u20AD</span>';
-}
-
-function renderPlayerChips() {
-  var container = document.getElementById('playerChips');
-  container.innerHTML = '';
-  players.forEach(function(p) {
-    var chip = document.createElement('div');
-    chip.className = 'chip' + (selectedPlayers[p.name] ? ' active' : '');
-    chip.textContent = p.name;
-    chip.onclick = function() {
-      if (selectedPlayers[p.name]) {
-        delete selectedPlayers[p.name];
-      } else {
-        selectedPlayers[p.name] = true;
-      }
-      renderPlayerChips();
-      updatePayerSelects();
-    };
-    container.appendChild(chip);
-  });
-}
-
-function updatePayerSelects() {
-  var activePlayers = Object.keys(selectedPlayers);
-  var courtSel = document.getElementById('courtPayerSelect');
-  var shuttleSel = document.getElementById('shuttlePayerSelect');
-  var prevCourt = courtPayer;
-  var prevShuttle = shuttlePayer;
-
-  courtSel.innerHTML = '<option value="">' + t('selectPayer') + '</option>';
-  shuttleSel.innerHTML = '<option value="">' + t('selectPayer') + '</option>';
-  activePlayers.forEach(function(name) {
-    courtSel.innerHTML += '<option value="' + name + '"' + (name === prevCourt ? ' selected' : '') + '>' + name + '</option>';
-    shuttleSel.innerHTML += '<option value="' + name + '"' + (name === prevShuttle ? ' selected' : '') + '>' + name + '</option>';
-  });
-
-  if (activePlayers.indexOf(prevCourt) >= 0) courtPayer = prevCourt;
-  else { courtPayer = ''; courtSel.value = ''; }
-  if (activePlayers.indexOf(prevShuttle) >= 0) shuttlePayer = prevShuttle;
-  else { shuttlePayer = ''; shuttleSel.value = ''; }
-}
-
-// ==================== SHUTTLECOCKS ====================
-function renderShuttlecockRows() {
-  var container = document.getElementById('shuttlecockRows');
-  container.innerHTML = '';
-  var total = 0;
-  sessionShuttlecocks.forEach(function(sc, idx) {
-    var rowTotal = Math.round((sc.qty / 12) * sc.price);
-    total += rowTotal;
-    container.innerHTML +=
-      '<div class="item-row">' +
-        '<div class="item-name">' + sc.brand +
-          '<div style="font-size:10px;color:var(--text-muted)">' + sc.qty + '/12 = ' + (sc.qty/12).toFixed(2) + ' ' + t('tubes') + ' \u00D7 ' + sc.price + 'K</div>' +
-        '</div>' +
-        '<div class="qty-controls">' +
-          '<button class="qty-btn" onclick="changeQty(' + idx + ',-1)">\u2212</button>' +
-          '<span class="qty-num">' + sc.qty + '</span>' +
-          '<button class="qty-btn" onclick="changeQty(' + idx + ',1)">+</button>' +
-        '</div>' +
-        '<div class="item-price">' + rowTotal + 'K \u20AD</div>' +
-        '<button class="remove-btn" onclick="removeShuttlecock(' + idx + ')">\u2715</button>' +
-      '</div>';
-  });
-  document.getElementById('shuttleTotal').textContent = total + 'K \u20AD';
-}
-
-function changeQty(idx, delta) {
-  sessionShuttlecocks[idx].qty = Math.max(1, sessionShuttlecocks[idx].qty + delta);
-  renderShuttlecockRows();
-}
-
-function removeShuttlecock(idx) {
-  sessionShuttlecocks.splice(idx, 1);
-  renderShuttlecockRows();
-}
-
-function showAddShuttlecock() {
-  if (shuttlecocks.length === 0) { showToast('Add shuttlecock brands in Settings first!'); return; }
-  var opts = shuttlecocks.map(function(s) {
-    return '<option value="' + s.name + '" data-price="' + s.price + '">' + s.name + ' (' + s.price + 'K)</option>';
-  }).join('');
-  document.getElementById('modalTitle').textContent = t('addBrand');
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group"><label class="form-label">' + t('selectBrand') + '</label>' +
-    '<select class="form-select" id="modalBrand">' + opts + '</select></div>' +
-    '<div class="form-group"><label class="form-label">' + t('cocksUsed') + '</label>' +
-    '<input type="number" class="form-input" id="modalQty" value="1" min="1" placeholder="e.g. 8"></div>';
-  modalCallback = function() {
-    var brand = document.getElementById('modalBrand').value;
-    var qty = parseInt(document.getElementById('modalQty').value) || 1;
-    var sc = shuttlecocks.find(function(s) { return s.name === brand; });
-    if (sc) {
-      var existing = sessionShuttlecocks.find(function(s) { return s.brand === brand; });
-      if (existing) { existing.qty += qty; }
-      else { sessionShuttlecocks.push({ brand: brand, qty: qty, price: sc.price }); }
-      renderShuttlecockRows();
-    }
-    closeModal();
-  };
-  openModal();
-}
-
-// ==================== OTHER COSTS ====================
-function renderOtherCostRows() {
-  var container = document.getElementById('otherCostRows');
-  container.innerHTML = '';
-  var total = 0;
-  sessionOtherCosts.forEach(function(oc, idx) {
-    total += oc.amount;
-    var colorIdx = players.findIndex(function(p) { return p.name === oc.player; });
-    if (colorIdx < 0) colorIdx = 0;
-    var color = COLORS[colorIdx % COLORS.length];
-    container.innerHTML +=
-      '<div class="other-row">' +
-        '<div class="other-avatar" style="background:' + color + '">' + oc.player.charAt(0) + '</div>' +
-        '<div class="other-info"><div class="other-player">' + oc.player + '</div><div class="other-desc">' + oc.desc + '</div></div>' +
-        '<div class="other-amount">' + oc.amount + 'K \u20AD</div>' +
-        '<button class="remove-btn" onclick="removeOtherCost(' + idx + ')">\u2715</button>' +
-      '</div>';
-  });
-  document.getElementById('otherTotal').textContent = total + 'K \u20AD';
-}
-
-function removeOtherCost(idx) {
-  sessionOtherCosts.splice(idx, 1);
-  renderOtherCostRows();
-}
-
-function showAddOtherCost() {
-  var activePlayers = Object.keys(selectedPlayers);
-  if (activePlayers.length === 0) { showToast('Select players first!'); return; }
-  var opts = activePlayers.map(function(n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
-  document.getElementById('modalTitle').textContent = t('addOtherCost');
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group"><label class="form-label">' + t('player') + '</label>' +
-    '<select class="form-select" id="modalPlayer">' + opts + '</select></div>' +
-    '<div class="form-group"><label class="form-label">' + t('description') + '</label>' +
-    '<input type="text" class="form-input" id="modalDesc" placeholder="Water, drinks..."></div>' +
-    '<div class="form-group"><label class="form-label">' + t('amount') + '</label>' +
-    '<input type="number" class="form-input" id="modalAmount" min="1"></div>';
-  modalCallback = function() {
-    var player = document.getElementById('modalPlayer').value;
-    var desc = document.getElementById('modalDesc').value;
-    var amount = parseInt(document.getElementById('modalAmount').value) || 0;
-    if (player && desc && amount > 0) {
-      sessionOtherCosts.push({ player: player, desc: desc, amount: amount });
-      renderOtherCostRows();
-    }
-    closeModal();
-  };
-  openModal();
-}
-
-// ==================== CALCULATE & SAVE ====================
-function generateSessionId() {
-  var today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-  var sessions = db('bm_sessions');
-  var prefix = 'SES-' + today + '-';
-  var count = 1;
-  sessions.forEach(function(s) {
-    if (s.id && s.id.indexOf(prefix) === 0) {
-      var n = parseInt(s.id.replace(prefix, ''));
-      if (n >= count) count = n + 1;
-    }
-  });
-  return prefix + count;
-}
-
-function calculateSplit() {
-  var activePlayers = Object.keys(selectedPlayers);
-  if (activePlayers.length < 2) { showToast('Need at least 2 players!'); return; }
-  if (!courtPayer) { showToast('Select court payer!'); return; }
-  if (sessionShuttlecocks.length > 0 && !shuttlePayer) { showToast('Select shuttle payer!'); return; }
-
-  var courtName = document.getElementById('courtSelect').value;
-  var court = courts.find(function(c) { return c.name === courtName; });
-  var duration = parseInt(document.getElementById('sessionDuration').value) || 0;
-  var courtCost = court ? court.price * duration : 0;
-
-  // Shuttle totals
-  var scItems = [];
-  var shuttleTotal = 0;
-  sessionShuttlecocks.forEach(function(sc) {
-    var total = Math.round((sc.qty / 12) * sc.price);
-    scItems.push({ brand: sc.brand, qty: sc.qty, price: sc.price, total: total });
-    shuttleTotal += total;
-  });
-
-  // Other costs
-  var otherTotal = 0;
-  sessionOtherCosts.forEach(function(oc) { otherTotal += oc.amount; });
-
-  // Personal costs per player
-  var personalCosts = {};
-  sessionOtherCosts.forEach(function(oc) {
-    personalCosts[oc.player] = (personalCosts[oc.player] || 0) + oc.amount;
-  });
-
-  var n = activePlayers.length;
-  var courtPP = Math.round(courtCost / n);
-  var shuttlePP = shuttleTotal > 0 ? Math.round(shuttleTotal / n) : 0;
-  var sharedPP = courtPP + shuttlePP;
-
-  var playerRecords = activePlayers.map(function(name) {
-    var personal = personalCosts[name] || 0;
-    return {
-      name: name,
-      courtShare: courtPP,
-      shuttleShare: shuttlePP,
-      personal: personal,
-      total: sharedPP + personal
-    };
-  });
-
-  var sharedCost = courtCost + shuttleTotal;
-  var grandTotal = sharedCost + otherTotal;
-
-  var sessionId = generateSessionId();
-  var effectiveShuttlePayer = shuttlePayer || courtPayer;
-
-  var session = {
-    id: sessionId,
-    date: document.getElementById('sessionDate').value,
-    court: courtName,
-    startTime: document.getElementById('sessionTime').value,
-    duration: duration,
-    courtCost: courtCost,
-    courtPayer: courtPayer,
-    shuttlePayer: effectiveShuttlePayer,
-    players: playerRecords,
-    shuttlecocks: scItems,
-    otherCosts: sessionOtherCosts.slice(),
-    shuttleTotal: shuttleTotal,
-    otherTotal: otherTotal,
-    sharedCost: sharedCost,
-    grandTotal: grandTotal
-  };
-
-  // Save
-  var sessions = db('bm_sessions');
-  sessions.push(session);
-  dbSet('bm_sessions', sessions);
-
-  // Reset form
-  selectedPlayers = {};
-  courtPayer = '';
-  shuttlePayer = '';
-  sessionShuttlecocks = [];
-  sessionOtherCosts = [];
-  renderPlayerChips();
-  updatePayerSelects();
-  renderShuttlecockRows();
-  renderOtherCostRows();
-
-  // Show result
-  renderResult(session);
-  showPage('result');
-}
-
-// ==================== MESSENGER TEXT ====================
-function buildMessengerText(session) {
-  var s = session;
-  var d = new Date(s.date + 'T00:00:00');
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var dateStr = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-
-  var startParts = s.startTime.split(':');
-  var startH = parseInt(startParts[0]);
-  var startM = parseInt(startParts[1] || '0');
-  var endH = startH + s.duration;
-  var startStr = String(startH).padStart(2,'0') + ':' + String(startM).padStart(2,'0');
-  var endStr = String(endH).padStart(2,'0') + ':' + String(startM).padStart(2,'0');
-
-  var lines = [];
-  lines.push('\uD83C\uDFF8 Badminton \u2014 ' + dateStr);
-  lines.push('\uD83D\uDCCD ' + s.court + ' | ' + startStr + '-' + endStr);
-  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
-
-  var n = s.players.length;
-  var courtPP = Math.round(s.courtCost / n);
-  var shuttlePP = s.shuttleTotal > 0 ? Math.round(s.shuttleTotal / n) : 0;
-
-  lines.push('\uD83C\uDFDF\uFE0F Court: ' + Math.round(s.courtCost) + 'K \u20AD (\u00F7' + n + ' = ' + courtPP + 'K)');
-  lines.push('   \uD83D\uDCB3 Paid by ' + s.courtPayer);
-  if (s.shuttleTotal > 0) {
-    var cocksList = s.shuttlecocks.map(function(sc) { return sc.qty + ' ' + sc.brand; }).join(', ');
-    lines.push('\uD83E\uDEB6 Shuttle: ' + Math.round(s.shuttleTotal) + 'K \u20AD (' + cocksList + ') (\u00F7' + n + ' = ' + shuttlePP + 'K)');
-    lines.push('   \uD83D\uDCB3 Paid by ' + s.shuttlePayer);
-  }
-  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
-
-  // Calculate net debts
-  var debts = {};
-  for (var i = 0; i < s.players.length; i++) {
-    var pName = s.players[i].name;
-    if (pName !== s.courtPayer) {
-      if (!debts[s.courtPayer]) debts[s.courtPayer] = {};
-      debts[s.courtPayer][pName] = (debts[s.courtPayer][pName] || 0) + courtPP;
-    }
-    if (shuttlePP > 0 && pName !== s.shuttlePayer) {
-      if (!debts[s.shuttlePayer]) debts[s.shuttlePayer] = {};
-      debts[s.shuttlePayer][pName] = (debts[s.shuttlePayer][pName] || 0) + shuttlePP;
-    }
-  }
-
-  // Net between payers
-  var cp = s.courtPayer;
-  var sp = s.shuttlePayer;
-  if (cp !== sp && debts[cp] && debts[cp][sp] && debts[sp] && debts[sp][cp]) {
-    var cpOwes = debts[sp][cp];
-    var spOwes = debts[cp][sp];
-    if (cpOwes > spOwes) {
-      debts[sp][cp] = cpOwes - spOwes;
-      delete debts[cp][sp];
-    } else if (spOwes > cpOwes) {
-      debts[cp][sp] = spOwes - cpOwes;
-      delete debts[sp][cp];
-    } else {
-      delete debts[cp][sp];
-      delete debts[sp][cp];
-    }
-  }
-
-  var payerNames = Object.keys(debts);
-  for (var p = 0; p < payerNames.length; p++) {
-    var payTo = payerNames[p];
-    lines.push('\uD83D\uDC49 Pay to ' + payTo + ':');
-    var debtPlayers = Object.keys(debts[payTo]);
-    for (var i = 0; i < debtPlayers.length; i++) {
-      var amt = debts[payTo][debtPlayers[i]];
-      var personal = 0;
-      for (var j = 0; j < s.otherCosts.length; j++) {
-        if (s.otherCosts[j].player === debtPlayers[i]) personal += s.otherCosts[j].amount;
-      }
-      var line = '  ' + debtPlayers[i] + ' \u2014 ' + Math.round(amt) + 'K \u20AD';
-      if (personal > 0) line += ' (+\uD83E\uDDC3' + Math.round(personal) + 'K)';
-      lines.push(line);
-    }
-  }
-
-  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
-  lines.push('\uD83D\uDCB0 Total: ' + Math.round(s.grandTotal) + 'K \u20AD');
-
-  return lines.join('\n');
-}
-
-// ==================== RESULT PAGE ====================
-function renderResult(s) {
-  var playerCount = s.players.length;
-  var courtPP = Math.round(s.courtCost / playerCount);
-  var shuttlePP = Math.round(s.shuttleTotal / playerCount);
-
-  var html = '<div class="split-header">' +
-    '<div class="split-label">' + t('totalSession') + '</div>' +
-    '<div class="split-amount">' + Math.round(s.grandTotal) + 'K \u20AD</div>' +
-    '<div class="split-sub">' + t('shared') + ' ' + Math.round(s.sharedCost) + 'K + ' + t('personal') + ' ' + Math.round(s.otherTotal) + 'K</div>' +
-    '</div>';
-
-  html += '<div class="cost-breakdown">' +
-    '<div class="cost-card"><div class="cost-icon">\uD83C\uDFDF\uFE0F</div><div class="cost-card-label">' + t('court') + '</div>' +
-    '<div class="cost-card-value">' + Math.round(s.courtCost) + 'K</div><div class="cost-card-sub">\u00F7' + playerCount + ' = ' + courtPP + 'K</div></div>' +
-    '<div class="cost-card"><div class="cost-icon">\uD83E\uDEB6</div><div class="cost-card-label">' + t('shuttlecocks') + '</div>' +
-    '<div class="cost-card-value">' + Math.round(s.shuttleTotal) + 'K</div><div class="cost-card-sub">\u00F7' + playerCount + ' = ' + shuttlePP + 'K</div></div>' +
-    '<div class="cost-card personal"><div class="cost-icon">\uD83E\uDDC3</div><div class="cost-card-label orange">' + t('personal') + '</div>' +
-    '<div class="cost-card-value" style="color:var(--orange)">' + Math.round(s.otherTotal) + 'K</div><div class="cost-card-sub">' + t('notSplit') + '</div></div>' +
-    '</div>';
-
-  html += '<div class="card"><div class="card-title">' + t('perPerson') + '</div>';
-  s.players.forEach(function(p, idx) {
-    var isCourtPayer = p.name === s.courtPayer;
-    var isShuttlePayer = p.name === s.shuttlePayer;
-    var color = COLORS[idx % COLORS.length];
-    var breakdown = '\uD83C\uDFDF\uFE0F' + courtPP + 'K + \uD83E\uDEB6' + shuttlePP + 'K';
-    if (p.personal > 0) breakdown += ' + <span style="color:var(--orange)">\uD83E\uDDC3' + Math.round(p.personal) + 'K</span>';
-
-    var statusTags = [];
-    if (isCourtPayer) statusTags.push('<span class="person-status status-payer">' + t('courtPayer') + '</span>');
-    if (isShuttlePayer) statusTags.push('<span class="person-status status-payer">' + t('shuttlePayer') + '</span>');
-    if (!isCourtPayer && !isShuttlePayer) statusTags.push('<span class="person-status status-owes">' + t('owes') + '</span>');
-
-    html += '<div class="person-row"><div class="person-left">' +
-      '<div class="person-avatar" style="background:' + color + '">' + p.name.charAt(0) + '</div>' +
-      '<div><div style="font-size:14px">' + p.name + '</div>' +
-      statusTags.join(' ') + '</div></div>' +
-      '<div class="person-right"><div class="person-amount">' + Math.round(p.total) + 'K \u20AD</div>' +
-      '<div class="person-breakdown">' + breakdown + '</div></div></div>';
-  });
-  html += '</div>';
-
-  // Messenger text
-  var messengerText = buildMessengerText(s);
-
-  html += '<button class="btn-share" onclick="copyMessengerFromPreview()">' + t('copyMessenger') + '</button>';
-  html += '<div class="card" style="margin-top:12px"><div class="card-title">Messenger Preview</div>' +
-    '<div class="messenger-preview" id="messengerPreview">' + escapeHtml(messengerText) + '</div></div>';
-
-  html += '<button class="btn-danger" onclick="deleteSession(\'' + s.id + '\')">' + t('deleteSession') + '</button>';
-  html += '<button class="btn-secondary" style="margin-top:8px" onclick="showPage(\'new\')">' + t('backToNew') + '</button>';
-
-  document.getElementById('resultContent').innerHTML = html;
-}
-
-function escapeHtml(text) {
-  var div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function copyMessengerFromPreview() {
-  var text = document.getElementById('messengerPreview').textContent;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(function() { showToast(t('copied')); });
-  } else {
-    var ta = document.createElement('textarea');
-    ta.value = text; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showToast(t('copied'));
-  }
-}
-
-function deleteSession(sessionId) {
-  if (!confirm(t('deleteConfirm'))) return;
-  var sessions = db('bm_sessions');
-  sessions = sessions.filter(function(s) { return s.id !== sessionId; });
-  dbSet('bm_sessions', sessions);
-  showToast(t('delete') + '!');
-  showPage('sessions');
-}
-
-// ==================== SESSIONS LIST ====================
-function loadSessions() {
-  var container = document.getElementById('sessionsList');
-  var sessions = db('bm_sessions');
-  sessions = sessions.slice().reverse();
-
-  if (sessions.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">\uD83C\uDFF8</div><div>' + t('noSessions') + '</div><div style="margin-top:8px;font-size:13px">' + t('createFirst') + '</div></div>';
-    return;
-  }
-
-  var html = '';
-  sessions.forEach(function(s) {
-    var d = new Date(s.date + 'T00:00:00');
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var dateStr = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-    var playerCount = s.players.length;
-    var avgPP = playerCount > 0 ? Math.round(s.grandTotal / playerCount) : 0;
-    html += '<div class="session-item" onclick="showSessionResultById(\'' + s.id + '\')">' +
-      '<div><div class="session-date">' + dateStr + '</div>' +
-      '<div class="session-court">\uD83D\uDCCD ' + s.court + ' \u2022 ' + s.startTime + '</div>' +
-      '<div class="session-players">\uD83D\uDC65 ' + playerCount + ' ' + t('players') + ' \u2022 \uD83C\uDFDF\uFE0F' + s.courtPayer + (s.shuttlePayer !== s.courtPayer ? ' \uD83E\uDEB6' + s.shuttlePayer : '') + '</div></div>' +
-      '<div><div class="session-total">' + Math.round(s.grandTotal) + 'K</div>' +
-      '<div class="session-each">' + avgPP + 'K ' + t('each') + '</div></div></div>';
-  });
-  container.innerHTML = html;
-}
-
-function showSessionResultById(sessionId) {
-  var sessions = db('bm_sessions');
-  var session = sessions.find(function(s) { return s.id === sessionId; });
-  if (session) {
-    renderResult(session);
-    showPage('result');
-  }
-}
-
-// ==================== SETTINGS ====================
-function renderSettings() {
-  // Courts
-  var ch = '';
-  courts.forEach(function(c) {
-    ch += '<div class="settings-item"><div class="settings-left"><span class="settings-icon">\uD83C\uDFDF\uFE0F</span>' +
-      '<div><div class="settings-label">' + c.name + '</div><div style="font-size:11px;color:var(--text-muted)">\uD83D\uDCCD ' + c.location + '</div></div></div>' +
-      '<div style="display:flex;align-items:center;gap:8px"><div class="settings-value">' + c.price + 'K/hr</div>' +
-      '<button class="delete-btn" onclick="delCourt(\'' + c.id + '\')">\u2715</button></div></div>';
-  });
-  document.getElementById('settingsCourts').innerHTML = ch;
-
-  // Shuttlecocks
-  var sh = '';
-  shuttlecocks.forEach(function(s) {
-    sh += '<div class="settings-item"><div class="settings-left"><span class="settings-icon">\uD83E\uDEB6</span>' +
-      '<div class="settings-label">' + s.name + '</div></div>' +
-      '<div style="display:flex;align-items:center;gap:8px"><div class="settings-value">' + s.price + 'K/tube</div>' +
-      '<button class="delete-btn" onclick="delShuttlecock(\'' + s.id + '\')">\u2715</button></div></div>';
-  });
-  document.getElementById('settingsShuttlecocks').innerHTML = sh;
-
-  // Players
-  var ph = '';
-  players.forEach(function(p) {
-    ph += '<div class="settings-item"><div class="settings-left"><span class="settings-icon">\uD83D\uDC64</span>' +
-      '<div><div class="settings-label">' + p.name + '</div><div style="font-size:11px;color:var(--text-muted)">' + (p.phone || '') + '</div></div></div>' +
-      '<button class="delete-btn" onclick="delPlayer(\'' + p.id + '\')">\u2715</button></div>';
-  });
-  document.getElementById('settingsPlayers').innerHTML = ph;
-}
-
-function showAddCourtModal() {
-  document.getElementById('modalTitle').textContent = t('addCourt');
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group"><label class="form-label">' + t('courtName') + '</label><input class="form-input" id="mCourtName"></div>' +
-    '<div class="form-group"><label class="form-label">' + t('location') + '</label><input class="form-input" id="mCourtLoc"></div>' +
-    '<div class="form-group"><label class="form-label">' + t('pricePerHour') + '</label><input type="number" class="form-input" id="mCourtPrice"></div>';
-  modalCallback = function() {
-    var name = document.getElementById('mCourtName').value;
-    var loc = document.getElementById('mCourtLoc').value;
-    var price = parseInt(document.getElementById('mCourtPrice').value);
-    if (name && price) {
-      var items = db('bm_courts');
-      var nextNum = 1;
-      items.forEach(function(c) {
-        var n = parseInt(c.id.replace('C',''));
-        if (n >= nextNum) nextNum = n + 1;
-      });
-      items.push({id:'C'+String(nextNum).padStart(3,'0'), name:name, location:loc||'', price:price});
-      dbSet('bm_courts', items);
-      loadMasterData();
-      closeModal();
-    }
-  };
-  openModal();
-}
-
-function showAddShuttlecockModal() {
-  document.getElementById('modalTitle').textContent = t('addShuttlecockBrand');
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group"><label class="form-label">' + t('brandName') + '</label><input class="form-input" id="mBrandName"></div>' +
-    '<div class="form-group"><label class="form-label">' + t('pricePerTube') + '</label><input type="number" class="form-input" id="mBrandPrice"></div>';
-  modalCallback = function() {
-    var name = document.getElementById('mBrandName').value;
-    var price = parseInt(document.getElementById('mBrandPrice').value);
-    if (name && price) {
-      var items = db('bm_shuttlecocks');
-      var nextNum = 1;
-      items.forEach(function(s) {
-        var n = parseInt(s.id.replace('S',''));
-        if (n >= nextNum) nextNum = n + 1;
-      });
-      items.push({id:'S'+String(nextNum).padStart(3,'0'), name:name, price:price});
-      dbSet('bm_shuttlecocks', items);
-      loadMasterData();
-      closeModal();
-    }
-  };
-  openModal();
-}
-
-function showAddPlayerModal() {
-  document.getElementById('modalTitle').textContent = t('addPlayer');
-  document.getElementById('modalBody').innerHTML =
-    '<div class="form-group"><label class="form-label">' + t('name') + '</label><input class="form-input" id="mPlayerName"></div>' +
-    '<div class="form-group"><label class="form-label">' + t('phone') + '</label><input class="form-input" id="mPlayerPhone"></div>';
-  modalCallback = function() {
-    var name = document.getElementById('mPlayerName').value;
-    var phone = document.getElementById('mPlayerPhone').value;
-    if (name) {
-      var items = db('bm_players');
-      var nextNum = 1;
-      items.forEach(function(p) {
-        var n = parseInt(p.id.replace('P',''));
-        if (n >= nextNum) nextNum = n + 1;
-      });
-      items.push({id:'P'+String(nextNum).padStart(3,'0'), name:name, phone:phone||''});
-      dbSet('bm_players', items);
-      loadMasterData();
-      closeModal();
-    }
-  };
-  openModal();
-}
-
-function delCourt(id) {
-  if (!confirm(t('delete')+'?')) return;
-  var items = db('bm_courts').filter(function(c) { return c.id !== id; });
-  dbSet('bm_courts', items);
-  loadMasterData();
-}
-
-function delShuttlecock(id) {
-  if (!confirm(t('delete')+'?')) return;
-  var items = db('bm_shuttlecocks').filter(function(s) { return s.id !== id; });
-  dbSet('bm_shuttlecocks', items);
-  loadMasterData();
-}
-
-function delPlayer(id) {
-  if (!confirm(t('delete')+'?')) return;
-  var items = db('bm_players').filter(function(p) { return p.id !== id; });
-  dbSet('bm_players', items);
-  loadMasterData();
-}
-
-// ==================== MODAL ====================
-function openModal() { document.getElementById('modal').classList.add('show'); }
-function closeModal() { document.getElementById('modal').classList.remove('show'); modalCallback = null; }
-function modalConfirm() { if (modalCallback) modalCallback(); }
-
-// ==================== TOAST ====================
-function showToast(msg) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(function() { el.classList.remove('show'); }, 2000);
-}
-
-// ==================== SERVICE WORKER ====================
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(err) {
-    console.log('SW registration failed:', err);
-  });
-}
-
-// ==================== START ====================
-init();
-</script>
 </body>
 </html>

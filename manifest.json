@@ -1,7 +1,7 @@
 {
-  "name": "Badminton Split",
-  "short_name": "BadSplit",
-  "description": "Book courts & split costs instantly",
+  "name": "Godsmash",
+  "short_name": "Godsmash",
+  "description": "Badminton booking & cost splitting",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
