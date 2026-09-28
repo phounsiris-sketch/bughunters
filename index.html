@@ -16,12 +16,27 @@
 <div id="auth-container">
   <div id="login-page" class="login-page">
     <div class="login-logo"><iconify-icon icon="solar:shuttlecock-bold" width="64"></iconify-icon></div>
-    <div class="login-title" data-i18n="loginTitle">Godsmash</div>
-    <div class="login-subtitle" data-i18n="loginSubtitle">Badminton booking &amp; cost splitting</div>
+    <div class="login-title">Godsmash</div>
+    <div class="login-subtitle">Badminton booking &amp; cost splitting</div>
     <div class="login-form">
-      <input type="email" class="form-input" id="loginEmail" placeholder="Enter your email" data-i18n-placeholder="enterEmail">
-      <div class="otp-sent-msg" id="otpSentMsg" style="display:none" data-i18n="checkEmail">Check your email for the login link!</div>
-      <button class="btn-primary" id="sendLinkBtn" onclick="sendLoginLink()" data-i18n="sendLink">Send Login Link</button>
+      <div class="form-group">
+        <select class="form-select" id="devNameSelect">
+          <option value="">-- Select your name --</option>
+          <option value="Joung">Joung</option>
+          <option value="Bob">Bob</option>
+          <option value="Mee">Mee</option>
+          <option value="Ton">Ton</option>
+          <option value="John">John</option>
+          <option value="Nith">Nith</option>
+          <option value="Bird">Bird</option>
+          <option value="Na">Na</option>
+          <option value="Bua">Bua</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input type="password" class="form-input" id="devPassword" placeholder="Password">
+      </div>
+      <button class="btn-primary" onclick="devLogin()">Login</button>
     </div>
   </div>
   <div id="profile-page" class="profile-setup" style="display:none">
