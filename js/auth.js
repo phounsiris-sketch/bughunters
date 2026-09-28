@@ -246,7 +246,11 @@ function initAuth() {
   // No login — go straight to app
   currentUser = { uid: 'shared-user', email: 'shared@godsmash.local' };
   currentUserProfile = { email: 'shared@godsmash.local', displayName: 'Player', phone: null, avatarUrl: null };
-  seedFirestoreData();
+  // Only seed once ever
+  if (!localStorage.getItem('godsmash_seeded')) {
+    seedFirestoreData();
+    localStorage.setItem('godsmash_seeded', '1');
+  }
   showAppPage();
   initApp();
   return;

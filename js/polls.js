@@ -246,6 +246,14 @@ function renderPollCreateForm() {
   var container = document.getElementById("pollCreateContent");
   if (!container) return;
 
+  if (allCourts.length === 0) {
+    container.innerHTML = '<div class="card"><div class="card-title">' + t('createPoll') + '</div>' +
+      '<div class="empty-state" style="padding:20px"><div>' + t('courts') + ' empty</div>' +
+      '<div style="font-size:13px;margin-top:8px;color:var(--text-muted)">Add courts in Settings first</div>' +
+      '<button class="btn-secondary" style="margin-top:12px" onclick="showPage(\'settings\')">' + t('navSettings') + '</button></div></div>';
+    return;
+  }
+
   // Build court select options
   var courtOptionsHtml = '<option value="">Select court...</option>';
   for (var c = 0; c < allCourts.length; c++) {

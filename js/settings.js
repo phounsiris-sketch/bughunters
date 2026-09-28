@@ -21,6 +21,12 @@ var settingsUsers = [];
 var settingsQrCodes = null;
 
 var _settingsUnsubs = [];   // Firestore snapshot unsubscribes
+var _settingsRenderTimer = null;
+
+function debouncedRenderSettings() {
+  if (_settingsRenderTimer) clearTimeout(_settingsRenderTimer);
+  _settingsRenderTimer = setTimeout(renderSettings, 100);
+}
 
 /* ──────────────────────────────────────────────────────────
    Load (real-time listeners)
@@ -36,28 +42,28 @@ function loadSettings() {
   _settingsUnsubs.push(
     dbGetCourts(function (courts) {
       settingsCourts = courts;
-      renderSettings();
+      debouncedRenderSettings();
     })
   );
 
   _settingsUnsubs.push(
     dbGetShuttlecocks(function (brands) {
       settingsShuttlecocks = brands;
-      renderSettings();
+      debouncedRenderSettings();
     })
   );
 
   _settingsUnsubs.push(
     dbGetUsers(function (users) {
       settingsUsers = users;
-      renderSettings();
+      debouncedRenderSettings();
     })
   );
 
   _settingsUnsubs.push(
     dbGetQrCodes(function (qr) {
       settingsQrCodes = qr;
-      renderSettings();
+      debouncedRenderSettings();
     })
   );
 }
