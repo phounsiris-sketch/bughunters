@@ -96,8 +96,31 @@ function logoutUser() {
   auth.signOut();
 }
 
+/* ---------- Dev bypass — skip login ---------- */
+function devBypass() {
+  currentUser = { uid: 'dev-user-001', email: 'dev@godsmash.local' };
+  currentUserProfile = { email: 'dev@godsmash.local', displayName: 'Bob (Dev)', phone: null, avatarUrl: null };
+
+  // Ensure user doc exists in Firestore
+  fsdb.collection('users').doc(currentUser.uid).set({
+    email: currentUser.email,
+    displayName: currentUserProfile.displayName,
+    phone: null,
+    avatarUrl: null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(function() {});
+
+  showAppPage();
+  initApp();
+}
+
 /* ---------- Initialise auth listener ---------- */
 function initAuth() {
+  // DEV BYPASS: skip Firebase auth, go straight to app
+  // Remove this block once Firebase email link auth is working
+  devBypass();
+  return;
+
   handleEmailLinkSignIn();
 
   auth.onAuthStateChanged(function (user) {
