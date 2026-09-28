@@ -1,0 +1,10 @@
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp index.html manifest.json sw.js public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
