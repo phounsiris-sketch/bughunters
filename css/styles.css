@@ -1621,3 +1621,116 @@ textarea {
 .person-right .person-amount {
   white-space: nowrap;
 }
+
+/* ========== Themed dropdown (js/select.js) ==========
+   Same language as the poll option cards: surface background,
+   1px border, 10px radius, accent border + check when selected. */
+:root { color-scheme: dark; }
+[data-theme="light"] { color-scheme: light; }
+body[data-theme="light"] { color-scheme: light; }
+body[data-theme="dark"] { color-scheme: dark; }
+
+.cs-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cs-trigger {
+  display: block;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.cs-trigger.cs-placeholder {
+  color: var(--text-muted);
+}
+
+.cs-trigger.cs-active,
+.cs-trigger:focus-visible {
+  border-color: var(--primary);
+}
+
+.cs-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cs-menu {
+  position: fixed;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  animation: cs-in 0.12s ease-out;
+}
+
+.cs-menu.cs-up {
+  animation-name: cs-in-up;
+}
+
+@keyframes cs-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes cs-in-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.cs-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cs-option:hover,
+.cs-option:focus {
+  border-color: var(--primary);
+}
+
+.cs-option.selected {
+  border: 2px solid var(--accent);
+  padding: 9px 13px;
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.cs-option.selected::after {
+  content: "\2714";
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.cs-option.cs-placeholder {
+  color: var(--text-muted);
+}
+
+.cs-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-theme="light"] .cs-menu {
+  box-shadow: 0 8px 24px rgba(15, 31, 53, 0.12);
+}
