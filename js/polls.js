@@ -27,6 +27,7 @@ function loadPolls() {
     pollsUnsubscribe = dbGetPolls(function (polls) {
       lastPolls = polls;
       if (currentPage === "polls") renderPolls(polls);
+      if (typeof updateNotifications === "function") updateNotifications();
     });
   }
   renderPolls(lastPolls);
@@ -39,14 +40,20 @@ function stopPolls() {
 }
 
 /* ---------- Get user display name (HTML-escaped) ---------- */
+/** Plain (unescaped) display name of a user object: name → email → "Unknown player" */
+function plainUserName(u) {
+  if (!u) return t("unknownPlayer");
+  return u.displayName || (u.email ? u.email.split("@")[0] : t("unknownPlayer"));
+}
+
 function getUserName(uid) {
   if (!uid) return "";
   var u = dbFindById(DB_CACHE.users, uid);
+  if (!u && currentUser && uid === currentUser.uid) u = currentUserProfile;
   if (u && u.displayName) return escapeHtml(u.displayName);
-  if (currentUser && uid === currentUser.uid && currentUserProfile && currentUserProfile.displayName) {
-    return escapeHtml(currentUserProfile.displayName);
-  }
-  return "?";
+  if (u && u.email) return escapeHtml(u.email.split("@")[0]);
+  if (currentUser && uid === currentUser.uid && currentUser.email) return escapeHtml(currentUser.email.split("@")[0]);
+  return t("unknownPlayer");
 }
 
 /* ---------- Render polls list (active / history) ---------- */
@@ -162,7 +169,7 @@ function _renderPollCard(poll) {
 
   var html = '<div class="card poll-card">';
   html += '<div class="poll-header">';
-  html += '<span style="font-size:13px;color:var(--text-secondary)">' + t('createdBy') + ' ' + getUserName(poll.createdBy) + '</span>';
+  html += '<span class="poll-author">' + avatarHtml(poll.createdBy, 28) + '<span><span class="poll-author-by">' + t('createdBy') + '</span> <b>' + getUserName(poll.createdBy) + '</b></span></span>';
   html += '<span class="poll-status ' + statusClass + '">' + statusLabel + '</span>';
   html += '</div>';
 
@@ -265,7 +272,7 @@ function showVoteForOthers(pollId) {
   DB_CACHE.users.forEach(function (u) {
     var cur = np.responses.hasOwnProperty(u.id) ? np.responses[u.id] : -1;
     rows += '<div class="proxy-row" data-uid="' + u.id + '" data-answer="' + cur + '">';
-    rows += '<div class="proxy-name">' + escapeHtml(u.displayName || '?') + (u.manual ? ' ✍️' : '') + '</div><div class="proxy-pills">';
+    rows += '<div class="proxy-name">' + escapeHtml(plainUserName(u)) + (u.manual ? ' ✍️' : '') + '</div><div class="proxy-pills">';
     for (var ai = 0; ai < np.answers.length; ai++) {
       rows += '<button type="button" class="proxy-pill' + (cur === ai ? ' active' : '') + '" onclick="_proxyPick(this,' + ai + ')">' + escapeHtml(np.answers[ai]) + '</button>';
     }
@@ -352,7 +359,7 @@ function confirmPoll(pollId) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      transaction.update(pollRef, { status: 'confirmed', confirmedPlayers: players, sessionId: sessionRef.id });
+      transaction.update(pollRef, { status: 'confirmed', confirmedPlayers: players, sessionId: sessionRef.id, confirmedAt: Date.now() });
     });
   })
     .then(function () {

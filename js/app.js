@@ -162,7 +162,7 @@ function avatarHtml(uid, size) {
   if (u && u.avatarUrl) {
     return '<img class="person-avatar" src="' + u.avatarUrl + '" alt="" style="' + style + '">';
   }
-  var name = u && u.displayName ? u.displayName : "?";
+  var name = typeof plainUserName === "function" ? plainUserName(u) : (u && u.displayName) || "?";
   return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
 }
 
@@ -207,6 +207,7 @@ function monthsOf(items, getDate) {
 /** Re-render whatever page is showing (after data or language changes) */
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
+  if (typeof updateNotifications === "function") updateNotifications();
   if (currentPage === "settings" && typeof renderSettings === "function") {
     renderSettings();
   } else if (currentPage === "polls" && typeof renderPolls === "function") {
@@ -215,6 +216,8 @@ function refreshCurrentPage(reason) {
     renderPollCreateForm();
   } else if (currentPage === "sessions" && typeof renderSessionsList === "function") {
     renderSessionsList(lastSessions);
+  } else if (currentPage === "payments" && typeof renderPayments === "function") {
+    renderPayments();
   } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
     _renderDashboard();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
@@ -279,6 +282,12 @@ fillStaticIcons();
 // Theme + language on the sign-in screen too
 document.body.setAttribute("data-theme", currentTheme);
 if (typeof applyI18n === "function") applyI18n();
+
+// Splash follows the saved theme / language
+var _splashSub = document.getElementById("splashSub");
+if (_splashSub && typeof t === "function") _splashSub.textContent = t("headerSub");
+// Never leave someone stuck on the splash (e.g. offline at first start)
+setTimeout(function () { if (typeof hideSplash === "function") hideSplash(); }, 8000);
 
 // initAuth is defined in auth.js (loaded before app.js)
 initAuth();

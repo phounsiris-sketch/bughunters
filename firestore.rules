@@ -72,7 +72,7 @@ service cloud.firestore {
         // The creator (the poll's creator for confirmed polls) edits everything
         isCreator()
         // Marking a payment as paid is open to everyone
-        || changed().hasOnly(['settled', 'status'])
+        || changed().hasOnly(['settled', 'settledAt', 'status'])
         || (
           (can('editSession') || !changed().hasAny(sessionDetailKeys())) &&
           (can('editBill') || !changed().hasAny(billKeys())) &&

@@ -187,6 +187,8 @@ function loadSessions() {
       lastSessions = sessions;
       if (currentPage === "sessions") renderSessionsList(sessions);
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
+      if (currentPage === "payments" && typeof renderPayments === "function") renderPayments();
+      if (typeof updateNotifications === "function") updateNotifications();
     });
   }
   renderSessionsList(lastSessions);
@@ -255,6 +257,14 @@ function renderSessionsList(sessions) {
   html += filterBarHtml(
     [["", t("allStatuses")], ["upcoming", t("statusUpcoming")], ["costs", t("needsCosts")], ["unpaid", t("unpaid")], ["settled", t("settled")]],
     sessionStatusFilter, months, sessionHistoryMonth, "setSessionStatusFilter", "setSessionMonthFilter");
+
+  var pay = typeof myPaymentSummary === "function" ? myPaymentSummary() : null;
+  if (pay && (pay.oweTotal || pay.owedTotal)) {
+    html += '<button class="pay-banner" onclick="showMyPayments()">' + icon("wallet", 22) +
+      '<span style="flex:1;text-align:left"><b>' + (pay.oweTotal ? t("youOwe") + ' ' + fmtLAK(pay.oweTotal) : t("allPaidUp")) + '</b>' +
+      (pay.owedTotal ? '<br><small>' + t("owedToYou") + ' ' + fmtLAK(pay.owedTotal) + '</small>' : '') + '</span>' +
+      '<span class="pay-banner-cta">' + (pay.oweTotal ? t("payNow") : t("view")) + ' ' + icon("chevron", 14) + '</span></button>';
+  }
 
   if (sessionView === "recent" && can("editSession")) {
     html += '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
@@ -1125,7 +1135,9 @@ function saveSessionCosts() {
   }
 
   data.calculated = true;
+  data.billAt = Date.now(); // for "bill ready" notifications
   data.settled = {}; // amounts changed, so earlier "paid" marks no longer apply
+  data.settledAt = {};
   data.status = computeLedger(data).transfers.length ? "active" : "completed";
 
   dbUpdateSession(currentSessionId, data)
@@ -1145,16 +1157,28 @@ function saveSessionCosts() {
    ────────────────────────────────────────────────────────── */
 
 function setTransferSettled(sessionId, key, value) {
-  var s = currentSession;
-  if (!s) return;
-  var settled = Object.assign({}, s.settled || {});
-  if (value) settled[key] = true;
-  else delete settled[key];
-
-  var remaining = computeLedger(s).transfers.filter(function (tr) { return !settled[tr.key]; });
-  dbUpdateSession(sessionId, { settled: settled, status: remaining.length ? "active" : "completed" })
-    .then(function () { showToast(value ? t("paid") + " ✔" : t("unpaid")); })
+  var s = currentSession && currentSession.id === sessionId ? currentSession : _findSession(sessionId);
+  if (!s) return Promise.resolve();
+  return settleTransfers(s, [key], value)
+    .then(function () { showToast(value ? t("paid") + " \u2714" : t("unpaid")); })
     .catch(function (error) { showToast(_permError(error)); });
+}
+
+function _findSession(id) {
+  for (var i = 0; i < lastSessions.length; i++) if (lastSessions[i].id === id) return lastSessions[i];
+  return null;
+}
+
+/** Mark several transfers of one session paid / unpaid; records when */
+function settleTransfers(s, keys, value) {
+  var settled = Object.assign({}, s.settled || {});
+  var settledAt = Object.assign({}, s.settledAt || {});
+  keys.forEach(function (key) {
+    if (value) { settled[key] = true; settledAt[key] = Date.now(); }
+    else { delete settled[key]; delete settledAt[key]; }
+  });
+  var remaining = computeLedger(s).transfers.filter(function (tr) { return !settled[tr.key]; });
+  return dbUpdateSession(s.id, { settled: settled, settledAt: settledAt, status: remaining.length ? "active" : "completed" });
 }
 
 /* ──────────────────────────────────────────────────────────

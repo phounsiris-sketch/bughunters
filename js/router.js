@@ -56,6 +56,8 @@ function showPage(page, pushHistory) {
     loadSessions();
   } else if (page === "dashboard" && typeof loadDashboard === "function") {
     loadDashboard();
+  } else if (page === "payments" && typeof loadPayments === "function") {
+    loadPayments();
   } else if (page === "settings" && typeof loadSettings === "function") {
     loadSettings();
   }
@@ -76,7 +78,18 @@ function goBack() {
 /**
  * Show the authentication container, hide the app
  */
+var _splashStart = Date.now();
+
+/** Fade the splash out (kept at least ~0.6s so it doesn't flash) */
+function hideSplash() {
+  var el = document.getElementById("splash");
+  if (!el || el.classList.contains("hide")) return;
+  var wait = Math.max(0, 600 - (Date.now() - _splashStart));
+  setTimeout(function () { el.classList.add("hide"); }, wait);
+}
+
 function showAuthPage() {
+  hideSplash();
   var authC = document.getElementById("auth-container");
   var appC = document.getElementById("app-container");
 
@@ -88,6 +101,7 @@ function showAuthPage() {
  * Show the app container, hide auth, and navigate to polls
  */
 function showAppPage() {
+  hideSplash();
   var authC = document.getElementById("auth-container");
   var appC = document.getElementById("app-container");
 

@@ -199,6 +199,7 @@ function _enterApp() {
   seedFirestoreData();
   initApp();       // starts the shared data cache
   showAppPage();   // navigates to Polls
+  loadSessions();  // sessions feed badges, notifications and My payments
 }
 
 /* ---------- Show the sign-in form (not the profile form) ---------- */

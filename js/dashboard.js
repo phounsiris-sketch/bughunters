@@ -343,7 +343,7 @@ function _renderActivityTab() {
   var html = '<div class="form-group"><select class="form-select" onchange="setActivityUser(this.value)">';
   html += '<option value="">' + t("allPlayers") + '</option>';
   DB_CACHE.users.forEach(function (u) {
-    html += '<option value="' + u.id + '"' + (u.id === dashActivityUser ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + '</option>';
+    html += '<option value="' + u.id + '"' + (u.id === dashActivityUser ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + '</option>';
   });
   html += '</select></div>';
 
@@ -423,33 +423,66 @@ function _renderPlayerActivity(uid, sessions, polls) {
     }
     if (L.paid[uid]) paidOut += L.paid[uid];
   });
+  var isMe = currentUser && uid === currentUser.uid;
+  var pct = sessions.length ? Math.round(mine.length / sessions.length * 100) : 0;
 
-  var html = '<div class="card"><div class="card-title">' + getUserName(uid) + ' — ' + _periodLabel() + '</div>';
-  html += '<div class="cost-breakdown" style="margin-bottom:0">';
-  html += '<div class="cost-card"><div class="cost-card-label">🏸 ' + t("sessionsAttended") + '</div><div class="cost-card-value">' + mine.length + '/' + sessions.length + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">💸 ' + t("yourShare") + '</div><div class="cost-card-value">' + fmtShort(spent) + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">🗳️ ' + t("pollsWord") + '</div><div class="cost-card-value" style="font-size:14px">✔ ' + joined + ' • ✕ ' + skipped + ' • ? ' + noAnswer + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">💳 ' + t("paidOut") + '</div><div class="cost-card-value">' + fmtShort(paidOut) + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">' + icon("dinner", 14) + ' ' + t("dinnersJoined") + '</div><div class="cost-card-value">' + dinners + '</div></div>';
+  // Who + period
+  var html = '<div class="card profile-hero">' + avatarHtml(uid, 56) +
+    '<div style="min-width:0"><div class="profile-hero-name">' + getUserName(uid) + (isMe ? ' <span class="perm-badge on">' + t("you") + '</span>' : '') + '</div>' +
+    '<div class="profile-hero-sub">' + icon("calendar", 13) + ' ' + _periodLabel() + '</div></div></div>';
+
+  // Four balanced stat tiles
+  html += '<div class="stat-grid">';
+  html += _statTile("sessions", t("statPlayed"), mine.length + '<small>/' + sessions.length + '</small>', '<div class="stat-bar"><span style="width:' + pct + '%"></span></div>');
+  html += _statTile("dinner", t("dinnersJoined"), String(dinners), '<div class="stat-note">' + fmtLAK(byType.dinner) + '</div>');
+  html += _statTile("wallet", t("statShare"), fmtShort(spent), '<div class="stat-note">' + fmtLAK(spent) + '</div>');
+  html += _statTile("check", t("statPaidOut"), fmtShort(paidOut), '<div class="stat-note">' + t("forTheGroup") + '</div>');
   html += '</div>';
-  // What their share was spent on
-  html += '<div style="margin-top:12px">';
-  [["court", t("courtCost")], ["shuttle", t("shuttleCost")], ["other", t("otherCosts")], ["dinner", t("dinnerCost")]].forEach(function (r) {
-    html += '<div class="item-row"><div class="item-name">' + icon(COST_ICON[r[0]], 16) + ' ' + r[1] + '</div><div class="item-price">' + fmtLAK(byType[r[0]]) + '</div></div>';
-  });
-  html += '</div></div>';
 
-  html += '<div class="card"><div class="card-title">' + t("sessionsWord") + '</div>';
+  // Poll answers as one bar
+  var totalPolls = joined + skipped + noAnswer;
+  html += '<div class="card"><div class="card-title">' + icon("polls", 14) + ' ' + t("pollAnswers") + ' (' + totalPolls + ')</div>';
+  if (!totalPolls) {
+    html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
+  } else {
+    var seg = function (n, cls) { return n ? '<span class="' + cls + '" style="flex:' + n + '"></span>' : ''; };
+    html += '<div class="seg-bar">' + seg(joined, "seg-join") + seg(skipped, "seg-skip") + seg(noAnswer, "seg-none") + '</div>';
+    html += '<div class="seg-legend">' +
+      '<span><i class="seg-join"></i>' + t("answerJoin") + ' <b>' + joined + '</b></span>' +
+      '<span><i class="seg-skip"></i>' + t("answerSkip") + ' <b>' + skipped + '</b></span>' +
+      '<span><i class="seg-none"></i>' + t("noAnswer") + ' <b>' + noAnswer + '</b></span></div>';
+  }
+  html += '</div>';
+
+  // Spending by type
+  html += '<div class="card"><div class="card-title">' + icon("wallet", 14) + ' ' + t("spendingByType") + '</div>';
+  [["court", t("courtCost")], ["shuttle", t("shuttleCost")], ["other", t("otherCosts")], ["dinner", t("dinnerCost")]].forEach(function (r) {
+    var share = spent ? Math.round(byType[r[0]] / spent * 100) : 0;
+    html += '<div class="spend-row"><div class="spend-label">' + icon(COST_ICON[r[0]], 16) + ' ' + r[1] + '</div>' +
+      '<div class="spend-amount">' + fmtLAK(byType[r[0]]) + '</div>' +
+      '<div class="stat-bar"><span style="width:' + share + '%"></span></div></div>';
+  });
+  html += '<div class="subtotal-row"><span>' + t("total") + '</span><span style="color:var(--accent)">' + fmtLAK(spent) + '</span></div>';
+  html += '</div>';
+
+  // Their sessions
+  html += '<div class="card"><div class="card-title">' + icon("sessions", 14) + ' ' + t("sessionsWord") + ' (' + mine.length + ')</div>';
   if (!mine.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
   mine.slice().sort(byLatest(function (s) { return (s.date || "") + " " + (s.time || ""); })).forEach(function (s) {
     var share = s.calculated ? (computeLedger(s).shares[uid] || { total: 0 }).total : null;
     var owing = openTransfers(s).filter(function (tr) { return tr.from === uid; }).length;
+    var st = sessionStatus(s);
     html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
-      '<div><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
-      (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0 ? ' \u2022 ' + icon("dinner", 12) + ' ' + t("dinnerBill") : '') + '</div></div>' +
+      '<div style="min-width:0"><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
+      (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0 ? ' • ' + icon("dinner", 12) : '') + '</div></div>' +
       '<div style="text-align:right"><div class="settings-value">' + (share === null ? '—' : fmtLAK(share)) + '</div>' +
-      (owing ? '<span class="person-status status-owes">' + t("unpaid") + '</span>' : '') + '</div></div>';
+      '<span class="status-pill ' + (owing ? 'st-unpaid' : st.cls) + '">' + (owing ? t("unpaid") : st.label) + '</span></div></div>';
   });
   html += '</div>';
   return html;
+}
+
+function _statTile(iconName, label, value, extra) {
+  return '<div class="stat-tile"><div class="stat-label">' + icon(iconName, 15) + ' ' + label + '</div>' +
+    '<div class="stat-value">' + value + '</div>' + (extra || '') + '</div>';
 }

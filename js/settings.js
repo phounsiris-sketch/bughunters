@@ -397,7 +397,7 @@ function _renderQrTab() {
   html += '<div class="form-group"><label class="form-label">' + t("qrOwner") + '</label><select class="form-select" onchange="qrOwner=this.value;renderSettings()">';
   people.forEach(function (u) {
     var me = currentUser && u.id === currentUser.uid;
-    html += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + (me ? ' (' + t("you") + ')' : ' ✍️') + '</option>';
+    html += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + (me ? ' (' + t("you") + ')' : ' ✍️') + '</option>';
   });
   html += '</select></div>';
   html += '<div id="qrSlots" class="qr-list">';
@@ -464,7 +464,7 @@ function _renderGeneralTab() {
   var opts = function (selected) {
     var h = '<option value="">' + t("noDefault") + '</option>';
     users.forEach(function (u) {
-      h += '<option value="' + u.id + '"' + (u.id === selected ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + '</option>';
+      h += '<option value="' + u.id + '"' + (u.id === selected ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + '</option>';
     });
     return h;
   };
@@ -480,6 +480,16 @@ function _renderGeneralTab() {
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultShuttlePayer\', this.value)">' + opts(appSetting("defaultShuttlePayer", "")) + '</select></div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
   html += '</div></fieldset>';
+
+  // Super Admin only: wipe polls + sessions before going live
+  if (isSuperAdmin()) {
+    html += '<div class="card danger-card"><div class="card-title">' + icon("trash2", 14) + ' ' + t("dangerZone") + '</div>';
+    html += '<div style="font-size:13px;margin-bottom:10px">' + t("resetHint") + '</div>';
+    html += '<div class="form-group"><label class="form-label">' + t("resetTypeDelete") + '</label>' +
+      '<input class="form-input" id="resetConfirm" autocomplete="off" placeholder="DELETE"></div>';
+    html += '<button class="btn-danger" onclick="resetPollsAndSessions()">' + icon("trash", 16) + ' ' + t("resetButton") + '</button>';
+    html += '</div>';
+  }
   return html;
 }
 
@@ -498,7 +508,7 @@ function _renderMergeCard() {
   var html = '<div class="card"><div class="card-title">🔗 ' + t("mergeTitle") + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("mergeHint") + '</div>';
   html += '<div class="form-group"><select class="form-select" id="mergeSelect"><option value="">' + t("mergePick") + '</option>';
-  manual.forEach(function (u) { html += '<option value="' + u.id + '">' + escapeHtml(u.displayName || '?') + '</option>'; });
+  manual.forEach(function (u) { html += '<option value="' + u.id + '">' + escapeHtml(plainUserName(u)) + '</option>'; });
   html += '</select></div>';
   html += '<button class="btn-secondary" onclick="mergeManualPlayer(document.getElementById(\'mergeSelect\').value)">' + t("mergeButton") + '</button>';
   html += '</div>';
@@ -524,7 +534,7 @@ function _swapUid(value, oldId, newId) {
 function mergeManualPlayer(manualId) {
   var manual = dbFindById(DB_CACHE.users, manualId);
   if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
-  if (!confirm(t("mergeConfirm").replace("{name}", manual.displayName || "?"))) return;
+  if (!confirm(t("mergeConfirm").replace("{name}", plainUserName(manual)))) return;
   var me = currentUser.uid;
   showToast(t("loading"));
 
@@ -566,6 +576,31 @@ function mergeManualPlayer(manualId) {
       return Promise.all(jobs);
     })
     .then(function () { return dbDeleteManualPlayer(manualId); })
-    .then(function () { showToast(t("mergeDone").replace("{name}", manual.displayName || "?")); renderSettings(); })
+    .then(function () { showToast(t("mergeDone").replace("{name}", plainUserName(manual))); renderSettings(); })
+    .catch(function (error) { showToast(_permError(error)); });
+}
+
+/** Super Admin: delete every poll and session (players, courts, cocks, QR and settings stay) */
+function resetPollsAndSessions() {
+  if (!isSuperAdmin()) return;
+  var typed = (document.getElementById("resetConfirm").value || "").trim();
+  if (typed !== "DELETE") { showToast(t("resetTypeDelete")); return; }
+  if (!confirm(t("resetConfirm"))) return;
+  showToast(t("loading"));
+
+  var count = 0;
+  function wipe(name) {
+    return fsdb.collection(name).get().then(function (snap) {
+      var jobs = [];
+      snap.forEach(function (doc) { count++; jobs.push(doc.ref.delete()); });
+      return Promise.all(jobs);
+    });
+  }
+  wipe("polls")
+    .then(function () { return wipe("sessions"); })
+    .then(function () {
+      document.getElementById("resetConfirm").value = "";
+      showToast(t("resetDone").replace("{n}", count));
+    })
     .catch(function (error) { showToast(_permError(error)); });
 }
