@@ -46,30 +46,31 @@ function showToast(msg) {
 }
 
 // ── Modal helpers ──────────────────────────────────────────
+// Callers fill #modalTitle / #modalBody, set `modalCallback`, then call
+// openModal(). The callback closes the modal itself when it succeeds, so
+// validation errors keep the form open.
 
 var modalCallback = null;
 
-function openModal(message, onConfirm) {
-  var overlay = document.getElementById("modal-overlay");
-  var msgEl = document.getElementById("modal-message");
-
-  if (msgEl) msgEl.textContent = message;
-  if (overlay) overlay.style.display = "flex";
-
-  modalCallback = onConfirm || null;
+function openModal() {
+  var overlay = document.getElementById("modal");
+  if (overlay) overlay.classList.add("active");
+  var first = document.querySelector("#modalBody input, #modalBody select");
+  if (first) setTimeout(function () { first.focus(); }, 50);
 }
 
 function closeModal() {
-  var overlay = document.getElementById("modal-overlay");
-  if (overlay) overlay.style.display = "none";
+  var overlay = document.getElementById("modal");
+  if (overlay) overlay.classList.remove("active");
   modalCallback = null;
 }
 
 function modalConfirm() {
   if (typeof modalCallback === "function") {
     modalCallback();
+  } else {
+    closeModal();
   }
-  closeModal();
 }
 
 // ── Utility ────────────────────────────────────────────────
@@ -78,9 +79,45 @@ function modalConfirm() {
  * Escape HTML special characters to prevent XSS
  */
 function escapeHtml(text) {
-  var div = document.createElement("div");
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
+  if (text === null || text === undefined) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Format a number of thousand-kip (K) for display */
+function fmtK(n) {
+  return Math.round(n || 0).toLocaleString("en-US") + "K";
+}
+
+/** "2026-10-01" → "1 Oct 2026" */
+function fmtDate(iso) {
+  if (!iso) return "";
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return iso;
+  return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+}
+
+/** Re-render whatever page is showing (after data or language changes) */
+function refreshCurrentPage(reason) {
+  if (!currentUser) return;
+  if (currentPage === "settings" && typeof renderSettings === "function") {
+    renderSettings();
+  } else if (currentPage === "polls" && typeof renderPolls === "function") {
+    renderPolls(lastPolls);
+  } else if (currentPage === "poll-create" && reason === "courts" && typeof renderPollCreateForm === "function") {
+    renderPollCreateForm();
+  } else if (currentPage === "sessions" && typeof renderSessionsList === "function") {
+    renderSessionsList(lastSessions);
+  } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
+    _renderDashboard();
+  } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
+    refreshSessionDetail();
+  }
 }
 
 // ── Initialisation ─────────────────────────────────────────
@@ -97,6 +134,9 @@ function initApp() {
   if (typeof applyI18n === "function") {
     applyI18n();
   }
+
+  // One shared listener per reference collection
+  dbStartCache(function (key) { refreshCurrentPage(key); });
 }
 
 // ── Service Worker ─────────────────────────────────────────
@@ -114,6 +154,10 @@ if ("serviceWorker" in navigator) {
 }
 
 // ── Boot ───────────────────────────────────────────────────
+
+// Theme + language on the sign-in screen too
+document.body.setAttribute("data-theme", currentTheme);
+if (typeof applyI18n === "function") applyI18n();
 
 // initAuth is defined in auth.js (loaded before app.js)
 initAuth();

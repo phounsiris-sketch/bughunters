@@ -1,8 +1,7 @@
 /* ============================================================
    firebase-config.js — Firebase COMPAT SDK initialisation
    Loaded AFTER the CDN script tags for firebase-app-compat,
-   firebase-auth-compat, firebase-firestore-compat,
-   firebase-storage-compat.
+   firebase-auth-compat, firebase-firestore-compat.
    ============================================================ */
 
 var firebaseConfig = {
@@ -33,6 +32,3 @@ fsdb.enablePersistence({ synchronizeTabs: true })
       console.warn("Firestore persistence not supported in this browser.");
     }
   });
-
-// Storage
-var storage = firebase.storage();

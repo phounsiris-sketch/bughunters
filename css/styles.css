@@ -1441,3 +1441,179 @@ textarea {
 .justify-between { justify-content: space-between; }
 .w-full { width: 100%; }
 .hidden { display: none; }
+
+/* ========== Classes used by the JS views ========== */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, var(--primary), var(--blue));
+  color: #fff;
+  padding: 12px 16px;
+}
+
+.auth-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.period-toggle {
+  flex-wrap: wrap;
+}
+
+.period-btn {
+  padding: 6px 12px;
+}
+
+.cost-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.cost-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  min-width: 0;
+}
+
+.cost-icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.cost-card-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cost-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.cost-card-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.split-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.person-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.person-right {
+  text-align: right;
+}
+
+.person-breakdown {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.session-each {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settings-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.edit-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-light);
+}
+
+.delete-btn {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+
+.delete-btn:hover {
+  background: var(--red);
+  color: #fff;
+}
+
+.fab-btn {
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.modal-card .btn-primary {
+  width: auto;
+}
+
+.messenger-preview {
+  max-width: 100%;
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+
+.btn-share {
+  margin-top: 4px;
+}
+
+.qty-controls input::-webkit-outer-spin-button,
+.qty-controls input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

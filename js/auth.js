@@ -73,7 +73,7 @@ function handleEmailLinkSignIn() {
 
   var email = localStorage.getItem("emailForSignIn");
   if (!email) {
-    email = window.prompt("Please provide your email for confirmation");
+    email = window.prompt(t("confirmEmailPrompt"));
   }
   if (!email) return;
 
@@ -83,7 +83,8 @@ function handleEmailLinkSignIn() {
       history.replaceState(null, "", window.location.pathname);
     })
     .catch(function (error) {
-      showToast(error.message);
+      history.replaceState(null, "", window.location.pathname);
+      showToast(error.code === "auth/invalid-action-code" ? t("linkExpired") : error.message);
     });
 }
 
@@ -95,7 +96,7 @@ function saveProfile() {
   var phone = phoneInput ? phoneInput.value.trim() : "";
 
   if (!displayName) {
-    showToast("Please enter your name");
+    showToast(t("displayName"));
     return;
   }
 
@@ -113,7 +114,7 @@ function saveProfile() {
         phone: phone || null,
         avatarUrl: null
       };
-      showAppPage();
+      _enterApp();
     })
     .catch(function (error) {
       showToast(error.message);
@@ -133,18 +134,36 @@ function _createProfileFromPending(user) {
     .then(function () {
       try { localStorage.removeItem("pendingProfile"); } catch (e) {}
       currentUserProfile = profile;
-      seedFirestoreData();
-      showAppPage();
-      initApp();
+      _enterApp();
     })
     .catch(function (error) { showToast(error.message); });
   return true;
 }
 
+/* ---------- Enter the app once the profile exists ---------- */
+function _enterApp() {
+  seedFirestoreData();
+  initApp();       // starts the shared data cache
+  showAppPage();   // navigates to Polls
+}
+
+/* ---------- Show the sign-in form (not the profile form) ---------- */
+function _resetAuthScreens() {
+  var login = document.getElementById("login-page");
+  var profile = document.getElementById("profile-page");
+  if (login) login.style.display = "";
+  if (profile) profile.style.display = "none";
+}
+
 /* ---------- Logout ---------- */
 function logoutUser() {
+  if (typeof stopPolls === "function") stopPolls();
+  if (typeof stopSessions === "function") stopSessions();
+  if (typeof dbStopCache === "function") dbStopCache();
   currentUser = null;
   currentUserProfile = null;
+  pageHistory = [];
+  _resetAuthScreens();
   showAuthPage();
   try { auth.signOut(); } catch(e) {}
 }
@@ -189,6 +208,7 @@ function initAuth() {
     if (!user) {
       currentUser = null;
       currentUserProfile = null;
+      _resetAuthScreens();
       showAuthPage();
       return;
     }
@@ -198,15 +218,15 @@ function initAuth() {
       .then(function (doc) {
         if (doc.exists) {
           currentUserProfile = doc.data();
-          seedFirestoreData();
-          showAppPage();
-          initApp();
+          _enterApp();
         } else if (_createProfileFromPending(user)) {
           // Registered via the Register tab: profile created from the saved form
         } else {
           // First sign-in: ask for display name (email is now confirmed)
           document.getElementById("login-page").style.display = "none";
           document.getElementById("profile-page").style.display = "block";
+          var nameEl = document.getElementById("profileName");
+          if (nameEl && !nameEl.value && user.email) nameEl.value = user.email.split("@")[0];
           showAuthPage();
         }
       })

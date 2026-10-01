@@ -1,62 +1,49 @@
 /* ============================================================
-   storage.js — Firebase Storage uploads (COMPAT API)
-   Uses global `storage` from firebase-config.js
+   storage.js — Image handling for QR codes and receipts.
+   Images are resized in the browser and stored as data URLs in
+   Firestore, so no Firebase Storage bucket (paid plan) is needed.
    ============================================================ */
 
 /**
- * Upload a file to Firebase Storage with progress tracking
- * @param {string}   path     — full storage path
- * @param {File}     file     — File object from input
- * @param {function} callback — receives status objects:
- *   {status:'progress', progress: 0-100}
- *   {status:'error', error: Error}
- *   {status:'done', url: string}
+ * Resize an image file and return it as a JPEG/PNG data URL.
+ * @param {File}     file     — image file from an <input type="file">
+ * @param {number}   maxSize  — longest side in pixels
+ * @param {function} callback — callback(error, dataUrl)
  */
-function uploadFile(path, file, callback) {
-  var ref = storage.ref().child(path);
-  var task = ref.put(file);
+function resizeImageToDataUrl(file, maxSize, callback) {
+  if (!file || !/^image\//.test(file.type)) {
+    callback(new Error("Please choose an image file"));
+    return;
+  }
 
-  task.on(
-    "state_changed",
-    function (snapshot) {
-      var progress = Math.round(
-        (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-      );
-      callback({ status: "progress", progress: progress });
-    },
-    function (error) {
-      callback({ status: "error", error: error });
-    },
-    function () {
-      task.snapshot.ref.getDownloadURL().then(function (url) {
-        callback({ status: "done", url: url });
-      });
-    }
-  );
+  var reader = new FileReader();
+  reader.onerror = function () { callback(new Error("Could not read the image")); };
+  reader.onload = function () {
+    var img = new Image();
+    img.onerror = function () { callback(new Error("Could not open the image")); };
+    img.onload = function () {
+      var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // JPEG keeps photos small; Firestore documents are limited to 1 MB
+      callback(null, canvas.toDataURL("image/jpeg", 0.8));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-/**
- * Upload a QR code image
- * @param {string}   type     — 'court' or 'shuttle'
- * @param {File}     file     — image file
- * @param {function} callback — same signature as uploadFile
- */
-function uploadQRImage(type, file, callback) {
-  var timestamp = Date.now();
-  var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  var path = "qr/" + type + "_" + timestamp + "_" + safeName;
-  uploadFile(path, file, callback);
+/** QR codes need to stay sharp enough to scan */
+function readQrImage(file, callback) {
+  resizeImageToDataUrl(file, 600, callback);
 }
 
-/**
- * Upload a dinner receipt image
- * @param {string}   sessionId — Firestore session document id
- * @param {File}     file      — receipt image
- * @param {function} callback  — same signature as uploadFile
- */
-function uploadDinnerReceipt(sessionId, file, callback) {
-  var timestamp = Date.now();
-  var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  var path = "receipts/" + sessionId + "_" + timestamp + "_" + safeName;
-  uploadFile(path, file, callback);
+/** Receipts only need to be readable */
+function readReceiptImage(file, callback) {
+  resizeImageToDataUrl(file, 1000, callback);
 }

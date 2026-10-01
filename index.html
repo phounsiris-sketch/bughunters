@@ -14,6 +14,9 @@
 
 <!-- ==================== AUTH CONTAINER ==================== -->
 <div id="auth-container">
+  <div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 16px 0">
+    <button class="lang-toggle auth-toggle" onclick="toggleLang()" id="authLangBtn">LA</button>
+  </div>
   <div id="login-page" class="login-page">
     <div class="login-logo"><iconify-icon icon="solar:shuttlecock-bold" width="64"></iconify-icon></div>
     <div class="login-title">Godsmash</div>
@@ -100,16 +103,6 @@
 
     <!-- PAGE: Dashboard -->
     <div class="page" id="page-dashboard">
-      <div class="dashboard-tabs">
-        <button class="dash-tab active" onclick="switchDashTab('balance')" id="tab-balance" data-i18n="balance">Balance</button>
-        <button class="dash-tab" onclick="switchDashTab('spending')" id="tab-spending" data-i18n="spending">Spending</button>
-        <button class="dash-tab" onclick="switchDashTab('activity')" id="tab-activity" data-i18n="activity">Activity</button>
-      </div>
-      <div class="period-toggle" id="periodToggle" style="display:none">
-        <button class="period-btn active" onclick="setPeriod('monthly')" id="period-monthly" data-i18n="monthly">Monthly</button>
-        <button class="period-btn" onclick="setPeriod('quarterly')" id="period-quarterly" data-i18n="quarterly">Quarterly</button>
-        <button class="period-btn" onclick="setPeriod('yearly')" id="period-yearly" data-i18n="yearly">Yearly</button>
-      </div>
       <div id="dashboardContent"></div>
     </div>
 
@@ -142,9 +135,7 @@
   </div>
 
   <!-- FAB -->
-  <button class="fab" id="fab" onclick="showCreatePoll()">
-    <iconify-icon icon="solar:add-circle-bold" width="28"></iconify-icon>
-  </button>
+  <button class="fab-btn" id="fab" onclick="showCreatePoll()" aria-label="Create poll">+</button>
 
 </div>
 
@@ -152,8 +143,8 @@
 <div class="toast" id="toast"></div>
 
 <!-- Modal -->
-<div class="modal-overlay" id="modal">
-  <div class="modal">
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card">
     <div class="modal-title" id="modalTitle"></div>
     <div id="modalBody"></div>
     <div class="modal-actions">
@@ -168,7 +159,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
 <!-- Icons -->
 <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
@@ -185,7 +175,6 @@
 <script src="js/auth.js"></script>
 <script src="js/polls.js"></script>
 <script src="js/sessions.js"></script>
-<script src="js/dinner.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/app.js"></script>

@@ -39,6 +39,10 @@ function dbAddCourt(data) {
   return fsdb.collection("courts").add(data);
 }
 
+function dbUpdateCourt(id, data) {
+  return fsdb.collection("courts").doc(id).update(data);
+}
+
 function dbDeleteCourt(id) {
   return fsdb.collection("courts").doc(id).delete();
 }
@@ -61,6 +65,10 @@ function dbGetShuttlecocks(callback) {
 
 function dbAddShuttlecock(data) {
   return fsdb.collection("shuttlecocks").add(data);
+}
+
+function dbUpdateShuttlecock(id, data) {
+  return fsdb.collection("shuttlecocks").doc(id).update(data);
 }
 
 function dbDeleteShuttlecock(id) {
@@ -165,28 +173,6 @@ function dbDeleteSession(id) {
   return fsdb.collection("sessions").doc(id).delete();
 }
 
-// ── Dinner (sub-collection) ─────────────────────────────────
-
-function dbSetDinner(sessionId, data) {
-  return fsdb.collection("sessions").doc(sessionId)
-    .collection("dinner").doc("info")
-    .set(data);
-}
-
-function dbGetDinner(sessionId, callback) {
-  return fsdb.collection("sessions").doc(sessionId)
-    .collection("dinner").doc("info")
-    .onSnapshot(function (doc) {
-      if (doc.exists) {
-        var d = doc.data();
-        d.id = doc.id;
-        callback(d);
-      } else {
-        callback(null);
-      }
-    }, dbOnError);
-}
-
 // ── QR Codes (settings singleton) ───────────────────────────
 
 function dbGetQrCodes(callback) {
@@ -203,4 +189,35 @@ function dbGetQrCodes(callback) {
 function dbSetQrCodes(data) {
   return fsdb.collection("settings").doc("qrCodes")
     .set(data, { merge: true });
+}
+
+// ── Shared cache (one listener per collection for the whole app) ──
+
+var DB_CACHE = { users: [], courts: [], shuttlecocks: [], qrCodes: null };
+var _dbCacheUnsubs = [];
+
+/**
+ * Subscribe once to the small reference collections. `onChange(key)` is
+ * called whenever one of them updates so the current page can re-render.
+ */
+function dbStartCache(onChange) {
+  dbStopCache();
+  _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.users = u; onChange("users"); }));
+  _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.courts = c; onChange("courts"); }));
+  _dbCacheUnsubs.push(dbGetShuttlecocks(function (b) { DB_CACHE.shuttlecocks = b; onChange("shuttlecocks"); }));
+  _dbCacheUnsubs.push(dbGetQrCodes(function (q) { DB_CACHE.qrCodes = q; onChange("qrCodes"); }));
+}
+
+function dbStopCache() {
+  for (var i = 0; i < _dbCacheUnsubs.length; i++) {
+    if (typeof _dbCacheUnsubs[i] === "function") _dbCacheUnsubs[i]();
+  }
+  _dbCacheUnsubs = [];
+}
+
+function dbFindById(list, id) {
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) return list[i];
+  }
+  return null;
 }
