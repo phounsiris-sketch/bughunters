@@ -18,7 +18,7 @@
     <button class="lang-toggle auth-toggle" onclick="toggleLang()" id="authLangBtn">LA</button>
   </div>
   <div id="login-page" class="login-page">
-    <div class="login-logo"><iconify-icon icon="solar:shuttlecock-bold" width="64"></iconify-icon></div>
+    <div class="login-logo" style="font-size:56px">&#127992;</div>
     <div class="login-title">Godsmash</div>
     <div class="login-subtitle">Badminton booking &amp; cost splitting</div>
     <div class="login-form">
@@ -85,8 +85,8 @@
   <div class="app-header">
     <div class="header-top">
       <div style="display:flex;align-items:center">
-        <button class="back-btn" id="backBtn" onclick="goBack()" style="display:none">
-          <iconify-icon icon="solar:arrow-left-bold" width="22"></iconify-icon>
+        <button class="back-btn" id="backBtn" onclick="crumbBack()" style="display:none" aria-label="Back">
+          <span data-icon="back" data-size="22"></span>
         </button>
         <span id="headerTitle" class="header-title">Godsmash</span>
       </div>
@@ -100,6 +100,7 @@
 
   <!-- Content -->
   <div class="content">
+    <nav class="breadcrumb" id="breadcrumb" style="display:none" aria-label="Breadcrumb"></nav>
 
     <!-- PAGE: Polls -->
     <div class="page active" id="page-polls">
@@ -137,19 +138,19 @@
   <!-- Bottom Nav -->
   <div class="bottom-nav">
     <div class="nav-item active" onclick="showPage('polls')" id="nav-polls">
-      <span class="nav-icon"><iconify-icon icon="solar:calendar-bold" width="22"></iconify-icon></span>
+      <span class="nav-icon" data-icon="polls" data-size="22"></span>
       <span data-i18n="navPolls">Polls</span>
     </div>
     <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
-      <span class="nav-icon"><iconify-icon icon="solar:clipboard-list-bold" width="22"></iconify-icon></span>
+      <span class="nav-icon" data-icon="sessions" data-size="22"></span>
       <span data-i18n="navSessions">Sessions</span>
     </div>
     <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard">
-      <span class="nav-icon"><iconify-icon icon="solar:chart-square-bold" width="22"></iconify-icon></span>
+      <span class="nav-icon" data-icon="dashboard" data-size="22"></span>
       <span data-i18n="navDashboard">Dashboard</span>
     </div>
     <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
-      <span class="nav-icon"><iconify-icon icon="solar:settings-bold" width="22"></iconify-icon></span>
+      <span class="nav-icon" data-icon="settings" data-size="22"></span>
       <span data-i18n="navSettings">Settings</span>
     </div>
   </div>
@@ -180,8 +181,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-<!-- Icons -->
-<script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 
 <!-- Charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -198,7 +197,9 @@
 <script src="js/sessions.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/select.js"></script>
+<script src="js/datepicker.js"></script>
 <script src="js/app.js"></script>
 
 </body>

@@ -46,3 +46,19 @@ function dbSetUserPerm(uid, key, value) {
   data.perms[key] = !!value;
   return fsdb.collection("users").doc(uid).set(data, { merge: true });
 }
+
+/* ---------- Ownership: creators always manage their own items ---------- */
+function _isMine(item) {
+  return !!(item && currentUser && item.createdBy === currentUser.uid);
+}
+
+/** Confirm / cancel / answer-for-others on a poll */
+function canManagePoll(poll) { return can("createPoll") || _isMine(poll); }
+
+/** Date, time, court, players of a session */
+function canEditSessionDetails(s) { return can("editSession") || _isMine(s); }
+
+/** Costs, payers, dinner, payments of a session */
+function canEditBill(s) { return can("editBill") || _isMine(s); }
+
+function canDeleteSession(s) { return can("editSession") || _isMine(s); }

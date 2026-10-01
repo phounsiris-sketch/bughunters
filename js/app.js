@@ -166,6 +166,44 @@ function avatarHtml(uid, size) {
   return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
 }
 
+/** Latest first: by play date + time, then by creation time */
+function byLatest(getDate) {
+  return function (a, b) {
+    var da = getDate(a), db = getDate(b);
+    if (da !== db) return db.localeCompare(da);
+    var ca = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+    var cb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+    return cb - ca;
+  };
+}
+
+/** Status + month filter row. statusOpts: [[value, label]], months: ["2026-10", …] */
+function filterBarHtml(statusOpts, statusVal, months, monthVal, onStatus, onMonth) {
+  var html = '<div class="filter-bar"><div class="form-group"><select class="form-select" onchange="' + onStatus + '(this.value)">';
+  statusOpts.forEach(function (o) {
+    html += '<option value="' + o[0] + '"' + (o[0] === statusVal ? ' selected' : '') + '>' + o[1] + '</option>';
+  });
+  html += '</select></div><div class="form-group"><select class="form-select" onchange="' + onMonth + '(this.value)">';
+  html += '<option value="">' + t("allDates") + '</option>';
+  months.forEach(function (m) {
+    html += '<option value="' + m + '"' + (m === monthVal ? ' selected' : '') + '>' + _monthName(m) + '</option>';
+  });
+  return html + '</select></div></div>';
+}
+
+function _monthName(ym) {
+  var p = ym.split("-");
+  return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1)
+    .toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { month: "long", year: "numeric" });
+}
+
+/** Distinct "YYYY-MM" values, newest first */
+function monthsOf(items, getDate) {
+  var seen = {};
+  items.forEach(function (x) { var d = getDate(x); if (d) seen[d.slice(0, 7)] = true; });
+  return Object.keys(seen).sort().reverse();
+}
+
 /** Re-render whatever page is showing (after data or language changes) */
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
@@ -228,6 +266,15 @@ if ("serviceWorker" in navigator) {
 }
 
 // ── Boot ───────────────────────────────────────────────────
+
+// Static icons in the page shell (nav, back button)
+function fillStaticIcons(root) {
+  var els = (root || document).querySelectorAll("[data-icon]");
+  for (var i = 0; i < els.length; i++) {
+    els[i].innerHTML = icon(els[i].getAttribute("data-icon"), parseInt(els[i].getAttribute("data-size"), 10) || 18);
+  }
+}
+fillStaticIcons();
 
 // Theme + language on the sign-in screen too
 document.body.setAttribute("data-theme", currentTheme);

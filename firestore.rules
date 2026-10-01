@@ -25,6 +25,8 @@ service cloud.firestore {
     }
 
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    // The person who created a poll / session always manages it
+    function isCreator() { return isAuth() && resource.data.get('createdBy', '') == request.auth.uid; }
     function isManual(data) { return data.get('manual', false) == true; }
 
     // ── Players ───────────────────────────────────────────────
@@ -46,8 +48,8 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if can('createPoll');
       // Everyone can answer; anything else needs createPoll
-      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes'])) || can('createPoll');
-      allow delete: if isSuper();
+      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes'])) || can('createPoll') || isCreator();
+      allow delete: if isSuper() || isCreator();
     }
 
     // ── Sessions ──────────────────────────────────────────────
@@ -62,17 +64,22 @@ service cloud.firestore {
     match /sessions/{sessionId} {
       allow read: if isAuth();
       // Confirming a poll creates its session
-      allow create: if can('createPoll') || can('editSession');
+      allow create: if can('createPoll') || can('editSession')
+        // the creator of a poll confirms it into a session they own
+        || (isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid
+            && get(/databases/$(database)/documents/polls/$(request.resource.data.get('pollId', 'none'))).data.get('createdBy', '') == request.auth.uid);
       allow update: if isAuth() && (
+        // The creator (the poll's creator for confirmed polls) edits everything
+        isCreator()
         // Marking a payment as paid is open to everyone
-        changed().hasOnly(['settled', 'status'])
+        || changed().hasOnly(['settled', 'status'])
         || (
           (can('editSession') || !changed().hasAny(sessionDetailKeys())) &&
           (can('editBill') || !changed().hasAny(billKeys())) &&
           (can('editSession') || can('editBill'))
         )
       );
-      allow delete: if can('editSession');
+      allow delete: if can('editSession') || isCreator();
 
       match /dinner/{docId} {
         allow read: if isAuth();

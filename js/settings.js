@@ -262,7 +262,7 @@ function copyInviteLink() {
 /* ---------- Courts ---------- */
 function _renderCourtsTab() {
   var courts = DB_CACHE.courts;
-  var html = '<div class="card"><div class="card-title">🏟️ ' + t("courts") + '</div>';
+  var html = '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("courts") + '</div>';
   if (!courts.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noCourtsYet") + '</div>';
   for (var i = 0; i < courts.length; i++) {
     var c = courts[i];
@@ -321,7 +321,7 @@ function deleteSettingsCourt(id) {
 /* ---------- Shuttlecock brands ---------- */
 function _renderShuttleTab() {
   var brands = DB_CACHE.shuttlecocks;
-  var html = '<div class="card"><div class="card-title">🪶 ' + t("shuttlecockBrands") + '</div>';
+  var html = '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecockBrands") + '</div>';
   if (!brands.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
   for (var i = 0; i < brands.length; i++) {
     var b = brands[i];
@@ -400,16 +400,18 @@ function _renderQrTab() {
     html += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + (me ? ' (' + t("you") + ')' : ' ✍️') + '</option>';
   });
   html += '</select></div>';
-  html += '<div id="qrSlots" class="qr-grid">';
-  var labels = { court: '🏟️ ' + t("court"), shuttle: '🪶 ' + t("shuttlecocks"), dinner: '🍽️ ' + t("dinnerAndOther") };
+  html += '<div id="qrSlots" class="qr-list">';
+  var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
+  var icons = { court: "court", shuttle: "shuttle", dinner: "dinner" };
   QR_TYPES.forEach(function (type) {
-    html += '<div class="qr-cell" id="qrCell_' + type + '">';
-    html += '<div class="qr-cell-title">' + labels[type] + '</div>';
-    html += '<div class="qr-cell-img" id="qrImg_' + type + '"><div class="qr-missing">' + t("loading") + '</div></div>';
+    html += '<div class="qr-row" id="qrCell_' + type + '">';
+    html += '<div class="qr-thumb" id="qrImg_' + type + '"><div class="qr-missing">' + icon("qr", 22) + '</div></div>';
+    html += '<div class="qr-row-info"><div class="qr-row-title">' + icon(icons[type], 16) + ' ' + labels[type] + '</div>' +
+      '<div class="qr-row-status" id="qrStatus_' + type + '">' + t("loading") + '</div></div>';
     html += '<input type="file" id="qrFile_' + type + '" accept="image/*" style="display:none" onchange="handleQrUpload(\'' + type + '\',this)">';
-    html += '<div style="display:flex;gap:6px;justify-content:center">';
-    html += '<button class="edit-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()">📷 ' + t("uploadQR") + '</button>';
-    html += '<button class="delete-btn" id="qrDel_' + type + '" style="display:none" onclick="removeQr(\'' + type + '\')">✕</button>';
+    html += '<div class="qr-row-actions">';
+    html += '<button class="edit-btn icon-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()" aria-label="' + t("uploadQR") + '">' + icon("camera", 18) + '<span>' + t("uploadQR") + '</span></button>';
+    html += '<button class="delete-btn icon-btn" id="qrDel_' + type + '" style="display:none" onclick="removeQr(\'' + type + '\')" aria-label="' + t("delete") + '">' + icon("trash", 18) + '</button>';
     html += '</div></div>';
   });
   html += '</div>';
@@ -424,8 +426,10 @@ function _renderQrTab() {
         var img = document.getElementById("qrImg_" + type);
         var del = document.getElementById("qrDel_" + type);
         if (!img) return;
-        img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + t("noQr") + '</div>';
+        img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
         if (del) del.style.display = qr[type] ? "" : "none";
+        var st = document.getElementById("qrStatus_" + type);
+        if (st) { st.textContent = qr[type] ? t("qrUploaded") : t("noQr"); st.classList.toggle("ok", !!qr[type]); }
       });
     });
   }, 0);
@@ -470,9 +474,9 @@ function _renderGeneralTab() {
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>';
   html += '<input type="number" class="form-input" id="gMinPlayers" min="2" max="30" value="' + minPlayersSetting() + '" onchange="saveAppSetting(\'minPlayers\', Math.max(2, parseInt(this.value, 10) || 4))">';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
-  html += '<div class="form-group"><label class="form-label">🏟️ ' + t("defaultCourtPayer") + '</label>';
+  html += '<div class="form-group"><label class="form-label">' + icon("court", 14) + ' ' + t("defaultCourtPayer") + '</label>';
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultCourtPayer\', this.value)">' + opts(appSetting("defaultCourtPayer", "")) + '</select></div>';
-  html += '<div class="form-group"><label class="form-label">🪶 ' + t("defaultShuttlePayer") + '</label>';
+  html += '<div class="form-group"><label class="form-label">' + icon("shuttle", 14) + ' ' + t("defaultShuttlePayer") + '</label>';
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultShuttlePayer\', this.value)">' + opts(appSetting("defaultShuttlePayer", "")) + '</select></div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
   html += '</div></fieldset>';

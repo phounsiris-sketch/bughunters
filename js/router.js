@@ -46,12 +46,8 @@ function showPage(page, pushHistory) {
     fab.style.display = (page === "polls" && (typeof can !== "function" || can("createPoll"))) ? "" : "none";
   }
 
-  // Back button visibility — show on detail / create pages
-  var backBtn = document.getElementById("backBtn");
-  if (backBtn) {
-    var showBack = (page === "session-detail" || page === "poll-create");
-    backBtn.style.display = showBack ? "" : "none";
-  }
+  // Each page sets its breadcrumb when it renders; start from the top level
+  setBreadcrumb(null);
 
   // Trigger page-specific load callbacks (guard with typeof)
   if (page === "polls" && typeof loadPolls === "function") {
@@ -99,4 +95,43 @@ function showAppPage() {
   if (appC) appC.style.display = "";
 
   showPage("polls");
+}
+
+/* ──────────────────────────────────────────────────────────
+   Breadcrumb + Back
+   items: [{ label, action }] — `action` is JS run when that crumb is
+   tapped; the last item is the current page. null/1 item hides it.
+   ────────────────────────────────────────────────────────── */
+
+var _crumbs = [];
+
+function setBreadcrumb(items) {
+  _crumbs = items || [];
+  var bar = document.getElementById("breadcrumb");
+  var backBtn = document.getElementById("backBtn");
+  var show = _crumbs.length > 1;
+  if (backBtn) backBtn.style.display = show ? "" : "none";
+  if (!bar) return;
+  bar.style.display = show ? "" : "none";
+  if (!show) { bar.innerHTML = ""; return; }
+  var html = "";
+  for (var i = 0; i < _crumbs.length; i++) {
+    var last = i === _crumbs.length - 1;
+    if (i > 0) html += '<span class="crumb-sep">' + icon("chevron", 12) + '</span>';
+    html += last
+      ? '<span class="crumb current">' + _crumbs[i].label + '</span>'
+      : '<button class="crumb" onclick="crumbGo(' + i + ')">' + _crumbs[i].label + '</button>';
+  }
+  bar.innerHTML = html;
+}
+
+function crumbGo(i) {
+  var c = _crumbs[i];
+  if (c && c.action) (new Function(c.action))();
+}
+
+/** Header back arrow: one level up the breadcrumb, else history */
+function crumbBack() {
+  if (_crumbs.length > 1) crumbGo(_crumbs.length - 2);
+  else goBack();
 }

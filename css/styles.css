@@ -2515,3 +2515,360 @@ img.person-avatar {
 .settings-item {
   gap: 10px;
 }
+
+/* ========== Solar icons ========== */
+.si {
+  display: inline-block;
+  vertical-align: -0.2em;
+  flex-shrink: 0;
+}
+
+.nav-icon .si,
+.back-btn .si {
+  vertical-align: middle;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ========== Breadcrumb ========== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: -4px 0 12px;
+  font-size: 13px;
+}
+
+.crumb {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--primary-light);
+  font-weight: 600;
+  background: none;
+  border: none;
+}
+
+button.crumb:hover {
+  background: var(--surface);
+}
+
+.crumb.current {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.crumb-sep {
+  color: var(--text-dim);
+  display: inline-flex;
+}
+
+/* ========== Filters ========== */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-bar .form-group {
+  flex: 1;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.filter-bar .cs-trigger {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 13px;
+}
+
+/* ========== Date & time picker ========== */
+.dp-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dp-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dp-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-trigger .si {
+  color: var(--primary-light);
+}
+
+.dp-trigger.cs-active {
+  border-color: var(--primary);
+}
+
+.dp-pop {
+  position: fixed;
+  z-index: 320;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  animation: cs-in 0.12s ease-out;
+}
+
+.dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dp-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dp-nav {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dp-wd {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.dp-day {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dp-day:hover {
+  border-color: var(--primary);
+}
+
+.dp-day.today {
+  border-color: var(--accent);
+}
+
+.dp-day.selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.dp-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.dp-foot .btn-primary {
+  width: 100%;
+  padding: 10px;
+}
+
+.dp-time {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.dp-col {
+  flex: 1;
+  height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: thin;
+}
+
+.dp-colon {
+  align-self: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dp-cell {
+  flex-shrink: 0;
+  padding: 8px 0;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dp-cell.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ========== Poll cards: brighter in dark mode only ========== */
+body:not([data-theme="light"]) .poll-card {
+  background: linear-gradient(160deg, #1f4672 0%, #173459 100%);
+  border-color: #3d6fa8;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+body:not([data-theme="light"]) .poll-card .poll-plan {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+body:not([data-theme="light"]) .poll-card .poll-option {
+  background: rgba(6, 13, 26, 0.45);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+body:not([data-theme="light"]) .poll-card .poll-option.voted {
+  background: rgba(74, 222, 128, 0.14);
+  border-color: var(--accent);
+}
+
+body:not([data-theme="light"]) .poll-card .poll-option div {
+  color: #f1f6fc;
+}
+
+body:not([data-theme="light"]) .poll-card .joined-box {
+  background: rgba(74, 222, 128, 0.12);
+}
+
+/* ========== QR rows (Settings) ========== */
+.qr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.qr-thumb {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  overflow: hidden;
+}
+
+.qr-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+  cursor: zoom-in;
+}
+
+.qr-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.qr-row-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qr-row-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.qr-row-status.ok {
+  color: var(--accent);
+}
+
+.qr-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cost-icon {
+  color: var(--accent);
+}
+
+.pay-card-title .si,
+.card-title .si,
+.item-name .si,
+.form-label .si,
+.qr-row-title .si {
+  color: var(--accent);
+}
+
+.person-breakdown .si {
+  vertical-align: -0.15em;
+  margin-right: 1px;
+}
+
+.empty-icon .si {
+  color: var(--text-dim);
+}

@@ -66,6 +66,7 @@ function _renderDashboard() {
   if (!container) return;
 
   if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
+  if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb(null);
 
   var html = '<div class="dashboard-tabs">';
   var tabs = [["leaders", t("leaderboard")], ["spending", t("spending")], ["activity", t("activity")]];
@@ -190,10 +191,10 @@ function _renderSpendingTab(sessions, allSessions) {
   html += '<div class="split-amount" style="font-size:32px" title="' + fmtLAK(sum.grand) + '">' + fmtShort(sum.grand) + '</div>';
   html += '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:10px">' +
     sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(sum.mine) + '</div>';
-  html += '<div class="item-row"><div class="item-name">🏟️ ' + t("courtCost") + '</div><div class="item-price">' + fmtShort(sum.court) + '</div></div>';
-  html += '<div class="item-row"><div class="item-name">🪶 ' + t("shuttleCost") + '</div><div class="item-price">' + fmtShort(sum.shuttle) + '</div></div>';
-  html += '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtShort(sum.other) + '</div></div>';
-  html += '<div class="item-row" style="border-bottom:none"><div class="item-name">🍽️ ' + t("dinnerCost") + '</div><div class="item-price">' + fmtShort(sum.dinner) + '</div></div>';
+  html += '<div class="item-row"><div class="item-name">' + icon("court", 16) + ' ' + t("courtCost") + '</div><div class="item-price">' + fmtShort(sum.court) + '</div></div>';
+  html += '<div class="item-row"><div class="item-name">' + icon("shuttle", 16) + ' ' + t("shuttleCost") + '</div><div class="item-price">' + fmtShort(sum.shuttle) + '</div></div>';
+  html += '<div class="item-row"><div class="item-name">' + icon("other", 16) + ' ' + t("otherCosts") + '</div><div class="item-price">' + fmtShort(sum.other) + '</div></div>';
+  html += '<div class="item-row" style="border-bottom:none"><div class="item-name">' + icon("dinner", 16) + ' ' + t("dinnerCost") + '</div><div class="item-price">' + fmtShort(sum.dinner) + '</div></div>';
   html += '</div>';
 
   // By month (this year) or by year (all time)
@@ -212,7 +213,7 @@ function _renderSpendingTab(sessions, allSessions) {
     html += '<div class="person-row">';
     html += avatarHtml(u, 28);
     html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
-    html += '<div style="font-size:10px;color:var(--text-muted)">🏟️' + fmtLAK(row.court) + ' 🪶' + fmtLAK(row.shuttle) + ' 🥤' + fmtLAK(row.other) + ' 🍽️' + fmtLAK(row.dinner) + '</div></div>';
+    html += '<div style="font-size:10px;color:var(--text-muted)">' + icon('court', 11) + fmtLAK(row.court) + ' ' + icon('shuttle', 11) + fmtLAK(row.shuttle) + ' ' + icon('other', 11) + fmtLAK(row.other) + ' ' + icon('dinner', 11) + fmtLAK(row.dinner) + '</div></div>';
     html += '<div class="person-amount">' + fmtLAK(row.total) + '</div>';
     html += '</div>';
   }
@@ -346,10 +347,21 @@ function _renderActivityTab() {
   });
   html += '</select></div>';
 
-  if (dashActivityUser) return html + _renderPlayerActivity(dashActivityUser, sessions, polls);
+  if (dashActivityUser) {
+    setBreadcrumb([
+      { label: t("navDashboard"), action: "dashTab='leaders';dashActivityUser='';_renderDashboard()" },
+      { label: t("activity"), action: "setActivityUser('')" },
+      { label: getUserName(dashActivityUser) }
+    ]);
+    return html + _renderPlayerActivity(dashActivityUser, sessions, polls);
+  }
+  setBreadcrumb(null);
 
-  var played = {}, voted = {};
-  sessions.forEach(function (s) { (s.players || []).forEach(function (u) { played[u] = (played[u] || 0) + 1; }); });
+  var played = {}, voted = {}, dined = {};
+  sessions.forEach(function (s) {
+    (s.players || []).forEach(function (u) { played[u] = (played[u] || 0) + 1; });
+    if (s.dinner) (s.dinner.diners || []).forEach(function (u) { dined[u] = (dined[u] || 0) + 1; });
+  });
   polls.forEach(function (p) {
     var r = _pollResponses(p);
     Object.keys(r).forEach(function (u) { if (r[u] === 0) voted[u] = (voted[u] || 0) + 1; });
@@ -379,11 +391,11 @@ function _renderActivityTab() {
     html += avatarHtml(u, 28);
     html += '<div style="flex:1;min-width:0">';
     html += '<div style="display:flex;justify-content:space-between;gap:6px;margin-bottom:3px"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap">🏸 ' + p + '/' + sessions.length + ' • 🗳️ ' + v + '/' + polls.length + '</div></div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap">🏸 ' + p + '/' + sessions.length + ' • 🗳️ ' + v + '/' + polls.length + ' • ' + icon("dinner", 12) + ' ' + (dined[u] || 0) + '</div></div>';
     html += '<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + Math.round(p / maxPlayed * 100) + '%;background:' + color + '"></div></div>';
     html += '</div></div>';
   });
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">🏸 ' + t("sessionsAttended") + ' • 🗳️ ' + t("pollsJoined") + ' • ' + t("tapForDetails") + '</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">🏸 ' + t("sessionsAttended") + ' • 🗳️ ' + t("pollsJoined") + ' • ' + icon("dinner", 12) + ' ' + t("dinnersJoined") + ' • ' + t("tapForDetails") + '</div>';
   html += '</div>';
   return html;
 }
@@ -398,11 +410,17 @@ function _renderPlayerActivity(uid, sessions, polls) {
     else if (r[uid] === 0) joined++;
     else skipped++;
   });
-  var spent = 0, paidOut = 0;
-  mine.concat(sessions.filter(function (s) { return mine.indexOf(s) < 0; })).forEach(function (s) {
+  var spent = 0, paidOut = 0, dinners = 0;
+  var byType = { court: 0, shuttle: 0, other: 0, dinner: 0 };
+  sessions.forEach(function (s) {
+    if (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0) dinners++;
     if (!s.calculated) return;
     var L = computeLedger(s);
-    if (L.shares[uid]) spent += L.shares[uid].total;
+    var sh = L.shares[uid];
+    if (sh) {
+      spent += sh.total;
+      byType.court += sh.court; byType.shuttle += sh.shuttle; byType.other += sh.other; byType.dinner += sh.dinner;
+    }
     if (L.paid[uid]) paidOut += L.paid[uid];
   });
 
@@ -412,15 +430,23 @@ function _renderPlayerActivity(uid, sessions, polls) {
   html += '<div class="cost-card"><div class="cost-card-label">💸 ' + t("yourShare") + '</div><div class="cost-card-value">' + fmtShort(spent) + '</div></div>';
   html += '<div class="cost-card"><div class="cost-card-label">🗳️ ' + t("pollsWord") + '</div><div class="cost-card-value" style="font-size:14px">✔ ' + joined + ' • ✕ ' + skipped + ' • ? ' + noAnswer + '</div></div>';
   html += '<div class="cost-card"><div class="cost-card-label">💳 ' + t("paidOut") + '</div><div class="cost-card-value">' + fmtShort(paidOut) + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">' + icon("dinner", 14) + ' ' + t("dinnersJoined") + '</div><div class="cost-card-value">' + dinners + '</div></div>';
+  html += '</div>';
+  // What their share was spent on
+  html += '<div style="margin-top:12px">';
+  [["court", t("courtCost")], ["shuttle", t("shuttleCost")], ["other", t("otherCosts")], ["dinner", t("dinnerCost")]].forEach(function (r) {
+    html += '<div class="item-row"><div class="item-name">' + icon(COST_ICON[r[0]], 16) + ' ' + r[1] + '</div><div class="item-price">' + fmtLAK(byType[r[0]]) + '</div></div>';
+  });
   html += '</div></div>';
 
   html += '<div class="card"><div class="card-title">' + t("sessionsWord") + '</div>';
   if (!mine.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
-  mine.slice().sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); }).forEach(function (s) {
+  mine.slice().sort(byLatest(function (s) { return (s.date || "") + " " + (s.time || ""); })).forEach(function (s) {
     var share = s.calculated ? (computeLedger(s).shares[uid] || { total: 0 }).total : null;
     var owing = openTransfers(s).filter(function (tr) { return tr.from === uid; }).length;
     html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
-      '<div><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") + '</div></div>' +
+      '<div><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
+      (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0 ? ' \u2022 ' + icon("dinner", 12) + ' ' + t("dinnerBill") : '') + '</div></div>' +
       '<div style="text-align:right"><div class="settings-value">' + (share === null ? '—' : fmtLAK(share)) + '</div>' +
       (owing ? '<span class="person-status status-owes">' + t("unpaid") + '</span>' : '') + '</div></div>';
   });

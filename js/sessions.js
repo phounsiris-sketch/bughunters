@@ -141,7 +141,16 @@ function computeLedger(s) {
   return { shares: shares, paid: paid, transfers: transfers, totals: totals, received: received };
 }
 
-/** "🪶 49,286 + 🍽️ 125,000 − 🏟️ 42,857" — what a transfer is made of */
+/** Same as transferBreakdown, with Solar icons, for showing inside the app */
+function transferBreakdownHtml(tr) {
+  var text = escapeHtml(transferBreakdown(tr));
+  Object.keys(LEDGER_ICONS).forEach(function (k) {
+    text = text.split(LEDGER_ICONS[k]).join(icon(COST_ICON[k], 12));
+  });
+  return text;
+}
+
+/** "🪶 49,286 + 🍽️ 125,000 − 🏟️ 42,857" — what a transfer is made of (plain text) */
 var LEDGER_ICONS = { court: "\uD83C\uDFDF\uFE0F", shuttle: "\uD83E\uDEB6", other: "\uD83E\uDD64", dinner: "\uD83C\uDF7D\uFE0F" };
 function transferBreakdown(tr) {
   function fmt(list) {
@@ -192,7 +201,10 @@ function stopSessions() {
 }
 
 var sessionView = "recent";   // "recent" (last 30 days + upcoming) | "history"
-var sessionHistoryMonth = "";  // "YYYY-MM" filter in history, "" = all
+var sessionHistoryMonth = "";  // "YYYY-MM" date filter, "" = all
+var sessionStatusFilter = "";  // "", upcoming, costs, unpaid, settled
+function setSessionStatusFilter(v) { sessionStatusFilter = v; renderSessionsList(lastSessions); }
+function setSessionMonthFilter(v) { sessionHistoryMonth = v; renderSessionsList(lastSessions); }
 
 function setSessionView(view) {
   sessionView = view;
@@ -229,45 +241,44 @@ function renderSessionsList(sessions) {
   var older = sessions.filter(function (s) { return s.date && s.date < cutoff; });
 
   var html = '<div class="view-switch">';
-  html += '<button class="view-btn' + (sessionView === "recent" ? ' active' : '') + '" onclick="setSessionView(\'recent\')">🏸 ' + t("last30Days") + ' (' + recent.length + ')</button>';
-  html += '<button class="view-btn' + (sessionView === "history" ? ' active' : '') + '" onclick="setSessionView(\'history\')">🗂️ ' + t("history") + ' (' + older.length + ')</button>';
+  html += '<button class="view-btn' + (sessionView === "recent" ? ' active' : '') + '" onclick="setSessionView(\'recent\')">' + icon("sessions", 16) + ' ' + t("last30Days") + ' (' + recent.length + ')</button>';
+  html += '<button class="view-btn' + (sessionView === "history" ? ' active' : '') + '" onclick="setSessionView(\'history\')">' + icon("history", 16) + ' ' + t("history") + ' (' + older.length + ')</button>';
   html += '</div>';
 
-  var list = sessionView === "history" ? older : recent;
+  setBreadcrumb(sessionView === "history"
+    ? [{ label: t("navSessions"), action: "setSessionView('recent')" }, { label: t("history") }]
+    : null);
 
-  if (sessionView === "history") {
-    var months = {};
-    older.forEach(function (s) { months[s.date.slice(0, 7)] = (months[s.date.slice(0, 7)] || 0) + 1; });
-    var keys = Object.keys(months).sort().reverse();
-    if (sessionHistoryMonth && !months[sessionHistoryMonth]) sessionHistoryMonth = "";
-    html += '<div class="form-group"><select class="form-select" onchange="sessionHistoryMonth=this.value;renderSessionsList(lastSessions)">';
-    html += '<option value="">' + t("allMonths") + '</option>';
-    keys.forEach(function (k) {
-      html += '<option value="' + k + '"' + (k === sessionHistoryMonth ? ' selected' : '') + '>' + _monthLabel(k) + ' (' + months[k] + ')</option>';
-    });
-    html += '</select></div>';
-    if (sessionHistoryMonth) list = list.filter(function (s) { return s.date.slice(0, 7) === sessionHistoryMonth; });
-  } else if (can("editSession")) {
+  var inView = sessionView === "history" ? older : recent;
+  var months = monthsOf(inView, function (s) { return s.date; });
+  if (sessionHistoryMonth && months.indexOf(sessionHistoryMonth) < 0) sessionHistoryMonth = "";
+  html += filterBarHtml(
+    [["", t("allStatuses")], ["upcoming", t("statusUpcoming")], ["costs", t("needsCosts")], ["unpaid", t("unpaid")], ["settled", t("settled")]],
+    sessionStatusFilter, months, sessionHistoryMonth, "setSessionStatusFilter", "setSessionMonthFilter");
+
+  if (sessionView === "recent" && can("editSession")) {
     html += '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
   }
 
+  // Filters, then latest first
+  var list = inView.filter(function (s) {
+    if (sessionStatusFilter && sessionStatus(s).key !== sessionStatusFilter) return false;
+    if (sessionHistoryMonth && (s.date || "").slice(0, 7) !== sessionHistoryMonth) return false;
+    return true;
+  }).sort(byLatest(function (s) { return (s.date || "") + " " + (s.time || ""); }));
+
   if (list.length === 0) {
     container.innerHTML = html +
-      '<div class="empty-state"><div class="empty-icon">🏸</div>' +
-      '<div>' + (sessionView === "history" ? t("noHistory") : t("noSessions")) + '</div>' +
-      (sessionView === "recent" ? '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' : '') +
+      '<div class="empty-state"><div class="empty-icon">' + icon("sessions", 44) + '</div>' +
+      '<div>' + (inView.length ? t("noMatch") : sessionView === "history" ? t("noHistory") : t("noSessions")) + '</div>' +
+      (sessionView === "recent" && !inView.length ? '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' : '') +
       '</div>';
     return;
   }
 
-  // Newest play date first
-  list = list.slice().sort(function (a, b) {
-    return ((b.date || "") + (b.time || "")).localeCompare((a.date || "") + (a.time || ""));
-  });
-
-  var canDetails = can("editSession"), canBill = can("editBill");
   for (var i = 0; i < list.length; i++) {
     var s = list[i];
+    var canDetails = canEditSessionDetails(s), canBill = canEditBill(s), canDel = canDeleteSession(s);
     var players = s.players || [];
     var st = sessionStatus(s);
 
@@ -291,7 +302,7 @@ function renderSessionsList(sessions) {
       html += '<div class="session-actions">';
       if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">✏️ ' + t("editDetails") + '</button>';
       if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">🧾 ' + t("editBillShort") + '</button>';
-      if (canDetails) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">🗑️</button>';
+      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">🗑️</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -343,7 +354,7 @@ function showSessionDetailsModal(sessionId) {
       pricePerHour: court.pricePerHour || 0
     };
     // Court cost follows the new court / duration if the bill was already entered
-    if (s.calculated && can("editBill")) {
+    if (s.calculated && canEditBill(s)) {
       data.courtCost = Math.round(data.pricePerHour * duration);
       data.grandTotal = (s.grandTotal || 0) - (s.courtCost || 0) + data.courtCost;
     }
@@ -430,9 +441,10 @@ function renderSessionDetail() {
   var container = document.getElementById("sessionDetailContent");
   if (!container || !currentSession) return;
   var s = currentSession;
+  setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date) }]);
 
   if (!s.calculated && !sessionEditing) {
-    if (can("editBill") || can("editSession")) { startEditSession(); return; }
+    if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
     container.innerHTML = _renderSessionHeader(s) + _renderWaitingForBill(s);
     return;
   }
@@ -475,17 +487,17 @@ function _renderSplitResult(s) {
 
   // Cost breakdown
   html += '<div class="cost-breakdown">';
-  html += _costCard("🏟️", t("court"), L.totals.court, s.courtPayer);
-  html += _costCard("🪶", t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer);
-  html += _costCard("🥤", t("otherCosts"), L.totals.other, null);
-  html += _costCard("🍽️", t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
+  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer);
+  html += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer);
+  html += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
+  html += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
   html += '</div>';
 
   // 1) Pay by type: one card per cost, with the payer's QR and each player's part
   html += '<div class="section-title">💳 ' + t("payByType") + '</div>';
   var n = players.length;
   if (L.totals.court > 0) {
-    html += _payTypeCard(s, "🏟️", t("court"),
+    html += _payTypeCard(s, icon("court", 18), t("court"),
       escapeHtml(s.courtName || "") + ' — ' + (s.duration || 0) + 'h × ' + fmtLAK(s.pricePerHour),
       L.totals.court, s.courtPayer, "court", _even(players, L.totals.court));
   }
@@ -493,12 +505,12 @@ function _renderSplitResult(s) {
     var cocksDesc = (s.shuttlecocks || []).map(function (c) {
       return c.qty + ' ' + escapeHtml(c.brand) + ' (' + fmtLAK(c.price) + '/' + c.cocksPerTube + ')';
     }).join(', ');
-    html += _payTypeCard(s, "🪶", t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle));
+    html += _payTypeCard(s, icon("shuttle", 18), t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle));
   }
   (s.otherCosts || []).forEach(function (oc) {
     if (!(oc.amount > 0)) return;
     var parts = oc.forUid ? (function () { var o = {}; o[oc.forUid] = oc.amount; return o; })() : _even(players, oc.amount);
-    html += _payTypeCard(s, "🥤", escapeHtml(oc.desc),
+    html += _payTypeCard(s, icon("other", 18), escapeHtml(oc.desc),
       oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone") + ' (÷' + n + ')',
       oc.amount, oc.paidBy, "dinner", parts);
   });
@@ -507,7 +519,7 @@ function _renderSplitResult(s) {
       ? '<img src="' + s.dinner.receiptUrl + '" alt="' + t("receipt") + '" class="receipt-thumb" onclick="openImage(this.src)">' +
         '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
       : '';
-    html += _payTypeCard(s, "🍽️", t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
+    html += _payTypeCard(s, icon("dinner", 18), t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
       L.totals.dinner, s.dinner.paidBy, "dinner", _even(s.dinner.diners, L.totals.dinner), receipt);
   }
 
@@ -538,7 +550,7 @@ function _renderSplitResult(s) {
         '<td class="num">' + Math.round(gross).toLocaleString("en-US") + '</td>' +
         '<td class="num">' + (minus ? Math.round(minus).toLocaleString("en-US") : '—') + '</td>' +
         '<td class="num pay">' + fmtLAK(tr.amount) + '</td></tr></tbody></table>';
-      html += '<div class="person-breakdown">' + escapeHtml(transferBreakdown(tr)) + '</div>';
+      html += '<div class="person-breakdown">' + transferBreakdownHtml(tr) + '</div>';
       html += '</div>';
     }
   }
@@ -551,10 +563,10 @@ function _renderSplitResult(s) {
     var uid = shareUids[pi];
     var ps = L.shares[uid];
     var parts = [];
-    if (ps.court) parts.push('🏟️' + fmtLAK(ps.court));
-    if (ps.shuttle) parts.push('🪶' + fmtLAK(ps.shuttle));
-    if (ps.other) parts.push('🥤' + fmtLAK(ps.other));
-    if (ps.dinner) parts.push('🍽️' + fmtLAK(ps.dinner));
+    if (ps.court) parts.push(icon('court', 12) + fmtLAK(ps.court));
+    if (ps.shuttle) parts.push(icon('shuttle', 12) + fmtLAK(ps.shuttle));
+    if (ps.other) parts.push(icon('other', 12) + fmtLAK(ps.other));
+    if (ps.dinner) parts.push(icon('dinner', 12) + fmtLAK(ps.dinner));
     var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
     var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:10px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
@@ -570,10 +582,10 @@ function _renderSplitResult(s) {
   html += '<button class="btn-share" onclick="copyMessengerFromPreview()">' + t("copyMessenger") + '</button>';
   html += '<div class="messenger-preview" id="messengerPreview">' + escapeHtml(buildMessengerText(s)) + '</div>';
 
-  if (can("editBill") || can("editSession")) {
+  if (canEditBill(s) || canEditSessionDetails(s)) {
     html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">✏️ ' + t("editCosts") + '</button>';
   }
-  if (can("editSession")) {
+  if (canDeleteSession(s)) {
     html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
   }
   return html;
@@ -584,7 +596,7 @@ function _renderSplitResult(s) {
 function _canMarkTransfer(s, tr) {
   if (!currentUser) return false;
   var me = currentUser.uid;
-  if (me === tr.from || me === tr.to || can("editBill")) return true;
+  if (me === tr.from || me === tr.to || canEditBill(s)) return true;
   var from = dbFindById(DB_CACHE.users, tr.from);
   var to = dbFindById(DB_CACHE.users, tr.to);
   return !!((from && from.manual) || (to && to.manual));
@@ -744,7 +756,12 @@ function renderEditForm() {
   if (!container || !edit) return;
   var courts = DB_CACHE.courts;
   var html = "";
-  var canDetails = can("editSession"), canBill = can("editBill");
+  var canDetails = canEditSessionDetails(currentSession), canBill = canEditBill(currentSession);
+  setBreadcrumb([
+    { label: t("navSessions"), action: "showPage('sessions')" },
+    { label: fmtDate(edit.date), action: currentSession && currentSession.calculated ? "cancelEditSession()" : "showPage('sessions')" },
+    { label: t("editCosts") }
+  ]);
   var lockDetails = canDetails ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
   var lockBill = canBill ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
   if (!canDetails || !canBill) {
@@ -789,7 +806,7 @@ function renderEditForm() {
   html += '</fieldset>' + lockBill;
 
   // Shuttlecocks
-  html += '<div class="card"><div class="card-title">🪶 ' + t("shuttlecocks") + ' <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
+  html += '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecocks") + ' <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
   for (var si = 0; si < edit.shuttlecocks.length; si++) {
     var sc = edit.shuttlecocks[si];
     html += '<div class="item-row">';
@@ -808,7 +825,7 @@ function renderEditForm() {
   html += '</div>';
 
   // Other costs
-  html += '<div class="card"><div class="card-title">🥤 ' + t("otherCosts") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("other", 14) + ' ' + t("otherCosts") + '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">' + t("otherCostHint") + '</div>';
   for (var oi = 0; oi < edit.otherCosts.length; oi++) {
     var oc = edit.otherCosts[oi];
@@ -821,7 +838,7 @@ function renderEditForm() {
   html += '</div>';
 
   // Dinner
-  html += '<div class="card"><div class="card-title">🍽️ ' + t("dinnerBill") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("dinner", 14) + ' ' + t("dinnerBill") + '</div>';
   if (!edit.dinner) {
     html += '<button class="add-btn-dashed" onclick="editAddDinner()">+ ' + t("addDinner") + '</button>';
   } else {
@@ -849,7 +866,7 @@ function renderEditForm() {
   html += '<div class="card"><div class="card-title">' + t("total") + '</div><div id="editSummary"></div></div>';
   html += '<button class="btn-primary" onclick="saveSessionCosts()">' + t("calculateSplit") + '</button>';
   html += '<button class="btn-secondary" style="margin-top:8px" onclick="cancelEditSession()">' + t("cancel") + '</button>';
-  if (currentSession && !currentSession.calculated && canDetails) {
+  if (currentSession && !currentSession.calculated && canDeleteSession(currentSession)) {
     html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + currentSession.id + '\')">' + t("deleteSession") + '</button>';
   }
 
@@ -930,10 +947,10 @@ function _updateEditTotals() {
   if (sumEl) {
     var n = edit.players.length;
     sumEl.innerHTML =
-      '<div class="item-row"><div class="item-name">🏟️ ' + t("court") + '</div><div class="item-price">' + fmtLAK(data.courtCost) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🪶 ' + t("shuttlecocks") + '</div><div class="item-price">' + fmtLAK(data.shuttleTotal) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtLAK(data.otherTotal) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🍽️ ' + t("dinnerBill") + '</div><div class="item-price">' + fmtLAK(data.dinner ? data.dinner.totalBill : 0) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">' + icon("court", 16) + ' ' + t("court") + '</div><div class="item-price">' + fmtLAK(data.courtCost) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">' + icon("shuttle", 16) + ' ' + t("shuttlecocks") + '</div><div class="item-price">' + fmtLAK(data.shuttleTotal) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">' + icon("other", 16) + ' ' + t("otherCosts") + '</div><div class="item-price">' + fmtLAK(data.otherTotal) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">' + icon("dinner", 16) + ' ' + t("dinnerBill") + '</div><div class="item-price">' + fmtLAK(data.dinner ? data.dinner.totalBill : 0) + '</div></div>' +
       '<div class="subtotal-row"><span>' + t("total") + '</span><span style="color:var(--accent)">' + fmtLAK(data.grandTotal) + '</span></div>' +
       (n ? '<div style="font-size:12px;color:var(--text-muted);text-align:right">' + t("courtAndCocksEach").replace("{n}", n) + ' ' + fmtLAK((data.courtCost + data.shuttleTotal) / n) + '</div>' : '');
   }
@@ -1079,7 +1096,7 @@ function showAddOtherCost() {
 function saveSessionCosts() {
   if (!edit || !currentSessionId) return;
   var data = _editToSessionData();
-  var canBill = can("editBill");
+  var canBill = canEditBill(currentSession);
 
   if (data.players.length < 2) { showToast(t("needTwoPlayers")); return; }
   if (!data.courtId) { showToast(t("selectCourt")); return; }

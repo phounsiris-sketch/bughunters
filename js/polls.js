@@ -65,29 +65,50 @@ function isPollArchived(p) {
   return !!(np.date && np.date < _todayIso());
 }
 
+var pollStatusFilter = "";
+var pollMonthFilter = "";
+function setPollStatusFilter(v) { pollStatusFilter = v; renderPolls(lastPolls); }
+function setPollMonthFilter(v) { pollMonthFilter = v; renderPolls(lastPolls); }
+
+function _pollStatusKey(p) {
+  return p.status === "confirmed" ? "confirmed" : p.status === "cancelled" ? "cancelled" : "draft";
+}
+
 function renderPolls(polls) {
   var container = document.getElementById("pollsList");
   if (!container) return;
   polls = polls || [];
+  var dateOf = function (p) { return (normalizePoll(p).date || "") + " " + (normalizePoll(p).time || ""); };
 
   var archived = polls.filter(isPollArchived);
   var active = polls.filter(function (p) { return !isPollArchived(p); });
-  var showing = pollView === "history" ? archived : active;
-  // Newest play date first in history, soonest first for active polls
-  showing = showing.slice().sort(function (a, b) {
-    var da = normalizePoll(a).date || "", db = normalizePoll(b).date || "";
-    return pollView === "history" ? db.localeCompare(da) : da.localeCompare(db);
-  });
+  var inView = pollView === "history" ? archived : active;
+
+  // Latest first, then status + month filters
+  var months = monthsOf(inView, function (p) { return normalizePoll(p).date; });
+  if (pollMonthFilter && months.indexOf(pollMonthFilter) < 0) pollMonthFilter = "";
+  var showing = inView.filter(function (p) {
+    if (pollStatusFilter && _pollStatusKey(p) !== pollStatusFilter) return false;
+    if (pollMonthFilter && (normalizePoll(p).date || "").slice(0, 7) !== pollMonthFilter) return false;
+    return true;
+  }).sort(byLatest(dateOf));
+
+  setBreadcrumb(pollView === "history"
+    ? [{ label: t("navPolls"), action: "setPollView('active')" }, { label: t("history") }]
+    : null);
 
   var html = '<div class="view-switch">';
-  html += '<button class="view-btn' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">🗳️ ' + t("activePolls") + ' (' + active.length + ')</button>';
-  html += '<button class="view-btn' + (pollView === "history" ? ' active' : '') + '" onclick="setPollView(\'history\')">🗂️ ' + t("history") + ' (' + archived.length + ')</button>';
+  html += '<button class="view-btn' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">' + icon("polls", 16) + ' ' + t("activePolls") + ' (' + active.length + ')</button>';
+  html += '<button class="view-btn' + (pollView === "history" ? ' active' : '') + '" onclick="setPollView(\'history\')">' + icon("history", 16) + ' ' + t("history") + ' (' + archived.length + ')</button>';
   html += '</div>';
+  html += filterBarHtml(
+    [["", t("allStatuses")], ["draft", t("pollDraft")], ["confirmed", t("confirmed")], ["cancelled", t("cancelled")]],
+    pollStatusFilter, months, pollMonthFilter, "setPollStatusFilter", "setPollMonthFilter");
 
   if (showing.length === 0) {
-    html += '<div class="empty-state"><div class="empty-icon">📅</div>' +
-      '<div>' + (pollView === "history" ? t("noHistory") : t("noPolls")) + '</div>';
-    if (pollView === "active" && can("createPoll")) {
+    html += '<div class="empty-state"><div class="empty-icon">' + icon("polls", 44) + '</div>' +
+      '<div>' + (inView.length ? t("noMatch") : pollView === "history" ? t("noHistory") : t("noPolls")) + '</div>';
+    if (pollView === "active" && !inView.length && can("createPoll")) {
       html += '<div style="margin-top:8px;font-size:13px">' + t("createFirstPoll") + '</div>' +
         '<button class="btn-primary" style="margin-top:16px" onclick="showCreatePoll()">+ ' + t("createPoll") + '</button>';
     }
@@ -130,7 +151,7 @@ function _findPoll(id) {
 function _renderPollCard(poll) {
   var np = normalizePoll(poll);
   var isVotable = (poll.status === 'draft' || poll.status === 'open');
-  var isCreator = can('createPoll'); // anyone allowed to run polls can manage them
+  var isCreator = canManagePoll(poll); // creator, or anyone allowed to run polls
   var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
   var statusLabel = poll.status === 'confirmed' ? t('confirmed') : poll.status === 'cancelled' ? t('cancelled') : t('pollDraft');
   var minPlayers = poll.minPlayers || minPlayersSetting();
@@ -147,8 +168,8 @@ function _renderPollCard(poll) {
 
   // The plan
   html += '<div class="poll-plan">';
-  html += '<div style="font-size:15px;font-weight:700">📅 ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + np.duration + 'h)' : '') + '</div>';
-  html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">📍 ' + escapeHtml(np.courtName || '') +
+  html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + np.duration + 'h)' : '') + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">' + icon('court', 14) + ' ' + escapeHtml(np.courtName || '') +
     (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
   if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
   html += '</div>';
@@ -269,7 +290,7 @@ function showVoteForOthers(pollId) {
       return transaction.get(pollRef).then(function (doc) {
         if (!doc.exists) throw new Error("Poll not found");
         var data = doc.data();
-        if (!can("createPoll")) throw new Error(t("noPermission"));
+        if (!canManagePoll(data)) throw new Error(t("noPermission"));
         if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
         if (data.answers) {
           transaction.update(pollRef, { responses: chosen });
@@ -304,7 +325,7 @@ function confirmPoll(pollId) {
       if (!pollDoc.exists) throw new Error("Poll not found");
       var pollData = pollDoc.data();
       pollData.id = pollId;
-      if (!can("createPoll")) throw new Error(t("noPermission"));
+      if (!canManagePoll(pollData)) throw new Error(t("noPermission"));
       if (pollData.status !== 'draft' && pollData.status !== 'open') throw new Error(t("pollClosed"));
 
       var np = normalizePoll(pollData);
@@ -327,7 +348,7 @@ function confirmPoll(pollId) {
         status: 'active',
         players: players,
         calculated: false,
-        createdBy: currentUser.uid,
+        createdBy: pollData.createdBy || currentUser.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -384,7 +405,8 @@ function renderPollCreateForm() {
   }
   if (!newPoll.courtId || !dbFindById(courts, newPoll.courtId)) newPoll.courtId = courts[0].id;
 
-  var html = '<div class="card"><div class="card-title">📅 ' + t('plan') + '</div>';
+  setBreadcrumb([{ label: t("navPolls"), action: "showPage('polls')" }, { label: t("createPoll") }]);
+  var html = '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t('plan') + '</div>';
   html += '<div class="form-row">';
   html += '<div class="form-group"><label class="form-label">' + t('date') + '</label>';
   html += '<input type="date" class="form-input" value="' + newPoll.date + '" onchange="newPoll.date=this.value"></div>';
