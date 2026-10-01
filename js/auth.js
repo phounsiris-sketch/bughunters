@@ -13,13 +13,42 @@ var actionCodeSettings = {
   handleCodeInApp: true
 };
 
+/* ---------- Login / Register mode ---------- */
+var authMode = "login";
+
+function setAuthMode(mode) {
+  authMode = mode;
+  var reg = document.getElementById("registerFields");
+  if (reg) reg.style.display = mode === "register" ? "" : "none";
+  var tl = document.getElementById("authTabLogin");
+  var tr = document.getElementById("authTabRegister");
+  if (tl) tl.classList.toggle("active", mode === "login");
+  if (tr) tr.classList.toggle("active", mode === "register");
+  var btn = document.getElementById("sendLinkBtn");
+  if (btn) btn.textContent = t(mode === "register" ? "sendRegisterLink" : "sendLink");
+  var msg = document.getElementById("otpSentMsg");
+  if (msg) msg.style.display = "none";
+}
+
 /* ---------- Send magic link ---------- */
 function sendLoginLink() {
   var emailInput = document.getElementById("loginEmail");
   var email = emailInput ? emailInput.value.trim() : "";
   if (!email) {
-    showToast("Please enter your email");
+    showToast(t("enterEmail"));
     return;
+  }
+
+  if (authMode === "register") {
+    var regName = (document.getElementById("regName").value || "").trim();
+    var regPhone = (document.getElementById("regPhone").value || "").trim();
+    if (!regName) {
+      showToast(t("displayName"));
+      return;
+    }
+    try {
+      localStorage.setItem("pendingProfile", JSON.stringify({ email: email.toLowerCase(), name: regName, phone: regPhone || null }));
+    } catch (e) {}
   }
 
   var btn = document.getElementById("sendLinkBtn");
@@ -91,6 +120,27 @@ function saveProfile() {
     });
 }
 
+/* ---------- Create profile from the Register form (after email confirmed) ---------- */
+function _createProfileFromPending(user) {
+  var pending = null;
+  try { pending = JSON.parse(localStorage.getItem("pendingProfile") || "null"); } catch (e) {}
+  if (!pending || !pending.name || !user.email || pending.email !== user.email.toLowerCase()) return false;
+
+  var profile = { email: user.email, displayName: pending.name, phone: pending.phone || null, avatarUrl: null };
+  fsdb.collection("users").doc(user.uid).set(Object.assign({}, profile, {
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }))
+    .then(function () {
+      try { localStorage.removeItem("pendingProfile"); } catch (e) {}
+      currentUserProfile = profile;
+      seedFirestoreData();
+      showAppPage();
+      initApp();
+    })
+    .catch(function (error) { showToast(error.message); });
+  return true;
+}
+
 /* ---------- Logout ---------- */
 function logoutUser() {
   currentUser = null;
@@ -151,6 +201,8 @@ function initAuth() {
           seedFirestoreData();
           showAppPage();
           initApp();
+        } else if (_createProfileFromPending(user)) {
+          // Registered via the Register tab: profile created from the saved form
         } else {
           // First sign-in: ask for display name (email is now confirmed)
           document.getElementById("login-page").style.display = "none";

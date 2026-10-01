@@ -19,6 +19,15 @@ var settingsCourts = [];
 var settingsShuttlecocks = [];
 var settingsUsers = [];
 var settingsQrCodes = null;
+var settingsTab = (function () { try { return localStorage.getItem('settingsTab') || 'profile'; } catch (e) { return 'profile'; } })();
+var SETTINGS_TABS = [['profile', 'tabProfile'], ['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabQR']];
+
+function setSettingsTab(tab) {
+  settingsTab = tab;
+  try { localStorage.setItem('settingsTab', tab); } catch (e) {}
+  renderSettings();
+}
+
 
 var _settingsUnsubs = [];   // Firestore snapshot unsubscribes
 var _settingsRenderTimer = null;
@@ -78,6 +87,34 @@ function renderSettings() {
 
   var html = "";
 
+  var tabsEl = document.getElementById("settingsTabs");
+  if (tabsEl) {
+    var tHtml = '';
+    for (var ti = 0; ti < SETTINGS_TABS.length; ti++) {
+      tHtml += '<button class="dash-tab' + (SETTINGS_TABS[ti][0] === settingsTab ? ' active' : '') + '" style="padding:8px 4px;font-size:12px" onclick="setSettingsTab(\'' + SETTINGS_TABS[ti][0] + '\')">' + t(SETTINGS_TABS[ti][1]) + '</button>';
+    }
+    tabsEl.innerHTML = tHtml;
+  }
+
+  // ─── 0. Profile ──────────────────────────────────
+  if (settingsTab === 'profile') {
+    var prof = currentUserProfile || {};
+    var pName = prof.displayName || '';
+    html += '<div class="card">';
+    html += '<div class="card-title">\uD83D\uDC64 ' + t("tabProfile") + '</div>';
+    html += '<div style="display:flex;justify-content:center;margin-bottom:14px"><div class="person-avatar" style="background:' + COLORS[0] + ';width:64px;height:64px;font-size:26px">' + (pName.charAt(0) || '?').toUpperCase() + '</div></div>';
+    html += '<div class="form-group"><label class="form-label">' + t("emailLabel") + '</label>';
+    html += '<input class="form-input" value="' + (prof.email || (currentUser && currentUser.email) || '') + '" disabled></div>';
+    html += '<div class="form-group"><label class="form-label">' + t("displayName") + '</label>';
+    html += '<input class="form-input" id="pfName" value="' + pName.replace(/"/g, '&quot;') + '"></div>';
+    html += '<div class="form-group"><label class="form-label">' + t("phone") + '</label>';
+    html += '<input class="form-input" id="pfPhone" value="' + (prof.phone || '') + '" placeholder="020 xxxx xxxx"></div>';
+    html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("saveContinue") + '</button>';
+    html += '<button class="btn-danger" style="margin-top:10px" onclick="logoutUser()">' + t("logout") + '</button>';
+    html += '</div>';
+  }
+
+  if (settingsTab === 'players') {
   // ─── 1. Players Card ─────────────────────────────
   html += '<div class="card">';
   html += '<div class="card-title">\uD83D\uDC65 ' + t("playerRoster") + '</div>';
@@ -100,6 +137,9 @@ function renderSettings() {
   html += '<button class="add-btn-dashed" onclick="showAddPlayerModal()">+ ' + t("addPlayer") + '</button>';
   html += '</div>';
 
+  }
+
+  if (settingsTab === 'qr') {
   // ─── 2. QR Codes Card ────────────────────────────
   html += '<div class="card">';
   html += '<div class="card-title">\uD83D\uDCF1 ' + t("qrCodes") + '</div>';
@@ -111,6 +151,9 @@ function renderSettings() {
 
   html += '</div>';
 
+  }
+
+  if (settingsTab === 'courts') {
   // ─── 3. Courts Card ──────────────────────────────
   html += '<div class="card">';
   html += '<div class="card-title">\uD83C\uDFDF\uFE0F ' + t("courts") + '</div>';
@@ -132,6 +175,9 @@ function renderSettings() {
   html += '<button class="add-btn-dashed" onclick="showAddCourtModal()">+ ' + t("addCourt") + '</button>';
   html += '</div>';
 
+  }
+
+  if (settingsTab === 'shuttle') {
   // ─── 4. Shuttlecocks Card ────────────────────────
   html += '<div class="card">';
   html += '<div class="card-title">\uD83E\uDEB6 ' + t("shuttlecockBrands") + '</div>';
@@ -154,6 +200,8 @@ function renderSettings() {
 
   html += '<button class="add-btn-dashed" onclick="showAddShuttlecockModal()">+ ' + t("addShuttlecockBrand") + '</button>';
   html += '</div>';
+
+  }
 
   container.innerHTML = html;
 }
@@ -445,4 +493,19 @@ function deleteSettingsShuttlecock(id) {
     .catch(function (error) {
       showToast(error.message);
     });
+}
+
+function saveProfileSettings() {
+  var name = document.getElementById("pfName").value.trim();
+  var phone = document.getElementById("pfPhone").value.trim();
+  if (!name) { showToast(t("displayName")); return; }
+
+  dbUpdateUser(currentUser.uid, { displayName: name, phone: phone || null })
+    .then(function () {
+      currentUserProfile.displayName = name;
+      currentUserProfile.phone = phone || null;
+      showToast(t("profileSaved") + " \u2714");
+      renderSettings();
+    })
+    .catch(function (error) { showToast(error.message); });
 }

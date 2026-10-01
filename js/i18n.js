@@ -17,6 +17,18 @@ var translations = {
     saveContinue: "Save & Continue",
     logout: "Logout",
 
+    // Auth / settings menu
+    signIn: "Sign in",
+    register: "Register",
+    emailLabel: "Email",
+    sendRegisterLink: "Register & Send Confirmation Link",
+    tabProfile: "Profile",
+    tabPlayers: "Players",
+    tabCourts: "Courts",
+    tabShuttle: "Cocks",
+    tabQR: "QR",
+    profileSaved: "Profile saved",
+
     // Poll lifecycle
     pollDraft: "Draft",
     confirmPlan: "Confirm this plan",
@@ -168,6 +180,18 @@ var translations = {
     displayName: "ຊື່ສະແດງ",
     saveContinue: "ບັນທຶກ ແລະ ສືບຕໍ່",
     logout: "ອອກຈາກລະບົບ",
+
+    // Auth / settings menu
+    signIn: "ເຂົ້າສູ່ລະບົບ",
+    register: "ລົງທະບຽນ",
+    emailLabel: "ອີເມວ",
+    sendRegisterLink: "ລົງທະບຽນ ແລະ ສົ່ງລິ້ງຢືນຢັນ",
+    tabProfile: "ໂປຣໄຟລ໌",
+    tabPlayers: "ຜູ້ຫຼິ້ນ",
+    tabCourts: "ສະໜາມ",
+    tabShuttle: "ລູກຂົນໄກ່",
+    tabQR: "QR",
+    profileSaved: "ບັນທຶກໂປຣໄຟລ໌ແລ້ວ",
 
     // Poll lifecycle
     pollDraft: "ຮ່າງ",

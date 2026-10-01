@@ -19,9 +19,23 @@
     <div class="login-title">Godsmash</div>
     <div class="login-subtitle">Badminton booking &amp; cost splitting</div>
     <div class="login-form">
+      <div class="dashboard-tabs" style="margin-bottom:20px">
+        <button class="dash-tab active" id="authTabLogin" onclick="setAuthMode('login')" data-i18n="signIn">Sign in</button>
+        <button class="dash-tab" id="authTabRegister" onclick="setAuthMode('register')" data-i18n="register">Register</button>
+      </div>
+      <div id="registerFields" style="display:none">
+        <div class="form-group">
+          <label class="form-label" data-i18n="displayName">Display Name</label>
+          <input class="form-input" id="regName" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="phone">Phone</label>
+          <input class="form-input" id="regPhone" inputmode="tel" autocomplete="tel" placeholder="020 xxxx xxxx">
+        </div>
+      </div>
       <div class="form-group">
-        <input type="email" class="form-input" id="loginEmail" autocomplete="email" inputmode="email"
-               placeholder="Enter your email" data-i18n-placeholder="enterEmail">
+        <label class="form-label" data-i18n="emailLabel">Email</label>
+        <input type="email" class="form-input" id="loginEmail" autocomplete="email" inputmode="email" placeholder="name@example.com">
       </div>
       <button class="btn-primary" id="sendLinkBtn" onclick="sendLoginLink()" data-i18n="sendLink">Send Sign-In Link</button>
       <div id="otpSentMsg" style="display:none;margin-top:12px;text-align:center;font-size:13px;color:var(--text-secondary)" data-i18n="checkEmail">Check your email for the sign-in link!</div>
@@ -101,6 +115,7 @@
 
     <!-- PAGE: Settings -->
     <div class="page" id="page-settings">
+      <div class="dashboard-tabs" id="settingsTabs"></div>
       <div id="settingsContent"></div>
     </div>
 
