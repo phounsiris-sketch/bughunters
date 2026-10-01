@@ -146,6 +146,26 @@ function fmtDate(iso) {
   return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
 }
 
+/** Same colour for the same person everywhere */
+function colorFor(uid) {
+  var h = 0;
+  uid = String(uid || "");
+  for (var i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
+  return COLORS[h % COLORS.length];
+}
+
+/** Profile photo if the player has one, otherwise a coloured initial */
+function avatarHtml(uid, size) {
+  size = size || 32;
+  var u = typeof dbFindById === "function" ? dbFindById(DB_CACHE.users, uid) : null;
+  var style = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px';
+  if (u && u.avatarUrl) {
+    return '<img class="person-avatar" src="' + u.avatarUrl + '" alt="" style="' + style + '">';
+  }
+  var name = u && u.displayName ? u.displayName : "?";
+  return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
+}
+
 /** Re-render whatever page is showing (after data or language changes) */
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
@@ -160,7 +180,14 @@ function refreshCurrentPage(reason) {
   } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
     _renderDashboard();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
-    refreshSessionDetail();
+    // New / edited courts, brands or players show up in an open cost form too
+    if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users)$/.test(reason)) {
+      var court = dbFindById(DB_CACHE.courts, edit.courtId);
+      if (court) edit.pricePerHour = court.pricePerHour || 0;
+      renderEditForm();
+    } else {
+      refreshSessionDetail();
+    }
   }
 }
 
@@ -180,7 +207,10 @@ function initApp() {
   }
 
   // One shared listener per reference collection
-  dbStartCache(function (key) { refreshCurrentPage(key); });
+  dbStartCache(function (key) {
+    if (key === "users") syncMyPerms();
+    refreshCurrentPage(key);
+  });
 }
 
 // ── Service Worker ─────────────────────────────────────────

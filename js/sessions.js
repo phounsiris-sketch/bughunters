@@ -191,59 +191,187 @@ function stopSessions() {
   _sessionDocUnsub = null;
 }
 
+var sessionView = "recent";   // "recent" (last 30 days + upcoming) | "history"
+var sessionHistoryMonth = "";  // "YYYY-MM" filter in history, "" = all
+
+function setSessionView(view) {
+  sessionView = view;
+  renderSessionsList(lastSessions);
+  window.scrollTo(0, 0);
+}
+
+function _daysAgoIso(days) {
+  var d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split("T")[0];
+}
+
+/** { key, label, cls } — where a session stands */
+function sessionStatus(s) {
+  if (!s.calculated) {
+    if (s.date && s.date > _todayIso()) return { key: "upcoming", label: t("statusUpcoming"), cls: "st-upcoming" };
+    return { key: "costs", label: t("needsCosts"), cls: "st-costs" };
+  }
+  var open = openTransfers(s).length;
+  if (open > 0) return { key: "unpaid", label: t("statusWaiting").replace("{n}", open), cls: "st-unpaid" };
+  return { key: "settled", label: t("settled"), cls: "st-settled" };
+}
+
 function renderSessionsList(sessions) {
   var container = document.getElementById("sessionsList");
   if (!container) return;
+  sessions = sessions || [];
 
-  var html = '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
+  // Sessions older than 30 days move to History automatically
+  var cutoff = _daysAgoIso(30);
+  var recent = sessions.filter(function (s) { return !s.date || s.date >= cutoff; });
+  var older = sessions.filter(function (s) { return s.date && s.date < cutoff; });
 
-  if (!sessions || sessions.length === 0) {
+  var html = '<div class="view-switch">';
+  html += '<button class="view-btn' + (sessionView === "recent" ? ' active' : '') + '" onclick="setSessionView(\'recent\')">🏸 ' + t("last30Days") + ' (' + recent.length + ')</button>';
+  html += '<button class="view-btn' + (sessionView === "history" ? ' active' : '') + '" onclick="setSessionView(\'history\')">🗂️ ' + t("history") + ' (' + older.length + ')</button>';
+  html += '</div>';
+
+  var list = sessionView === "history" ? older : recent;
+
+  if (sessionView === "history") {
+    var months = {};
+    older.forEach(function (s) { months[s.date.slice(0, 7)] = (months[s.date.slice(0, 7)] || 0) + 1; });
+    var keys = Object.keys(months).sort().reverse();
+    if (sessionHistoryMonth && !months[sessionHistoryMonth]) sessionHistoryMonth = "";
+    html += '<div class="form-group"><select class="form-select" onchange="sessionHistoryMonth=this.value;renderSessionsList(lastSessions)">';
+    html += '<option value="">' + t("allMonths") + '</option>';
+    keys.forEach(function (k) {
+      html += '<option value="' + k + '"' + (k === sessionHistoryMonth ? ' selected' : '') + '>' + _monthLabel(k) + ' (' + months[k] + ')</option>';
+    });
+    html += '</select></div>';
+    if (sessionHistoryMonth) list = list.filter(function (s) { return s.date.slice(0, 7) === sessionHistoryMonth; });
+  } else if (can("editSession")) {
+    html += '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
+  }
+
+  if (list.length === 0) {
     container.innerHTML = html +
-      '<div class="empty-state">' +
-        '<div class="empty-icon">🏸</div>' +
-        '<div>' + t("noSessions") + '</div>' +
-        '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' +
+      '<div class="empty-state"><div class="empty-icon">🏸</div>' +
+      '<div>' + (sessionView === "history" ? t("noHistory") : t("noSessions")) + '</div>' +
+      (sessionView === "recent" ? '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' : '') +
       '</div>';
     return;
   }
 
   // Newest play date first
-  var sorted = sessions.slice().sort(function (a, b) {
+  list = list.slice().sort(function (a, b) {
     return ((b.date || "") + (b.time || "")).localeCompare((a.date || "") + (a.time || ""));
   });
 
-  for (var i = 0; i < sorted.length; i++) {
-    var s = sorted[i];
-    var playerCount = (s.players || []).length;
-    var badge;
-    if (!s.calculated) {
-      badge = '<span class="person-status status-owes">' + t("needsCosts") + '</span>';
-    } else {
-      var open = openTransfers(s).length;
-      badge = open > 0
-        ? '<span class="person-status status-owes">' + open + ' ' + t("unpaid") + '</span>'
-        : '<span class="person-status status-payer">' + t("settled") + '</span>';
-    }
+  var canDetails = can("editSession"), canBill = can("editBill");
+  for (var i = 0; i < list.length; i++) {
+    var s = list[i];
+    var players = s.players || [];
+    var st = sessionStatus(s);
 
-    html +=
-      '<div class="session-item" onclick="showSessionDetail(\'' + s.id + '\')">' +
-        '<div style="min-width:0">' +
-          '<div class="session-date">' + fmtDate(s.date) + '</div>' +
-          '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + s.duration + 'h)' : '') + '</div>' +
-          '<div class="session-players">👥 ' + playerCount + ' ' + t("players") + ' ' + badge + '</div>' +
-        '</div>' +
-        '<div style="text-align:right">' +
-          '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
-          (s.calculated && playerCount ? '<div class="session-each">~' + fmtShort((s.grandTotal || 0) / playerCount) + ' ' + t("each") + '</div>' : '') +
-        '</div>' +
+    html += '<div class="session-card">';
+    html += '<div class="session-card-main" onclick="showSessionDetail(\'' + s.id + '\')">';
+    html += '<div style="min-width:0;flex:1">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
+      '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
+    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + s.duration + 'h)' : '') + '</div>';
+    html += '<div class="avatar-stack">';
+    players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
+    html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("players") + '</span></div>';
+    html += '</div>';
+    html += '<div style="text-align:right;flex-shrink:0">' +
+      '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
+      (s.calculated && players.length ? '<div class="session-each">~' + fmtShort((s.grandTotal || 0) / players.length) + ' ' + t("each") + '</div>' : '') +
       '</div>';
+    html += '</div>';
+
+    if (canDetails || canBill) {
+      html += '<div class="session-actions">';
+      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">✏️ ' + t("editDetails") + '</button>';
+      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">🧾 ' + t("editBillShort") + '</button>';
+      if (canDetails) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">🗑️</button>';
+      html += '</div>';
+    }
+    html += '</div>';
   }
 
   container.innerHTML = html;
 }
 
+function _monthLabel(ym) {
+  var p = ym.split("-");
+  var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1);
+  return d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { month: "long", year: "numeric" });
+}
+
+/** Edit date / time / court / duration from the session card */
+function showSessionDetailsModal(sessionId) {
+  var s = null;
+  for (var i = 0; i < lastSessions.length; i++) if (lastSessions[i].id === sessionId) s = lastSessions[i];
+  if (!s) return;
+  var courts = DB_CACHE.courts;
+  var opts = '';
+  courts.forEach(function (c) {
+    opts += '<option value="' + c.id + '"' + (c.id === s.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(c.pricePerHour) + '/h)</option>';
+  });
+
+  document.getElementById("modalTitle").textContent = t("editDetails");
+  document.getElementById("modalBody").innerHTML =
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">' + t("date") + '</label><input type="date" class="form-input" id="mSesDate" value="' + (s.date || '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("startTime") + '</label><input type="time" class="form-input" id="mSesTime" value="' + (s.time || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" id="mSesCourt" data-cs-type="court">' + opts + '</select></div>' +
+      '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" id="mSesDur" min="0.5" step="0.5" value="' + (s.duration || 2) + '"></div>' +
+    '</div>';
+
+  modalCallback = function () {
+    var court = dbFindById(courts, document.getElementById("mSesCourt").value);
+    var duration = parseFloat(document.getElementById("mSesDur").value) || 0;
+    var date = document.getElementById("mSesDate").value;
+    if (!date || duration <= 0 || !court) { showToast(t("fillAllFields")); return; }
+    var data = {
+      date: date,
+      time: document.getElementById("mSesTime").value,
+      duration: duration,
+      courtId: court.id,
+      courtName: court.name,
+      courtLocation: court.location || null,
+      pricePerHour: court.pricePerHour || 0
+    };
+    // Court cost follows the new court / duration if the bill was already entered
+    if (s.calculated && can("editBill")) {
+      data.courtCost = Math.round(data.pricePerHour * duration);
+      data.grandTotal = (s.grandTotal || 0) - (s.courtCost || 0) + data.courtCost;
+    }
+    dbUpdateSession(sessionId, data)
+      .then(function () { closeModal(); showToast(t("save") + " ✔"); })
+      .catch(function (error) { showToast(_permError(error)); });
+  };
+  openModal();
+}
+
+/** Open the session straight in the bill editor */
+function openSessionBill(sessionId) {
+  showSessionDetail(sessionId);
+  var tries = 0;
+  (function wait() {
+    if (currentSession && currentSession.id === sessionId) { if (!sessionEditing) startEditSession(); return; }
+    if (tries++ < 40) setTimeout(wait, 50);
+  })();
+}
+
+/** Turn Firestore "permission-denied" into a readable message */
+function _permError(error) {
+  return error && error.code === "permission-denied" ? t("noPermission") : (error && error.message) || String(error);
+}
+
 /** Start a session directly (without a poll), with me as the first player */
 function createAdHocSession() {
+  if (!can("editSession")) { showToast(t("noPermission")); return; }
   var court = DB_CACHE.courts[0];
   var data = {
     pollId: null,
@@ -261,7 +389,7 @@ function createAdHocSession() {
   };
   dbCreateSession(data)
     .then(function (ref) { showSessionDetail(ref.id); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -304,7 +432,8 @@ function renderSessionDetail() {
   var s = currentSession;
 
   if (!s.calculated && !sessionEditing) {
-    startEditSession();
+    if (can("editBill") || can("editSession")) { startEditSession(); return; }
+    container.innerHTML = _renderSessionHeader(s) + _renderWaitingForBill(s);
     return;
   }
 
@@ -312,6 +441,15 @@ function renderSessionDetail() {
   html += _renderSplitResult(s);
   container.innerHTML = html;
   _fillQrSlots(container);
+}
+
+/** Read-only view for players while the organiser hasn't entered the bill */
+function _renderWaitingForBill(s) {
+  var html = '<div class="card"><div class="card-title">\uD83D\uDC65 ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
+  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
+  html += '</div></div>';
+  html += '<div class="empty-state"><div class="empty-icon">\uD83E\uDDFE</div><div>' + t("waitingForBill") + '</div></div>';
+  return html;
 }
 
 function _renderSessionHeader(s) {
@@ -421,7 +559,7 @@ function _renderSplitResult(s) {
     var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:10px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
     html += '<div class="person-row"><div class="person-left">';
-    html += '<div class="person-avatar" style="background:' + COLORS[pi % COLORS.length] + '">' + getUserName(uid).charAt(0).toUpperCase() + '</div>';
+    html += avatarHtml(uid, 36);
     html += '<div style="min-width:0"><div style="font-size:14px">' + getUserName(uid) + notPlaying + '</div>' + paidStr +
       '<div class="person-breakdown">' + parts.join(' + ') + '</div></div></div>';
     html += '<div class="person-right"><div class="person-amount">' + fmtLAK(ps.total) + '</div></div></div>';
@@ -432,8 +570,12 @@ function _renderSplitResult(s) {
   html += '<button class="btn-share" onclick="copyMessengerFromPreview()">' + t("copyMessenger") + '</button>';
   html += '<div class="messenger-preview" id="messengerPreview">' + escapeHtml(buildMessengerText(s)) + '</div>';
 
-  html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">✏️ ' + t("editCosts") + '</button>';
-  html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
+  if (can("editBill") || can("editSession")) {
+    html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">✏️ ' + t("editCosts") + '</button>';
+  }
+  if (can("editSession")) {
+    html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
+  }
   return html;
 }
 
@@ -442,7 +584,7 @@ function _renderSplitResult(s) {
 function _canMarkTransfer(s, tr) {
   if (!currentUser) return false;
   var me = currentUser.uid;
-  if (me === tr.from || me === tr.to || me === s.createdBy) return true;
+  if (me === tr.from || me === tr.to || can("editBill")) return true;
   var from = dbFindById(DB_CACHE.users, tr.from);
   var to = dbFindById(DB_CACHE.users, tr.to);
   return !!((from && from.manual) || (to && to.manual));
@@ -475,19 +617,32 @@ function _payTypeCard(s, icon, title, desc, total, payer, qrType, parts, extra) 
     (desc ? '<div class="pay-card-desc">' + desc + '</div>' : '') + '</div>' +
     '<div class="pay-card-total">' + fmtLAK(total) + '</div></div>';
 
+  // 1) Who paid — receives the money; their QR for this type
   if (payer) {
-    html += '<div class="pay-to"><div style="min-width:0"><div style="font-size:11px;color:var(--text-muted)">' + t("payTo") + '</div>' +
-      '<div style="font-size:15px;font-weight:700">' + getUserName(payer) + '</div></div>' +
-      '<div class="qr-slot" data-uid="' + payer + '" data-type="' + qrType + '"></div></div>';
+    html += '<div class="receiver-box">';
+    html += '<div class="receiver-info">' + avatarHtml(payer, 40) +
+      '<div style="min-width:0"><div class="receiver-label">💳 ' + t("paidFirst") + '</div>' +
+      '<div class="receiver-name">' + getUserName(payer) + '</div>' +
+      '<div class="receiver-hint">' + t("scanToPay") + '</div></div></div>';
+    html += '<div class="qr-slot qr-big" data-uid="' + payer + '" data-type="' + qrType + '"></div>';
+    html += '</div>';
   }
 
-  html += '<table class="share-table"><tbody>';
-  Object.keys(parts).forEach(function (uid) {
-    var isPayer = uid === payer;
-    html += '<tr' + (isPayer ? ' class="muted"' : '') + '><td>' + getUserName(uid) + (isPayer ? ' <span class="paid-tag">' + t("paidOut") + '</span>' : '') + '</td>' +
-      '<td class="num">' + fmtLAK(parts[uid]) + '</td></tr>';
-  });
-  html += '</tbody></table>';
+  // 2) One box per person who owes them for this cost
+  var payers = Object.keys(parts).filter(function (uid) { return uid !== payer; });
+  if (payers.length) {
+    html += '<div class="pay-box-list">';
+    payers.forEach(function (uid) {
+      html += '<div class="pay-box">' +
+        '<div class="pay-box-who">' + avatarHtml(uid, 26) + '<span>' + getUserName(uid) + '</span></div>' +
+        '<div class="pay-box-arrow">→ ' + (payer ? getUserName(payer) : '') + '</div>' +
+        '<div class="pay-box-amount">' + fmtLAK(parts[uid]) + '</div></div>';
+    });
+    html += '</div>';
+  }
+  if (payer && parts[payer]) {
+    html += '<div class="pay-own-share">' + getUserName(payer) + ' — ' + t("ownShare") + ' ' + fmtLAK(parts[payer]) + '</div>';
+  }
   if (extra) html += '<div style="margin-top:10px">' + extra + '</div>';
   html += '</div>';
   return html;
@@ -589,15 +744,21 @@ function renderEditForm() {
   if (!container || !edit) return;
   var courts = DB_CACHE.courts;
   var html = "";
+  var canDetails = can("editSession"), canBill = can("editBill");
+  var lockDetails = canDetails ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
+  var lockBill = canBill ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
+  if (!canDetails || !canBill) {
+    html += '<div class="perm-note">\uD83D\uDD12 ' + t(canBill ? "onlyBillEditable" : "onlyDetailsEditable") + '</div>';
+  }
 
   // When & where
-  html += '<div class="card"><div class="card-title">📅 ' + t("courtDetails") + '</div>';
+  html += lockDetails + '<div class="card"><div class="card-title">\uD83D\uDCC5 ' + t("courtDetails") + '</div>';
   html += '<div class="form-row">';
   html += '<div class="form-group"><label class="form-label">' + t("date") + '</label><input type="date" class="form-input" value="' + edit.date + '" onchange="edit.date=this.value"></div>';
   html += '<div class="form-group"><label class="form-label">' + t("startTime") + '</label><input type="time" class="form-input" value="' + edit.time + '" onchange="edit.time=this.value"></div>';
   html += '</div>';
   html += '<div class="form-row">';
-  html += '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" onchange="editSetCourt(this.value)">';
+  html += '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" data-cs-type="court" data-cs-onpick="editSetCourt" onchange="editSetCourt(this.value)">';
   if (!courts.length) html += '<option value="">' + t("noCourtsYet") + '</option>';
   for (var ci = 0; ci < courts.length; ci++) {
     html += '<option value="' + courts[ci].id + '"' + (courts[ci].id === edit.courtId ? ' selected' : '') + '>' + escapeHtml(courts[ci].name) + ' (' + fmtLAK(courts[ci].pricePerHour) + '/h)</option>';
@@ -606,21 +767,26 @@ function renderEditForm() {
   html += '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" min="0.5" max="12" step="0.5" value="' + edit.duration + '" oninput="edit.duration=parseFloat(this.value)||0;_updateEditTotals()"></div>';
   html += '</div>';
   html += '<div class="cost-display" id="courtCostDisplay"></div>';
-  html += '<div class="form-group" style="margin-top:8px"><label class="form-label">💳 ' + t("courtPayer") + '</label>';
-  html += '<select class="form-select" onchange="edit.courtPayer=this.value">' + _payerOptions(edit.courtPayer, edit.players) + '</select></div>';
+  html += '</fieldset>' + lockBill;
+  html += '<div class="form-group" style="margin-top:8px"><label class="form-label">\uD83D\uDCB3 ' + t("courtPayer") + '</label>';
+  html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickCourtPayer" onchange="edit.courtPayer=this.value">' + _payerOptions(edit.courtPayer, edit.players) + '</select></div>';
+  html += '</fieldset>' + lockDetails;
   html += '</div>';
 
   // Players
   var pickable = _pickableUids();
+  html += '</fieldset>' + lockDetails;
   html += '<div class="card"><div class="card-title">👥 ' + t("players") + ' (' + edit.players.length + ')</div>';
   html += '<div class="chips">';
   for (var ui = 0; ui < pickable.length; ui++) {
     var on = edit.players.indexOf(pickable[ui]) >= 0;
-    html += '<div class="chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + (on ? '✔ ' : '') + getUserName(pickable[ui]) + '</div>';
+    html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + avatarHtml(pickable[ui], 22) + (on ? '\u2714 ' : '') + getUserName(pickable[ui]) + '</div>';
   }
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("payerHint") + '</div>';
   html += '</div>';
+
+  html += '</fieldset>' + lockBill;
 
   // Shuttlecocks
   html += '<div class="card"><div class="card-title">🪶 ' + t("shuttlecocks") + ' <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
@@ -637,7 +803,7 @@ function renderEditForm() {
   }
   html += '<button class="add-btn-dashed" onclick="showAddShuttlecock()">+ ' + t("addBrand") + '</button>';
   html += '<div class="form-group" style="margin-top:10px"><label class="form-label">💳 ' + t("shuttlePayer") + '</label>';
-  html += '<select class="form-select" onchange="edit.shuttlePayer=this.value">' + _payerOptions(edit.shuttlePayer, edit.players) + '</select></div>';
+  html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickShuttlePayer" onchange="edit.shuttlePayer=this.value">' + _payerOptions(edit.shuttlePayer, edit.players) + '</select></div>';
   html += '<div class="subtotal-row"><span>' + t("shuttleTotal") + '</span><span id="shuttleTotal"></span></div>';
   html += '</div>';
 
@@ -662,7 +828,7 @@ function renderEditForm() {
     var d = edit.dinner;
     html += '<div class="form-row">';
     html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (\u20AD)</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
-    html += '<div class="form-group"><label class="form-label">💳 ' + t("dinnerPayer") + '</label><select class="form-select" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
+    html += '<div class="form-group"><label class="form-label">💳 ' + t("dinnerPayer") + '</label><select class="form-select" data-cs-type="player" data-cs-onpick="editPickDinnerPayer" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
     html += '</div>';
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
     for (var di = 0; di < pickable.length; di++) {
@@ -677,11 +843,13 @@ function renderEditForm() {
   }
   html += '</div>';
 
+  html += '</fieldset>';
+
   // Summary + save
   html += '<div class="card"><div class="card-title">' + t("total") + '</div><div id="editSummary"></div></div>';
   html += '<button class="btn-primary" onclick="saveSessionCosts()">' + t("calculateSplit") + '</button>';
   html += '<button class="btn-secondary" style="margin-top:8px" onclick="cancelEditSession()">' + t("cancel") + '</button>';
-  if (currentSession && !currentSession.calculated) {
+  if (currentSession && !currentSession.calculated && canDetails) {
     html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + currentSession.id + '\')">' + t("deleteSession") + '</button>';
   }
 
@@ -771,7 +939,16 @@ function _updateEditTotals() {
   }
 }
 
+/** "+ Add new" player from a payer dropdown: add them to the game and pick them */
+function _editAddAndPick(uid) {
+  if (uid && edit.players.indexOf(uid) < 0) edit.players.push(uid);
+}
+function editPickCourtPayer(uid) { _editAddAndPick(uid); edit.courtPayer = uid; renderEditForm(); }
+function editPickShuttlePayer(uid) { _editAddAndPick(uid); edit.shuttlePayer = uid; renderEditForm(); }
+function editPickDinnerPayer(uid) { if (edit.dinner) edit.dinner.paidBy = uid; renderEditForm(); }
+
 function editSetCourt(courtId) {
+  if (!edit) return;
   edit.courtId = courtId;
   var court = dbFindById(DB_CACHE.courts, courtId);
   if (court) edit.pricePerHour = court.pricePerHour || 0;
@@ -822,7 +999,11 @@ function editShuttleQty(idx, delta) {
   renderEditForm();
 }
 
-function showAddShuttlecock() {
+function reopenAddShuttlecock(brandId) {
+  setTimeout(function () { showAddShuttlecock(brandId); }, 300); // let the brand list refresh first
+}
+
+function showAddShuttlecock(preselectId) {
   var brands = DB_CACHE.shuttlecocks;
   if (brands.length === 0) {
     showToast(t("addBrandsFirst"));
@@ -831,13 +1012,13 @@ function showAddShuttlecock() {
 
   var opts = "";
   for (var i = 0; i < brands.length; i++) {
-    opts += '<option value="' + brands[i].id + '">' + escapeHtml(brands[i].name) + ' (' + fmtLAK(brands[i].pricePerTube) + ' / ' + (brands[i].cocksPerTube || 12) + ')</option>';
+    opts += '<option value="' + brands[i].id + '"' + (brands[i].id === preselectId ? ' selected' : '') + '>' + escapeHtml(brands[i].name) + ' (' + fmtLAK(brands[i].pricePerTube) + ' / ' + (brands[i].cocksPerTube || 12) + ')</option>';
   }
 
   document.getElementById("modalTitle").textContent = t("addBrand");
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("selectBrand") + '</label>' +
-    '<select class="form-select" id="modalBrand">' + opts + '</select></div>' +
+    '<select class="form-select" id="modalBrand" data-cs-type="shuttle" data-cs-onpick="reopenAddShuttlecock">' + opts + '</select></div>' +
     '<div class="form-group"><label class="form-label">' + t("cocksUsed") + '</label>' +
     '<input type="number" class="form-input" id="modalQty" value="1" min="1"></div>';
 
@@ -898,13 +1079,31 @@ function showAddOtherCost() {
 function saveSessionCosts() {
   if (!edit || !currentSessionId) return;
   var data = _editToSessionData();
+  var canBill = can("editBill");
 
   if (data.players.length < 2) { showToast(t("needTwoPlayers")); return; }
   if (!data.courtId) { showToast(t("selectCourt")); return; }
-  if (data.courtCost > 0 && !data.courtPayer) { showToast(t("selectPayer") + " — " + t("courtPayer")); return; }
-  if (data.shuttleTotal > 0 && !data.shuttlePayer) { showToast(t("selectPayer") + " — " + t("shuttlePayer")); return; }
+
+  if (!canBill) {
+    // Details only (date, time, court, players): leave the bill untouched
+    var details = {};
+    ["date", "time", "duration", "courtId", "courtName", "courtLocation", "pricePerHour", "players"].forEach(function (k) { details[k] = data[k]; });
+    dbUpdateSession(currentSessionId, details)
+      .then(function () {
+        if (currentSession) Object.assign(currentSession, details);
+        sessionEditing = false;
+        edit = null;
+        showToast(t("save") + " \u2714");
+        renderSessionDetail();
+      })
+      .catch(function (error) { showToast(_permError(error)); });
+    return;
+  }
+
+  if (data.courtCost > 0 && !data.courtPayer) { showToast(t("selectPayer") + " \u2014 " + t("courtPayer")); return; }
+  if (data.shuttleTotal > 0 && !data.shuttlePayer) { showToast(t("selectPayer") + " \u2014 " + t("shuttlePayer")); return; }
   if (data.dinner) {
-    if (!data.dinner.paidBy) { showToast(t("selectPayer") + " — " + t("dinnerPayer")); return; }
+    if (!data.dinner.paidBy) { showToast(t("selectPayer") + " \u2014 " + t("dinnerPayer")); return; }
     if (!data.dinner.diners.length) { showToast(t("selectDiners")); return; }
   }
 
@@ -918,10 +1117,10 @@ function saveSessionCosts() {
       if (currentSession) Object.assign(currentSession, data);
       sessionEditing = false;
       edit = null;
-      showToast(t("calculateSplit") + " ✔");
+      showToast(t("calculateSplit") + " \u2714");
       renderSessionDetail();
     })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -938,7 +1137,7 @@ function setTransferSettled(sessionId, key, value) {
   var remaining = computeLedger(s).transfers.filter(function (tr) { return !settled[tr.key]; });
   dbUpdateSession(sessionId, { settled: settled, status: remaining.length ? "active" : "completed" })
     .then(function () { showToast(value ? t("paid") + " ✔" : t("unpaid")); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -956,7 +1155,7 @@ function deleteSessionById(sessionId) {
       currentSessionId = null;
       showPage("sessions", false);
     })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ──────────────────────────────────────────────────────────

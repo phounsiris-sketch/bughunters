@@ -8,7 +8,7 @@
    ============================================================ */
 
 var dashPeriod = "monthly";
-var dashTab = "balance";
+var dashTab = "leaders";
 var _dashChart = null;
 
 var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -68,13 +68,13 @@ function _renderDashboard() {
   if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
 
   var html = '<div class="dashboard-tabs">';
-  var tabs = [["balance", t("balance")], ["spending", t("spending")], ["activity", t("activity")]];
+  var tabs = [["leaders", t("leaderboard")], ["spending", t("spending")], ["activity", t("activity")]];
   for (var ti = 0; ti < tabs.length; ti++) {
     html += '<button class="dash-tab' + (tabs[ti][0] === dashTab ? ' active' : '') + '" onclick="switchDashTab(\'' + tabs[ti][0] + '\')">' + tabs[ti][1] + '</button>';
   }
   html += '</div>';
 
-  if (dashTab !== "balance") {
+  {
     html += '<div class="period-toggle">';
     var periods = [["monthly", t("monthly")], ["quarterly", t("quarterly")], ["yearly", t("yearly")], ["all", t("allTime")]];
     for (var pi = 0; pi < periods.length; pi++) {
@@ -85,8 +85,8 @@ function _renderDashboard() {
 
   var calculated = lastSessions.filter(function (s) { return s.calculated; });
 
-  if (dashTab === "balance") {
-    html += _renderBalanceTab(calculated);
+  if (dashTab === "leaders") {
+    html += _renderLeaderboard();
     container.innerHTML = html;
   } else if (dashTab === "spending") {
     var filtered = calculated.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
@@ -100,79 +100,67 @@ function _renderDashboard() {
 }
 
 /* ──────────────────────────────────────────────────────────
-   Balance — unpaid transfers across all sessions, netted per pair
+   Leaderboard — top 3 lists for the selected period
    ────────────────────────────────────────────────────────── */
 
-function _renderBalanceTab(sessions) {
-  var pair = {}; // pair["a|b"] = amount a owes b (a < b), negative = b owes a
-  var openCount = 0;
+function _renderLeaderboard() {
+  var sessions = lastSessions.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
+  var polls = lastPolls.filter(function (p) { return p.status !== "cancelled" && _inPeriod(_pollDate(p), dashPeriod); });
+  var pollById = {};
+  lastPolls.forEach(function (p) { pollById[p.id] = p; });
 
-  for (var si = 0; si < sessions.length; si++) {
-    var open = openTransfers(sessions[si]);
-    openCount += open.length;
-    for (var ti = 0; ti < open.length; ti++) {
-      var tr = open[ti];
-      var key = tr.from < tr.to ? tr.from + "|" + tr.to : tr.to + "|" + tr.from;
-      var sign = tr.from < tr.to ? 1 : -1;
-      pair[key] = (pair[key] || 0) + sign * tr.amount;
+  var played = {}, paid = {}, answered = {}, noVote = {}, noShow = {};
+  function inc(map, uid, n) { if (uid) map[uid] = (map[uid] || 0) + (n === undefined ? 1 : n); }
+
+  sessions.forEach(function (s) {
+    var players = s.players || [];
+    players.forEach(function (u) { inc(played, u); });
+    if (s.calculated) {
+      var L = computeLedger(s);
+      Object.keys(L.paid).forEach(function (u) { if (L.paid[u] > 0) inc(paid, u, L.paid[u]); });
     }
-  }
-
-  var rows = [];
-  var keys = Object.keys(pair);
-  for (var k = 0; k < keys.length; k++) {
-    var ab = keys[k].split("|");
-    var amt = pair[keys[k]];
-    if (amt > 0.5) rows.push({ from: ab[0], to: ab[1], amount: amt });
-    else if (amt < -0.5) rows.push({ from: ab[1], to: ab[0], amount: -amt });
-  }
-  rows.sort(function (a, b) { return b.amount - a.amount; });
-
-  var me = currentUser ? currentUser.uid : null;
-  var iOwe = 0, owedToMe = 0;
-  for (var r = 0; r < rows.length; r++) {
-    if (rows[r].from === me) iOwe += rows[r].amount;
-    if (rows[r].to === me) owedToMe += rows[r].amount;
-  }
-
-  var html = '<div class="cost-breakdown">';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("youOwe") + '</div><div class="cost-card-value" style="color:var(--orange)">' + fmtShort(iOwe) + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("owedToYou") + '</div><div class="cost-card-value">' + fmtShort(owedToMe) + '</div></div>';
-  html += '</div>';
-
-  if (rows.length === 0) {
-    return html + '<div class="empty-state">' +
-      '<div class="empty-icon">✅</div>' +
-      '<div style="font-size:16px;font-weight:600">' + t("settleUp") + '</div>' +
-      '<div style="margin-top:4px;font-size:13px;color:var(--text-muted)">' + t("allSettled") + '</div>' +
-    '</div>';
-  }
-
-  html += '<div class="card"><div class="card-title">' + t("whoPaysWhom") + '</div>';
-  for (var bi = 0; bi < rows.length; bi++) {
-    var row = rows[bi];
-    var mine = row.from === me || row.to === me;
-    html += '<div class="person-row"' + (mine ? ' style="background:rgba(74,222,128,0.06);border-radius:8px;padding-left:6px;padding-right:6px"' : '') + '>';
-    html += '<div style="flex:1;min-width:0;font-size:14px"><b>' + getUserName(row.from) + '</b> → <b>' + getUserName(row.to) + '</b></div>';
-    html += '<div class="person-amount" style="color:var(--orange)">' + fmtLAK(row.amount) + '</div>';
-    html += '</div>';
-  }
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("balanceHint") + '</div>';
-  html += '</div>';
-
-  // Sessions still waiting on payments
-  var pending = sessions.filter(function (s) { return openTransfers(s).length > 0; });
-  if (pending.length) {
-    html += '<div class="card"><div class="card-title">' + t("unpaidSessions") + '</div>';
-    for (var pi = 0; pi < pending.length; pi++) {
-      var s = pending[pi];
-      html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
-        '<div><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") + '</div></div>' +
-        '<div class="settings-value">' + openTransfers(s).length + ' ' + t("unpaid") + ' →</div></div>';
+    // Compare who played with how they answered the poll behind the session
+    var poll = s.pollId ? pollById[s.pollId] : null;
+    if (poll) {
+      var r = _pollResponses(poll);
+      players.forEach(function (u) { if (r[u] !== 0) inc(noVote, u); });                 // played without voting Join
+      Object.keys(r).forEach(function (u) { if (r[u] === 0 && players.indexOf(u) < 0) inc(noShow, u); }); // voted Join, didn't play
     }
-    html += '</div>';
-  }
+  });
+  polls.forEach(function (p) {
+    Object.keys(_pollResponses(p)).forEach(function (u) { inc(answered, u); });
+  });
+  var active = {};
+  Object.keys(played).forEach(function (u) { inc(active, u, played[u]); });
+  Object.keys(answered).forEach(function (u) { inc(active, u, answered[u]); });
+
+  var html = '<div class="leader-grid">';
+  html += _topCard("🏸", t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
+  html += _topCard("💳", t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
+  html += _topCard("📊", t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); });
+  html += _topCard("🙅", t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
+  html += _topCard("🤷", t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
+  html += '</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("lbHint") + '</div>';
   return html;
+}
+
+/** Card with the top 3 of a { uid: value } map */
+function _topCard(icon, title, map, fmt, warn) {
+  var uids = Object.keys(map).filter(function (u) { return map[u] > 0; });
+  uids.sort(function (a, b) { return map[b] - map[a]; });
+  var medals = ["🥇", "🥈", "🥉"];
+  var html = '<div class="card leader-card' + (warn ? ' warn' : '') + '"><div class="card-title">' + icon + ' ' + title + '</div>';
+  if (!uids.length) {
+    html += '<div style="font-size:13px;color:var(--text-muted)">' + (warn ? t("lbNobody") : t("noData")) + '</div>';
+  }
+  uids.slice(0, 3).forEach(function (u, i) {
+    html += '<div class="leader-row" onclick="dashTab=\'activity\';dashActivityUser=\'' + u + '\';_renderDashboard()">' +
+      '<span class="leader-medal">' + (warn ? (i + 1) + '.' : medals[i]) + '</span>' + avatarHtml(u, 30) +
+      '<span class="leader-name">' + getUserName(u) + '</span>' +
+      '<span class="leader-value">' + fmt(map[u]) + '</span></div>';
+  });
+  return html + '</div>';
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -222,7 +210,7 @@ function _renderSpendingTab(sessions, allSessions) {
     var u = ps.uids[ui];
     var row = ps.data[u];
     html += '<div class="person-row">';
-    html += '<div class="person-avatar" style="background:' + COLORS[ui % COLORS.length] + ';width:28px;height:28px;font-size:11px">' + getUserName(u).charAt(0).toUpperCase() + '</div>';
+    html += avatarHtml(u, 28);
     html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
     html += '<div style="font-size:10px;color:var(--text-muted)">🏟️' + fmtLAK(row.court) + ' 🪶' + fmtLAK(row.shuttle) + ' 🥤' + fmtLAK(row.other) + ' 🍽️' + fmtLAK(row.dinner) + '</div></div>';
     html += '<div class="person-amount">' + fmtLAK(row.total) + '</div>';
@@ -388,7 +376,7 @@ function _renderActivityTab() {
     var p = played[u] || 0, v = voted[u] || 0, color = COLORS[ui % COLORS.length];
     html += '<div class="activity-row" onclick="setActivityUser(\'' + u + '\')">';
     html += '<div style="font-size:14px;font-weight:700;color:var(--text-dim);min-width:20px;text-align:center">' + (ui + 1) + '</div>';
-    html += '<div class="person-avatar" style="background:' + color + ';width:28px;height:28px;font-size:11px">' + getUserName(u).charAt(0).toUpperCase() + '</div>';
+    html += avatarHtml(u, 28);
     html += '<div style="flex:1;min-width:0">';
     html += '<div style="display:flex;justify-content:space-between;gap:6px;margin-bottom:3px"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap">🏸 ' + p + '/' + sessions.length + ' • 🗳️ ' + v + '/' + polls.length + '</div></div>';

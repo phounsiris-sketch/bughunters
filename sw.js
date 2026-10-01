@@ -1,4 +1,4 @@
-var CACHE_NAME = 'godsmash-v5';
+var CACHE_NAME = 'godsmash-v6';
 var ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ var ASSETS = [
   './js/i18n.js',
   './js/router.js',
   './js/db.js',
+  './js/perms.js',
   './js/storage.js',
   './js/auth.js',
   './js/polls.js',

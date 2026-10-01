@@ -8,6 +8,31 @@
 
 var _csOpen = null; // { select, trigger, menu }
 
+/* Selects with data-cs-type get "+ Add new" (and ✏️ per item for court /
+   shuttle) inside the menu, for people allowed to edit configuration.
+   data-cs-onpick names a global function called with the saved item's id. */
+var CS_TYPES = {
+  court:   { add: function (pick) { showCourtModal(null, pick); },   edit: function (id, pick) { showCourtModal(id, pick); },   addLabel: "addCourt" },
+  shuttle: { add: function (pick) { showShuttleModal(null, pick); }, edit: function (id, pick) { showShuttleModal(id, pick); }, addLabel: "addShuttlecockBrand" },
+  player:  { add: function (pick) { showPlayerModal(null, pick); },  edit: null,                                                  addLabel: "addPlayer" }
+};
+
+function _csTypeFor(select) {
+  var type = select.getAttribute("data-cs-type");
+  if (!type || !CS_TYPES[type] || typeof can !== "function" || !can("editConfig")) return null;
+  return CS_TYPES[type];
+}
+
+function _csPicker(select) {
+  var fnName = select.getAttribute("data-cs-onpick");
+  return function (id) {
+    var fn = fnName && window[fnName];
+    if (typeof fn === "function") { fn(id); return; }
+    select.value = id;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+}
+
 function enhanceSelects(root) {
   var selects = (root || document).querySelectorAll("select.form-select:not([data-cs])");
   for (var i = 0; i < selects.length; i++) _enhanceSelect(selects[i]);
@@ -62,6 +87,7 @@ function _csOpenMenu(select) {
   menu.className = "cs-menu";
   menu.setAttribute("role", "listbox");
 
+  var type = _csTypeFor(select);
   for (var i = 0; i < select.options.length; i++) {
     var opt = select.options[i];
     var item = document.createElement("div");
@@ -72,11 +98,44 @@ function _csOpenMenu(select) {
     item.setAttribute("role", "option");
     item.setAttribute("tabindex", "-1");
     item.setAttribute("data-index", i);
-    item.textContent = opt.textContent;
+    var label = document.createElement("span");
+    label.className = "cs-label";
+    label.textContent = opt.textContent;
+    item.appendChild(label);
+    if (type && type.edit && opt.value) {
+      var ed = document.createElement("button");
+      ed.type = "button";
+      ed.className = "cs-edit";
+      ed.setAttribute("data-edit", opt.value);
+      ed.setAttribute("aria-label", "Edit");
+      ed.textContent = "\u270F\uFE0F";
+      item.appendChild(ed);
+    }
     menu.appendChild(item);
+  }
+  if (type) {
+    var add = document.createElement("div");
+    add.className = "cs-add";
+    add.setAttribute("tabindex", "-1");
+    add.textContent = "+ " + t(type.addLabel);
+    menu.appendChild(add);
   }
 
   menu.addEventListener("click", function (e) {
+    var edBtn = e.target.closest(".cs-edit");
+    if (edBtn) {
+      e.stopPropagation();
+      var id = edBtn.getAttribute("data-edit");
+      _csClose();
+      type.edit(id, _csPicker(select));
+      return;
+    }
+    if (e.target.closest(".cs-add")) {
+      e.stopPropagation();
+      _csClose();
+      type.add(_csPicker(select));
+      return;
+    }
     var item = e.target.closest(".cs-option");
     if (!item || item.classList.contains("disabled")) return;
     _csChoose(select, parseInt(item.getAttribute("data-index"), 10));

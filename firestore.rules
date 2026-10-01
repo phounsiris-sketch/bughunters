@@ -1,59 +1,107 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Who is asking ─────────────────────────────────────────
     function isAuth() { return request.auth != null; }
-    function isOwner(uid) { return request.auth.uid == uid; }
+    function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
 
-    // Registered players own their profile. Manual players (friends without
-    // an account, `manual: true`) can be managed by any signed-in member,
-    // but a manual entry can never be turned into, or replace, a real account.
-    function isManual(data) { return data.get('manual', false) == true; }
-
-    match /users/{uid} {
-      allow read: if isAuth();
-      allow create: if isOwner(uid) || (isAuth() && isManual(request.resource.data));
-      allow update: if isOwner(uid) || (isAuth() && isManual(resource.data) && isManual(request.resource.data));
-      allow delete: if isAuth() && isManual(resource.data);
+    // The one Super Admin (verified email). Can do everything and is the
+    // only person who can grant permissions.
+    function isSuper() {
+      return isAuth()
+        && request.auth.token.get('email', '') == 'phounsiri.s@aidctech.com.la'
+        && request.auth.token.get('email_verified', false) == true;
     }
 
+    // Permissions granted by the Super Admin, stored on users/{uid}.perms:
+    //   createPoll  — create / confirm / cancel polls
+    //   editSession — session date, time, court, players; create / delete sessions
+    //   editBill    — costs, payers, dinner, receipts, payments
+    //   editConfig  — courts, cocks, manual players, group settings
+    function can(p) {
+      return isSuper() || (isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('perms', {}).get(p, false) == true);
+    }
+
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function isManual(data) { return data.get('manual', false) == true; }
+
+    // ── Players ───────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isAuth();
+      // Your own profile, without permissions; or a manual player (editConfig)
+      allow create: if (isOwner(uid) && !('perms' in request.resource.data))
+        || (can('editConfig') && isManual(request.resource.data) && !('perms' in request.resource.data))
+        || isSuper();
+      // You may edit your profile but never your own permissions
+      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual']))
+        || (can('editConfig') && isManual(resource.data) && isManual(request.resource.data) && !changed().hasAny(['perms']))
+        || isSuper();
+      allow delete: if (can('editConfig') && isManual(resource.data)) || isSuper();
+    }
+
+    // ── Polls ─────────────────────────────────────────────────
     match /polls/{pollId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth();
+      allow create: if can('createPoll');
+      // Everyone can answer; anything else needs createPoll
+      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes'])) || can('createPoll');
+      allow delete: if isSuper();
+    }
+
+    // ── Sessions ──────────────────────────────────────────────
+    function sessionDetailKeys() {
+      return ['date', 'time', 'duration', 'courtId', 'courtName', 'courtLocation', 'pricePerHour', 'players'];
+    }
+    function billKeys() {
+      return ['courtCost', 'courtPayer', 'shuttlecocks', 'shuttleTotal', 'shuttlePayer', 'otherCosts',
+              'otherTotal', 'dinner', 'grandTotal', 'calculated'];
     }
 
     match /sessions/{sessionId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth();
-      allow delete: if isAuth();
+      // Confirming a poll creates its session
+      allow create: if can('createPoll') || can('editSession');
+      allow update: if isAuth() && (
+        // Marking a payment as paid is open to everyone
+        changed().hasOnly(['settled', 'status'])
+        || (
+          (can('editSession') || !changed().hasAny(sessionDetailKeys())) &&
+          (can('editBill') || !changed().hasAny(billKeys())) &&
+          (can('editSession') || can('editBill'))
+        )
+      );
+      allow delete: if can('editSession');
 
       match /dinner/{docId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow write: if can('editBill');
       }
     }
 
+    // ── Configuration ─────────────────────────────────────────
     match /courts/{courtId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if can('editConfig');
     }
 
     match /shuttlecocks/{id} {
       allow read: if isAuth();
-      allow write: if isAuth();
-    }
-
-    // Payment QR codes: your own, or a manual player's (they can't sign in)
-    match /qrcodes/{uid} {
-      allow read: if isAuth();
-      allow write: if isOwner(uid) ||
-        (isAuth() && get(/databases/$(database)/documents/users/$(uid)).data.get('manual', false) == true);
+      allow write: if can('editConfig');
     }
 
     match /settings/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if can('editConfig');
+    }
+
+    // Payment QR codes: your own, or a manual player's (editConfig)
+    match /qrcodes/{uid} {
+      allow read: if isAuth();
+      allow write: if isOwner(uid)
+        || (can('editConfig') && isManual(get(/databases/$(database)/documents/users/$(uid)).data))
+        || isSuper();
     }
   }
 }

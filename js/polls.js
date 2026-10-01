@@ -49,26 +49,53 @@ function getUserName(uid) {
   return "?";
 }
 
-/* ---------- Render polls list ---------- */
+/* ---------- Render polls list (active / history) ---------- */
+var pollView = "active";
+
+function setPollView(view) {
+  pollView = view;
+  renderPolls(lastPolls);
+  window.scrollTo(0, 0);
+}
+
+/** Finished polls go to History: cancelled, or the play date has passed */
+function isPollArchived(p) {
+  if (p.status === "cancelled") return true;
+  var np = normalizePoll(p);
+  return !!(np.date && np.date < _todayIso());
+}
+
 function renderPolls(polls) {
   var container = document.getElementById("pollsList");
   if (!container) return;
+  polls = polls || [];
 
-  if (!polls || polls.length === 0) {
-    container.innerHTML =
-      '<div class="empty-state">' +
-        '<div class="empty-icon">📅</div>' +
-        '<div>' + t("noPolls") + '</div>' +
-        '<div style="margin-top:8px;font-size:13px">' + t("createFirstPoll") + '</div>' +
-        '<button class="btn-primary" style="margin-top:16px" onclick="showCreatePoll()">+ ' + t("createPoll") + '</button>' +
-      '</div>';
+  var archived = polls.filter(isPollArchived);
+  var active = polls.filter(function (p) { return !isPollArchived(p); });
+  var showing = pollView === "history" ? archived : active;
+  // Newest play date first in history, soonest first for active polls
+  showing = showing.slice().sort(function (a, b) {
+    var da = normalizePoll(a).date || "", db = normalizePoll(b).date || "";
+    return pollView === "history" ? db.localeCompare(da) : da.localeCompare(db);
+  });
+
+  var html = '<div class="view-switch">';
+  html += '<button class="view-btn' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">🗳️ ' + t("activePolls") + ' (' + active.length + ')</button>';
+  html += '<button class="view-btn' + (pollView === "history" ? ' active' : '') + '" onclick="setPollView(\'history\')">🗂️ ' + t("history") + ' (' + archived.length + ')</button>';
+  html += '</div>';
+
+  if (showing.length === 0) {
+    html += '<div class="empty-state"><div class="empty-icon">📅</div>' +
+      '<div>' + (pollView === "history" ? t("noHistory") : t("noPolls")) + '</div>';
+    if (pollView === "active" && can("createPoll")) {
+      html += '<div style="margin-top:8px;font-size:13px">' + t("createFirstPoll") + '</div>' +
+        '<button class="btn-primary" style="margin-top:16px" onclick="showCreatePoll()">+ ' + t("createPoll") + '</button>';
+    }
+    container.innerHTML = html + '</div>';
     return;
   }
 
-  var html = '';
-  for (var p = 0; p < polls.length; p++) {
-    html += _renderPollCard(polls[p]);
-  }
+  for (var p = 0; p < showing.length; p++) html += _renderPollCard(showing[p]);
   container.innerHTML = html;
 }
 
@@ -103,7 +130,7 @@ function _findPoll(id) {
 function _renderPollCard(poll) {
   var np = normalizePoll(poll);
   var isVotable = (poll.status === 'draft' || poll.status === 'open');
-  var isCreator = currentUser && poll.createdBy === currentUser.uid;
+  var isCreator = can('createPoll'); // anyone allowed to run polls can manage them
   var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
   var statusLabel = poll.status === 'confirmed' ? t('confirmed') : poll.status === 'cancelled' ? t('cancelled') : t('pollDraft');
   var minPlayers = poll.minPlayers || minPlayersSetting();
@@ -150,7 +177,7 @@ function _renderPollCard(poll) {
   // Joined players
   if (joined.length) {
     html += '<div class="joined-box"><div class="card-title" style="margin-bottom:6px">👥 ' + t('joinedPlayers') + ' (' + joined.length + ')</div><div class="chips" style="margin-bottom:0">';
-    joined.forEach(function (uid) { html += '<div class="chip active" style="cursor:default">' + getUserName(uid) + '</div>'; });
+    joined.forEach(function (uid) { html += '<div class="chip active avatar-chip">' + avatarHtml(uid, 22) + getUserName(uid) + '</div>'; });
     html += '</div></div>';
   }
 
@@ -242,7 +269,7 @@ function showVoteForOthers(pollId) {
       return transaction.get(pollRef).then(function (doc) {
         if (!doc.exists) throw new Error("Poll not found");
         var data = doc.data();
-        if (data.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
+        if (!can("createPoll")) throw new Error(t("noPermission"));
         if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
         if (data.answers) {
           transaction.update(pollRef, { responses: chosen });
@@ -277,7 +304,7 @@ function confirmPoll(pollId) {
       if (!pollDoc.exists) throw new Error("Poll not found");
       var pollData = pollDoc.data();
       pollData.id = pollId;
-      if (pollData.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
+      if (!can("createPoll")) throw new Error(t("noPermission"));
       if (pollData.status !== 'draft' && pollData.status !== 'open') throw new Error(t("pollClosed"));
 
       var np = normalizePoll(pollData);
@@ -330,6 +357,7 @@ function _todayIso() {
 }
 
 function showCreatePoll() {
+  if (!can("createPoll")) { showToast(t("noPermission")); return; }
   var first = DB_CACHE.courts[0];
   newPoll = {
     date: _todayIso(),
@@ -365,7 +393,7 @@ function renderPollCreateForm() {
   html += '</div>';
   html += '<div class="form-row">';
   html += '<div class="form-group" style="flex:2"><label class="form-label">' + t('court') + '</label>';
-  html += '<select class="form-select" onchange="newPoll.courtId=this.value">';
+  html += '<select class="form-select" data-cs-type="court" data-cs-onpick="pollPickCourt" onchange="newPoll.courtId=this.value">';
   for (var c = 0; c < courts.length; c++) {
     html += '<option value="' + courts[c].id + '"' + (courts[c].id === newPoll.courtId ? ' selected' : '') + '>' +
       escapeHtml(courts[c].name) + (courts[c].location ? ' — ' + escapeHtml(courts[c].location) : '') + '</option>';
@@ -395,6 +423,11 @@ function renderPollCreateForm() {
 
   html += '<button class="btn-primary" onclick="submitPoll()">' + t('createPoll') + '</button>';
   container.innerHTML = html;
+}
+
+function pollPickCourt(id) {
+  if (newPoll) newPoll.courtId = id;
+  setTimeout(renderPollCreateForm, 300); // let the court list refresh first
 }
 
 function submitPoll() {

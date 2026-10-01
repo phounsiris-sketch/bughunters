@@ -66,7 +66,13 @@ function _renderProfileTab() {
   var prof = currentUserProfile || {};
   var pName = prof.displayName || '';
   var html = '<div class="card">';
-  html += '<div style="display:flex;justify-content:center;margin-bottom:14px"><div class="person-avatar" style="background:' + COLORS[0] + ';width:64px;height:64px;font-size:26px">' + escapeHtml((pName.charAt(0) || '?').toUpperCase()) + '</div></div>';
+  html += '<div class="avatar-edit">' + avatarHtml(currentUser ? currentUser.uid : '', 84) +
+    '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">\uD83D\uDCF7</button></div>';
+  html += '<input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">';
+  html += '<div style="text-align:center;margin-bottom:12px">' +
+    '<button class="link-btn" style="display:inline;margin:0" onclick="document.getElementById(\'avatarFile\').click()">' + t("changePhoto") + '</button>' +
+    (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') +
+    '<div style="margin-top:6px">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("emailLabel") + '</label>';
   html += '<input class="form-input" value="' + escapeHtml(prof.email || (currentUser && currentUser.email) || '') + '" disabled></div>';
   html += '<div class="form-group"><label class="form-label">' + t("displayName") + '</label>';
@@ -87,6 +93,33 @@ function _renderProfileTab() {
   return html;
 }
 
+function handleAvatarUpload(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  showToast(t("loading"));
+  readAvatarImage(file, function (err, dataUrl) {
+    input.value = "";
+    if (err) { showToast(err.message); return; }
+    dbUpdateUser(currentUser.uid, { avatarUrl: dataUrl })
+      .then(function () { currentUserProfile.avatarUrl = dataUrl; showToast(t("changePhoto") + " \u2714"); renderSettings(); })
+      .catch(function (error) { showToast(_permError(error)); });
+  });
+}
+
+function removeAvatar() {
+  dbUpdateUser(currentUser.uid, { avatarUrl: null })
+    .then(function () { currentUserProfile.avatarUrl = null; renderSettings(); })
+    .catch(function (error) { showToast(_permError(error)); });
+}
+
+/** Small badges listing what someone may do */
+function _permBadges(perms) {
+  if (perms === "super") return '<span class="perm-badge super">\uD83D\uDC51 ' + t("superAdmin") + '</span>';
+  var on = PERMISSIONS.filter(function (p) { return perms[p.key]; });
+  if (!on.length) return '<span class="perm-badge">' + t("roleMember") + '</span>';
+  return on.map(function (p) { return '<span class="perm-badge on">' + p.icon + ' ' + t("perm_" + p.key) + '</span>'; }).join(' ');
+}
+
 function saveProfileSettings() {
   var name = document.getElementById("pfName").value.trim();
   var phone = document.getElementById("pfPhone").value.trim();
@@ -100,7 +133,7 @@ function saveProfileSettings() {
       showToast(t("profileSaved") + " ✔");
       renderSettings();
     })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- Players ---------- */
@@ -116,14 +149,18 @@ function _renderPlayersTab() {
     var u = users[i];
     var isMe = currentUser && u.id === currentUser.uid;
     html += '<div class="settings-item"><div class="settings-left">';
-    html += '<div class="person-avatar" style="background:' + COLORS[i % COLORS.length] + ';width:32px;height:32px;font-size:13px">' + escapeHtml((u.displayName || '?').charAt(0).toUpperCase()) + '</div>';
+    html += avatarHtml(u.id, 34);
     html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
       (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted)">' +
       (u.manual ? '\u270D\uFE0F ' + t("manualPlayer") : '\u2709\uFE0F ' + t("registeredPlayer")) +
       (u.phone ? ' \u2022 \uD83D\uDCDE ' + escapeHtml(u.phone) : '') + '</div>';
+    if (!u.manual) html += '<div style="margin-top:4px">' + _permBadges(userPerms(u)) + '</div>';
     html += '</div></div>';
-    if (u.manual) {
+    if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
+      html += '<button class="edit-btn" onclick="showPermsModal(\'' + u.id + '\')">\uD83D\uDD11 ' + t("permissions") + '</button>';
+    }
+    if (u.manual && can("editConfig")) {
       html += '<div style="display:flex;gap:8px">';
       html += '<button class="edit-btn" onclick="showPlayerModal(\'' + u.id + '\')">\u270F\uFE0F</button>';
       html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + u.id + '\')">\u2715</button>';
@@ -131,8 +168,10 @@ function _renderPlayersTab() {
     }
     html += '</div>';
   }
-  html += '<button class="add-btn-dashed" onclick="showPlayerModal(null)">+ ' + t("addPlayer") + '</button>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("manualPlayerHint") + '</div>';
+  if (can("editConfig")) {
+    html += '<button class="add-btn-dashed" onclick="showPlayerModal(null)">+ ' + t("addPlayer") + '</button>';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("manualPlayerHint") + '</div>';
+  }
   html += '</div>';
 
   html += '<div class="card"><div class="card-title">\u2709\uFE0F ' + t("invitePlayers") + '</div>';
@@ -143,7 +182,31 @@ function _renderPlayersTab() {
   return html;
 }
 
-function showPlayerModal(uid) {
+/** Super Admin: switch permissions on/off for a player */
+function showPermsModal(uid) {
+  var u = dbFindById(DB_CACHE.users, uid);
+  if (!u || !isSuperAdmin()) return;
+  var perms = u.perms || {};
+  var rows = '';
+  PERMISSIONS.forEach(function (p) {
+    rows += '<label class="perm-row"><input type="checkbox" data-perm="' + p.key + '"' + (perms[p.key] ? ' checked' : '') + '>' +
+      '<div><div style="font-weight:600">' + p.icon + ' ' + t("perm_" + p.key) + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
+  });
+  document.getElementById("modalTitle").textContent = t("permissions") + " \u2014 " + (u.displayName || "");
+  document.getElementById("modalBody").innerHTML =
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">' + t("permIntro") + '</div>' + rows;
+  modalCallback = function () {
+    var data = { perms: {} };
+    document.querySelectorAll("#modalBody input[data-perm]").forEach(function (cb) { data.perms[cb.getAttribute("data-perm")] = cb.checked; });
+    fsdb.collection("users").doc(uid).set(data, { merge: true })
+      .then(function () { closeModal(); showToast(t("save") + " \u2714"); })
+      .catch(function (error) { showToast(_permError(error)); });
+  };
+  openModal();
+}
+
+function showPlayerModal(uid, onSaved) {
   var u = uid ? dbFindById(DB_CACHE.users, uid) : null;
   document.getElementById("modalTitle").textContent = u ? t("editPlayer") : t("addPlayer");
   document.getElementById("modalBody").innerHTML =
@@ -167,10 +230,10 @@ function showPlayerModal(uid) {
     }
 
     var op = u
-      ? dbUpdateUser(u.id, { displayName: name, phone: phone, manual: true })
+      ? dbUpdateUser(u.id, { displayName: name, phone: phone, manual: true }).then(function () { return { id: u.id }; })
       : dbAddManualPlayer({ displayName: name, phone: phone, email: null, avatarUrl: null });
-    op.then(function () { closeModal(); showToast(name + " \u2714"); })
-      .catch(function (error) { showToast(error.message); });
+    op.then(function (ref) { closeModal(); showToast(name + " \u2714"); if (onSaved) onSaved(ref.id); })
+      .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
 }
@@ -180,7 +243,7 @@ function deleteManualPlayer(uid) {
   if (!u || !confirm(t("delete") + " " + (u.displayName || "") + "?")) return;
   dbDeleteManualPlayer(uid)
     .then(function () { showToast(t("delete") + " \u2714"); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 function copyInviteLink() {
@@ -208,16 +271,18 @@ function _renderCourtsTab() {
     html += '<div style="font-size:11px;color:var(--text-muted)">📍 ' + escapeHtml(c.location || '—') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(c.pricePerHour) + '/h</div>';
-    html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">✏️</button>';
-    html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">✕</button>';
+    if (can("editConfig")) {
+      html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">✏️</button>';
+      html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">✕</button>';
+    }
     html += '</div></div>';
   }
-  html += '<button class="add-btn-dashed" onclick="showCourtModal(null)">+ ' + t("addCourt") + '</button>';
+  if (can("editConfig")) html += '<button class="add-btn-dashed" onclick="showCourtModal(null)">+ ' + t("addCourt") + '</button>';
   html += '</div>';
   return html;
 }
 
-function showCourtModal(courtId) {
+function showCourtModal(courtId, onSaved) {
   var c = courtId ? dbFindById(DB_CACHE.courts, courtId) : null;
   document.getElementById("modalTitle").textContent = c ? t("editCourt") : t("addCourt");
   document.getElementById("modalBody").innerHTML =
@@ -238,9 +303,10 @@ function showCourtModal(courtId) {
       showToast(t("courtName") + " & " + t("pricePerHour"));
       return;
     }
-    var op = c ? dbUpdateCourt(c.id, data) : dbAddCourt(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function () { closeModal(); showToast(t("save") + " ✔"); })
-      .catch(function (error) { showToast(error.message); });
+    var op = c ? dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; })
+               : dbAddCourt(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    op.then(function (ref) { closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+      .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
 }
@@ -249,7 +315,7 @@ function deleteSettingsCourt(id) {
   if (!confirm(t("delete") + "?")) return;
   dbDeleteCourt(id)
     .then(function () { showToast(t("delete") + " ✔"); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- Shuttlecock brands ---------- */
@@ -266,16 +332,18 @@ function _renderShuttleTab() {
     html += '<div style="font-size:11px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtLAK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(tube) + '/' + t("tube") + '</div>';
-    html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">✏️</button>';
-    html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">✕</button>';
+    if (can("editConfig")) {
+      html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">✏️</button>';
+      html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">✕</button>';
+    }
     html += '</div></div>';
   }
-  html += '<button class="add-btn-dashed" onclick="showShuttleModal(null)">+ ' + t("addShuttlecockBrand") + '</button>';
+  if (can("editConfig")) html += '<button class="add-btn-dashed" onclick="showShuttleModal(null)">+ ' + t("addShuttlecockBrand") + '</button>';
   html += '</div>';
   return html;
 }
 
-function showShuttleModal(brandId) {
+function showShuttleModal(brandId, onSaved) {
   var b = brandId ? dbFindById(DB_CACHE.shuttlecocks, brandId) : null;
   document.getElementById("modalTitle").textContent = b ? t("editBrand") : t("addShuttlecockBrand");
   document.getElementById("modalBody").innerHTML =
@@ -298,9 +366,10 @@ function showShuttleModal(brandId) {
       showToast(t("brandName") + " & " + t("pricePerTube"));
       return;
     }
-    var op = b ? dbUpdateShuttlecock(b.id, data) : dbAddShuttlecock(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function () { closeModal(); showToast(t("save") + " ✔"); })
-      .catch(function (error) { showToast(error.message); });
+    var op = b ? dbUpdateShuttlecock(b.id, data).then(function () { return { id: b.id }; })
+               : dbAddShuttlecock(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    op.then(function (ref) { closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+      .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
 }
@@ -309,7 +378,7 @@ function deleteSettingsShuttlecock(id) {
   if (!confirm(t("delete") + "?")) return;
   dbDeleteShuttlecock(id)
     .then(function () { showToast(t("delete") + " ✔"); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- QR codes: up to 3 per person (court, cocks, dinner & other) ---------- */
@@ -317,7 +386,7 @@ var qrOwner = null; // whose QR codes the QR tab is editing
 
 function _qrEditableUsers() {
   // Yourself, plus manual players (they can't sign in to upload their own)
-  return DB_CACHE.users.filter(function (u) { return (currentUser && u.id === currentUser.uid) || u.manual; });
+  return DB_CACHE.users.filter(function (u) { return (currentUser && u.id === currentUser.uid) || (u.manual && can("editConfig")); });
 }
 
 function _renderQrTab() {
@@ -372,7 +441,9 @@ function handleQrUpload(type, input) {
     if (err) { showToast(err.message); return; }
     dbSetUserQr(qrOwner, type, dataUrl)
       .then(function () { showToast(t("uploadQR") + " ✔"); renderSettings(); })
-      .catch(function (error) { showToast(error.message); });
+      .catch(function (error) {
+        showToast(error && error.code === "permission-denied" ? t("qrPermissionError") : _permError(error));
+      });
   });
 }
 
@@ -380,7 +451,7 @@ function removeQr(type) {
   if (!qrOwner || !confirm(t("delete") + "?")) return;
   dbSetUserQr(qrOwner, type, null)
     .then(function () { renderSettings(); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- General: minimum players, default payers ---------- */
@@ -393,7 +464,9 @@ function _renderGeneralTab() {
     });
     return h;
   };
-  var html = '<div class="card"><div class="card-title">⚙️ ' + t("tabGeneral") + '</div>';
+  var locked = !can("editConfig");
+  var html = (locked ? '<div class="perm-note">\uD83D\uDD12 ' + t("noPermission") + '</div><fieldset class="perm-fs perm-lock" disabled>' : '<fieldset class="perm-fs">') +
+    '<div class="card"><div class="card-title">⚙️ ' + t("tabGeneral") + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>';
   html += '<input type="number" class="form-input" id="gMinPlayers" min="2" max="30" value="' + minPlayersSetting() + '" onchange="saveAppSetting(\'minPlayers\', Math.max(2, parseInt(this.value, 10) || 4))">';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
@@ -402,7 +475,7 @@ function _renderGeneralTab() {
   html += '<div class="form-group"><label class="form-label">🪶 ' + t("defaultShuttlePayer") + '</label>';
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultShuttlePayer\', this.value)">' + opts(appSetting("defaultShuttlePayer", "")) + '</select></div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
-  html += '</div>';
+  html += '</div></fieldset>';
   return html;
 }
 
@@ -411,13 +484,13 @@ function saveAppSetting(key, value) {
   data[key] = value;
   dbSetAppSettings(data)
     .then(function () { showToast(t("save") + " ✔"); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- Merge a manual player into my account (optional) ---------- */
 function _renderMergeCard() {
   var manual = DB_CACHE.users.filter(function (u) { return u.manual; });
-  if (!manual.length || !currentUser) return '';
+  if (!manual.length || !currentUser || !isSuperAdmin()) return '';
   var html = '<div class="card"><div class="card-title">🔗 ' + t("mergeTitle") + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("mergeHint") + '</div>';
   html += '<div class="form-group"><select class="form-select" id="mergeSelect"><option value="">' + t("mergePick") + '</option>';
@@ -490,5 +563,5 @@ function mergeManualPlayer(manualId) {
     })
     .then(function () { return dbDeleteManualPlayer(manualId); })
     .then(function () { showToast(t("mergeDone").replace("{name}", manual.displayName || "?")); renderSettings(); })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { showToast(_permError(error)); });
 }

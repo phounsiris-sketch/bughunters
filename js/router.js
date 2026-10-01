@@ -43,7 +43,7 @@ function showPage(page, pushHistory) {
   // FAB visibility — only show on polls page
   var fab = document.getElementById("fab");
   if (fab) {
-    fab.style.display = (page === "polls") ? "" : "none";
+    fab.style.display = (page === "polls" && (typeof can !== "function" || can("createPoll"))) ? "" : "none";
   }
 
   // Back button visibility — show on detail / create pages

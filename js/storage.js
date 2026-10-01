@@ -47,3 +47,23 @@ function readQrImage(file, callback) {
 function readReceiptImage(file, callback) {
   resizeImageToDataUrl(file, 1000, callback);
 }
+
+/** Profile photo: centre-cropped square, 256 px */
+function readAvatarImage(file, callback) {
+  if (!file || !/^image\//.test(file.type)) { callback(new Error("Please choose an image file")); return; }
+  var reader = new FileReader();
+  reader.onerror = function () { callback(new Error("Could not read the image")); };
+  reader.onload = function () {
+    var img = new Image();
+    img.onerror = function () { callback(new Error("Could not open the image")); };
+    img.onload = function () {
+      var side = Math.min(img.width, img.height);
+      var canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 256;
+      canvas.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 256, 256);
+      callback(null, canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}

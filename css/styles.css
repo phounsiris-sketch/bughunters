@@ -10,29 +10,32 @@
   --red: #ef4444;
   --share-green: #25D366;
 
-  --bg: #0a1628;
-  --surface: #0f1f35;
-  --card: #162d4a;
-  --border: #1e3a5f;
-  --text: #e0e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
-  --input-bg: #0f1f35;
-  --chip-bg: #0f1f35;
+  /* Page is darker than cards so cards stand out; inner boxes sit between */
+  --bg: #060d1a;
+  --surface: #0e1c31;
+  --card: #18304f;
+  --border: #2b4c74;
+  --text: #edf2f8;
+  --text-secondary: #a9b7c9;
+  --text-muted: #8293a8;
+  --text-dim: #5f7088;
+  --input-bg: #0e1c31;
+  --chip-bg: #0e1c31;
+  --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="light"] {
-  --bg: #f0f4f8;
-  --surface: #f8fafb;
+  --bg: #e4eaf2;
+  --surface: #f2f5f9;
   --card: #ffffff;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --input-bg: #f1f5f9;
-  --chip-bg: #f1f5f9;
+  --border: #cfd9e5;
+  --text: #0f1b2d;
+  --text-secondary: #3b4a5f;
+  --text-muted: #56677d;
+  --text-dim: #8495aa;
+  --input-bg: #f2f5f9;
+  --chip-bg: #f2f5f9;
+  --card-shadow: 0 2px 10px rgba(15, 31, 53, 0.08);
 }
 
 /* ========== Reset & Body ========== */
@@ -2124,4 +2127,391 @@ body[data-theme="dark"] { color-scheme: dark; }
 .settle-block .settle-table th {
   border-bottom: none;
   padding: 4px;
+}
+
+/* ========== Contrast: cards lift off the page ========== */
+.card,
+.session-item,
+.poll-card,
+.cost-card {
+  box-shadow: var(--card-shadow);
+}
+
+/* ========== Avatars (photo or initial) ========== */
+img.person-avatar {
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.avatar-edit {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 8px;
+}
+
+.avatar-edit .person-avatar {
+  width: 84px;
+  height: 84px;
+  font-size: 32px;
+}
+
+.avatar-edit-btn {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: 2px solid var(--card);
+  font-size: 14px;
+}
+
+/* ========== Active / History switch ========== */
+.view-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.view-btn {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  box-shadow: var(--card-shadow);
+}
+
+.view-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.avatar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 3px;
+  cursor: default;
+}
+
+/* ========== Session cards: status + actions ========== */
+.session-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.session-card-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.session-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.session-actions .delete-btn {
+  margin-left: auto;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.st-upcoming { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
+.st-costs    { background: rgba(245, 158, 11, 0.18); color: var(--orange); }
+.st-unpaid   { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+.st-settled  { background: rgba(74, 222, 128, 0.16); color: var(--accent); }
+[data-theme="light"] .st-upcoming { color: #1d4ed8; }
+[data-theme="light"] .st-costs { color: #b45309; }
+[data-theme="light"] .st-unpaid { color: #b91c1c; }
+[data-theme="light"] .st-settled { color: #15803d; }
+
+.avatar-stack {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.avatar-stack .person-avatar {
+  margin-left: -6px;
+  border: 2px solid var(--card);
+}
+
+.avatar-stack .person-avatar:first-child {
+  margin-left: 0;
+}
+
+/* ========== Permission locks in the cost form ========== */
+.perm-fs {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.perm-lock {
+  opacity: 0.6;
+}
+
+.perm-lock .chip,
+.perm-lock .add-btn-dashed,
+.perm-lock .remove-btn,
+.perm-lock .qty-controls button {
+  pointer-events: none;
+}
+
+.perm-note {
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--orange);
+}
+
+/* ========== Pay by type: receiver first, then one box per payer ========== */
+.receiver-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.receiver-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.receiver-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.receiver-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.receiver-hint {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.qr-big img {
+  width: 112px;
+  height: 112px;
+}
+
+.pay-box-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pay-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.pay-box-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pay-box-who span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-box-arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.pay-box-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-own-share {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ========== Leaderboard ========== */
+.leader-card .leader-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.leader-medal {
+  width: 24px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.leader-card.warn .leader-medal {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.leader-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leader-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.leader-card.warn .card-title,
+.leader-card.warn .leader-value {
+  color: var(--orange);
+}
+
+/* ========== Dropdown: edit item / add new ========== */
+.cs-option .cs-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-edit {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.cs-edit:hover {
+  border-color: var(--primary);
+}
+
+.cs-option.selected .cs-edit {
+  margin-right: 4px;
+}
+
+.cs-add {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  color: var(--primary-light);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.cs-add:hover,
+.cs-add:focus {
+  border-color: var(--primary);
+}
+
+/* ========== Permissions ========== */
+.perm-badge {
+  display: inline-block;
+  margin: 2px 2px 0 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.perm-badge.on {
+  color: var(--primary-light);
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+.perm-badge.super {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.perm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.perm-row input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+
+.settings-item {
+  gap: 10px;
 }
