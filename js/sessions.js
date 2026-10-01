@@ -357,7 +357,8 @@ function _renderEditSessionForm(session) {
       sessionShuttlecocks.push({
         brand: sc.brand || sc.name || "",
         qty: sc.qty || 1,
-        price: sc.price || 0
+        price: sc.price || 0,
+        cocksPerTube: sc.cocksPerTube || 12
       });
     }
   }
@@ -384,14 +385,14 @@ function _renderEditSessionForm(session) {
   for (var ci = 0; ci < _sessionCourts.length; ci++) {
     var ct = _sessionCourts[ci];
     var selAttr = (ct.id === s.courtId || ct.name === s.courtName) ? " selected" : "";
-    html += '<option value="' + ct.id + '" data-name="' + ct.name + '" data-price="' + ct.price + '"' + selAttr + '>' + ct.name + ' (' + ct.price + 'K/hr)</option>';
+    html += '<option value="' + ct.id + '" data-name="' + ct.name + '" data-price="' + (ct.pricePerHour || ct.price || 0) + '"' + selAttr + '>' + ct.name + ' (' + (ct.pricePerHour || ct.price || 0) + 'K/hr)</option>';
   }
   html += '</select></div>';
 
   // Duration
   html += '<div class="form-group"><label class="form-label">' + t("duration") + ' (hrs)</label>';
   html += '<div class="form-row">';
-  html += '<input type="number" class="form-input" id="editDuration" value="' + (s.duration || 2) + '" min="1" max="8" style="flex:0 0 70px;text-align:center" onchange="updateCourtCost()">';
+  html += '<input type="number" class="form-input" id="editDuration" value="' + (s.duration || 2) + '" min="0.5" max="8" step="0.5" style="flex:0 0 70px;text-align:center" onchange="updateCourtCost()">';
   html += '<div class="cost-display" id="courtCostDisplay"></div>';
   html += '</div></div>';
 
@@ -474,13 +475,13 @@ function renderShuttlecockRows() {
 
   for (var idx = 0; idx < sessionShuttlecocks.length; idx++) {
     var sc = sessionShuttlecocks[idx];
-    var rowTotal = Math.round((sc.qty / 12) * sc.price);
+    var rowTotal = Math.round((sc.qty / (sc.cocksPerTube || 12)) * sc.price);
     total += rowTotal;
 
     container.innerHTML +=
       '<div class="item-row">' +
         '<div class="item-name">' + sc.brand +
-          '<div style="font-size:10px;color:var(--text-muted)">' + sc.qty + '/12 = ' + (sc.qty / 12).toFixed(2) + ' ' + t("tubes") + ' \u00D7 ' + sc.price + 'K</div>' +
+          '<div style="font-size:10px;color:var(--text-muted)">' + sc.qty + '/' + (sc.cocksPerTube || 12) + ' = ' + (sc.qty / (sc.cocksPerTube || 12)).toFixed(2) + ' ' + t("tubes") + ' \u00D7 ' + sc.price + 'K</div>' +
         '</div>' +
         '<div class="qty-controls">' +
           '<button class="qty-btn" onclick="changeQty(' + idx + ',-1)">\u2212</button>' +
@@ -515,7 +516,9 @@ function showAddShuttlecock() {
   var opts = "";
   for (var i = 0; i < _sessionShuttleBrands.length; i++) {
     var sb = _sessionShuttleBrands[i];
-    opts += '<option value="' + sb.id + '" data-name="' + sb.name + '" data-price="' + sb.price + '">' + sb.name + ' (' + sb.price + 'K)</option>';
+    var sbPrice = sb.pricePerTube || sb.price || 0;
+    var sbCocks = sb.cocksPerTube || 12;
+    opts += '<option value="' + sb.id + '" data-name="' + sb.name + '" data-price="' + sbPrice + '" data-cocks="' + sbCocks + '">' + sb.name + ' (' + sbPrice + 'K / ' + sbCocks + ')</option>';
   }
 
   document.getElementById("modalTitle").textContent = t("addBrand");
@@ -530,6 +533,7 @@ function showAddShuttlecock() {
     var selOpt = sel.options[sel.selectedIndex];
     var brandName = selOpt.getAttribute("data-name");
     var brandPrice = parseInt(selOpt.getAttribute("data-price")) || 0;
+    var brandCocks = parseInt(selOpt.getAttribute("data-cocks")) || 12;
     var qty = parseInt(document.getElementById("modalQty").value) || 1;
 
     if (brandName) {
@@ -540,7 +544,7 @@ function showAddShuttlecock() {
       if (existing) {
         existing.qty += qty;
       } else {
-        sessionShuttlecocks.push({ brand: brandName, qty: qty, price: brandPrice });
+        sessionShuttlecocks.push({ brand: brandName, qty: qty, price: brandPrice, cocksPerTube: brandCocks });
       }
       renderShuttlecockRows();
     }
@@ -664,8 +668,8 @@ function updateCourtCost() {
 
   var selOpt = courtSel.options[courtSel.selectedIndex];
   var price = selOpt ? parseInt(selOpt.getAttribute("data-price")) || 0 : 0;
-  var duration = parseInt(durationEl.value) || 0;
-  var cost = price * duration;
+  var duration = parseFloat(durationEl.value) || 0;
+  var cost = Math.round(price * duration);
 
   displayEl.innerHTML = '\u00D7 ' + price + 'K/hr = <span class="amount">' + cost + 'K \u20AD</span>';
 }
@@ -686,16 +690,16 @@ function calculateAndSaveSplit(sessionId) {
   var courtPrice = selOpt ? parseInt(selOpt.getAttribute("data-price")) || 0 : 0;
   var courtName = selOpt ? selOpt.getAttribute("data-name") || "" : "";
   var courtId = courtSel ? courtSel.value : "";
-  var duration = parseInt((document.getElementById("editDuration") || {}).value) || 2;
-  var courtCost = courtPrice * duration;
+  var duration = parseFloat((document.getElementById("editDuration") || {}).value) || 2;
+  var courtCost = Math.round(courtPrice * duration);
 
   // Shuttle total
   var shuttleTotal = 0;
   var scItems = [];
   for (var si = 0; si < sessionShuttlecocks.length; si++) {
     var sc = sessionShuttlecocks[si];
-    var scTotal = Math.round((sc.qty / 12) * sc.price);
-    scItems.push({ brand: sc.brand, qty: sc.qty, price: sc.price, total: scTotal });
+    var scTotal = Math.round((sc.qty / (sc.cocksPerTube || 12)) * sc.price);
+    scItems.push({ brand: sc.brand, qty: sc.qty, price: sc.price, cocksPerTube: sc.cocksPerTube || 12, total: scTotal });
     shuttleTotal += scTotal;
   }
 
