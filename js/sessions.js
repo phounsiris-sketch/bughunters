@@ -109,7 +109,7 @@ function renderSessionsList(sessions) {
       '<div class="session-item" onclick="showSessionDetail(\'' + s.id + '\')">' +
         '<div>' +
           '<div class="session-date">' + dateStr + '</div>' +
-          '<div class="session-court">\uD83D\uDCCD ' + (s.courtName || s.court || "") + ' \u2022 ' + (s.time || s.startTime || "") + '</div>' +
+          '<div class="session-court">\uD83D\uDCCD ' + (s.courtName || s.court || "") + ' \u2022 ' + (s.time || s.startTime || "") + (s.duration ? ' (' + s.duration + 'h)' : '') + '</div>' +
           '<div class="session-players">\uD83D\uDC65 ' + playerCount + " " + t("players") +
             (payerStr ? " \u2022 " + payerStr : "") + '</div>' +
         '</div>' +
@@ -183,7 +183,7 @@ function renderSessionDetail(session, dinner, qrCodes) {
   // Header info
   html += '<div style="text-align:center;margin-bottom:16px">';
   html += '<div style="font-size:14px;color:var(--text-secondary)">' + dateStr + '</div>';
-  html += '<div style="font-size:12px;color:var(--text-muted)">' + (session.time || session.startTime || "") + ' \u2022 ' + (session.courtName || session.court || "") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + (session.time || session.startTime || "") + (session.duration ? ' (' + session.duration + 'h)' : '') + ' \u2022 ' + (session.courtName || session.court || "") + '</div>';
   html += '</div>';
 
   if (session.splits && Object.keys(session.splits).length > 0) {

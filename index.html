@@ -20,12 +20,11 @@
     <div class="login-subtitle">Badminton booking &amp; cost splitting</div>
     <div class="login-form">
       <div class="form-group">
-        <select class="form-select" id="devNameSelect">
-          <option value="">-- Who are you? --</option>
-        </select>
+        <input type="email" class="form-input" id="loginEmail" autocomplete="email" inputmode="email"
+               placeholder="Enter your email" data-i18n-placeholder="enterEmail">
       </div>
-      <button class="btn-primary" onclick="devLogin()" style="margin-bottom:8px">Enter</button>
-      <button class="btn-secondary" onclick="showAddNewPlayer()">+ Add New Player</button>
+      <button class="btn-primary" id="sendLinkBtn" onclick="sendLoginLink()" data-i18n="sendLink">Send Sign-In Link</button>
+      <div id="otpSentMsg" style="display:none;margin-top:12px;text-align:center;font-size:13px;color:var(--text-secondary)" data-i18n="checkEmail">Check your email for the sign-in link!</div>
     </div>
   </div>
   <div id="profile-page" class="profile-setup" style="display:none">
