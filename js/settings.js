@@ -42,6 +42,9 @@ function debouncedRenderSettings() {
    ────────────────────────────────────────────────────────── */
 
 function loadSettings() {
+  // Draw tabs + profile immediately; lists fill in as the database answers
+  renderSettings();
+
   // Unsubscribe previous listeners
   for (var i = 0; i < _settingsUnsubs.length; i++) {
     if (typeof _settingsUnsubs[i] === "function") _settingsUnsubs[i]();
