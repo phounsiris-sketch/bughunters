@@ -140,8 +140,12 @@ function renderSettings() {
     var sb = settingsShuttlecocks[si];
     html += '<div class="settings-item">';
     html += '<div class="settings-left">';
+    var sbCocks = sb.cocksPerTube || 12;
+    var sbTube = sb.pricePerTube || sb.price || 0;
+    html += '<div>';
     html += '<div class="settings-label">' + sb.name + '</div>';
-    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' + sbCocks + ' / tube \u00B7 ' + Math.round(sbTube / sbCocks * 100) / 100 + 'K / cock</div>';
+    html += '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + (sb.pricePerTube || sb.price || 0) + 'K/' + t("tubes") + '</div>';
     html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + sb.id + '\')">\u2715</button>';
@@ -293,13 +297,18 @@ function showAddShuttlecockModal() {
     '<div class="form-group">' +
       '<label class="form-label">' + t("pricePerTube") + ' (K)</label>' +
       '<input type="number" class="form-input" id="mBrandPrice" min="1">' +
+    '</div>' +
+    '<div class="form-group">' +
+      '<label class="form-label">Cocks / tube</label>' +
+      '<input type="number" class="form-input" id="mBrandCocks" min="1" value="12">' +
     '</div>';
 
   modalCallback = function () {
     var name = document.getElementById("mBrandName").value.trim();
     var price = parseInt(document.getElementById("mBrandPrice").value) || 0;
+    var cocks = parseInt(document.getElementById("mBrandCocks").value) || 0;
 
-    if (!name || price <= 0) {
+    if (!name || price <= 0 || cocks <= 0) {
       showToast(t("name") + " & " + t("pricePerTube"));
       return;
     }
@@ -307,7 +316,7 @@ function showAddShuttlecockModal() {
     dbAddShuttlecock({
       name: name,
       pricePerTube: price,
-      cocksPerTube: 12,
+      cocksPerTube: cocks,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     })
       .then(function () {
