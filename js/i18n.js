@@ -17,6 +17,15 @@ var translations = {
     saveContinue: "Save & Continue",
     logout: "Logout",
 
+    // Poll lifecycle
+    pollDraft: "Draft",
+    confirmPlan: "Confirm this plan",
+    playersWord: "players",
+    draftCreated: "Draft poll created!",
+    planConfirmed: "Plan confirmed",
+    onlyCreatorConfirm: "Only the poll creator can confirm",
+    needMinPlayers: "Need at least {n} players",
+
     // Nav
     navPolls: "Polls",
     navSessions: "Sessions",
@@ -159,6 +168,15 @@ var translations = {
     displayName: "ຊື່ສະແດງ",
     saveContinue: "ບັນທຶກ ແລະ ສືບຕໍ່",
     logout: "ອອກຈາກລະບົບ",
+
+    // Poll lifecycle
+    pollDraft: "ຮ່າງ",
+    confirmPlan: "ຢືນຢັນແຜນນີ້",
+    playersWord: "ຄົນ",
+    draftCreated: "ສ້າງໂພລຮ່າງແລ້ວ!",
+    planConfirmed: "ຢືນຢັນແຜນແລ້ວ",
+    onlyCreatorConfirm: "ມີແຕ່ຜູ້ສ້າງໂພລທີ່ຢືນຢັນໄດ້",
+    needMinPlayers: "ຕ້ອງມີຢ່າງໜ້ອຍ {n} ຄົນ",
 
     // Nav
     navPolls: "ໂຫວດ",

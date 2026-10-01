@@ -76,7 +76,7 @@ function renderPolls(polls) {
   for (var p = 0; p < polls.length; p++) {
     var poll = polls[p];
     var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
-    var statusLabel = poll.status === 'confirmed' ? 'Confirmed' : poll.status === 'cancelled' ? 'Cancelled' : 'Draft';
+    var statusLabel = poll.status === 'confirmed' ? 'Confirmed' : poll.status === 'cancelled' ? 'Cancelled' : t('pollDraft');
     var isVotable = (poll.status === 'draft' || poll.status === 'open');
     var creatorName = getUserName(poll.createdBy);
 
@@ -132,7 +132,7 @@ function renderPolls(polls) {
       html += '</div>'; // close poll-option
 
       if (isVotable && currentUser && poll.createdBy === currentUser.uid && optionVotes.length >= minPlayers) {
-        html += '<button class="btn-primary" style="margin:-4px 0 8px;padding:8px;font-size:12px" onclick="confirmPoll(\'' + poll.id + '\',' + oi + ')">\u2714 Confirm this plan (' + optionVotes.length + ' players)</button>';
+        html += '<button class="btn-primary" style="margin:-4px 0 8px;padding:8px;font-size:12px" onclick="confirmPoll(\'' + poll.id + '\',' + oi + ')">\u2714 ' + t('confirmPlan') + ' (' + optionVotes.length + ' ' + t('playersWord') + ')</button>';
       }
     }
 
@@ -205,12 +205,12 @@ function confirmPoll(pollId, optionIdx) {
     return transaction.get(pollRef).then(function (pollDoc) {
       if (!pollDoc.exists) throw new Error("Poll not found");
       var pollData = pollDoc.data();
-      if (pollData.createdBy !== currentUser.uid) throw new Error("Only the poll creator can confirm");
+      if (pollData.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
       if (pollData.status !== 'draft' && pollData.status !== 'open') throw new Error("Poll is no longer open");
 
       var minPlayers = pollData.minPlayers || 4;
       var optionVotes = ((pollData.votes || {})[optionIdx] || []).slice();
-      if (optionVotes.length < minPlayers) throw new Error("Need at least " + minPlayers + " players");
+      if (optionVotes.length < minPlayers) throw new Error(t("needMinPlayers").replace("{n}", minPlayers));
 
       var opt = pollData.options[optionIdx];
       var court = null;
@@ -243,7 +243,7 @@ function confirmPoll(pollId, optionIdx) {
       });
     });
   })
-    .then(function () { showToast("Plan confirmed \u2714"); })
+    .then(function () { showToast(t("planConfirmed") + " \u2714"); })
     .catch(function (error) { showToast(error.message); });
 }
 
@@ -400,7 +400,7 @@ function submitPoll() {
 
   dbCreatePoll(pollData)
     .then(function () {
-      showToast("Draft poll created!");
+      showToast(t("draftCreated"));
       goBack();
     })
     .catch(function (error) {
