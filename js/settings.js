@@ -7,7 +7,7 @@
                storage.js (readQrImage), auth.js (currentUser,
                currentUserProfile, logoutUser), i18n.js (t),
                app.js (showToast, openModal, closeModal, modalCallback,
-                       escapeHtml, fmtK, COLORS)
+                       escapeHtml, fmtLAK, fmtShort, COLORS)
    ============================================================ */
 
 var settingsTab = (function () {
@@ -103,25 +103,77 @@ function _appUrl() {
 
 function _renderPlayersTab() {
   var users = DB_CACHE.users;
-  var html = '<div class="card"><div class="card-title">👥 ' + t("playerRoster") + ' (' + users.length + ')</div>';
+  var html = '<div class="card"><div class="card-title">\uD83D\uDC65 ' + t("playerRoster") + ' (' + users.length + ')</div>';
   if (!users.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
   for (var i = 0; i < users.length; i++) {
     var u = users[i];
     var isMe = currentUser && u.id === currentUser.uid;
     html += '<div class="settings-item"><div class="settings-left">';
     html += '<div class="person-avatar" style="background:' + COLORS[i % COLORS.length] + ';width:32px;height:32px;font-size:13px">' + escapeHtml((u.displayName || '?').charAt(0).toUpperCase()) + '</div>';
-    html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') + (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
-    if (u.phone) html += '<div style="font-size:11px;color:var(--text-muted)">📞 ' + escapeHtml(u.phone) + '</div>';
-    html += '</div></div></div>';
+    html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
+      (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' +
+      (u.manual ? '\u270D\uFE0F ' + t("manualPlayer") : '\u2709\uFE0F ' + t("registeredPlayer")) +
+      (u.phone ? ' \u2022 \uD83D\uDCDE ' + escapeHtml(u.phone) : '') + '</div>';
+    html += '</div></div>';
+    if (u.manual) {
+      html += '<div style="display:flex;gap:8px">';
+      html += '<button class="edit-btn" onclick="showPlayerModal(\'' + u.id + '\')">\u270F\uFE0F</button>';
+      html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + u.id + '\')">\u2715</button>';
+      html += '</div>';
+    }
+    html += '</div>';
   }
+  html += '<button class="add-btn-dashed" onclick="showPlayerModal(null)">+ ' + t("addPlayer") + '</button>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("manualPlayerHint") + '</div>';
   html += '</div>';
 
-  html += '<div class="card"><div class="card-title">✉️ ' + t("invitePlayers") + '</div>';
+  html += '<div class="card"><div class="card-title">\u2709\uFE0F ' + t("invitePlayers") + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">' + t("inviteHint") + '</div>';
   html += '<input class="form-input" value="' + escapeHtml(_appUrl()) + '" readonly onclick="this.select()" style="margin-bottom:8px">';
   html += '<button class="btn-primary" onclick="copyInviteLink()">' + t("copyInvite") + '</button>';
   html += '</div>';
   return html;
+}
+
+function showPlayerModal(uid) {
+  var u = uid ? dbFindById(DB_CACHE.users, uid) : null;
+  document.getElementById("modalTitle").textContent = u ? t("editPlayer") : t("addPlayer");
+  document.getElementById("modalBody").innerHTML =
+    '<div class="form-group"><label class="form-label">' + t("name") + '</label>' +
+      '<input class="form-input" id="mPlayerName" value="' + escapeHtml(u ? u.displayName : '') + '"></div>' +
+    '<div class="form-group"><label class="form-label">' + t("phone") + '</label>' +
+      '<input class="form-input" id="mPlayerPhone" inputmode="tel" value="' + escapeHtml(u && u.phone ? u.phone : '') + '" placeholder="020 xxxx xxxx"></div>';
+
+  modalCallback = function () {
+    var name = document.getElementById("mPlayerName").value.trim();
+    var phone = document.getElementById("mPlayerPhone").value.trim() || null;
+    if (!name) { showToast(t("name")); return; }
+
+    // Avoid two roster entries with the same name
+    for (var i = 0; i < DB_CACHE.users.length; i++) {
+      var other = DB_CACHE.users[i];
+      if (other.id !== uid && (other.displayName || '').toLowerCase() === name.toLowerCase()) {
+        showToast(t("playerExists"));
+        return;
+      }
+    }
+
+    var op = u
+      ? dbUpdateUser(u.id, { displayName: name, phone: phone, manual: true })
+      : dbAddManualPlayer({ displayName: name, phone: phone, email: null, avatarUrl: null });
+    op.then(function () { closeModal(); showToast(name + " \u2714"); })
+      .catch(function (error) { showToast(error.message); });
+  };
+  openModal();
+}
+
+function deleteManualPlayer(uid) {
+  var u = dbFindById(DB_CACHE.users, uid);
+  if (!u || !confirm(t("delete") + " " + (u.displayName || "") + "?")) return;
+  dbDeleteManualPlayer(uid)
+    .then(function () { showToast(t("delete") + " \u2714"); })
+    .catch(function (error) { showToast(error.message); });
 }
 
 function copyInviteLink() {
@@ -148,7 +200,7 @@ function _renderCourtsTab() {
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted)">📍 ' + escapeHtml(c.location || '—') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<div class="settings-value">' + fmtK(c.pricePerHour) + '/h</div>';
+    html += '<div class="settings-value">' + fmtLAK(c.pricePerHour) + '/h</div>';
     html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">✏️</button>';
     html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">✕</button>';
     html += '</div></div>';
@@ -166,14 +218,14 @@ function showCourtModal(courtId) {
       '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
       '<input class="form-input" id="mCourtLoc" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (K)</label>' +
-      '<input type="number" class="form-input" id="mCourtPrice" min="1" value="' + (c ? c.pricePerHour || '' : '') + '"></div>';
+    '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (\u20AD)</label>' +
+      moneyInput('mCourtPrice', c ? c.pricePerHour : 0, '') + '</div>';
 
   modalCallback = function () {
     var data = {
       name: document.getElementById("mCourtName").value.trim(),
       location: document.getElementById("mCourtLoc").value.trim(),
-      pricePerHour: parseFloat(document.getElementById("mCourtPrice").value) || 0
+      pricePerHour: parseMoney(document.getElementById("mCourtPrice").value)
     };
     if (!data.name || data.pricePerHour <= 0) {
       showToast(t("courtName") + " & " + t("pricePerHour"));
@@ -204,9 +256,9 @@ function _renderShuttleTab() {
     var tube = b.pricePerTube || 0;
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showShuttleModal(\'' + b.id + '\')"><div class="settings-label">' + escapeHtml(b.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtLAK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<div class="settings-value">' + fmtK(tube) + '/' + t("tube") + '</div>';
+    html += '<div class="settings-value">' + fmtLAK(tube) + '/' + t("tube") + '</div>';
     html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">✏️</button>';
     html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">✕</button>';
     html += '</div></div>';
@@ -223,8 +275,8 @@ function showShuttleModal(brandId) {
     '<div class="form-group"><label class="form-label">' + t("brandName") + '</label>' +
       '<input class="form-input" id="mBrandName" value="' + escapeHtml(b ? b.name : '') + '"></div>' +
     '<div class="form-row">' +
-      '<div class="form-group"><label class="form-label">' + t("pricePerTube") + ' (K)</label>' +
-        '<input type="number" class="form-input" id="mBrandPrice" min="1" value="' + (b ? b.pricePerTube || '' : '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("pricePerTube") + ' (\u20AD)</label>' +
+        moneyInput('mBrandPrice', b ? b.pricePerTube : 0, '') + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("cocksPerTube") + '</label>' +
         '<input type="number" class="form-input" id="mBrandCocks" min="1" value="' + (b ? b.cocksPerTube || 12 : 12) + '"></div>' +
     '</div>';
@@ -232,7 +284,7 @@ function showShuttleModal(brandId) {
   modalCallback = function () {
     var data = {
       name: document.getElementById("mBrandName").value.trim(),
-      pricePerTube: parseFloat(document.getElementById("mBrandPrice").value) || 0,
+      pricePerTube: parseMoney(document.getElementById("mBrandPrice").value),
       cocksPerTube: parseInt(document.getElementById("mBrandCocks").value, 10) || 0
     };
     if (!data.name || data.pricePerTube <= 0 || data.cocksPerTube <= 0) {

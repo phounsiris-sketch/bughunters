@@ -3,7 +3,7 @@
                   year), Activity (played + poll participation)
    Depends on: sessions.js (lastSessions, computeLedger, openTransfers,
                loadSessions), polls.js (lastPolls, loadPolls, getUserName),
-               i18n.js (t), app.js (COLORS, fmtK, fmtDate)
+               i18n.js (t), app.js (COLORS, fmtLAK, fmtShort, fmtDate)
    Chart.js loaded from CDN (global `Chart`)
    ============================================================ */
 
@@ -136,8 +136,8 @@ function _renderBalanceTab(sessions) {
   }
 
   var html = '<div class="cost-breakdown">';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("youOwe") + '</div><div class="cost-card-value" style="color:var(--orange)">' + fmtK(iOwe) + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("owedToYou") + '</div><div class="cost-card-value">' + fmtK(owedToMe) + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">' + t("youOwe") + '</div><div class="cost-card-value" style="color:var(--orange)">' + fmtShort(iOwe) + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">' + t("owedToYou") + '</div><div class="cost-card-value">' + fmtShort(owedToMe) + '</div></div>';
   html += '</div>';
 
   if (rows.length === 0) {
@@ -154,7 +154,7 @@ function _renderBalanceTab(sessions) {
     var mine = row.from === me || row.to === me;
     html += '<div class="person-row"' + (mine ? ' style="background:rgba(74,222,128,0.06);border-radius:8px;padding-left:6px;padding-right:6px"' : '') + '>';
     html += '<div style="flex:1;min-width:0;font-size:14px"><b>' + getUserName(row.from) + '</b> → <b>' + getUserName(row.to) + '</b></div>';
-    html += '<div class="person-amount" style="color:var(--orange)">' + fmtK(row.amount) + '</div>';
+    html += '<div class="person-amount" style="color:var(--orange)">' + fmtLAK(row.amount) + '</div>';
     html += '</div>';
   }
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("balanceHint") + '</div>';
@@ -199,13 +199,13 @@ function _renderSpendingTab(sessions, allSessions) {
   var html = '';
 
   html += '<div class="card"><div class="card-title">' + _periodLabel() + '</div>';
-  html += '<div class="split-amount" style="font-size:32px">' + fmtK(sum.grand) + ' ₭</div>';
+  html += '<div class="split-amount" style="font-size:32px" title="' + fmtLAK(sum.grand) + '">' + fmtShort(sum.grand) + '</div>';
   html += '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:10px">' +
-    sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtK(sum.mine) + '</div>';
-  html += '<div class="item-row"><div class="item-name">🏟️ ' + t("courtCost") + '</div><div class="item-price">' + fmtK(sum.court) + '</div></div>';
-  html += '<div class="item-row"><div class="item-name">🪶 ' + t("shuttleCost") + '</div><div class="item-price">' + fmtK(sum.shuttle) + '</div></div>';
-  html += '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtK(sum.other) + '</div></div>';
-  html += '<div class="item-row" style="border-bottom:none"><div class="item-name">🍽️ ' + t("dinnerCost") + '</div><div class="item-price">' + fmtK(sum.dinner) + '</div></div>';
+    sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(sum.mine) + '</div>';
+  html += '<div class="item-row"><div class="item-name">🏟️ ' + t("courtCost") + '</div><div class="item-price">' + fmtShort(sum.court) + '</div></div>';
+  html += '<div class="item-row"><div class="item-name">🪶 ' + t("shuttleCost") + '</div><div class="item-price">' + fmtShort(sum.shuttle) + '</div></div>';
+  html += '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtShort(sum.other) + '</div></div>';
+  html += '<div class="item-row" style="border-bottom:none"><div class="item-name">🍽️ ' + t("dinnerCost") + '</div><div class="item-price">' + fmtShort(sum.dinner) + '</div></div>';
   html += '</div>';
 
   // By month (this year) or by year (all time)
@@ -224,8 +224,8 @@ function _renderSpendingTab(sessions, allSessions) {
     html += '<div class="person-row">';
     html += '<div class="person-avatar" style="background:' + COLORS[ui % COLORS.length] + ';width:28px;height:28px;font-size:11px">' + getUserName(u).charAt(0).toUpperCase() + '</div>';
     html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
-    html += '<div style="font-size:10px;color:var(--text-muted)">🏟️' + fmtK(row.court) + ' 🪶' + fmtK(row.shuttle) + ' 🥤' + fmtK(row.other) + ' 🍽️' + fmtK(row.dinner) + '</div></div>';
-    html += '<div class="person-amount">' + fmtK(row.total) + '</div>';
+    html += '<div style="font-size:10px;color:var(--text-muted)">🏟️' + fmtLAK(row.court) + ' 🪶' + fmtLAK(row.shuttle) + ' 🥤' + fmtLAK(row.other) + ' 🍽️' + fmtLAK(row.dinner) + '</div></div>';
+    html += '<div class="person-amount">' + fmtLAK(row.total) + '</div>';
     html += '</div>';
   }
   html += '</div>';
@@ -269,8 +269,8 @@ function _renderPeriodTable(allSessions) {
     any = true;
     var sum = _sumSessions(b.list);
     html += '<div class="item-row"><div class="item-name">' + b.label +
-      '<div style="font-size:10px;color:var(--text-muted)">' + sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtK(sum.mine) + '</div></div>' +
-      '<div class="item-price">' + fmtK(sum.grand) + '</div></div>';
+      '<div style="font-size:10px;color:var(--text-muted)">' + sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(sum.mine) + '</div></div>' +
+      '<div class="item-price">' + fmtShort(sum.grand) + '</div></div>';
   }
   if (!any) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
   return html + '</div>';
@@ -323,7 +323,7 @@ function _createSpendingChart(sessions) {
         legend: { position: "bottom", labels: { color: css.getPropertyValue("--text-muted").trim() || "#94a3b8", boxWidth: 12, font: { size: 10 } } }
       },
       scales: {
-        x: { stacked: true, ticks: { color: css.getPropertyValue("--text-dim").trim() || "#64748b", callback: function (v) { return v + "K"; } }, grid: { color: "rgba(128,128,128,0.1)" } },
+        x: { stacked: true, ticks: { color: css.getPropertyValue("--text-dim").trim() || "#64748b", callback: function (v) { return fmtShort(v); } }, grid: { color: "rgba(128,128,128,0.1)" } },
         y: { stacked: true, ticks: { color: css.getPropertyValue("--text").trim() || "#e0e8f0", font: { size: 12 } }, grid: { display: false } }
       }
     }

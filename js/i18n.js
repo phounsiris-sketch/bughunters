@@ -38,6 +38,13 @@ var translations = {
     onlyCreatorConfirm: "Only the poll creator can confirm",
     needMinPlayers: "Need at least {n} players",
 
+    addVotesForOthers: "Add players",
+    editPlayer: "Edit player",
+    manualPlayer: "added manually",
+    manualPlayerHint: "Add friends who don't use the app. Anyone in the group can edit or remove manual players; registered accounts can only be changed by their owner.",
+    playerExists: "A player with this name already exists",
+    registeredPlayer: "registered",
+    voteForOthersHint: "Tick everyone who is joining this option, e.g. friends who replied in chat or don't have an account.",
     // Added: sessions, dashboard, settings
     addBrandsFirst: "Add shuttlecock brands in Settings first",
     allSettled: "All debts settled!",
@@ -266,6 +273,13 @@ var translations = {
     onlyCreatorConfirm: "ມີແຕ່ຜູ້ສ້າງໂພລທີ່ຢືນຢັນໄດ້",
     needMinPlayers: "ຕ້ອງມີຢ່າງໜ້ອຍ {n} ຄົນ",
 
+    addVotesForOthers: "ເພີ່ມຜູ້ຫຼິ້ນ",
+    editPlayer: "ແກ້ໄຂຜູ້ຫຼິ້ນ",
+    manualPlayer: "ເພີ່ມດ້ວຍຕົນເອງ",
+    manualPlayerHint: "ເພີ່ມໝູ່ທີ່ບໍ່ໄດ້ໃຊ້ແອັບ. ທຸກຄົນໃນກຸ່ມແກ້ໄຂ ຫຼື ລຶບຜູ້ຫຼິ້ນທີ່ເພີ່ມເອງໄດ້; ບັນຊີທີ່ລົງທະບຽນແລ້ວ ມີແຕ່ເຈົ້າຂອງທີ່ແກ້ໄຂໄດ້.",
+    playerExists: "ມີຜູ້ຫຼິ້ນຊື່ນີ້ແລ້ວ",
+    registeredPlayer: "ລົງທະບຽນແລ້ວ",
+    voteForOthersHint: "ໝາຍທຸກຄົນທີ່ຈະມາຕົວເລືອກນີ້, ເຊັ່ນ ໝູ່ທີ່ຕອບໃນແຊັດ ຫຼື ບໍ່ມີບັນຊີ.",
     // Added: sessions, dashboard, settings
     addBrandsFirst: "ກະລຸນາເພີ່ມຍີ່ຫໍ້ລູກຂົນໄກ່ໃນການຕັ້ງຄ່າກ່ອນ",
     allSettled: "ຊຳລະໝົດແລ້ວ!",

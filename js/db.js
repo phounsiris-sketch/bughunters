@@ -103,6 +103,18 @@ function dbGetUser(uid) {
     });
 }
 
+/** Friend without an account, added by hand */
+function dbAddManualPlayer(data) {
+  data.manual = true;
+  data.createdBy = currentUser ? currentUser.uid : null;
+  data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  return fsdb.collection("users").add(data);
+}
+
+function dbDeleteManualPlayer(uid) {
+  return fsdb.collection("users").doc(uid).delete();
+}
+
 function dbUpdateUser(uid, data) {
   return fsdb.collection("users").doc(uid).set(data, { merge: true });
 }

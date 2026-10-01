@@ -171,32 +171,44 @@ function logoutUser() {
 /* ---------- Default courts / shuttlecocks (seeded once if empty) ---------- */
 
 var DEFAULT_COURTS = [
-  { name: 'Joung Court', location: 'Vientiane', pricePerHour: 200 },
-  { name: 'Bob Court', location: 'Vientiane', pricePerHour: 150 }
+  { name: 'Joung Court', location: 'Vientiane', pricePerHour: 200000 },
+  { name: 'Bob Court', location: 'Vientiane', pricePerHour: 150000 }
 ];
 
 var DEFAULT_SHUTTLECOCKS = [
-  { name: 'RSL', pricePerTube: 120, cocksPerTube: 12 },
-  { name: 'Yonex', pricePerTube: 150, cocksPerTube: 12 }
+  { name: 'RSL', pricePerTube: 120000, cocksPerTube: 12 },
+  { name: 'Yonex', pricePerTube: 150000, cocksPerTube: 12 }
 ];
 
+// Real prices are at least tens of thousands of kip; anything below this was
+// entered by the old version in thousands (K)
+var LEGACY_K_LIMIT = 5000;
+
 function seedFirestoreData() {
-  // Seed courts
+  // Seed courts; convert prices saved in thousands ("200" = 200,000 ₭) to full LAK
   fsdb.collection('courts').get().then(function(snap) {
     if (snap.empty) {
       DEFAULT_COURTS.forEach(function(c) {
         fsdb.collection('courts').add(c).catch(function() {});
       });
     }
+    snap.forEach(function(doc) {
+      var p = doc.data().pricePerHour;
+      if (p > 0 && p < LEGACY_K_LIMIT) doc.ref.update({ pricePerHour: p * 1000 }).catch(function() {});
+    });
   }).catch(function() {});
 
-  // Seed shuttlecocks
+  // Seed shuttlecocks (same conversion)
   fsdb.collection('shuttlecocks').get().then(function(snap) {
     if (snap.empty) {
       DEFAULT_SHUTTLECOCKS.forEach(function(s) {
         fsdb.collection('shuttlecocks').add(s).catch(function() {});
       });
     }
+    snap.forEach(function(doc) {
+      var p = doc.data().pricePerTube;
+      if (p > 0 && p < LEGACY_K_LIMIT) doc.ref.update({ pricePerTube: p * 1000 }).catch(function() {});
+    });
   }).catch(function() {});
 }
 

@@ -88,9 +88,53 @@ function escapeHtml(text) {
     .replace(/'/g, "&#39;");
 }
 
-/** Format a number of thousand-kip (K) for display */
-function fmtK(n) {
-  return Math.round(n || 0).toLocaleString("en-US") + "K";
+// ── Money (all amounts are whole Lao kip, LAK) ─────────────
+
+var CURRENCY = "\u20AD"; // ₭ — Lao kip
+
+/** Exact amount with thousands separators: 206000 → "206,000 ₭" */
+function fmtLAK(n) {
+  return Math.round(n || 0).toLocaleString("en-US") + " " + CURRENCY;
+}
+
+/** Short form for summaries only: 930000 → "930K ₭", 1250000 → "1.25M ₭" */
+function fmtShort(n) {
+  var v = Math.round(n || 0);
+  var a = Math.abs(v);
+  var out;
+  if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+  else if (a >= 1e3) out = (v / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+  else out = String(v);
+  return out + " " + CURRENCY;
+}
+
+/** "200,000" → 200000 */
+function parseMoney(str) {
+  var n = parseFloat(String(str || "").replace(/[^0-9.]/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+/** Text input that shows thousands separators while typing */
+function moneyInput(id, value, oninput) {
+  return '<input type="text" inputmode="numeric" autocomplete="off" class="form-input money-input"' +
+    (id ? ' id="' + id + '"' : '') +
+    ' value="' + (value ? Math.round(value).toLocaleString("en-US") : '') + '" placeholder="0"' +
+    ' oninput="formatMoneyInput(this);' + (oninput || '') + '">';
+}
+
+/** Re-insert separators and keep the caret after the same digit */
+function formatMoneyInput(el) {
+  var caret = el.selectionStart || 0;
+  var digitsBefore = el.value.slice(0, caret).replace(/[^0-9]/g, "").length;
+  var digits = el.value.replace(/[^0-9]/g, "").replace(/^0+(?=\d)/, "");
+  var formatted = digits ? Number(digits).toLocaleString("en-US") : "";
+  el.value = formatted;
+  var pos = 0, seen = 0;
+  while (pos < formatted.length && seen < digitsBefore) {
+    if (/[0-9]/.test(formatted[pos])) seen++;
+    pos++;
+  }
+  try { el.setSelectionRange(pos, pos); } catch (e) {}
 }
 
 /** "2026-10-01" → "1 Oct 2026" */

@@ -4,10 +4,16 @@ service cloud.firestore {
     function isAuth() { return request.auth != null; }
     function isOwner(uid) { return request.auth.uid == uid; }
 
+    // Registered players own their profile. Manual players (friends without
+    // an account, `manual: true`) can be managed by any signed-in member,
+    // but a manual entry can never be turned into, or replace, a real account.
+    function isManual(data) { return data.get('manual', false) == true; }
+
     match /users/{uid} {
       allow read: if isAuth();
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid);
+      allow create: if isOwner(uid) || (isAuth() && isManual(request.resource.data));
+      allow update: if isOwner(uid) || (isAuth() && isManual(resource.data) && isManual(request.resource.data));
+      allow delete: if isAuth() && isManual(resource.data);
     }
 
     match /polls/{pollId} {

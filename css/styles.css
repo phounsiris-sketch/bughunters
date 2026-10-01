@@ -1617,3 +1617,7 @@ textarea {
   -webkit-appearance: none;
   margin: 0;
 }
+
+.person-right .person-amount {
+  white-space: nowrap;
+}

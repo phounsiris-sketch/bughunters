@@ -118,6 +118,10 @@ function _renderPollCard(poll) {
       optionVotes.length + '/' + minPlayers + '</div>';
     html += '</div>'; // close poll-option
 
+    if (isVotable && isCreator) {
+      html += '<button class="edit-btn" style="align-self:flex-start;margin-top:-2px" onclick="showVoteForOthers(\'' + poll.id + '\',' + oi + ')">+ ' + t('addVotesForOthers') + '</button>';
+    }
+
     if (isVotable && isCreator && enough) {
       html += '<button class="btn-primary" style="padding:8px;font-size:12px" onclick="confirmPoll(\'' + poll.id + '\',' + oi + ')">✔ ' +
         t('confirmPlan') + ' (' + optionVotes.length + ' ' + t('playersWord') + ')</button>';
@@ -162,6 +166,49 @@ function toggleVote(pollId, optionIdx) {
   }).catch(function (error) {
     showToast(error.message);
   });
+}
+
+/* ---------- Creator ticks players who replied in chat / have no account ---------- */
+function showVoteForOthers(pollId, optionIdx) {
+  var poll = null;
+  for (var i = 0; i < lastPolls.length; i++) if (lastPolls[i].id === pollId) poll = lastPolls[i];
+  if (!poll) return;
+  var picked = ((poll.votes || {})[optionIdx] || []).slice();
+
+  var chips = '';
+  var users = DB_CACHE.users;
+  for (var u = 0; u < users.length; u++) {
+    var on = picked.indexOf(users[u].id) >= 0;
+    chips += '<div class="chip' + (on ? ' active' : '') + '" data-uid="' + users[u].id + '" onclick="this.classList.toggle(\'active\')">' +
+      escapeHtml(users[u].displayName || '?') + (users[u].manual ? ' \u270D\uFE0F' : '') + '</div>';
+  }
+
+  document.getElementById("modalTitle").textContent = t("addVotesForOthers");
+  document.getElementById("modalBody").innerHTML =
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("voteForOthersHint") + '</div>' +
+    '<div class="chips" id="proxyVoteChips">' + chips + '</div>';
+
+  modalCallback = function () {
+    var els = document.querySelectorAll("#proxyVoteChips .chip.active");
+    var chosen = [];
+    for (var k = 0; k < els.length; k++) chosen.push(els[k].getAttribute("data-uid"));
+    var pollRef = fsdb.collection("polls").doc(pollId);
+
+    fsdb.runTransaction(function (transaction) {
+      return transaction.get(pollRef).then(function (doc) {
+        if (!doc.exists) throw new Error("Poll not found");
+        var data = doc.data();
+        if (data.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
+        if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
+        var votes = data.votes || {};
+        votes[optionIdx] = chosen;
+        transaction.update(pollRef, { votes: votes });
+      });
+    })
+      .then(function () { closeModal(); })
+      .catch(function (error) { showToast(error.message); });
+  };
+  openModal();
 }
 
 /* ---------- Confirm poll (creator only, needs >= minPlayers) ---------- */

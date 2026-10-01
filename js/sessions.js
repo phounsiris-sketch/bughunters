@@ -24,6 +24,9 @@ var edit = null; // form state while entering costs
    Ledger: shares, payments and the minimal set of transfers
    ────────────────────────────────────────────────────────── */
 
+/** Payments are rounded to the nearest 1,000 ₭ (smallest note in common use) */
+var ROUND_TO = 1000;
+
 function computeLedger(s) {
   var players = (s.players || []).slice();
   var n = players.length;
@@ -98,8 +101,8 @@ function computeLedger(s) {
     var sh = shares[uids[u]];
     sh.total = sh.court + sh.shuttle + sh.other + sh.dinner;
     var net = paid[uids[u]] - sh.total;
-    if (net > 0.5) creditors.push({ uid: uids[u], amt: net });
-    else if (net < -0.5) debtors.push({ uid: uids[u], amt: -net });
+    if (net >= ROUND_TO / 2) creditors.push({ uid: uids[u], amt: net });
+    else if (net <= -ROUND_TO / 2) debtors.push({ uid: uids[u], amt: -net });
   }
 
   // Greedy matching: largest debtor pays largest creditor
@@ -109,14 +112,14 @@ function computeLedger(s) {
   var ci = 0, di = 0;
   while (ci < creditors.length && di < debtors.length) {
     var x = Math.min(creditors[ci].amt, debtors[di].amt);
-    var rounded = Math.round(x);
+    var rounded = Math.round(x / ROUND_TO) * ROUND_TO;
     if (rounded > 0) {
       transfers.push({ from: debtors[di].uid, to: creditors[ci].uid, amount: rounded, key: debtors[di].uid + "__" + creditors[ci].uid });
     }
     creditors[ci].amt -= x;
     debtors[di].amt -= x;
-    if (creditors[ci].amt < 0.5) ci++;
-    if (debtors[di].amt < 0.5) di++;
+    if (creditors[ci].amt < ROUND_TO / 2) ci++;
+    if (debtors[di].amt < ROUND_TO / 2) di++;
   }
 
   return { shares: shares, paid: paid, transfers: transfers, totals: totals };
@@ -194,8 +197,8 @@ function renderSessionsList(sessions) {
           '<div class="session-players">👥 ' + playerCount + ' ' + t("players") + ' ' + badge + '</div>' +
         '</div>' +
         '<div style="text-align:right">' +
-          '<div class="session-total">' + (s.calculated ? fmtK(s.grandTotal) : '—') + '</div>' +
-          (s.calculated && playerCount ? '<div class="session-each">~' + fmtK((s.grandTotal || 0) / playerCount) + ' ' + t("each") + '</div>' : '') +
+          '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
+          (s.calculated && playerCount ? '<div class="session-each">~' + fmtShort((s.grandTotal || 0) / playerCount) + ' ' + t("each") + '</div>' : '') +
         '</div>' +
       '</div>';
   }
@@ -292,7 +295,7 @@ function _renderSplitResult(s) {
 
   html += '<div class="split-header">';
   html += '<div class="split-label">' + t("totalSession") + '</div>';
-  html += '<div class="split-amount">' + fmtK(L.totals.grand) + ' ₭</div>';
+  html += '<div class="split-amount" title="' + fmtLAK(L.totals.grand) + '">' + fmtShort(L.totals.grand) + '</div>';
   html += '</div>';
 
   // Cost breakdown
@@ -311,10 +314,10 @@ function _renderSplitResult(s) {
   for (var ti = 0; ti < L.transfers.length; ti++) {
     var tr = L.transfers[ti];
     var isDone = !!settled[tr.key];
-    var canMark = currentUser && (currentUser.uid === tr.from || currentUser.uid === tr.to);
+    var canMark = _canMarkTransfer(s, tr);
     html += '<div class="person-row">';
     html += '<div style="flex:1;min-width:0;font-size:14px"><b>' + getUserName(tr.from) + '</b> → <b>' + getUserName(tr.to) + '</b></div>';
-    html += '<div class="person-amount" style="' + (isDone ? 'text-decoration:line-through;color:var(--text-muted)' : '') + '">' + fmtK(tr.amount) + '</div>';
+    html += '<div class="person-amount" style="' + (isDone ? 'text-decoration:line-through;color:var(--text-muted)' : '') + '">' + fmtLAK(tr.amount) + '</div>';
     if (isDone) {
       html += '<span class="person-status status-payer">' + t("paid") + '</span>';
       if (canMark) html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">↩</button>';
@@ -334,27 +337,27 @@ function _renderSplitResult(s) {
     var uid = shareUids[pi];
     var ps = L.shares[uid];
     var parts = [];
-    if (ps.court) parts.push('🏟️' + fmtK(ps.court));
-    if (ps.shuttle) parts.push('🪶' + fmtK(ps.shuttle));
-    if (ps.other) parts.push('🥤' + fmtK(ps.other));
-    if (ps.dinner) parts.push('🍽️' + fmtK(ps.dinner));
-    var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtK(L.paid[uid]) + '</div>' : '';
+    if (ps.court) parts.push('🏟️' + fmtLAK(ps.court));
+    if (ps.shuttle) parts.push('🪶' + fmtLAK(ps.shuttle));
+    if (ps.other) parts.push('🥤' + fmtLAK(ps.other));
+    if (ps.dinner) parts.push('🍽️' + fmtLAK(ps.dinner));
+    var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
     var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:10px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
     html += '<div class="person-row"><div class="person-left">';
     html += '<div class="person-avatar" style="background:' + COLORS[pi % COLORS.length] + '">' + getUserName(uid).charAt(0).toUpperCase() + '</div>';
-    html += '<div><div style="font-size:14px">' + getUserName(uid) + notPlaying + '</div>' + paidStr + '</div></div>';
-    html += '<div class="person-right"><div class="person-amount">' + fmtK(ps.total) + '</div>';
-    html += '<div class="person-breakdown">' + parts.join(' + ') + '</div></div></div>';
+    html += '<div style="min-width:0"><div style="font-size:14px">' + getUserName(uid) + notPlaying + '</div>' + paidStr +
+      '<div class="person-breakdown">' + parts.join(' + ') + '</div></div></div>';
+    html += '<div class="person-right"><div class="person-amount">' + fmtLAK(ps.total) + '</div></div></div>';
   }
   html += '</div>';
 
   // Itemised costs
   html += '<div class="card"><div class="card-title">' + t("costDetails") + '</div>';
-  html += _detailLine('🏟️ ' + escapeHtml(s.courtName || t("court")) + ' — ' + (s.duration || 0) + 'h × ' + fmtK(s.pricePerHour), s.courtCost, s.courtPayer);
+  html += _detailLine('🏟️ ' + escapeHtml(s.courtName || t("court")) + ' — ' + (s.duration || 0) + 'h × ' + fmtLAK(s.pricePerHour), s.courtCost, s.courtPayer);
   var scs = s.shuttlecocks || [];
   for (var si = 0; si < scs.length; si++) {
-    html += _detailLine('🪶 ' + escapeHtml(scs[si].brand) + ' — ' + scs[si].qty + ' ' + t("cocks") + ' (' + fmtK(scs[si].price) + '/' + scs[si].cocksPerTube + ')', scs[si].total, s.shuttlePayer);
+    html += _detailLine('🪶 ' + escapeHtml(scs[si].brand) + ' — ' + scs[si].qty + ' ' + t("cocks") + ' (' + fmtLAK(scs[si].price) + '/' + scs[si].cocksPerTube + ')', scs[si].total, s.shuttlePayer);
   }
   var ocs = s.otherCosts || [];
   for (var oi = 0; oi < ocs.length; oi++) {
@@ -381,16 +384,27 @@ function _renderSplitResult(s) {
   return html;
 }
 
+/** The payer, the receiver, the session creator, or anyone when a manual
+ *  player (who cannot sign in) is involved, may mark a transfer as paid */
+function _canMarkTransfer(s, tr) {
+  if (!currentUser) return false;
+  var me = currentUser.uid;
+  if (me === tr.from || me === tr.to || me === s.createdBy) return true;
+  var from = dbFindById(DB_CACHE.users, tr.from);
+  var to = dbFindById(DB_CACHE.users, tr.to);
+  return !!((from && from.manual) || (to && to.manual));
+}
+
 function _detailLine(label, amount, payerUid) {
   return '<div class="item-row"><div class="item-name" style="font-size:13px">' + label +
     (payerUid ? '<div style="font-size:11px;color:var(--text-muted)">💳 ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
-    '</div><div class="item-price">' + fmtK(amount) + '</div></div>';
+    '</div><div class="item-price">' + fmtLAK(amount) + '</div></div>';
 }
 
 function _costCard(icon, label, amount, payerUid) {
   return '<div class="cost-card"><div class="cost-icon">' + icon + '</div>' +
     '<div class="cost-card-label">' + label + '</div>' +
-    '<div class="cost-card-value">' + fmtK(amount) + '</div>' +
+    '<div class="cost-card-value">' + fmtShort(amount) + '</div>' +
     '<div class="cost-card-sub">' + (payerUid && amount ? getUserName(payerUid) : '&nbsp;') + '</div></div>';
 }
 
@@ -491,7 +505,7 @@ function renderEditForm() {
   html += '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" onchange="editSetCourt(this.value)">';
   if (!courts.length) html += '<option value="">' + t("noCourtsYet") + '</option>';
   for (var ci = 0; ci < courts.length; ci++) {
-    html += '<option value="' + courts[ci].id + '"' + (courts[ci].id === edit.courtId ? ' selected' : '') + '>' + escapeHtml(courts[ci].name) + ' (' + fmtK(courts[ci].pricePerHour) + '/h)</option>';
+    html += '<option value="' + courts[ci].id + '"' + (courts[ci].id === edit.courtId ? ' selected' : '') + '>' + escapeHtml(courts[ci].name) + ' (' + fmtLAK(courts[ci].pricePerHour) + '/h)</option>';
   }
   html += '</select></div>';
   html += '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" min="0.5" max="12" step="0.5" value="' + edit.duration + '" oninput="edit.duration=parseFloat(this.value)||0;_updateEditTotals()"></div>';
@@ -518,7 +532,7 @@ function renderEditForm() {
   for (var si = 0; si < edit.shuttlecocks.length; si++) {
     var sc = edit.shuttlecocks[si];
     html += '<div class="item-row">';
-    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:10px;color:var(--text-muted)">' + fmtK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
+    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:10px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
     html += '<div class="qty-controls"><button onclick="editShuttleQty(' + si + ',-1)">−</button>';
     html += '<input type="number" class="qty-num" min="0" value="' + sc.qty + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
     html += '<button onclick="editShuttleQty(' + si + ',1)">+</button></div>';
@@ -539,7 +553,7 @@ function renderEditForm() {
     var oc = edit.otherCosts[oi];
     html += '<div class="item-row"><div class="item-name">' + escapeHtml(oc.desc) +
       '<div style="font-size:11px;color:var(--text-muted)">💳 ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
-      '<div class="item-price">' + fmtK(oc.amount) + '</div>' +
+      '<div class="item-price">' + fmtLAK(oc.amount) + '</div>' +
       '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">✕</button></div>';
   }
   html += '<button class="add-btn-dashed" onclick="showAddOtherCost()">+ ' + t("addOtherCost") + '</button>';
@@ -552,7 +566,7 @@ function renderEditForm() {
   } else {
     var d = edit.dinner;
     html += '<div class="form-row">';
-    html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (K)</label><input type="number" class="form-input" min="0" value="' + (d.totalBill || '') + '" oninput="edit.dinner.totalBill=parseFloat(this.value)||0;_updateEditTotals()"></div>';
+    html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (\u20AD)</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
     html += '<div class="form-group"><label class="form-label">💳 ' + t("dinnerPayer") + '</label><select class="form-select" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
     html += '</div>';
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
@@ -639,26 +653,26 @@ function _updateEditTotals() {
   var data = _editToSessionData();
 
   var courtEl = document.getElementById("courtCostDisplay");
-  if (courtEl) courtEl.innerHTML = (edit.duration || 0) + 'h × ' + fmtK(data.pricePerHour) + ' = <b style="color:var(--accent)">' + fmtK(data.courtCost) + ' ₭</b>';
+  if (courtEl) courtEl.innerHTML = (edit.duration || 0) + 'h × ' + fmtLAK(data.pricePerHour) + ' = <b style="color:var(--accent)">' + fmtLAK(data.courtCost) + '</b>';
 
   for (var i = 0; i < edit.shuttlecocks.length; i++) {
     var sc = edit.shuttlecocks[i];
     var el = document.getElementById("scRowTotal" + i);
-    if (el) el.textContent = fmtK(sc.qty / (sc.cocksPerTube || 12) * sc.price);
+    if (el) el.textContent = fmtLAK(sc.qty / (sc.cocksPerTube || 12) * sc.price);
   }
   var stEl = document.getElementById("shuttleTotal");
-  if (stEl) stEl.textContent = fmtK(data.shuttleTotal) + " ₭";
+  if (stEl) stEl.textContent = fmtLAK(data.shuttleTotal);
 
   var sumEl = document.getElementById("editSummary");
   if (sumEl) {
     var n = edit.players.length;
     sumEl.innerHTML =
-      '<div class="item-row"><div class="item-name">🏟️ ' + t("court") + '</div><div class="item-price">' + fmtK(data.courtCost) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🪶 ' + t("shuttlecocks") + '</div><div class="item-price">' + fmtK(data.shuttleTotal) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtK(data.otherTotal) + '</div></div>' +
-      '<div class="item-row"><div class="item-name">🍽️ ' + t("dinnerBill") + '</div><div class="item-price">' + fmtK(data.dinner ? data.dinner.totalBill : 0) + '</div></div>' +
-      '<div class="subtotal-row"><span>' + t("total") + '</span><span style="color:var(--accent)">' + fmtK(data.grandTotal) + ' ₭</span></div>' +
-      (n ? '<div style="font-size:12px;color:var(--text-muted);text-align:right">' + t("courtAndCocksEach").replace("{n}", n) + ' ' + fmtK((data.courtCost + data.shuttleTotal) / n) + '</div>' : '');
+      '<div class="item-row"><div class="item-name">🏟️ ' + t("court") + '</div><div class="item-price">' + fmtLAK(data.courtCost) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">🪶 ' + t("shuttlecocks") + '</div><div class="item-price">' + fmtLAK(data.shuttleTotal) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">🥤 ' + t("otherCosts") + '</div><div class="item-price">' + fmtLAK(data.otherTotal) + '</div></div>' +
+      '<div class="item-row"><div class="item-name">🍽️ ' + t("dinnerBill") + '</div><div class="item-price">' + fmtLAK(data.dinner ? data.dinner.totalBill : 0) + '</div></div>' +
+      '<div class="subtotal-row"><span>' + t("total") + '</span><span style="color:var(--accent)">' + fmtLAK(data.grandTotal) + '</span></div>' +
+      (n ? '<div style="font-size:12px;color:var(--text-muted);text-align:right">' + t("courtAndCocksEach").replace("{n}", n) + ' ' + fmtLAK((data.courtCost + data.shuttleTotal) / n) + '</div>' : '');
   }
 }
 
@@ -720,7 +734,7 @@ function showAddShuttlecock() {
 
   var opts = "";
   for (var i = 0; i < brands.length; i++) {
-    opts += '<option value="' + brands[i].id + '">' + escapeHtml(brands[i].name) + ' (' + fmtK(brands[i].pricePerTube) + ' / ' + (brands[i].cocksPerTube || 12) + ')</option>';
+    opts += '<option value="' + brands[i].id + '">' + escapeHtml(brands[i].name) + ' (' + fmtLAK(brands[i].pricePerTube) + ' / ' + (brands[i].cocksPerTube || 12) + ')</option>';
   }
 
   document.getElementById("modalTitle").textContent = t("addBrand");
@@ -762,8 +776,8 @@ function showAddOtherCost() {
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("description") + '</label>' +
     '<input type="text" class="form-input" id="modalDesc" placeholder="' + t("otherCostPlaceholder") + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("amount") + ' (K)</label>' +
-    '<input type="number" class="form-input" id="modalAmount" min="1"></div>' +
+    '<div class="form-group"><label class="form-label">' + t("amount") + ' (\u20AD)</label>' +
+    moneyInput('modalAmount', 0, '') + '</div>' +
     '<div class="form-group"><label class="form-label">💳 ' + t("paidBy") + '</label>' +
     '<select class="form-select" id="modalPaidBy">' + _payerOptions(currentUser ? currentUser.uid : "", pickable) + '</select></div>' +
     '<div class="form-group"><label class="form-label">' + t("splitBetween") + '</label>' +
@@ -771,7 +785,7 @@ function showAddOtherCost() {
 
   modalCallback = function () {
     var desc = document.getElementById("modalDesc").value.trim();
-    var amount = parseFloat(document.getElementById("modalAmount").value) || 0;
+    var amount = parseMoney(document.getElementById("modalAmount").value);
     var paidBy = document.getElementById("modalPaidBy").value;
     var forUid = document.getElementById("modalFor").value || null;
 
@@ -873,19 +887,19 @@ function buildMessengerText(s) {
   lines.push("━━━━━━━━━━━━");
 
   if (L.totals.court > 0) {
-    lines.push("🏟️ Court: " + fmtK(L.totals.court) + " (÷" + n + " = " + fmtK(L.totals.court / n) + ") — " + _plainName(s.courtPayer));
+    lines.push("🏟️ Court: " + fmtLAK(L.totals.court) + " (÷" + n + " = " + fmtLAK(L.totals.court / n) + ") — " + _plainName(s.courtPayer));
   }
   if (L.totals.shuttle > 0) {
     var cocks = (s.shuttlecocks || []).map(function (c) { return c.qty + " " + c.brand; }).join(", ");
-    lines.push("🪶 Shuttle: " + fmtK(L.totals.shuttle) + " (" + cocks + ") (÷" + n + " = " + fmtK(L.totals.shuttle / n) + ") — " + _plainName(s.shuttlePayer));
+    lines.push("🪶 Shuttle: " + fmtLAK(L.totals.shuttle) + " (" + cocks + ") (÷" + n + " = " + fmtLAK(L.totals.shuttle / n) + ") — " + _plainName(s.shuttlePayer));
   }
   var ocs = s.otherCosts || [];
   for (var i = 0; i < ocs.length; i++) {
-    lines.push("🥤 " + ocs[i].desc + ": " + fmtK(ocs[i].amount) + (ocs[i].forUid ? " (" + _plainName(ocs[i].forUid) + ")" : " (÷" + n + ")") + " — " + _plainName(ocs[i].paidBy));
+    lines.push("🥤 " + ocs[i].desc + ": " + fmtLAK(ocs[i].amount) + (ocs[i].forUid ? " (" + _plainName(ocs[i].forUid) + ")" : " (÷" + n + ")") + " — " + _plainName(ocs[i].paidBy));
   }
   if (L.totals.dinner > 0) {
     var dn = s.dinner.diners.length;
-    lines.push("🍽️ Dinner: " + fmtK(L.totals.dinner) + " (÷" + dn + " = " + fmtK(L.totals.dinner / dn) + ") — " + _plainName(s.dinner.paidBy));
+    lines.push("🍽️ Dinner: " + fmtLAK(L.totals.dinner) + " (÷" + dn + " = " + fmtLAK(L.totals.dinner / dn) + ") — " + _plainName(s.dinner.paidBy));
   }
 
   lines.push("━━━━━━━━━━━━");
@@ -894,10 +908,10 @@ function buildMessengerText(s) {
     var settled = s.settled || {};
     for (var tI = 0; tI < L.transfers.length; tI++) {
       var tr = L.transfers[tI];
-      lines.push("  " + _plainName(tr.from) + " → " + _plainName(tr.to) + ": " + fmtK(tr.amount) + (settled[tr.key] ? " ✅" : ""));
+      lines.push("  " + _plainName(tr.from) + " → " + _plainName(tr.to) + ": " + fmtLAK(tr.amount) + (settled[tr.key] ? " ✅" : ""));
     }
   }
-  lines.push("💰 Total: " + fmtK(L.totals.grand) + " ₭");
+  lines.push("💰 Total: " + fmtLAK(L.totals.grand));
   return lines.join("\n");
 }
 
