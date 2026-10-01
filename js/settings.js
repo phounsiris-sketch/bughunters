@@ -13,7 +13,7 @@
 var settingsTab = (function () {
   try { return localStorage.getItem('settingsTab') || 'profile'; } catch (e) { return 'profile'; }
 })();
-var SETTINGS_TABS = [['profile', 'tabProfile'], ['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabQR']];
+var SETTINGS_TABS = [['profile', 'tabProfile'], ['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabQR'], ['general', 'tabGeneral']];
 
 function setSettingsTab(tab) {
   settingsTab = tab;
@@ -42,10 +42,14 @@ function renderSettings() {
         '" style="padding:8px 4px;font-size:12px" onclick="setSettingsTab(\'' + SETTINGS_TABS[ti][0] + '\')">' + t(SETTINGS_TABS[ti][1]) + '</button>';
     }
     tabsEl.innerHTML = tHtml;
+    tabsEl.classList.add("tabs-scroll");
+    var activeTab = tabsEl.querySelector(".dash-tab.active");
+    if (activeTab && activeTab.scrollIntoView) activeTab.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
   // Don't wipe the profile form while the user is typing in it
   if (settingsTab === 'profile' && document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
+  if (settingsTab === 'general' && document.activeElement && document.activeElement.id === 'gMinPlayers') return;
 
   var html = '';
   if (settingsTab === 'profile') html = _renderProfileTab();
@@ -53,6 +57,7 @@ function renderSettings() {
   else if (settingsTab === 'courts') html = _renderCourtsTab();
   else if (settingsTab === 'shuttle') html = _renderShuttleTab();
   else if (settingsTab === 'qr') html = _renderQrTab();
+  else if (settingsTab === 'general') html = _renderGeneralTab();
   container.innerHTML = html;
 }
 
@@ -70,6 +75,8 @@ function _renderProfileTab() {
   html += '<input class="form-input" id="pfPhone" inputmode="tel" value="' + escapeHtml(prof.phone || '') + '" placeholder="020 xxxx xxxx"></div>';
   html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
   html += '</div>';
+
+  html += _renderMergeCard();
 
   html += '<div class="card"><div class="card-title">' + t("appSettings") + '</div>';
   html += '<div class="settings-item"><div class="settings-label">' + t("language") + '</div><button class="edit-btn" onclick="toggleLang()">' + (currentLang === 'en' ? 'English → ລາວ' : 'ລາວ → English') + '</button></div>';
@@ -305,62 +312,183 @@ function deleteSettingsShuttlecock(id) {
     .catch(function (error) { showToast(error.message); });
 }
 
-/* ---------- QR codes ---------- */
+/* ---------- QR codes: up to 3 per person (court, cocks, dinner & other) ---------- */
+var qrOwner = null; // whose QR codes the QR tab is editing
+
+function _qrEditableUsers() {
+  // Yourself, plus manual players (they can't sign in to upload their own)
+  return DB_CACHE.users.filter(function (u) { return (currentUser && u.id === currentUser.uid) || u.manual; });
+}
+
 function _renderQrTab() {
+  if (!qrOwner && currentUser) qrOwner = currentUser.uid;
+  var people = _qrEditableUsers();
   var html = '<div class="card"><div class="card-title">📱 ' + t("qrCodes") + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("qrHint") + '</div>';
-  html += _renderQrSection("courtPayer", t("courtPayerQR"));
-  html += _renderQrSection("shuttlePayer", t("shuttlePayerQR"));
+  html += '<div class="form-group"><label class="form-label">' + t("qrOwner") + '</label><select class="form-select" onchange="qrOwner=this.value;renderSettings()">';
+  people.forEach(function (u) {
+    var me = currentUser && u.id === currentUser.uid;
+    html += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + (me ? ' (' + t("you") + ')' : ' ✍️') + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div id="qrSlots" class="qr-grid">';
+  var labels = { court: '🏟️ ' + t("court"), shuttle: '🪶 ' + t("shuttlecocks"), dinner: '🍽️ ' + t("dinnerAndOther") };
+  QR_TYPES.forEach(function (type) {
+    html += '<div class="qr-cell" id="qrCell_' + type + '">';
+    html += '<div class="qr-cell-title">' + labels[type] + '</div>';
+    html += '<div class="qr-cell-img" id="qrImg_' + type + '"><div class="qr-missing">' + t("loading") + '</div></div>';
+    html += '<input type="file" id="qrFile_' + type + '" accept="image/*" style="display:none" onchange="handleQrUpload(\'' + type + '\',this)">';
+    html += '<div style="display:flex;gap:6px;justify-content:center">';
+    html += '<button class="edit-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()">📷 ' + t("uploadQR") + '</button>';
+    html += '<button class="delete-btn" id="qrDel_' + type + '" style="display:none" onclick="removeQr(\'' + type + '\')">✕</button>';
+    html += '</div></div>';
+  });
   html += '</div>';
-  return html;
-}
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:10px">' + t("qrFallbackHint") + '</div>';
+  html += '</div>';
 
-function _renderQrSection(type, label) {
-  var qr = DB_CACHE.qrCodes && DB_CACHE.qrCodes[type] ? DB_CACHE.qrCodes[type] : null;
-  var html = '<div style="margin-bottom:14px;padding:12px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border)">';
-  html += '<div style="font-size:13px;font-weight:600;margin-bottom:8px">' + label + '</div>';
-  if (qr && qr.url) {
-    html += '<img src="' + qr.url + '" style="width:140px;height:140px;object-fit:contain;border-radius:8px;margin-bottom:8px;display:block;background:#fff" alt="QR">';
-  }
-  html += '<div class="form-group" style="margin-bottom:8px"><label class="form-label">' + t("qrName") + '</label>';
-  html += '<input type="text" class="form-input" value="' + escapeHtml(qr && qr.name ? qr.name : '') + '" ' +
-    'onchange="saveQrName(\'' + type + '\',this.value)" placeholder="' + t("qrNamePlaceholder") + '"></div>';
-  html += '<input type="file" id="qrFile_' + type + '" accept="image/*" style="display:none" onchange="handleQrUpload(\'' + type + '\',this)">';
-  html += '<div style="display:flex;gap:8px">';
-  html += '<button class="edit-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()">📷 ' + t("uploadQR") + '</button>';
-  if (qr && qr.url) html += '<button class="delete-btn" onclick="removeQr(\'' + type + '\')">✕</button>';
-  html += '</div></div>';
+  // Fill the three images once the DOM exists
+  setTimeout(function () {
+    if (!qrOwner) return;
+    dbGetUserQr(qrOwner).then(function (qr) {
+      QR_TYPES.forEach(function (type) {
+        var img = document.getElementById("qrImg_" + type);
+        var del = document.getElementById("qrDel_" + type);
+        if (!img) return;
+        img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + t("noQr") + '</div>';
+        if (del) del.style.display = qr[type] ? "" : "none";
+      });
+    });
+  }, 0);
   return html;
-}
-
-function _qrUpdate(type, fields) {
-  var cur = (DB_CACHE.qrCodes && DB_CACHE.qrCodes[type]) || {};
-  var data = {};
-  data[type] = { url: cur.url || "", name: cur.name || "" };
-  Object.assign(data[type], fields);
-  return dbSetQrCodes(data);
 }
 
 function handleQrUpload(type, input) {
   var file = input.files && input.files[0];
-  if (!file) return;
+  if (!file || !qrOwner) return;
   showToast(t("loading"));
   readQrImage(file, function (err, dataUrl) {
     input.value = "";
     if (err) { showToast(err.message); return; }
-    _qrUpdate(type, { url: dataUrl })
-      .then(function () { showToast(t("uploadQR") + " ✔"); })
+    dbSetUserQr(qrOwner, type, dataUrl)
+      .then(function () { showToast(t("uploadQR") + " ✔"); renderSettings(); })
       .catch(function (error) { showToast(error.message); });
   });
 }
 
-function saveQrName(type, name) {
-  _qrUpdate(type, { name: name.trim() })
+function removeQr(type) {
+  if (!qrOwner || !confirm(t("delete") + "?")) return;
+  dbSetUserQr(qrOwner, type, null)
+    .then(function () { renderSettings(); })
+    .catch(function (error) { showToast(error.message); });
+}
+
+/* ---------- General: minimum players, default payers ---------- */
+function _renderGeneralTab() {
+  var users = DB_CACHE.users;
+  var opts = function (selected) {
+    var h = '<option value="">' + t("noDefault") + '</option>';
+    users.forEach(function (u) {
+      h += '<option value="' + u.id + '"' + (u.id === selected ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + '</option>';
+    });
+    return h;
+  };
+  var html = '<div class="card"><div class="card-title">⚙️ ' + t("tabGeneral") + '</div>';
+  html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>';
+  html += '<input type="number" class="form-input" id="gMinPlayers" min="2" max="30" value="' + minPlayersSetting() + '" onchange="saveAppSetting(\'minPlayers\', Math.max(2, parseInt(this.value, 10) || 4))">';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
+  html += '<div class="form-group"><label class="form-label">🏟️ ' + t("defaultCourtPayer") + '</label>';
+  html += '<select class="form-select" onchange="saveAppSetting(\'defaultCourtPayer\', this.value)">' + opts(appSetting("defaultCourtPayer", "")) + '</select></div>';
+  html += '<div class="form-group"><label class="form-label">🪶 ' + t("defaultShuttlePayer") + '</label>';
+  html += '<select class="form-select" onchange="saveAppSetting(\'defaultShuttlePayer\', this.value)">' + opts(appSetting("defaultShuttlePayer", "")) + '</select></div>';
+  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function saveAppSetting(key, value) {
+  var data = {};
+  data[key] = value;
+  dbSetAppSettings(data)
     .then(function () { showToast(t("save") + " ✔"); })
     .catch(function (error) { showToast(error.message); });
 }
 
-function removeQr(type) {
-  if (!confirm(t("delete") + "?")) return;
-  _qrUpdate(type, { url: "" }).catch(function (error) { showToast(error.message); });
+/* ---------- Merge a manual player into my account (optional) ---------- */
+function _renderMergeCard() {
+  var manual = DB_CACHE.users.filter(function (u) { return u.manual; });
+  if (!manual.length || !currentUser) return '';
+  var html = '<div class="card"><div class="card-title">🔗 ' + t("mergeTitle") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("mergeHint") + '</div>';
+  html += '<div class="form-group"><select class="form-select" id="mergeSelect"><option value="">' + t("mergePick") + '</option>';
+  manual.forEach(function (u) { html += '<option value="' + u.id + '">' + escapeHtml(u.displayName || '?') + '</option>'; });
+  html += '</select></div>';
+  html += '<button class="btn-secondary" onclick="mergeManualPlayer(document.getElementById(\'mergeSelect\').value)">' + t("mergeButton") + '</button>';
+  html += '</div>';
+  return html;
+}
+
+/** Replace `oldId` with `newId` in plain data (arrays, objects, "a__b" keys) */
+function _swapUid(value, oldId, newId) {
+  if (value === oldId) return newId;
+  if (typeof value === "string") return value.split("__").map(function (p) { return p === oldId ? newId : p; }).join("__");
+  if (Array.isArray(value)) {
+    var arr = value.map(function (v) { return _swapUid(v, oldId, newId); });
+    return arr.filter(function (v, i) { return typeof v !== "string" || arr.indexOf(v) === i; }); // no duplicate players
+  }
+  if (value && typeof value === "object" && typeof value.toDate !== "function") {
+    var o = {};
+    Object.keys(value).forEach(function (k) { o[_swapUid(k, oldId, newId)] = _swapUid(value[k], oldId, newId); });
+    return o;
+  }
+  return value;
+}
+
+function mergeManualPlayer(manualId) {
+  var manual = dbFindById(DB_CACHE.users, manualId);
+  if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
+  if (!confirm(t("mergeConfirm").replace("{name}", manual.displayName || "?"))) return;
+  var me = currentUser.uid;
+  showToast(t("loading"));
+
+  var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "settled", "createdBy"];
+  var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
+
+  function migrate(collection, fields) {
+    return fsdb.collection(collection).get().then(function (snap) {
+      var jobs = [];
+      snap.forEach(function (doc) {
+        var data = doc.data();
+        if (JSON.stringify(fields.map(function (f) { return data[f] === undefined ? null : data[f]; })).indexOf(manualId) < 0) return;
+        var update = {};
+        fields.forEach(function (f) { if (data[f] !== undefined) update[f] = _swapUid(data[f], manualId, me); });
+        jobs.push(doc.ref.update(update));
+      });
+      return Promise.all(jobs);
+    });
+  }
+
+  migrate("sessions", sessionFields)
+    .then(function () { return migrate("polls", pollFields); })
+    .then(function () {
+      // Keep the phone number and QR codes if I don't have my own yet
+      var jobs = [];
+      if (manual.phone && !(currentUserProfile && currentUserProfile.phone)) {
+        jobs.push(dbUpdateUser(me, { phone: manual.phone }));
+        if (currentUserProfile) currentUserProfile.phone = manual.phone;
+      }
+      jobs.push(dbGetUserQr(manualId).then(function (qr) {
+        return dbGetUserQr(me).then(function (mine) {
+          var copy = QR_TYPES.filter(function (k) { return qr[k] && !mine[k]; });
+          return Promise.all(copy.map(function (k) { return dbSetUserQr(me, k, qr[k]); }));
+        });
+      }));
+      ["defaultCourtPayer", "defaultShuttlePayer"].forEach(function (k) {
+        if (appSetting(k, "") === manualId) { var d = {}; d[k] = me; jobs.push(dbSetAppSettings(d)); }
+      });
+      return Promise.all(jobs);
+    })
+    .then(function () { return dbDeleteManualPlayer(manualId); })
+    .then(function () { showToast(t("mergeDone").replace("{name}", manual.displayName || "?")); renderSettings(); })
+    .catch(function (error) { showToast(error.message); });
 }

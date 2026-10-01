@@ -44,6 +44,13 @@ service cloud.firestore {
       allow write: if isAuth();
     }
 
+    // Payment QR codes: your own, or a manual player's (they can't sign in)
+    match /qrcodes/{uid} {
+      allow read: if isAuth();
+      allow write: if isOwner(uid) ||
+        (isAuth() && get(/databases/$(database)/documents/users/$(uid)).data.get('manual', false) == true);
+    }
+
     match /settings/{docId} {
       allow read: if isAuth();
       allow write: if isAuth();

@@ -205,7 +205,7 @@ function dbSetQrCodes(data) {
 
 // ── Shared cache (one listener per collection for the whole app) ──
 
-var DB_CACHE = { users: [], courts: [], shuttlecocks: [], qrCodes: null };
+var DB_CACHE = { users: [], courts: [], shuttlecocks: [], qrCodes: null, app: {} };
 var _dbCacheUnsubs = [];
 
 /**
@@ -218,6 +218,10 @@ function dbStartCache(onChange) {
   _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.courts = c; onChange("courts"); }));
   _dbCacheUnsubs.push(dbGetShuttlecocks(function (b) { DB_CACHE.shuttlecocks = b; onChange("shuttlecocks"); }));
   _dbCacheUnsubs.push(dbGetQrCodes(function (q) { DB_CACHE.qrCodes = q; onChange("qrCodes"); }));
+  _dbCacheUnsubs.push(fsdb.collection("settings").doc("app").onSnapshot(function (doc) {
+    DB_CACHE.app = doc.exists ? doc.data() : {};
+    onChange("app");
+  }, dbOnError));
 }
 
 function dbStopCache() {
@@ -232,4 +236,38 @@ function dbFindById(list, id) {
     if (list[i].id === id) return list[i];
   }
   return null;
+}
+
+// ── Group settings (settings/app) ───────────────────────────
+// { minPlayers, defaultCourtPayer, defaultShuttlePayer }
+
+function appSetting(key, fallback) {
+  var v = DB_CACHE.app ? DB_CACHE.app[key] : undefined;
+  return v === undefined || v === null || v === "" ? fallback : v;
+}
+
+function dbSetAppSettings(data) {
+  return fsdb.collection("settings").doc("app").set(data, { merge: true });
+}
+
+// ── Personal payment QR codes (qrcodes/{uid}) ───────────────
+// { court: dataUrl, shuttle: dataUrl, dinner: dataUrl } — kept out of the
+// users collection so the roster stays small.
+
+var QR_TYPES = ["court", "shuttle", "dinner"];
+var _qrCache = {};
+
+function dbGetUserQr(uid) {
+  if (_qrCache[uid]) return Promise.resolve(_qrCache[uid]);
+  return fsdb.collection("qrcodes").doc(uid).get().then(function (doc) {
+    _qrCache[uid] = doc.exists ? doc.data() : {};
+    return _qrCache[uid];
+  }).catch(function () { return {}; });
+}
+
+function dbSetUserQr(uid, type, dataUrl) {
+  var data = {};
+  data[type] = dataUrl || null;
+  delete _qrCache[uid];
+  return fsdb.collection("qrcodes").doc(uid).set(data, { merge: true });
 }

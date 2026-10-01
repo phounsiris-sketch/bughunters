@@ -311,6 +311,7 @@ function renderSessionDetail() {
   var html = _renderSessionHeader(s);
   html += _renderSplitResult(s);
   container.innerHTML = html;
+  _fillQrSlots(container);
 }
 
 function _renderSessionHeader(s) {
@@ -342,34 +343,66 @@ function _renderSplitResult(s) {
   html += _costCard("🍽️", t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
   html += '</div>';
 
-  // Who pays whom — grouped by the person receiving the money
-  html += '<div class="card"><div class="card-title">\uD83D\uDC49 ' + t("whoPaysWhom") + '</div>';
+  // 1) Pay by type: one card per cost, with the payer's QR and each player's part
+  html += '<div class="section-title">💳 ' + t("payByType") + '</div>';
+  var n = players.length;
+  if (L.totals.court > 0) {
+    html += _payTypeCard(s, "🏟️", t("court"),
+      escapeHtml(s.courtName || "") + ' — ' + (s.duration || 0) + 'h × ' + fmtLAK(s.pricePerHour),
+      L.totals.court, s.courtPayer, "court", _even(players, L.totals.court));
+  }
+  if (L.totals.shuttle > 0) {
+    var cocksDesc = (s.shuttlecocks || []).map(function (c) {
+      return c.qty + ' ' + escapeHtml(c.brand) + ' (' + fmtLAK(c.price) + '/' + c.cocksPerTube + ')';
+    }).join(', ');
+    html += _payTypeCard(s, "🪶", t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle));
+  }
+  (s.otherCosts || []).forEach(function (oc) {
+    if (!(oc.amount > 0)) return;
+    var parts = oc.forUid ? (function () { var o = {}; o[oc.forUid] = oc.amount; return o; })() : _even(players, oc.amount);
+    html += _payTypeCard(s, "🥤", escapeHtml(oc.desc),
+      oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone") + ' (÷' + n + ')',
+      oc.amount, oc.paidBy, "dinner", parts);
+  });
+  if (L.totals.dinner > 0) {
+    var receipt = s.dinner.receiptUrl
+      ? '<img src="' + s.dinner.receiptUrl + '" alt="' + t("receipt") + '" class="receipt-thumb" onclick="openImage(this.src)">' +
+        '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
+      : '';
+    html += _payTypeCard(s, "🍽️", t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
+      L.totals.dinner, s.dinner.paidBy, "dinner", _even(s.dinner.diners, L.totals.dinner), receipt);
+  }
+
+  // 2) Settlement after deduction: one row per pair of people
+  html += '<div class="card"><div class="card-title">🧮 ' + t("settlement") + '</div>';
   if (L.transfers.length === 0) {
     html += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
-  }
-  var lastTo = null;
-  for (var ti = 0; ti < L.transfers.length; ti++) {
-    var tr = L.transfers[ti];
-    if (tr.to !== lastTo) {
-      lastTo = tr.to;
-      html += '<div class="pay-group-head"><span>\uD83D\uDCB3 ' + t("payTo") + ' <b>' + getUserName(tr.to) + '</b></span>' +
-        '<span class="pay-group-total">' + fmtLAK(L.received[tr.to]) + '</span></div>';
+  } else {
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + t("settlementHint") + '</div>';
+    for (var ti = 0; ti < L.transfers.length; ti++) {
+      var tr = L.transfers[ti];
+      var gross = (tr.items || []).reduce(function (a, x) { return a + x.amount; }, 0);
+      var minus = (tr.minus || []).reduce(function (a, x) { return a + x.amount; }, 0);
+      var isDone = !!settled[tr.key];
+      var canMark = _canMarkTransfer(s, tr);
+      html += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
+      html += '<div class="settle-head"><div style="font-size:14px"><b>' + getUserName(tr.from) + '</b> → <b>' + getUserName(tr.to) + '</b></div><div>';
+      if (isDone) {
+        html += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">✔ ' + t("paid") + '</button>'
+                        : '<span class="person-status status-payer">' + t("paid") + '</span>';
+      } else if (canMark) {
+        html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
+      } else {
+        html += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
+      }
+      html += '</div></div>';
+      html += '<table class="settle-table"><thead><tr><th class="num">' + t("owes") + '</th><th class="num">− ' + t("deduct") + '</th><th class="num">= ' + t("toPay") + '</th></tr></thead><tbody><tr>' +
+        '<td class="num">' + Math.round(gross).toLocaleString("en-US") + '</td>' +
+        '<td class="num">' + (minus ? Math.round(minus).toLocaleString("en-US") : '—') + '</td>' +
+        '<td class="num pay">' + fmtLAK(tr.amount) + '</td></tr></tbody></table>';
+      html += '<div class="person-breakdown">' + escapeHtml(transferBreakdown(tr)) + '</div>';
+      html += '</div>';
     }
-    var isDone = !!settled[tr.key];
-    var canMark = _canMarkTransfer(s, tr);
-    html += '<div class="person-row">';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + getUserName(tr.from) + '</div>' +
-      '<div class="person-breakdown">' + escapeHtml(transferBreakdown(tr)) + '</div></div>';
-    html += '<div class="person-amount" style="white-space:nowrap;' + (isDone ? 'text-decoration:line-through;color:var(--text-muted)' : '') + '">' + fmtLAK(tr.amount) + '</div>';
-    if (isDone) {
-      html += '<span class="person-status status-payer">' + t("paid") + '</span>';
-      if (canMark) html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">\u21A9</button>';
-    } else if (canMark) {
-      html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
-    } else {
-      html += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
-    }
-    html += '</div>';
   }
   html += '</div>';
 
@@ -394,29 +427,6 @@ function _renderSplitResult(s) {
     html += '<div class="person-right"><div class="person-amount">' + fmtLAK(ps.total) + '</div></div></div>';
   }
   html += '</div>';
-
-  // Itemised costs
-  html += '<div class="card"><div class="card-title">' + t("costDetails") + '</div>';
-  html += _detailLine('🏟️ ' + escapeHtml(s.courtName || t("court")) + ' — ' + (s.duration || 0) + 'h × ' + fmtLAK(s.pricePerHour), s.courtCost, s.courtPayer);
-  var scs = s.shuttlecocks || [];
-  for (var si = 0; si < scs.length; si++) {
-    html += _detailLine('🪶 ' + escapeHtml(scs[si].brand) + ' — ' + scs[si].qty + ' ' + t("cocks") + ' (' + fmtLAK(scs[si].price) + '/' + scs[si].cocksPerTube + ')', scs[si].total, s.shuttlePayer);
-  }
-  var ocs = s.otherCosts || [];
-  for (var oi = 0; oi < ocs.length; oi++) {
-    var forStr = ocs[oi].forUid ? ' (' + t("for") + ' ' + getUserName(ocs[oi].forUid) + ')' : ' (' + t("everyone") + ')';
-    html += _detailLine('🥤 ' + escapeHtml(ocs[oi].desc) + forStr, ocs[oi].amount, ocs[oi].paidBy);
-  }
-  if (s.dinner && s.dinner.totalBill > 0) {
-    html += _detailLine('🍽️ ' + t("dinnerBill") + ' (÷' + (s.dinner.diners || []).length + ')', s.dinner.totalBill, s.dinner.paidBy);
-    if (s.dinner.receiptUrl) {
-      html += '<img src="' + s.dinner.receiptUrl + '" alt="' + t("receipt") + '" style="width:100%;max-height:220px;object-fit:contain;border-radius:10px;margin-top:8px;cursor:pointer" onclick="openImage(this.src)">';
-    }
-  }
-  html += '</div>';
-
-  // QR codes of the people being paid
-  html += _renderQrForPayees(s, L);
 
   // Messenger copy & preview
   html += '<button class="btn-share" onclick="copyMessengerFromPreview()">' + t("copyMessenger") + '</button>';
@@ -451,26 +461,62 @@ function _costCard(icon, label, amount, payerUid) {
     '<div class="cost-card-sub">' + (payerUid && amount ? getUserName(payerUid) : '&nbsp;') + '</div></div>';
 }
 
-function _renderQrForPayees(s, L) {
-  var qr = DB_CACHE.qrCodes;
-  if (!qr) return "";
-  var items = [];
-  if (qr.courtPayer && qr.courtPayer.url && L.totals.court > 0) items.push({ url: qr.courtPayer.url, label: t("courtPayer") + ': ' + escapeHtml(qr.courtPayer.name || getUserName(s.courtPayer)) });
-  if (qr.shuttlePayer && qr.shuttlePayer.url && L.totals.shuttle > 0) items.push({ url: qr.shuttlePayer.url, label: t("shuttlePayer") + ': ' + escapeHtml(qr.shuttlePayer.name || getUserName(s.shuttlePayer)) });
-  if (!items.length) return "";
-  var html = '<div class="card"><div class="card-title">' + t("qrCodes") + '</div><div style="display:flex;gap:10px">';
-  for (var i = 0; i < items.length; i++) {
-    html += '<div style="flex:1;text-align:center"><img src="' + items[i].url + '" style="width:100%;max-width:160px;border-radius:10px;cursor:pointer" onclick="openImage(this.src)" alt="QR">' +
-      '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + items[i].label + '</div></div>';
-  }
-  return html + '</div></div>';
+/** Split `amount` equally: { uid: part } */
+function _even(uids, amount) {
+  var o = {};
+  uids.forEach(function (u) { o[u] = amount / uids.length; });
+  return o;
 }
 
+/** One cost (court, cocks, a drink, dinner): who paid, their QR, each player's part */
+function _payTypeCard(s, icon, title, desc, total, payer, qrType, parts, extra) {
+  var html = '<div class="card pay-card">';
+  html += '<div class="pay-card-head"><div style="min-width:0"><div class="pay-card-title">' + icon + ' ' + title + '</div>' +
+    (desc ? '<div class="pay-card-desc">' + desc + '</div>' : '') + '</div>' +
+    '<div class="pay-card-total">' + fmtLAK(total) + '</div></div>';
+
+  if (payer) {
+    html += '<div class="pay-to"><div style="min-width:0"><div style="font-size:11px;color:var(--text-muted)">' + t("payTo") + '</div>' +
+      '<div style="font-size:15px;font-weight:700">' + getUserName(payer) + '</div></div>' +
+      '<div class="qr-slot" data-uid="' + payer + '" data-type="' + qrType + '"></div></div>';
+  }
+
+  html += '<table class="share-table"><tbody>';
+  Object.keys(parts).forEach(function (uid) {
+    var isPayer = uid === payer;
+    html += '<tr' + (isPayer ? ' class="muted"' : '') + '><td>' + getUserName(uid) + (isPayer ? ' <span class="paid-tag">' + t("paidOut") + '</span>' : '') + '</td>' +
+      '<td class="num">' + fmtLAK(parts[uid]) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  if (extra) html += '<div style="margin-top:10px">' + extra + '</div>';
+  html += '</div>';
+  return html;
+}
+
+/** Fill the QR placeholders with each payer's own code for that type */
+function _fillQrSlots(root) {
+  var slots = (root || document).querySelectorAll(".qr-slot[data-uid]");
+  Array.prototype.forEach.call(slots, function (slot) {
+    var uid = slot.getAttribute("data-uid");
+    var type = slot.getAttribute("data-type");
+    dbGetUserQr(uid).then(function (qr) {
+      var order = [type].concat(QR_TYPES.filter(function (x) { return x !== type; }));
+      var url = null;
+      for (var i = 0; i < order.length && !url; i++) url = qr[order[i]];
+      slot.innerHTML = url
+        ? '<img src="' + url + '" alt="QR" onclick="openImage(this.src)">'
+        : '<div class="qr-missing">' + t("noQr") + '</div>';
+    });
+  });
+}
+
+/** Full-screen image (receipt, QR). Pinch to zoom works natively; tap to close. */
 function openImage(src) {
-  document.getElementById("modalTitle").textContent = "";
-  document.getElementById("modalBody").innerHTML = '<img src="' + src + '" style="width:100%;border-radius:10px">';
-  modalCallback = null;
-  openModal();
+  var viewer = document.createElement("div");
+  viewer.className = "image-viewer";
+  viewer.innerHTML = '<img src="' + src + '" alt=""><button class="image-viewer-close" aria-label="Close">\u2715</button>';
+  viewer.addEventListener("click", function () { viewer.remove(); });
+  document.body.appendChild(viewer);
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -490,11 +536,11 @@ function startEditSession() {
     courtId: s.courtId || (DB_CACHE.courts[0] ? DB_CACHE.courts[0].id : ""),
     pricePerHour: court ? (court.pricePerHour || 0) : (s.pricePerHour || 0),
     players: (s.players || []).slice(),
-    courtPayer: s.courtPayer || "",
+    courtPayer: s.courtPayer || _defaultPayer("defaultCourtPayer", s.players),
     shuttlecocks: (s.shuttlecocks || []).map(function (x) {
       return { brand: x.brand, qty: x.qty || 0, price: x.price || 0, cocksPerTube: x.cocksPerTube || 12 };
     }),
-    shuttlePayer: s.shuttlePayer || "",
+    shuttlePayer: s.shuttlePayer || _defaultPayer("defaultShuttlePayer", s.players),
     otherCosts: (s.otherCosts || []).map(function (x) {
       return { desc: x.desc, amount: x.amount, paidBy: x.paidBy, forUid: x.forUid || null };
     }),
@@ -506,6 +552,12 @@ function startEditSession() {
     } : null
   };
   renderEditForm();
+}
+
+/** Default payer from Settings, but only if that person is playing */
+function _defaultPayer(key, players) {
+  var uid = appSetting(key, "");
+  return uid && (players || []).indexOf(uid) >= 0 ? uid : "";
 }
 
 function cancelEditSession() {
@@ -619,7 +671,7 @@ function renderEditForm() {
     }
     html += '</div>';
     html += '<div class="form-group"><label class="form-label">' + t("uploadReceipt") + '</label>';
-    if (d.receiptUrl) html += '<img src="' + d.receiptUrl + '" style="width:100%;max-height:160px;object-fit:contain;border-radius:10px;margin-bottom:6px">';
+    if (d.receiptUrl) html += '<img src="' + d.receiptUrl + '" class="receipt-thumb" style="margin-bottom:6px" onclick="openImage(this.src)">';
     html += '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="editReceiptChosen(this)"></div>';
     html += '<button class="btn-danger" style="padding:8px;font-size:12px" onclick="edit.dinner=null;renderEditForm()">' + t("removeDinner") + '</button>';
   }
@@ -734,6 +786,8 @@ function editTogglePlayer(uid) {
     if (edit.shuttlePayer === uid) edit.shuttlePayer = "";
   } else {
     edit.players.push(uid);
+    if (!edit.courtPayer) edit.courtPayer = _defaultPayer("defaultCourtPayer", edit.players);
+    if (!edit.shuttlePayer) edit.shuttlePayer = _defaultPayer("defaultShuttlePayer", edit.players);
   }
   renderEditForm();
 }
@@ -969,6 +1023,8 @@ function buildMessengerText(s) {
   if (L.transfers.length) {
     out.push("");
     out.push(line);
+    out.push("\uD83E\uDDEE " + t("settlement").toUpperCase());
+    out.push("");
     var lastTo = null;
     for (var k = 0; k < L.transfers.length; k++) {
       var tr = L.transfers[k];

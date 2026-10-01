@@ -334,26 +334,38 @@ function _createSpendingChart(sessions) {
    Activity — sessions played and polls joined, per player
    ────────────────────────────────────────────────────────── */
 
+var dashActivityUser = ""; // "" = everyone
+
+function setActivityUser(uid) {
+  dashActivityUser = uid;
+  _renderDashboard();
+}
+
+/** Who answered a poll, and how: { uid: answerIndex } (0 = joining) */
+function _pollResponses(p) {
+  return typeof normalizePoll === "function" ? normalizePoll(p).responses : {};
+}
+
 function _renderActivityTab() {
   var sessions = lastSessions.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
   var polls = lastPolls.filter(function (p) { return p.status !== "cancelled" && _inPeriod(_pollDate(p), dashPeriod); });
 
+  // Player filter
+  var html = '<div class="form-group"><select class="form-select" onchange="setActivityUser(this.value)">';
+  html += '<option value="">' + t("allPlayers") + '</option>';
+  DB_CACHE.users.forEach(function (u) {
+    html += '<option value="' + u.id + '"' + (u.id === dashActivityUser ? ' selected' : '') + '>' + escapeHtml(u.displayName || '?') + '</option>';
+  });
+  html += '</select></div>';
+
+  if (dashActivityUser) return html + _renderPlayerActivity(dashActivityUser, sessions, polls);
+
   var played = {}, voted = {};
-  for (var si = 0; si < sessions.length; si++) {
-    var players = sessions[si].players || [];
-    for (var pi = 0; pi < players.length; pi++) played[players[pi]] = (played[players[pi]] || 0) + 1;
-  }
-  for (var qi = 0; qi < polls.length; qi++) {
-    var seen = {};
-    var votes = polls[qi].votes || {};
-    var opts = Object.keys(votes);
-    for (var oi = 0; oi < opts.length; oi++) {
-      var list = votes[opts[oi]] || [];
-      for (var vi = 0; vi < list.length; vi++) seen[list[vi]] = true;
-    }
-    var vs = Object.keys(seen);
-    for (var vj = 0; vj < vs.length; vj++) voted[vs[vj]] = (voted[vs[vj]] || 0) + 1;
-  }
+  sessions.forEach(function (s) { (s.players || []).forEach(function (u) { played[u] = (played[u] || 0) + 1; }); });
+  polls.forEach(function (p) {
+    var r = _pollResponses(p);
+    Object.keys(r).forEach(function (u) { if (r[u] === 0) voted[u] = (voted[u] || 0) + 1; });
+  });
 
   var uidSet = {};
   DB_CACHE.users.forEach(function (u) { uidSet[u.id] = true; });
@@ -361,25 +373,20 @@ function _renderActivityTab() {
   var uids = Object.keys(uidSet);
   uids.sort(function (a, b) { return (played[b] || 0) - (played[a] || 0) || (voted[b] || 0) - (voted[a] || 0); });
 
-  var html = '<div class="cost-breakdown">';
+  html += '<div class="cost-breakdown">';
   html += '<div class="cost-card"><div class="cost-card-label">' + t("sessionsWord") + '</div><div class="cost-card-value">' + sessions.length + '</div></div>';
   html += '<div class="cost-card"><div class="cost-card-label">' + t("pollsWord") + '</div><div class="cost-card-value">' + polls.length + '</div></div>';
   html += '</div>';
 
-  if (!uids.length) {
-    return html + '<div class="empty-state"><div class="empty-icon">👥</div><div>' + t("noData") + '</div></div>';
-  }
+  if (!uids.length) return html + '<div class="empty-state"><div class="empty-icon">👥</div><div>' + t("noData") + '</div></div>';
 
   var maxPlayed = 1;
   uids.forEach(function (u) { maxPlayed = Math.max(maxPlayed, played[u] || 0); });
 
   html += '<div class="card"><div class="card-title">' + t("activity") + ' — ' + _periodLabel() + '</div>';
-  for (var ui = 0; ui < uids.length; ui++) {
-    var u = uids[ui];
-    var p = played[u] || 0;
-    var v = voted[u] || 0;
-    var color = COLORS[ui % COLORS.length];
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
+  uids.forEach(function (u, ui) {
+    var p = played[u] || 0, v = voted[u] || 0, color = COLORS[ui % COLORS.length];
+    html += '<div class="activity-row" onclick="setActivityUser(\'' + u + '\')">';
     html += '<div style="font-size:14px;font-weight:700;color:var(--text-dim);min-width:20px;text-align:center">' + (ui + 1) + '</div>';
     html += '<div class="person-avatar" style="background:' + color + ';width:28px;height:28px;font-size:11px">' + getUserName(u).charAt(0).toUpperCase() + '</div>';
     html += '<div style="flex:1;min-width:0">';
@@ -387,8 +394,48 @@ function _renderActivityTab() {
     html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap">🏸 ' + p + '/' + sessions.length + ' • 🗳️ ' + v + '/' + polls.length + '</div></div>';
     html += '<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + Math.round(p / maxPlayed * 100) + '%;background:' + color + '"></div></div>';
     html += '</div></div>';
-  }
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">🏸 ' + t("sessionsAttended") + ' • 🗳️ ' + t("pollsJoined") + '</div>';
+  });
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">🏸 ' + t("sessionsAttended") + ' • 🗳️ ' + t("pollsJoined") + ' • ' + t("tapForDetails") + '</div>';
+  html += '</div>';
+  return html;
+}
+
+/** One player's activity: played, poll answers, spending and their sessions */
+function _renderPlayerActivity(uid, sessions, polls) {
+  var mine = sessions.filter(function (s) { return (s.players || []).indexOf(uid) >= 0; });
+  var joined = 0, skipped = 0, noAnswer = 0;
+  polls.forEach(function (p) {
+    var r = _pollResponses(p);
+    if (!r.hasOwnProperty(uid)) noAnswer++;
+    else if (r[uid] === 0) joined++;
+    else skipped++;
+  });
+  var spent = 0, paidOut = 0;
+  mine.concat(sessions.filter(function (s) { return mine.indexOf(s) < 0; })).forEach(function (s) {
+    if (!s.calculated) return;
+    var L = computeLedger(s);
+    if (L.shares[uid]) spent += L.shares[uid].total;
+    if (L.paid[uid]) paidOut += L.paid[uid];
+  });
+
+  var html = '<div class="card"><div class="card-title">' + getUserName(uid) + ' — ' + _periodLabel() + '</div>';
+  html += '<div class="cost-breakdown" style="margin-bottom:0">';
+  html += '<div class="cost-card"><div class="cost-card-label">🏸 ' + t("sessionsAttended") + '</div><div class="cost-card-value">' + mine.length + '/' + sessions.length + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">💸 ' + t("yourShare") + '</div><div class="cost-card-value">' + fmtShort(spent) + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">🗳️ ' + t("pollsWord") + '</div><div class="cost-card-value" style="font-size:14px">✔ ' + joined + ' • ✕ ' + skipped + ' • ? ' + noAnswer + '</div></div>';
+  html += '<div class="cost-card"><div class="cost-card-label">💳 ' + t("paidOut") + '</div><div class="cost-card-value">' + fmtShort(paidOut) + '</div></div>';
+  html += '</div></div>';
+
+  html += '<div class="card"><div class="card-title">' + t("sessionsWord") + '</div>';
+  if (!mine.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
+  mine.slice().sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); }).forEach(function (s) {
+    var share = s.calculated ? (computeLedger(s).shares[uid] || { total: 0 }).total : null;
+    var owing = openTransfers(s).filter(function (tr) { return tr.from === uid; }).length;
+    html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
+      '<div><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") + '</div></div>' +
+      '<div style="text-align:right"><div class="settings-value">' + (share === null ? '—' : fmtLAK(share)) + '</div>' +
+      (owing ? '<span class="person-status status-owes">' + t("unpaid") + '</span>' : '') + '</div></div>';
+  });
   html += '</div>';
   return html;
 }

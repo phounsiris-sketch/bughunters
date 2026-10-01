@@ -1,7 +1,9 @@
 /* ============================================================
    polls.js — Poll creation and voting system
-   Lifecycle: draft (everyone can vote) → confirmed by the creator
-   once an option has at least `minPlayers` votes → session created.
+   One plan per poll (date, time, court, duration). The creator sets the
+   answers (default Join / Skip); everyone picks one, like a radio button.
+   The first answer counts as joining. When at least `minPlayers` joined,
+   the creator confirms and a session is created with those players.
    Depends on: firebase-config.js (fsdb),
                auth.js (currentUser),
                db.js (DB_CACHE, dbFindById, dbCreatePoll, dbUpdatePoll),
@@ -11,9 +13,12 @@
 
 var pollsUnsubscribe = null;
 var lastPolls = [];
-var newPollOptions = [];
-var newPollNote = "";
-var MIN_PLAYERS = 4;
+var newPoll = null; // form state while creating a poll
+
+/** Minimum players to confirm a plan — configurable in Settings → General */
+function minPlayersSetting() {
+  return parseInt(appSetting("minPlayers", 4), 10) || 4;
+}
 
 /* ---------- Load polls (realtime) ---------- */
 function loadPolls() {
@@ -67,12 +72,45 @@ function renderPolls(polls) {
   container.innerHTML = html;
 }
 
+/* ---------- Poll model (also reads polls made by the old multi-option version) ---------- */
+function normalizePoll(p) {
+  if (p.answers) {
+    return {
+      date: p.date, time: p.time, duration: p.duration, courtId: p.courtId, courtName: p.courtName,
+      answers: p.answers, responses: p.responses || {}
+    };
+  }
+  var idx = typeof p.confirmedOption === "number" ? p.confirmedOption : 0;
+  var opt = (p.options || [])[idx] || {};
+  var responses = {};
+  ((p.votes || {})[idx] || []).forEach(function (uid) { responses[uid] = 0; });
+  return {
+    date: opt.date, time: opt.time, duration: opt.duration, courtId: opt.courtId, courtName: opt.courtName,
+    answers: [t("answerJoin"), t("answerSkip")], responses: responses
+  };
+}
+
+function _pollAnswerUids(np, idx) {
+  return Object.keys(np.responses).filter(function (uid) { return np.responses[uid] === idx; });
+}
+
+function _findPoll(id) {
+  for (var i = 0; i < lastPolls.length; i++) if (lastPolls[i].id === id) return lastPolls[i];
+  return null;
+}
+
+/* ---------- Poll card ---------- */
 function _renderPollCard(poll) {
+  var np = normalizePoll(poll);
   var isVotable = (poll.status === 'draft' || poll.status === 'open');
   var isCreator = currentUser && poll.createdBy === currentUser.uid;
   var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
   var statusLabel = poll.status === 'confirmed' ? t('confirmed') : poll.status === 'cancelled' ? t('cancelled') : t('pollDraft');
-  var minPlayers = poll.minPlayers || MIN_PLAYERS;
+  var minPlayers = poll.minPlayers || minPlayersSetting();
+  var court = dbFindById(DB_CACHE.courts, np.courtId);
+  var myAnswer = currentUser && np.responses.hasOwnProperty(currentUser.uid) ? np.responses[currentUser.uid] : -1;
+  var joined = _pollAnswerUids(np, 0);
+  var enough = joined.length >= minPlayers;
 
   var html = '<div class="card poll-card">';
   html += '<div class="poll-header">';
@@ -80,54 +118,51 @@ function _renderPollCard(poll) {
   html += '<span class="poll-status ' + statusClass + '">' + statusLabel + '</span>';
   html += '</div>';
 
-  if (poll.note) {
-    html += '<div style="font-size:13px;margin-bottom:10px">' + escapeHtml(poll.note) + '</div>';
-  }
+  // The plan
+  html += '<div class="poll-plan">';
+  html += '<div style="font-size:15px;font-weight:700">📅 ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + np.duration + 'h)' : '') + '</div>';
+  html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">📍 ' + escapeHtml(np.courtName || '') +
+    (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
+  if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
+  html += '</div>';
+
+  // Answers (radio)
   if (isVotable) {
-    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + t('tapToVote').replace('{n}', minPlayers) + '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin:10px 0 8px">' + t('chooseAnswer') + '</div>';
   }
-
-  html += '<div class="poll-options">';
-  var options = poll.options || [];
-  var votes = poll.votes || {};
-  for (var oi = 0; oi < options.length; oi++) {
-    var opt = options[oi];
-    var optionVotes = votes[oi] || [];
-    var votedByMe = currentUser && optionVotes.indexOf(currentUser.uid) >= 0;
-    var isWinner = poll.status === 'confirmed' && poll.confirmedOption === oi;
-    var court = dbFindById(DB_CACHE.courts, opt.courtId);
-
-    var optClasses = 'poll-option';
-    if (votedByMe) optClasses += ' voted';
-    if (isWinner) optClasses += ' winner';
-
-    html += '<div class="' + optClasses + '"' + (isVotable ? ' onclick="toggleVote(\'' + poll.id + '\',' + oi + ')"' : ' style="cursor:default"') + '>';
-    html += '<div style="flex:1;min-width:0">';
-    html += '<div style="font-size:14px;font-weight:600">' + (votedByMe ? '✔ ' : '') + fmtDate(opt.date) + ' • ' + escapeHtml(opt.time || '') + (opt.duration ? ' (' + opt.duration + 'h)' : '') + '</div>';
-    html += '<div style="font-size:12px;color:var(--text-muted)">📍 ' + escapeHtml(opt.courtName || '') +
-      (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
-    if (optionVotes.length > 0) {
-      var names = [];
-      for (var vi = 0; vi < optionVotes.length; vi++) names.push(getUserName(optionVotes[vi]));
-      html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">' + names.join(', ') + '</div>';
-    }
+  html += '<div class="poll-options"' + (isVotable ? '' : ' style="margin-top:10px"') + '>';
+  for (var ai = 0; ai < np.answers.length; ai++) {
+    var uids = _pollAnswerUids(np, ai);
+    var mine = myAnswer === ai;
+    html += '<div class="poll-option poll-answer' + (mine ? ' voted' : '') + '"' +
+      (isVotable ? ' role="radio" aria-checked="' + mine + '" onclick="respondPoll(\'' + poll.id + '\',' + ai + ')"' : ' style="cursor:default"') + '>';
+    html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
+    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(np.answers[ai]) +
+      (ai === 0 ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
+    if (uids.length) html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px">' + uids.map(getUserName).join(', ') + '</div>';
     html += '</div>';
-
-    var enough = optionVotes.length >= minPlayers;
-    html += '<div class="vote-count" style="font-weight:700;color:' + (enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +
-      optionVotes.length + '/' + minPlayers + '</div>';
-    html += '</div>'; // close poll-option
-
-    if (isVotable && isCreator) {
-      html += '<button class="edit-btn" style="align-self:flex-start;margin-top:-2px" onclick="showVoteForOthers(\'' + poll.id + '\',' + oi + ')">+ ' + t('addVotesForOthers') + '</button>';
-    }
-
-    if (isVotable && isCreator && enough) {
-      html += '<button class="btn-primary" style="padding:8px;font-size:12px" onclick="confirmPoll(\'' + poll.id + '\',' + oi + ')">✔ ' +
-        t('confirmPlan') + ' (' + optionVotes.length + ' ' + t('playersWord') + ')</button>';
-    }
+    html += '<div class="vote-count" style="font-weight:700;color:' + (ai === 0 && enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +
+      uids.length + (ai === 0 ? '/' + minPlayers : '') + '</div>';
+    html += '</div>';
   }
   html += '</div>';
+
+  // Joined players
+  if (joined.length) {
+    html += '<div class="joined-box"><div class="card-title" style="margin-bottom:6px">👥 ' + t('joinedPlayers') + ' (' + joined.length + ')</div><div class="chips" style="margin-bottom:0">';
+    joined.forEach(function (uid) { html += '<div class="chip active" style="cursor:default">' + getUserName(uid) + '</div>'; });
+    html += '</div></div>';
+  }
+
+  if (isVotable && isCreator) {
+    html += '<button class="edit-btn" style="margin-top:10px" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>';
+    if (enough) {
+      html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">✔ ' +
+        t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
+    } else {
+      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
+    }
+  }
 
   if (poll.status === 'confirmed' && poll.sessionId) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + poll.sessionId + '\')">' + t('openSession') + ' →</button>';
@@ -141,8 +176,8 @@ function _renderPollCard(poll) {
   return html;
 }
 
-/* ---------- Toggle vote (Firestore transaction) ---------- */
-function toggleVote(pollId, optionIdx) {
+/* ---------- Answer a poll (radio: one answer per person; tap again to clear) ---------- */
+function respondPoll(pollId, answerIdx) {
   if (!currentUser) return;
   var uid = currentUser.uid;
   var pollRef = fsdb.collection("polls").doc(pollId);
@@ -150,59 +185,72 @@ function toggleVote(pollId, optionIdx) {
   fsdb.runTransaction(function (transaction) {
     return transaction.get(pollRef).then(function (pollDoc) {
       if (!pollDoc.exists) throw new Error("Poll not found");
+      var data = pollDoc.data();
+      if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
 
-      var pollData = pollDoc.data();
-      if (pollData.status !== 'draft' && pollData.status !== 'open') throw new Error(t("pollClosed"));
-
-      var votes = pollData.votes || {};
-      var optionVotes = votes[optionIdx] ? votes[optionIdx].slice() : [];
-      var uidIndex = optionVotes.indexOf(uid);
-      if (uidIndex < 0) optionVotes.push(uid);
-      else optionVotes.splice(uidIndex, 1);
-      votes[optionIdx] = optionVotes;
-
-      transaction.update(pollRef, { votes: votes });
+      var update = {};
+      if (data.answers) {
+        var responses = data.responses || {};
+        if (responses[uid] === answerIdx) delete responses[uid];
+        else responses[uid] = answerIdx;
+        update.responses = responses;
+      } else {
+        // Old multi-option poll: answer 0 = vote for its first option
+        var votes = data.votes || {};
+        var list = (votes[0] || []).filter(function (u) { return u !== uid; });
+        if (answerIdx === 0 && (votes[0] || []).indexOf(uid) < 0) list.push(uid);
+        votes[0] = list;
+        update.votes = votes;
+      }
+      transaction.update(pollRef, update);
     });
-  }).catch(function (error) {
-    showToast(error.message);
-  });
+  }).catch(function (error) { showToast(error.message); });
 }
 
-/* ---------- Creator ticks players who replied in chat / have no account ---------- */
-function showVoteForOthers(pollId, optionIdx) {
-  var poll = null;
-  for (var i = 0; i < lastPolls.length; i++) if (lastPolls[i].id === pollId) poll = lastPolls[i];
+/* ---------- Creator answers for players who replied in chat / have no account ---------- */
+function showVoteForOthers(pollId) {
+  var poll = _findPoll(pollId);
   if (!poll) return;
-  var picked = ((poll.votes || {})[optionIdx] || []).slice();
+  var np = normalizePoll(poll);
 
-  var chips = '';
-  var users = DB_CACHE.users;
-  for (var u = 0; u < users.length; u++) {
-    var on = picked.indexOf(users[u].id) >= 0;
-    chips += '<div class="chip' + (on ? ' active' : '') + '" data-uid="' + users[u].id + '" onclick="this.classList.toggle(\'active\')">' +
-      escapeHtml(users[u].displayName || '?') + (users[u].manual ? ' \u270D\uFE0F' : '') + '</div>';
-  }
+  var rows = '';
+  DB_CACHE.users.forEach(function (u) {
+    var cur = np.responses.hasOwnProperty(u.id) ? np.responses[u.id] : -1;
+    rows += '<div class="proxy-row" data-uid="' + u.id + '" data-answer="' + cur + '">';
+    rows += '<div class="proxy-name">' + escapeHtml(u.displayName || '?') + (u.manual ? ' ✍️' : '') + '</div><div class="proxy-pills">';
+    for (var ai = 0; ai < np.answers.length; ai++) {
+      rows += '<button type="button" class="proxy-pill' + (cur === ai ? ' active' : '') + '" onclick="_proxyPick(this,' + ai + ')">' + escapeHtml(np.answers[ai]) + '</button>';
+    }
+    rows += '<button type="button" class="proxy-pill' + (cur === -1 ? ' active' : '') + '" onclick="_proxyPick(this,-1)">—</button>';
+    rows += '</div></div>';
+  });
 
   document.getElementById("modalTitle").textContent = t("addVotesForOthers");
   document.getElementById("modalBody").innerHTML =
     '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("voteForOthersHint") + '</div>' +
-    '<div class="chips" id="proxyVoteChips">' + chips + '</div>';
+    '<div id="proxyRows">' + rows + '</div>';
 
   modalCallback = function () {
-    var els = document.querySelectorAll("#proxyVoteChips .chip.active");
-    var chosen = [];
-    for (var k = 0; k < els.length; k++) chosen.push(els[k].getAttribute("data-uid"));
+    var chosen = {};
+    var els = document.querySelectorAll("#proxyRows .proxy-row");
+    for (var k = 0; k < els.length; k++) {
+      var v = parseInt(els[k].getAttribute("data-answer"), 10);
+      if (v >= 0) chosen[els[k].getAttribute("data-uid")] = v;
+    }
     var pollRef = fsdb.collection("polls").doc(pollId);
-
     fsdb.runTransaction(function (transaction) {
       return transaction.get(pollRef).then(function (doc) {
         if (!doc.exists) throw new Error("Poll not found");
         var data = doc.data();
         if (data.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
         if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
-        var votes = data.votes || {};
-        votes[optionIdx] = chosen;
-        transaction.update(pollRef, { votes: votes });
+        if (data.answers) {
+          transaction.update(pollRef, { responses: chosen });
+        } else {
+          var votes = data.votes || {};
+          votes[0] = Object.keys(chosen).filter(function (u) { return chosen[u] === 0; });
+          transaction.update(pollRef, { votes: votes });
+        }
       });
     })
       .then(function () { closeModal(); })
@@ -211,8 +259,15 @@ function showVoteForOthers(pollId, optionIdx) {
   openModal();
 }
 
-/* ---------- Confirm poll (creator only, needs >= minPlayers) ---------- */
-function confirmPoll(pollId, optionIdx) {
+function _proxyPick(btn, idx) {
+  var row = btn.closest(".proxy-row");
+  row.setAttribute("data-answer", idx);
+  var pills = row.querySelectorAll(".proxy-pill");
+  for (var i = 0; i < pills.length; i++) pills[i].classList.toggle("active", pills[i] === btn);
+}
+
+/* ---------- Confirm poll (creator only, needs >= minPlayers joining) ---------- */
+function confirmPoll(pollId) {
   if (!currentUser) return;
   var pollRef = fsdb.collection("polls").doc(pollId);
   var newSessionId = null;
@@ -221,39 +276,35 @@ function confirmPoll(pollId, optionIdx) {
     return transaction.get(pollRef).then(function (pollDoc) {
       if (!pollDoc.exists) throw new Error("Poll not found");
       var pollData = pollDoc.data();
+      pollData.id = pollId;
       if (pollData.createdBy !== currentUser.uid) throw new Error(t("onlyCreatorConfirm"));
       if (pollData.status !== 'draft' && pollData.status !== 'open') throw new Error(t("pollClosed"));
 
-      var minPlayers = pollData.minPlayers || MIN_PLAYERS;
-      var optionVotes = ((pollData.votes || {})[optionIdx] || []).slice();
-      if (optionVotes.length < minPlayers) throw new Error(t("needMinPlayers").replace("{n}", minPlayers));
+      var np = normalizePoll(pollData);
+      var minPlayers = pollData.minPlayers || minPlayersSetting();
+      var players = _pollAnswerUids(np, 0);
+      if (players.length < minPlayers) throw new Error(t("needMinPlayers").replace("{n}", minPlayers));
 
-      var opt = pollData.options[optionIdx];
-      var court = dbFindById(DB_CACHE.courts, opt.courtId);
-
+      var court = dbFindById(DB_CACHE.courts, np.courtId);
       var sessionRef = fsdb.collection("sessions").doc();
       newSessionId = sessionRef.id;
       transaction.set(sessionRef, {
         pollId: pollId,
-        date: opt.date || null,
-        time: opt.time || null,
-        duration: opt.duration || 2,
-        courtId: opt.courtId || null,
-        courtName: opt.courtName || null,
+        date: np.date || null,
+        time: np.time || null,
+        duration: np.duration || 2,
+        courtId: np.courtId || null,
+        courtName: np.courtName || null,
         courtLocation: court ? (court.location || null) : null,
         pricePerHour: court ? (court.pricePerHour || 0) : 0,
         status: 'active',
-        players: optionVotes,
+        players: players,
         calculated: false,
         createdBy: currentUser.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      transaction.update(pollRef, {
-        status: 'confirmed',
-        confirmedOption: optionIdx,
-        sessionId: sessionRef.id
-      });
+      transaction.update(pollRef, { status: 'confirmed', confirmedPlayers: players, sessionId: sessionRef.id });
     });
   })
     .then(function () {
@@ -266,41 +317,35 @@ function confirmPoll(pollId, optionIdx) {
 /* ---------- Cancel poll ---------- */
 function cancelPoll(pollId) {
   if (!confirm(t("cancelPoll") + "?")) return;
-
   dbUpdatePoll(pollId, { status: 'cancelled' })
     .then(function () { showToast(t("cancelled")); })
     .catch(function (error) { showToast(error.message); });
 }
 
-/* ---------- Show create poll page ---------- */
+/* ---------- Create poll (one plan per poll) ---------- */
 function _todayIso() {
   var d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // local date, not UTC
   return d.toISOString().split('T')[0];
 }
 
-function _newPollOption() {
+function showCreatePoll() {
   var first = DB_CACHE.courts[0];
-  return {
+  newPoll = {
     date: _todayIso(),
     time: '18:00',
     duration: 2,
     courtId: first ? first.id : '',
-    courtName: first ? first.name : ''
+    note: '',
+    answers: [t('answerJoin'), t('answerSkip')]
   };
-}
-
-function showCreatePoll() {
-  newPollOptions = [_newPollOption()];
-  newPollNote = "";
   showPage('poll-create');
   renderPollCreateForm();
 }
 
-/* ---------- Render poll creation form ---------- */
 function renderPollCreateForm() {
   var container = document.getElementById("pollCreateContent");
-  if (!container) return;
+  if (!container || !newPoll) return;
 
   var courts = DB_CACHE.courts;
   if (courts.length === 0) {
@@ -309,113 +354,72 @@ function renderPollCreateForm() {
       '<button class="btn-secondary" style="margin-top:12px" onclick="settingsTab=\'courts\';showPage(\'settings\')">' + t('navSettings') + ' → ' + t('tabCourts') + '</button></div></div>';
     return;
   }
+  if (!newPoll.courtId || !dbFindById(courts, newPoll.courtId)) newPoll.courtId = courts[0].id;
 
-  // Fill in a court for options created before courts finished loading
-  for (var f = 0; f < newPollOptions.length; f++) {
-    if (!newPollOptions[f].courtId) {
-      newPollOptions[f].courtId = courts[0].id;
-      newPollOptions[f].courtName = courts[0].name;
-    }
+  var html = '<div class="card"><div class="card-title">📅 ' + t('plan') + '</div>';
+  html += '<div class="form-row">';
+  html += '<div class="form-group"><label class="form-label">' + t('date') + '</label>';
+  html += '<input type="date" class="form-input" value="' + newPoll.date + '" onchange="newPoll.date=this.value"></div>';
+  html += '<div class="form-group"><label class="form-label">' + t('startTime') + '</label>';
+  html += '<input type="time" class="form-input" value="' + newPoll.time + '" onchange="newPoll.time=this.value"></div>';
+  html += '</div>';
+  html += '<div class="form-row">';
+  html += '<div class="form-group" style="flex:2"><label class="form-label">' + t('court') + '</label>';
+  html += '<select class="form-select" onchange="newPoll.courtId=this.value">';
+  for (var c = 0; c < courts.length; c++) {
+    html += '<option value="' + courts[c].id + '"' + (courts[c].id === newPoll.courtId ? ' selected' : '') + '>' +
+      escapeHtml(courts[c].name) + (courts[c].location ? ' — ' + escapeHtml(courts[c].location) : '') + '</option>';
   }
+  html += '</select></div>';
+  html += '<div class="form-group" style="flex:1"><label class="form-label">' + t('duration') + ' (h)</label>';
+  html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newPoll.duration + '" onchange="newPoll.duration=parseFloat(this.value)||2"></div>';
+  html += '</div>';
+  html += '<div class="form-group" style="margin-bottom:0"><label class="form-label">' + t('pollNote') + '</label>';
+  html += '<input class="form-input" value="' + escapeHtml(newPoll.note) + '" placeholder="' + t('pollNotePlaceholder') + '" oninput="newPoll.note=this.value"></div>';
+  html += '</div>';
 
-  var html = '<div class="card"><div class="form-group" style="margin-bottom:0">' +
-    '<label class="form-label">' + t('pollNote') + '</label>' +
-    '<input class="form-input" value="' + escapeHtml(newPollNote) + '" placeholder="' + t('pollNotePlaceholder') + '" oninput="newPollNote=this.value"></div></div>';
-
-  for (var i = 0; i < newPollOptions.length; i++) {
-    var opt = newPollOptions[i];
-    html += '<div class="card">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-    html += '<div class="card-title" style="margin-bottom:0">' + t('option') + ' ' + (i + 1) + '</div>';
-    if (newPollOptions.length > 1) {
-      html += '<button class="remove-btn" onclick="removePollOption(' + i + ')">&times;</button>';
-    }
+  // Answers
+  html += '<div class="card"><div class="card-title">🗳️ ' + t('answers') + '</div>';
+  for (var i = 0; i < newPoll.answers.length; i++) {
+    html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+    html += '<span class="radio-dot"></span>';
+    html += '<input class="form-input" value="' + escapeHtml(newPoll.answers[i]) + '" oninput="newPoll.answers[' + i + ']=this.value">';
+    if (i >= 2) html += '<button class="remove-btn" onclick="newPoll.answers.splice(' + i + ',1);renderPollCreateForm()">&times;</button>';
     html += '</div>';
-
-    html += '<div class="form-row">';
-    html += '<div class="form-group"><label class="form-label">' + t('date') + '</label>';
-    html += '<input type="date" class="form-input" value="' + (opt.date || '') + '" onchange="newPollOptions[' + i + '].date=this.value"></div>';
-    html += '<div class="form-group"><label class="form-label">' + t('startTime') + '</label>';
-    html += '<input type="time" class="form-input" value="' + (opt.time || '') + '" onchange="newPollOptions[' + i + '].time=this.value"></div>';
-    html += '</div>';
-
-    html += '<div class="form-row">';
-    html += '<div class="form-group" style="flex:2"><label class="form-label">' + t('court') + '</label>';
-    html += '<select class="form-select" onchange="updatePollOptionCourt(' + i + ',this)">';
-    for (var c = 0; c < courts.length; c++) {
-      var ct = courts[c];
-      html += '<option value="' + ct.id + '"' + (ct.id === opt.courtId ? ' selected' : '') + '>' +
-        escapeHtml(ct.name) + (ct.location ? ' — ' + escapeHtml(ct.location) : '') + '</option>';
-    }
-    html += '</select></div>';
-    html += '<div class="form-group" style="flex:1"><label class="form-label">' + t('duration') + ' (h)</label>';
-    html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + (opt.duration || 2) + '" onchange="newPollOptions[' + i + '].duration=parseFloat(this.value)||2"></div>';
-    html += '</div>';
-
-    html += '</div>'; // close card
   }
-
-  if (newPollOptions.length < 5) {
-    html += '<button class="add-btn-dashed" onclick="addPollOption()">+ ' + t('addOption') + '</button>';
+  html += '<div style="font-size:11px;color:var(--text-muted)">' + t('firstAnswerJoins').replace('{n}', minPlayersSetting()) + '</div>';
+  if (newPoll.answers.length < 4) {
+    html += '<button class="add-btn-dashed" onclick="newPoll.answers.push(\'\');renderPollCreateForm()">+ ' + t('addAnswer') + '</button>';
   }
+  html += '</div>';
 
-  html += '<button class="btn-primary" style="margin-top:12px" onclick="submitPoll()">' + t('createPoll') + '</button>';
+  html += '<button class="btn-primary" onclick="submitPoll()">' + t('createPoll') + '</button>';
   container.innerHTML = html;
 }
 
-function addPollOption() {
-  if (newPollOptions.length >= 5) return;
-  var last = newPollOptions[newPollOptions.length - 1];
-  var opt = _newPollOption();
-  if (last) { opt.time = last.time; opt.duration = last.duration; opt.courtId = last.courtId; opt.courtName = last.courtName; }
-  newPollOptions.push(opt);
-  renderPollCreateForm();
-}
-
-function removePollOption(idx) {
-  newPollOptions.splice(idx, 1);
-  renderPollCreateForm();
-}
-
-function updatePollOptionCourt(idx, selectEl) {
-  var court = dbFindById(DB_CACHE.courts, selectEl.value);
-  newPollOptions[idx].courtId = selectEl.value;
-  newPollOptions[idx].courtName = court ? court.name : '';
-}
-
-/* ---------- Submit poll ---------- */
 function submitPoll() {
-  var options = [];
-  for (var j = 0; j < newPollOptions.length; j++) {
-    var o = newPollOptions[j];
-    if (!o.courtId || !o.date || !o.time) {
-      showToast(t('fillAllOptions'));
-      return;
-    }
-    options.push({
-      date: o.date,
-      time: o.time,
-      duration: o.duration || 2,
-      courtId: o.courtId,
-      courtName: o.courtName
-    });
-  }
-
-  var votes = {};
-  for (var k = 0; k < options.length; k++) votes[k] = [];
+  var answers = newPoll.answers.map(function (a) { return (a || '').trim(); });
+  if (!newPoll.courtId || !newPoll.date || !newPoll.time) { showToast(t('fillAllOptions')); return; }
+  if (answers.length < 2 || answers.some(function (a) { return !a; })) { showToast(t('fillAllFields')); return; }
+  var court = dbFindById(DB_CACHE.courts, newPoll.courtId);
 
   dbCreatePoll({
     createdBy: currentUser.uid,
     status: 'draft',
-    note: newPollNote.trim() || null,
-    options: options,
-    minPlayers: MIN_PLAYERS,
-    votes: votes,
-    confirmedOption: null,
+    note: newPoll.note.trim() || null,
+    date: newPoll.date,
+    time: newPoll.time,
+    duration: newPoll.duration || 2,
+    courtId: newPoll.courtId,
+    courtName: court ? court.name : '',
+    answers: answers,
+    responses: {},
+    minPlayers: minPlayersSetting(),
     sessionId: null
   })
     .then(function () {
       showToast(t("draftCreated"));
+      newPoll = null;
       showPage('polls', false);
       pageHistory = [];
     })

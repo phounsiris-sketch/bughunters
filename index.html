@@ -26,22 +26,42 @@
         <button class="dash-tab active" id="authTabLogin" onclick="setAuthMode('login')" data-i18n="signIn">Sign in</button>
         <button class="dash-tab" id="authTabRegister" onclick="setAuthMode('register')" data-i18n="register">Register</button>
       </div>
-      <div id="registerFields" style="display:none">
-        <div class="form-group">
-          <label class="form-label" data-i18n="displayName">Display Name</label>
-          <input class="form-input" id="regName" autocomplete="name">
+      <form onsubmit="event.preventDefault();submitAuth()">
+        <div id="registerFields" style="display:none">
+          <div class="form-group">
+            <label class="form-label" data-i18n="displayName">Display Name</label>
+            <input class="form-input" id="regName" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="phone">Phone</label>
+            <input class="form-input" id="regPhone" inputmode="tel" autocomplete="tel" placeholder="020 xxxx xxxx">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label" data-i18n="phone">Phone</label>
-          <input class="form-input" id="regPhone" inputmode="tel" autocomplete="tel" placeholder="020 xxxx xxxx">
+          <label class="form-label" data-i18n="emailLabel">Email</label>
+          <input type="email" class="form-input" id="loginEmail" autocomplete="email" inputmode="email" placeholder="name@example.com">
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="emailLabel">Email</label>
-        <input type="email" class="form-input" id="loginEmail" autocomplete="email" inputmode="email" placeholder="name@example.com">
-      </div>
-      <button class="btn-primary" id="sendLinkBtn" onclick="sendLoginLink()" data-i18n="sendLink">Send Sign-In Link</button>
-      <div id="otpSentMsg" style="display:none;margin-top:12px;text-align:center;font-size:13px;color:var(--text-secondary)" data-i18n="checkEmail">Check your email for the sign-in link!</div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="password">Password</label>
+          <input type="password" class="form-input" id="loginPassword" autocomplete="current-password" minlength="6">
+        </div>
+        <div class="form-group" id="regPasswordConfirmGroup" style="display:none">
+          <label class="form-label" data-i18n="confirmPassword">Confirm password</label>
+          <input type="password" class="form-input" id="regPasswordConfirm" autocomplete="new-password" minlength="6">
+        </div>
+        <button type="submit" class="btn-primary" id="authSubmitBtn" data-i18n="signIn">Sign in</button>
+      </form>
+      <button class="link-btn" id="forgotPwLink" onclick="sendPasswordReset()" data-i18n="forgotPassword">Forgot password?</button>
+    </div>
+  </div>
+  <div id="verify-page" class="login-page" style="display:none">
+    <div class="login-logo" style="font-size:56px">&#9993;&#65039;</div>
+    <div class="login-title" data-i18n="verifyTitle">Confirm your email</div>
+    <div class="login-subtitle"><span data-i18n="verifyText">We sent a confirmation link to</span><br><b id="verifyEmail"></b></div>
+    <div class="login-form">
+      <button class="btn-primary" onclick="checkVerified()" data-i18n="iVerified">I've confirmed</button>
+      <button class="btn-secondary" style="margin-top:8px" onclick="resendVerification()" data-i18n="resendEmail">Resend email</button>
+      <button class="link-btn" onclick="logoutUser()" data-i18n="useAnotherAccount">Use another account</button>
     </div>
   </div>
   <div id="profile-page" class="profile-setup" style="display:none">

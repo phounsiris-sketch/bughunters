@@ -1,5 +1,5 @@
 /* ============================================================
-   auth.js — Email-link (passwordless) authentication
+   auth.js — Email + password authentication with email verification
    Firebase Auth COMPAT SDK (global `firebase` object)
    Depends on: firebase-config.js (auth, fsdb),
                app.js (showAppPage, showAuthPage, showToast, initApp)
@@ -20,51 +20,105 @@ function setAuthMode(mode) {
   authMode = mode;
   var reg = document.getElementById("registerFields");
   if (reg) reg.style.display = mode === "register" ? "" : "none";
+  var confirmPw = document.getElementById("regPasswordConfirmGroup");
+  if (confirmPw) confirmPw.style.display = mode === "register" ? "" : "none";
+  var forgot = document.getElementById("forgotPwLink");
+  if (forgot) forgot.style.display = mode === "login" ? "" : "none";
   var tl = document.getElementById("authTabLogin");
   var tr = document.getElementById("authTabRegister");
   if (tl) tl.classList.toggle("active", mode === "login");
   if (tr) tr.classList.toggle("active", mode === "register");
-  var btn = document.getElementById("sendLinkBtn");
-  if (btn) btn.textContent = t(mode === "register" ? "sendRegisterLink" : "sendLink");
-  var msg = document.getElementById("otpSentMsg");
-  if (msg) msg.style.display = "none";
+  var btn = document.getElementById("authSubmitBtn");
+  if (btn) btn.textContent = t(mode === "register" ? "createAccount" : "signIn");
+  var pw = document.getElementById("loginPassword");
+  if (pw) pw.setAttribute("autocomplete", mode === "register" ? "new-password" : "current-password");
 }
 
-/* ---------- Send magic link ---------- */
-function sendLoginLink() {
-  var emailInput = document.getElementById("loginEmail");
-  var email = emailInput ? emailInput.value.trim() : "";
-  if (!email) {
-    showToast(t("enterEmail"));
+/** Firebase error code → message in the user's language */
+function authErrorMessage(error) {
+  var map = {
+    "auth/invalid-email": "errInvalidEmail",
+    "auth/missing-password": "errPasswordShort",
+    "auth/weak-password": "errPasswordShort",
+    "auth/email-already-in-use": "errEmailInUse",
+    "auth/invalid-credential": "errWrongLogin",
+    "auth/invalid-login-credentials": "errWrongLogin",
+    "auth/wrong-password": "errWrongLogin",
+    "auth/user-not-found": "errWrongLogin",
+    "auth/too-many-requests": "errTooMany",
+    "auth/network-request-failed": "errNetwork",
+    "auth/operation-not-allowed": "errPasswordDisabled"
+  };
+  return map[error && error.code] ? t(map[error.code]) : ((error && error.message) || String(error));
+}
+
+/* ---------- Sign in / Register with email + password ---------- */
+function submitAuth() {
+  var email = (document.getElementById("loginEmail").value || "").trim();
+  var password = document.getElementById("loginPassword").value || "";
+  if (!email) { showToast(t("enterEmail")); return; }
+  if (password.length < 6) { showToast(t("errPasswordShort")); return; }
+
+  var btn = document.getElementById("authSubmitBtn");
+  if (btn) btn.disabled = true;
+  var done = function () { if (btn) btn.disabled = false; };
+
+  if (authMode === "login") {
+    auth.signInWithEmailAndPassword(email, password)
+      .then(done)
+      .catch(function (error) { done(); showToast(authErrorMessage(error)); });
     return;
   }
 
-  if (authMode === "register") {
-    var regName = (document.getElementById("regName").value || "").trim();
-    var regPhone = (document.getElementById("regPhone").value || "").trim();
-    if (!regName) {
-      showToast(t("displayName"));
-      return;
-    }
-    try {
-      localStorage.setItem("pendingProfile", JSON.stringify({ email: email.toLowerCase(), name: regName, phone: regPhone || null }));
-    } catch (e) {}
-  }
+  // Register
+  var name = (document.getElementById("regName").value || "").trim();
+  var phone = (document.getElementById("regPhone").value || "").trim();
+  var password2 = document.getElementById("regPasswordConfirm").value || "";
+  if (!name) { done(); showToast(t("displayName")); return; }
+  if (password !== password2) { done(); showToast(t("errPasswordMismatch")); return; }
 
-  var btn = document.getElementById("sendLinkBtn");
-  if (btn) btn.disabled = true;
+  // Remember the name until the profile document is written
+  try { localStorage.setItem("pendingProfile", JSON.stringify({ email: email.toLowerCase(), name: name, phone: phone || null })); } catch (e) {}
 
-  auth.sendSignInLinkToEmail(email, actionCodeSettings)
-    .then(function () {
-      localStorage.setItem("emailForSignIn", email);
-      var otpMsg = document.getElementById("otpSentMsg");
-      if (otpMsg) otpMsg.style.display = "block";
-      if (btn) btn.disabled = false;
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(function (cred) {
+      done();
+      return cred.user.sendEmailVerification(actionCodeSettings);
     })
-    .catch(function (error) {
-      showToast(error.message);
-      if (btn) btn.disabled = false;
-    });
+    .catch(function (error) { done(); showToast(authErrorMessage(error)); });
+}
+
+function sendPasswordReset() {
+  var email = (document.getElementById("loginEmail").value || "").trim();
+  if (!email) { showToast(t("enterEmailFirst")); document.getElementById("loginEmail").focus(); return; }
+  auth.sendPasswordResetEmail(email, actionCodeSettings)
+    .then(function () { showToast(t("resetSent")); })
+    .catch(function (error) { showToast(authErrorMessage(error)); });
+}
+
+/* ---------- "Check your email" screen for unverified accounts ---------- */
+function _showVerifyScreen(user) {
+  _resetAuthScreens();
+  document.getElementById("login-page").style.display = "none";
+  document.getElementById("verify-page").style.display = "";
+  document.getElementById("verifyEmail").textContent = user.email || "";
+  showAuthPage();
+}
+
+function resendVerification() {
+  if (!auth.currentUser) return;
+  auth.currentUser.sendEmailVerification(actionCodeSettings)
+    .then(function () { showToast(t("verificationSent")); })
+    .catch(function (error) { showToast(authErrorMessage(error)); });
+}
+
+function checkVerified() {
+  var user = auth.currentUser;
+  if (!user) return;
+  user.reload().then(function () {
+    if (auth.currentUser.emailVerified) _afterSignIn(auth.currentUser);
+    else showToast(t("notVerifiedYet"));
+  }).catch(function (error) { showToast(authErrorMessage(error)); });
 }
 
 /* ---------- Handle incoming email link ---------- */
@@ -122,7 +176,7 @@ function saveProfile() {
 }
 
 /* ---------- Create profile from the Register form (after email confirmed) ---------- */
-function _createProfileFromPending(user) {
+function _createProfileFromPending(user, saveOnly) {
   var pending = null;
   try { pending = JSON.parse(localStorage.getItem("pendingProfile") || "null"); } catch (e) {}
   if (!pending || !pending.name || !user.email || pending.email !== user.email.toLowerCase()) return false;
@@ -134,7 +188,7 @@ function _createProfileFromPending(user) {
     .then(function () {
       try { localStorage.removeItem("pendingProfile"); } catch (e) {}
       currentUserProfile = profile;
-      _enterApp();
+      if (!saveOnly) _enterApp();
     })
     .catch(function (error) { showToast(error.message); });
   return true;
@@ -151,8 +205,16 @@ function _enterApp() {
 function _resetAuthScreens() {
   var login = document.getElementById("login-page");
   var profile = document.getElementById("profile-page");
+  var verify = document.getElementById("verify-page");
   if (login) login.style.display = "";
   if (profile) profile.style.display = "none";
+  if (verify) verify.style.display = "none";
+  // Back to a clean "Sign in" form
+  ["loginPassword", "regPasswordConfirm"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  setAuthMode("login");
 }
 
 /* ---------- Logout ---------- */
@@ -214,7 +276,7 @@ function seedFirestoreData() {
 
 /* ---------- Initialise auth listener ---------- */
 function initAuth() {
-  handleEmailLinkSignIn();
+  handleEmailLinkSignIn(); // links sent by the earlier passwordless version
 
   auth.onAuthStateChanged(function (user) {
     if (!user) {
@@ -224,26 +286,34 @@ function initAuth() {
       showAuthPage();
       return;
     }
-    currentUser = user;
-
-    fsdb.collection("users").doc(user.uid).get()
-      .then(function (doc) {
-        if (doc.exists) {
-          currentUserProfile = doc.data();
-          _enterApp();
-        } else if (_createProfileFromPending(user)) {
-          // Registered via the Register tab: profile created from the saved form
-        } else {
-          // First sign-in: ask for display name (email is now confirmed)
-          document.getElementById("login-page").style.display = "none";
-          document.getElementById("profile-page").style.display = "block";
-          var nameEl = document.getElementById("profileName");
-          if (nameEl && !nameEl.value && user.email) nameEl.value = user.email.split("@")[0];
-          showAuthPage();
-        }
-      })
-      .catch(function (error) {
-        showToast(error.message);
-      });
+    if (!user.emailVerified) {
+      // Write the profile now so the name isn't lost, then wait for the email
+      _createProfileFromPending(user, true);
+      _showVerifyScreen(user);
+      return;
+    }
+    _afterSignIn(user);
   });
+}
+
+function _afterSignIn(user) {
+  currentUser = user;
+  fsdb.collection("users").doc(user.uid).get()
+    .then(function (doc) {
+      if (doc.exists) {
+        currentUserProfile = doc.data();
+        _enterApp();
+      } else if (_createProfileFromPending(user)) {
+        // Registered via the Register tab: profile created from the saved form
+      } else {
+        // Signed in but no profile yet: ask for a display name
+        _resetAuthScreens();
+        document.getElementById("login-page").style.display = "none";
+        document.getElementById("profile-page").style.display = "block";
+        var nameEl = document.getElementById("profileName");
+        if (nameEl && !nameEl.value && user.email) nameEl.value = user.email.split("@")[0];
+        showAuthPage();
+      }
+    })
+    .catch(function (error) { showToast(error.message); });
 }

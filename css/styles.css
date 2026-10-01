@@ -1761,3 +1761,367 @@ body[data-theme="dark"] { color-scheme: dark; }
   border-radius: 18px;
   font-size: 13px;
 }
+
+/* ========== Auth extras ========== */
+.link-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px;
+  font-size: 13px;
+  color: var(--primary-light);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* ========== Polls: plan + radio answers ========== */
+.poll-plan {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.poll-answer {
+  gap: 12px;
+}
+
+.radio-dot {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  position: relative;
+}
+
+.radio-dot.on {
+  border-color: var(--accent);
+}
+
+.radio-dot.on::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.joined-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+}
+
+.proxy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.proxy-name {
+  font-size: 14px;
+  min-width: 0;
+}
+
+.proxy-pills {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.proxy-pill {
+  padding: 5px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.proxy-pill.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ========== Session result: pay by type + settlement table ========== */
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 4px 2px 8px;
+}
+
+.pay-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pay-card-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pay-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.pay-card-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.pay-to {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.qr-slot img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  cursor: zoom-in;
+  display: block;
+}
+
+.qr-missing {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.share-table,
+.settle-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.share-table td,
+.settle-table td,
+.settle-table th {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.share-table tr:last-child td,
+.settle-table tr:last-child td {
+  border-bottom: none;
+}
+
+.share-table .num,
+.settle-table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-table tr.muted td {
+  color: var(--text-muted);
+}
+
+.paid-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(13, 148, 136, 0.15);
+  color: var(--primary-light);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 -4px;
+}
+
+.settle-table th {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settle-table .pay {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.settle-table .act {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.settle-table tr.done td {
+  opacity: 0.55;
+}
+
+.settle-table tr.done .act {
+  opacity: 1;
+}
+
+.paid-btn {
+  color: var(--primary-light);
+}
+
+.receipt-thumb {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: var(--surface);
+  border-radius: 10px;
+  cursor: zoom-in;
+}
+
+/* Full-screen image viewer (receipts, QR) */
+.image-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.92);
+  overflow: auto;
+  touch-action: pinch-zoom;
+}
+
+.image-viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.image-viewer-close {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+}
+
+/* ========== Settings ========== */
+.tabs-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs-scroll .dash-tab {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.qr-cell {
+  padding: 10px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+  min-width: 0;
+}
+
+.qr-cell-title {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.qr-cell-img {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.qr-cell-img img {
+  max-width: 88px;
+  max-height: 88px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+/* A closing modal must not swallow taps while it fades out */
+.modal-overlay:not(.active) {
+  pointer-events: none;
+}
+
+.settle-block {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settle-block:last-child {
+  border-bottom: none;
+}
+
+.settle-block.done .settle-table,
+.settle-block.done .person-breakdown {
+  opacity: 0.5;
+}
+
+.settle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.settle-block .settle-table td,
+.settle-block .settle-table th {
+  border-bottom: none;
+  padding: 4px;
+}
