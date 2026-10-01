@@ -45,6 +45,9 @@ var translations = {
     playerExists: "A player with this name already exists",
     registeredPlayer: "registered",
     voteForOthersHint: "Tick everyone who is joining this option, e.g. friends who replied in chat or don't have an account.",
+    msgCosts: "COSTS",
+    msgNothingToPay: "Nothing to pay",
+    msgTitle: "Badminton",
     // Added: sessions, dashboard, settings
     addBrandsFirst: "Add shuttlecock brands in Settings first",
     allSettled: "All debts settled!",
@@ -280,6 +283,9 @@ var translations = {
     playerExists: "ມີຜູ້ຫຼິ້ນຊື່ນີ້ແລ້ວ",
     registeredPlayer: "ລົງທະບຽນແລ້ວ",
     voteForOthersHint: "ໝາຍທຸກຄົນທີ່ຈະມາຕົວເລືອກນີ້, ເຊັ່ນ ໝູ່ທີ່ຕອບໃນແຊັດ ຫຼື ບໍ່ມີບັນຊີ.",
+    msgCosts: "ຄ່າໃຊ້ຈ່າຍ",
+    msgNothingToPay: "ບໍ່ຕ້ອງຈ່າຍ",
+    msgTitle: "ແບດມິນຕັນ",
     // Added: sessions, dashboard, settings
     addBrandsFirst: "ກະລຸນາເພີ່ມຍີ່ຫໍ້ລູກຂົນໄກ່ໃນການຕັ້ງຄ່າກ່ອນ",
     allSettled: "ຊຳລະໝົດແລ້ວ!",

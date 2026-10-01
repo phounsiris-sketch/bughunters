@@ -32,6 +32,7 @@ function computeLedger(s) {
   var n = players.length;
   var shares = {};
   var paid = {};
+  var owes = {}; // owes[debtor][creditor] = [{ kind, label, amount }]
 
   function ensure(uid) {
     if (!uid) return;
@@ -42,30 +43,35 @@ function computeLedger(s) {
 
   var totals = { court: 0, shuttle: 0, other: 0, dinner: 0, grand: 0 };
 
-  function splitAmong(uids, amount, field) {
+  // Split `amount` equally among `uids`; each of them owes their part to `payer`
+  function charge(uids, amount, field, payer, label) {
     if (!uids.length || !amount) return;
     var each = amount / uids.length;
+    ensure(payer);
+    if (payer) paid[payer] += amount;
     for (var k = 0; k < uids.length; k++) {
-      ensure(uids[k]);
-      shares[uids[k]][field] += each;
+      var u = uids[k];
+      ensure(u);
+      shares[u][field] += each;
+      if (payer && u !== payer) {
+        if (!owes[u]) owes[u] = {};
+        if (!owes[u][payer]) owes[u][payer] = [];
+        owes[u][payer].push({ kind: field, label: label, amount: each });
+      }
     }
   }
 
   // Court
   var courtCost = s.courtCost || 0;
   if (courtCost > 0 && n > 0) {
-    splitAmong(players, courtCost, "court");
-    ensure(s.courtPayer);
-    if (s.courtPayer) paid[s.courtPayer] += courtCost;
+    charge(players, courtCost, "court", s.courtPayer, "");
     totals.court = courtCost;
   }
 
   // Shuttlecocks
   var shuttleTotal = s.shuttleTotal || 0;
   if (shuttleTotal > 0 && n > 0) {
-    splitAmong(players, shuttleTotal, "shuttle");
-    ensure(s.shuttlePayer);
-    if (s.shuttlePayer) paid[s.shuttlePayer] += shuttleTotal;
+    charge(players, shuttleTotal, "shuttle", s.shuttlePayer, "");
     totals.shuttle = shuttleTotal;
   }
 
@@ -75,54 +81,84 @@ function computeLedger(s) {
     var oc = others[o];
     var amt = oc.amount || 0;
     if (amt <= 0) continue;
-    if (oc.forUid) splitAmong([oc.forUid], amt, "other");
-    else splitAmong(players, amt, "other");
-    ensure(oc.paidBy);
-    if (oc.paidBy) paid[oc.paidBy] += amt;
+    charge(oc.forUid ? [oc.forUid] : players, amt, "other", oc.paidBy, oc.desc || "");
     totals.other += amt;
   }
 
   // Dinner
   var dinner = s.dinner;
   if (dinner && dinner.totalBill > 0 && dinner.diners && dinner.diners.length) {
-    splitAmong(dinner.diners, dinner.totalBill, "dinner");
-    ensure(dinner.paidBy);
-    if (dinner.paidBy) paid[dinner.paidBy] += dinner.totalBill;
+    charge(dinner.diners, dinner.totalBill, "dinner", dinner.paidBy, "");
     totals.dinner = dinner.totalBill;
   }
 
   totals.grand = totals.court + totals.shuttle + totals.other + totals.dinner;
-
-  // Net position: positive = should receive, negative = should pay
-  var creditors = [];
-  var debtors = [];
   var uids = Object.keys(shares);
   for (var u = 0; u < uids.length; u++) {
     var sh = shares[uids[u]];
     sh.total = sh.court + sh.shuttle + sh.other + sh.dinner;
-    var net = paid[uids[u]] - sh.total;
-    if (net >= ROUND_TO / 2) creditors.push({ uid: uids[u], amt: net });
-    else if (net <= -ROUND_TO / 2) debtors.push({ uid: uids[u], amt: -net });
   }
 
-  // Greedy matching: largest debtor pays largest creditor
-  creditors.sort(function (a, b) { return b.amt - a.amt; });
-  debtors.sort(function (a, b) { return b.amt - a.amt; });
+  // Each person pays each payer directly for what they used. When two people
+  // owe each other, the smaller side is deducted from the larger one.
+  function sum(list) { var t = 0; for (var q = 0; q < (list || []).length; q++) t += list[q].amount; return t; }
   var transfers = [];
-  var ci = 0, di = 0;
-  while (ci < creditors.length && di < debtors.length) {
-    var x = Math.min(creditors[ci].amt, debtors[di].amt);
-    var rounded = Math.round(x / ROUND_TO) * ROUND_TO;
-    if (rounded > 0) {
-      transfers.push({ from: debtors[di].uid, to: creditors[ci].uid, amount: rounded, key: debtors[di].uid + "__" + creditors[ci].uid });
+  var seen = {};
+  var debtors = Object.keys(owes);
+  for (var d = 0; d < debtors.length; d++) {
+    var creditors = Object.keys(owes[debtors[d]]);
+    for (var c = 0; c < creditors.length; c++) {
+      var x = debtors[d], y = creditors[c];
+      var pairKey = x < y ? x + "|" + y : y + "|" + x;
+      if (seen[pairKey]) continue;
+      seen[pairKey] = true;
+
+      var xy = (owes[x] && owes[x][y]) || [];
+      var yx = (owes[y] && owes[y][x]) || [];
+      var net = sum(xy) - sum(yx);
+      if (Math.abs(net) < ROUND_TO / 2) continue;
+      var from = net > 0 ? x : y;
+      var to = net > 0 ? y : x;
+      transfers.push({
+        from: from,
+        to: to,
+        amount: Math.round(Math.abs(net) / ROUND_TO) * ROUND_TO,
+        exact: Math.abs(net),
+        items: net > 0 ? xy : yx,      // what `from` owes `to`
+        minus: net > 0 ? yx : xy,      // what `to` owes `from`, deducted
+        key: from + "__" + to
+      });
     }
-    creditors[ci].amt -= x;
-    debtors[di].amt -= x;
-    if (creditors[ci].amt < ROUND_TO / 2) ci++;
-    if (debtors[di].amt < ROUND_TO / 2) di++;
   }
 
-  return { shares: shares, paid: paid, transfers: transfers, totals: totals };
+  // Group by receiver (largest first), then by payer name order
+  var received = {};
+  transfers.forEach(function (tr) { received[tr.to] = (received[tr.to] || 0) + tr.amount; });
+  transfers.sort(function (a, b) {
+    return (received[b.to] - received[a.to]) || a.to.localeCompare(b.to) || b.amount - a.amount;
+  });
+
+  return { shares: shares, paid: paid, transfers: transfers, totals: totals, received: received };
+}
+
+/** "🪶 49,286 + 🍽️ 125,000 − 🏟️ 42,857" — what a transfer is made of */
+var LEDGER_ICONS = { court: "\uD83C\uDFDF\uFE0F", shuttle: "\uD83E\uDEB6", other: "\uD83E\uDD64", dinner: "\uD83C\uDF7D\uFE0F" };
+function transferBreakdown(tr) {
+  function fmt(list) {
+    // merge items of the same kind/label
+    var merged = [], idx = {};
+    for (var i = 0; i < list.length; i++) {
+      var k = list[i].kind + "|" + list[i].label;
+      if (idx[k] === undefined) { idx[k] = merged.length; merged.push({ kind: list[i].kind, label: list[i].label, amount: 0 }); }
+      merged[idx[k]].amount += list[i].amount;
+    }
+    return merged.map(function (m) {
+      return LEDGER_ICONS[m.kind] + (m.label ? " " + m.label : "") + " " + Math.round(m.amount).toLocaleString("en-US");
+    });
+  }
+  var plus = fmt(tr.items || []).join(" + ");
+  var minus = fmt(tr.minus || []);
+  return plus + (minus.length ? " \u2212 " + minus.join(" \u2212 ") : "");
 }
 
 /** Transfers in this session that have not been marked as paid */
@@ -306,21 +342,28 @@ function _renderSplitResult(s) {
   html += _costCard("🍽️", t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
   html += '</div>';
 
-  // Who pays whom
-  html += '<div class="card"><div class="card-title">👉 ' + t("whoPaysWhom") + '</div>';
+  // Who pays whom — grouped by the person receiving the money
+  html += '<div class="card"><div class="card-title">\uD83D\uDC49 ' + t("whoPaysWhom") + '</div>';
   if (L.transfers.length === 0) {
     html += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
   }
+  var lastTo = null;
   for (var ti = 0; ti < L.transfers.length; ti++) {
     var tr = L.transfers[ti];
+    if (tr.to !== lastTo) {
+      lastTo = tr.to;
+      html += '<div class="pay-group-head"><span>\uD83D\uDCB3 ' + t("payTo") + ' <b>' + getUserName(tr.to) + '</b></span>' +
+        '<span class="pay-group-total">' + fmtLAK(L.received[tr.to]) + '</span></div>';
+    }
     var isDone = !!settled[tr.key];
     var canMark = _canMarkTransfer(s, tr);
     html += '<div class="person-row">';
-    html += '<div style="flex:1;min-width:0;font-size:14px"><b>' + getUserName(tr.from) + '</b> → <b>' + getUserName(tr.to) + '</b></div>';
-    html += '<div class="person-amount" style="' + (isDone ? 'text-decoration:line-through;color:var(--text-muted)' : '') + '">' + fmtLAK(tr.amount) + '</div>';
+    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + getUserName(tr.from) + '</div>' +
+      '<div class="person-breakdown">' + escapeHtml(transferBreakdown(tr)) + '</div></div>';
+    html += '<div class="person-amount" style="white-space:nowrap;' + (isDone ? 'text-decoration:line-through;color:var(--text-muted)' : '') + '">' + fmtLAK(tr.amount) + '</div>';
     if (isDone) {
       html += '<span class="person-status status-payer">' + t("paid") + '</span>';
-      if (canMark) html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">↩</button>';
+      if (canMark) html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">\u21A9</button>';
     } else if (canMark) {
       html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
     } else {
@@ -873,46 +916,81 @@ function _plainName(uid) {
 
 function buildMessengerText(s) {
   var L = computeLedger(s);
-  var n = (s.players || []).length;
-  var lines = [];
+  var players = s.players || [];
+  var n = players.length;
+  var settled = s.settled || {};
+  var line = "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501";
+  var num = function (v) { return Math.round(v || 0).toLocaleString("en-US"); };
+  var out = [];
 
+  // When & where
   var start = s.time || "18:00";
   var sp = start.split(":");
   var endMin = parseInt(sp[0], 10) * 60 + parseInt(sp[1] || "0", 10) + Math.round((s.duration || 0) * 60);
   var end = String(Math.floor(endMin / 60) % 24).padStart(2, "0") + ":" + String(endMin % 60).padStart(2, "0");
+  var d = s.date ? new Date(s.date + "T00:00:00") : null;
+  var weekday = d ? d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { weekday: "short" }) + " " : "";
 
-  lines.push("🏸 Badminton — " + fmtDate(s.date));
-  lines.push("📍 " + (s.courtName || "") + (s.courtLocation ? " (" + s.courtLocation + ")" : "") + " | " + start + "-" + end);
-  lines.push("👥 " + (s.players || []).map(_plainName).join(", "));
-  lines.push("━━━━━━━━━━━━");
+  out.push("\uD83C\uDFF8 " + t("msgTitle") + " \u2014 " + weekday + fmtDate(s.date));
+  out.push("\uD83D\uDCCD " + (s.courtName || "") + (s.courtLocation ? " (" + s.courtLocation + ")" : ""));
+  out.push("\uD83D\uDD55 " + start + "\u2013" + end + (s.duration ? " (" + s.duration + "h)" : ""));
+  out.push("\uD83D\uDC65 " + n + " " + t("players") + ": " + players.map(_plainName).join(", "));
 
+  // Costs
+  out.push("");
+  out.push(line);
+  out.push("\uD83E\uDDFE " + t("msgCosts"));
+  out.push("");
   if (L.totals.court > 0) {
-    lines.push("🏟️ Court: " + fmtLAK(L.totals.court) + " (÷" + n + " = " + fmtLAK(L.totals.court / n) + ") — " + _plainName(s.courtPayer));
+    out.push("\uD83C\uDFDF\uFE0F " + t("court") + ": " + fmtLAK(L.totals.court));
+    out.push("     " + t("paidBy") + " " + _plainName(s.courtPayer) + " \u00B7 \u00F7" + n + " = " + num(L.totals.court / n) + " " + t("each"));
   }
   if (L.totals.shuttle > 0) {
     var cocks = (s.shuttlecocks || []).map(function (c) { return c.qty + " " + c.brand; }).join(", ");
-    lines.push("🪶 Shuttle: " + fmtLAK(L.totals.shuttle) + " (" + cocks + ") (÷" + n + " = " + fmtLAK(L.totals.shuttle / n) + ") — " + _plainName(s.shuttlePayer));
+    out.push("\uD83E\uDEB6 " + t("shuttlecocks") + " (" + cocks + "): " + fmtLAK(L.totals.shuttle));
+    out.push("     " + t("paidBy") + " " + _plainName(s.shuttlePayer) + " \u00B7 \u00F7" + n + " = " + num(L.totals.shuttle / n) + " " + t("each"));
   }
   var ocs = s.otherCosts || [];
   for (var i = 0; i < ocs.length; i++) {
-    lines.push("🥤 " + ocs[i].desc + ": " + fmtLAK(ocs[i].amount) + (ocs[i].forUid ? " (" + _plainName(ocs[i].forUid) + ")" : " (÷" + n + ")") + " — " + _plainName(ocs[i].paidBy));
+    out.push("\uD83E\uDD64 " + ocs[i].desc + ": " + fmtLAK(ocs[i].amount));
+    out.push("     " + t("paidBy") + " " + _plainName(ocs[i].paidBy) + " \u00B7 " +
+      (ocs[i].forUid ? t("for") + " " + _plainName(ocs[i].forUid) : "\u00F7" + n + " = " + num(ocs[i].amount / n) + " " + t("each")));
   }
   if (L.totals.dinner > 0) {
-    var dn = s.dinner.diners.length;
-    lines.push("🍽️ Dinner: " + fmtLAK(L.totals.dinner) + " (÷" + dn + " = " + fmtLAK(L.totals.dinner / dn) + ") — " + _plainName(s.dinner.paidBy));
+    var diners = s.dinner.diners || [];
+    out.push("\uD83C\uDF7D\uFE0F " + t("dinnerBill") + ": " + fmtLAK(L.totals.dinner));
+    out.push("     " + t("paidBy") + " " + _plainName(s.dinner.paidBy) + " \u00B7 \u00F7" + diners.length + " = " + num(L.totals.dinner / diners.length) + " " + t("each"));
+    out.push("     (" + diners.map(_plainName).join(", ") + ")");
   }
+  out.push("");
+  out.push("\uD83D\uDCB0 " + t("total").toUpperCase() + ": " + fmtLAK(L.totals.grand));
 
-  lines.push("━━━━━━━━━━━━");
+  // Payments, grouped by who receives the money
   if (L.transfers.length) {
-    lines.push("👉 Pay:");
-    var settled = s.settled || {};
-    for (var tI = 0; tI < L.transfers.length; tI++) {
-      var tr = L.transfers[tI];
-      lines.push("  " + _plainName(tr.from) + " → " + _plainName(tr.to) + ": " + fmtLAK(tr.amount) + (settled[tr.key] ? " ✅" : ""));
+    out.push("");
+    out.push(line);
+    var lastTo = null;
+    for (var k = 0; k < L.transfers.length; k++) {
+      var tr = L.transfers[k];
+      if (tr.to !== lastTo) {
+        if (lastTo !== null) out.push("");
+        lastTo = tr.to;
+        out.push("\uD83D\uDCB8 " + t("payTo").toUpperCase() + " " + _plainName(tr.to).toUpperCase() + " (" + fmtLAK(L.received[tr.to]) + ")");
+      }
+      out.push((settled[tr.key] ? "\u2705 " : "\u25AB\uFE0F ") + _plainName(tr.from) + ": " + fmtLAK(tr.amount));
+      out.push("     " + transferBreakdown(tr));
     }
   }
-  lines.push("💰 Total: " + fmtLAK(L.totals.grand));
-  return lines.join("\n");
+
+  // People who don't need to pay anyone
+  var payers = {};
+  L.transfers.forEach(function (tr) { payers[tr.from] = true; });
+  var nothing = players.filter(function (u) { return !payers[u]; });
+  if (nothing.length) {
+    out.push("");
+    out.push("\uD83D\uDE4C " + t("msgNothingToPay") + ": " + nothing.map(_plainName).join(", "));
+  }
+  return out.join("\n");
 }
 
 function copyMessengerFromPreview() {
