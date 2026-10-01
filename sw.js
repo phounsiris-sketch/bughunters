@@ -1,4 +1,4 @@
-var CACHE_NAME = 'godsmash-v2';
+var CACHE_NAME = 'godsmash-v3';
 var ASSETS = [
   './',
   './index.html',
@@ -48,16 +48,17 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Cache-first for app assets
+  // Network-first for app assets (so new deploys show up), cache as offline fallback
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      return cached || fetch(e.request).then(function(resp) {
-        var clone = resp.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
-        return resp;
-      });
+    fetch(e.request).then(function(resp) {
+      var clone = resp.clone();
+      caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+      return resp;
     }).catch(function() {
-      return caches.match('./index.html');
+      return caches.match(e.request).then(function(cached) {
+        return cached || caches.match('./index.html');
+      });
     })
   );
 });
