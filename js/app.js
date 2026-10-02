@@ -256,11 +256,27 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
+var APP_VERSION = "v12"; // keep in step with CACHE_NAME in sw.js
+
+// A new version took over: reload once so the page runs the new code too
+if ("serviceWorker" in navigator) {
+  var _swReloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (_swReloaded) return;
+    _swReloaded = true;
+    window.location.reload();
+  });
+}
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("./sw.js")
       .then(function (reg) {
-        console.log("SW registered:", reg.scope);
+        // Always look for a newer version (home-screen apps rarely do on their own)
+        reg.update();
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "visible") reg.update();
+        });
       })
       .catch(function (err) {
         console.warn("SW registration failed:", err);

@@ -86,6 +86,8 @@ function pushSettingsCard() {
   if (st === "on") {
     html += '<div class="settings-item"><div class="settings-label" style="color:var(--accent)">✔ ' + t("pushOn") + '</div>' +
       '<button class="edit-btn" onclick="disablePush()">' + t("pushTurnOff") + '</button></div>';
+    html += '<button class="btn-secondary" style="margin-top:10px" onclick="localTestPush()">' + icon("bell", 16) + ' ' + t("pushLocalTest") + '</button>';
+    html += '<div id="pushLocalResult" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>';
   } else if (st === "off") {
     html += '<button class="btn-primary" onclick="enablePush()">' + icon("bell", 16) + ' ' + t("pushTurnOn") + '</button>';
     html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
@@ -93,7 +95,17 @@ function pushSettingsCard() {
     html += '<div class="perm-note">' + t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">' + (st === "needsHomeScreen" ? "iPhone, browser tab" : "state: " + st) + '</div>';
   }
+  html += '<div style="font-size:11px;color:var(--text-dim);margin-top:10px;text-align:right">' + APP_VERSION + '</div>';
   return html + '</div>';
+}
+
+/** Shows a notification straight from this phone (no server) to test banners. */
+function localTestPush() {
+  var out = document.getElementById("pushLocalResult");
+  navigator.serviceWorker.ready.then(function (reg) {
+    return reg.showNotification(t("pushLocalTitle"), { body: t("pushLocalBody"), tag: "local-test", data: { link: "./" } });
+  }).then(function () { if (out) out.textContent = t("pushLocalSent"); })
+    .catch(function (e) { if (out) out.textContent = "\u2716 " + ((e && e.message) || e); });
 }
 
 /** Links in pushes: #session=ID, #polls, #payments */
