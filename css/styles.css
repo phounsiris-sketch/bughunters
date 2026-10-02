@@ -3343,3 +3343,16 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 .danger-card .card-title .si {
   color: #f87171;
 }
+
+.push-log {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+}

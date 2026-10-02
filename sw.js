@@ -18,7 +18,7 @@ try {
   firebase.messaging();
 } catch (e) {}
 
-var CACHE_NAME = 'godsmash-v9';
+var CACHE_NAME = 'godsmash-v10';
 var ASSETS = [
   './',
   './index.html',

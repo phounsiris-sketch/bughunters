@@ -23,24 +23,43 @@ function pushState() {
   catch (e) { return "off"; }
 }
 
+var _pushLog = [];
+function _plog(ok, msg) {
+  _pushLog.push((ok ? "✔ " : "✖ ") + msg);
+  var el = document.getElementById("pushLog");
+  if (el) el.textContent = _pushLog.join("\n");
+}
+
 function enablePush() {
-  if (!pushSupported()) { showToast(t("pushUnsupported")); return; }
+  _pushLog = [];
+  var el = document.getElementById("pushLog");
+  if (el) el.style.display = "block";
+  _plog(true, "Device: " + (_isIos() ? "iPhone/iPad" : "other") + (_isStandalone() ? ", home-screen app" : ", browser tab"));
+  if (!pushSupported()) { _plog(false, "Push not supported in this browser"); return; }
+  _plog(true, "Push supported");
+
   Notification.requestPermission().then(function (perm) {
-    if (perm !== "granted") { showToast(t("pushBlocked")); renderSettings(); return; }
-    return navigator.serviceWorker.ready.then(function (reg) {
-      return firebase.messaging().getToken({ vapidKey: PUSH_VAPID_KEY, serviceWorkerRegistration: reg });
-    }).then(function (token) {
-      if (!token) throw new Error("No token");
-      var data = { lang: currentLang, updatedAt: Date.now(), tokens: {} };
-      data.tokens[token] = { at: Date.now(), ua: navigator.userAgent.slice(0, 120) };
-      return fsdb.collection("pushTokens").doc(currentUser.uid).set(data, { merge: true }).then(function () {
-        localStorage.setItem("pushOn_" + currentUser.uid, "1");
-        localStorage.setItem("pushToken_" + currentUser.uid, token);
-        showToast(t("pushOn") + " ✔");
-        renderSettings();
-      });
-    });
-  }).catch(function (error) { showToast(_permError(error)); });
+    _plog(perm === "granted", "Permission: " + perm);
+    if (perm !== "granted") throw { code: "permission-" + perm, message: t("pushBlocked") };
+    return navigator.serviceWorker.ready;
+  }).then(function (reg) {
+    _plog(true, "Service worker ready (" + reg.scope + ")");
+    return firebase.messaging().getToken({ vapidKey: PUSH_VAPID_KEY, serviceWorkerRegistration: reg });
+  }).then(function (token) {
+    if (!token) throw { code: "no-token", message: "Firebase returned no token" };
+    _plog(true, "Got device token");
+    var data = { lang: currentLang, updatedAt: Date.now(), tokens: {} };
+    data.tokens[token] = { at: Date.now(), ua: navigator.userAgent.slice(0, 120) };
+    return fsdb.collection("pushTokens").doc(currentUser.uid).set(data, { merge: true }).then(function () { return token; });
+  }).then(function (token) {
+    _plog(true, "Saved to Firestore (pushTokens)");
+    localStorage.setItem("pushOn_" + currentUser.uid, "1");
+    localStorage.setItem("pushToken_" + currentUser.uid, token);
+    showToast(t("pushOn") + " ✔");
+    setTimeout(renderSettings, 1500);
+  }).catch(function (error) {
+    _plog(false, "Error: " + ((error && error.code) || "") + " — " + ((error && error.message) || error));
+  });
 }
 
 function disablePush() {
@@ -69,8 +88,10 @@ function pushSettingsCard() {
       '<button class="edit-btn" onclick="disablePush()">' + t("pushTurnOff") + '</button></div>';
   } else if (st === "off") {
     html += '<button class="btn-primary" onclick="enablePush()">' + icon("bell", 16) + ' ' + t("pushTurnOn") + '</button>';
+    html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
   } else {
     html += '<div class="perm-note">' + t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">' + (st === "needsHomeScreen" ? "iPhone, browser tab" : "state: " + st) + '</div>';
   }
   return html + '</div>';
 }
