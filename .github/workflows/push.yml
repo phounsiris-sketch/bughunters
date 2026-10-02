@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      test:
+        description: "Send a test push to every device that has notifications on"
+        type: boolean
+        default: false
 
 concurrency:
   group: push-sender
@@ -28,3 +33,4 @@ jobs:
         working-directory: push
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PUSH_TEST: ${{ inputs.test }}

@@ -17,6 +17,8 @@ async function main() {
   const db = admin.firestore();
   const now = Date.now();
 
+  if (process.env.PUSH_TEST === "true") return sendTest(db);
+
   const stateRef = db.collection("pushState").doc("main");
   const state = (await stateRef.get()).data() || {};
   if (!state.lastRun) {
@@ -74,6 +76,31 @@ async function main() {
 
   await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null) }, { merge: true });
   console.log(`events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", weekly reminder sent" : ""}`);
+}
+
+/** Manual test: one push to every registered device, nothing else changes */
+async function sendTest(db) {
+  const [tokensSnap, usersSnap] = await Promise.all([db.collection("pushTokens").get(), db.collection("users").get()]);
+  const names = {}; usersSnap.forEach((d) => (names[d.id] = d.data().displayName || d.data().email || d.id));
+  let devices = 0, sent = 0;
+  for (const doc of tokensSnap.docs) {
+    const list = Object.keys(doc.data().tokens || {});
+    if (!list.length) continue;
+    devices += list.length;
+    const la = doc.data().lang === "la";
+    const res = await admin.messaging().sendEachForMulticast({
+      tokens: list,
+      notification: {
+        title: la ? "🧪 ທົດສອບການແຈ້ງເຕືອນ" : "🧪 Test notification",
+        body: la ? "ຖ້າເຫັນຂໍ້ຄວາມນີ້, ການແຈ້ງເຕືອນໃຊ້ງານໄດ້ແລ້ວ 🎉" : "If you can see this, push notifications work 🎉"
+      },
+      webpush: { fcmOptions: { link: APP_URL } }
+    });
+    sent += res.successCount;
+    res.responses.forEach((r, i) => { if (!r.success) console.log(`  ✗ ${names[doc.id]}: ${r.error && r.error.code}`); });
+    console.log(`  ${names[doc.id]}: ${res.successCount}/${list.length} device(s)`);
+  }
+  console.log(devices ? `Test push sent to ${sent} of ${devices} device(s).` : "No devices have notifications on yet — turn them on in Settings → Profile first.");
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
