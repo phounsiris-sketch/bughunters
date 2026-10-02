@@ -1,4 +1,24 @@
-var CACHE_NAME = 'godsmash-v8';
+// Background push (Firebase Cloud Messaging). Wrapped so the app still
+// works offline if the SDK can't be fetched.
+try {
+  importScripts(
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js'
+  );
+  firebase.initializeApp({
+    apiKey: 'AIzaSyC09Xv4oCPmQ4YLOFx7GW_FUDYJ7Qis5nI',
+    authDomain: 'godsmash-badminton.firebaseapp.com',
+    projectId: 'godsmash-badminton',
+    storageBucket: 'godsmash-badminton.firebasestorage.app',
+    messagingSenderId: '433540643983',
+    appId: '1:433540643983:web:7447507a2075f7838204fa'
+  });
+  // Messages carry `notification` + `fcmOptions.link`: the SDK shows them
+  // and opens the link (e.g. .../#session=ID) when tapped
+  firebase.messaging();
+} catch (e) {}
+
+var CACHE_NAME = 'godsmash-v9';
 var ASSETS = [
   './',
   './index.html',
@@ -17,6 +37,7 @@ var ASSETS = [
   './js/settings.js',
   './js/payments.js',
   './js/notify.js',
+  './js/push.js',
   './js/icons.js',
   './js/select.js',
   './js/datepicker.js',

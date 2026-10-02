@@ -103,6 +103,11 @@ service cloud.firestore {
       allow write: if can('editConfig');
     }
 
+    // This user's push tokens (devices). The sender uses the Admin SDK.
+    match /pushTokens/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
     // Payment QR codes: your own, or a manual player's (editConfig)
     match /qrcodes/{uid} {
       allow read: if isAuth();

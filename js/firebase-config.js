@@ -14,6 +14,11 @@ var firebaseConfig = {
   measurementId: "G-7MLBTFYHP2"
 };
 
+// Web Push certificate (public key) from Firebase console →
+// Project settings → Cloud Messaging → Web Push certificates.
+// Leave empty until generated; the push switch stays hidden.
+var PUSH_VAPID_KEY = "";
+
 // Initialise Firebase app
 firebase.initializeApp(firebaseConfig);
 

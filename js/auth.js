@@ -200,6 +200,7 @@ function _enterApp() {
   initApp();       // starts the shared data cache
   showAppPage();   // navigates to Polls
   loadSessions();  // sessions feed badges, notifications and My payments
+  if (typeof openFromHash === "function") setTimeout(openFromHash, 400); // link from a push
 }
 
 /* ---------- Show the sign-in form (not the profile form) ---------- */

@@ -82,6 +82,7 @@ function _renderProfileTab() {
   html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
   html += '</div>';
 
+  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
   html += _renderMergeCard();
 
   html += '<div class="card"><div class="card-title">' + t("appSettings") + '</div>';

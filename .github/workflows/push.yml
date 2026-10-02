@@ -1,0 +1,30 @@
+name: Send push notifications
+
+# Checks Firestore for new polls / bills / payments and sends web pushes.
+# GitHub runs schedules best-effort: expect pushes a few to ~30 minutes late.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: push-sender
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: push/package-lock.json
+      - run: npm ci
+        working-directory: push
+      - run: node send.js
+        working-directory: push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

@@ -1,0 +1,9 @@
+{
+  "name": "godsmash-push",
+  "private": true,
+  "description": "Scheduled sender for Godsmash web push (run by GitHub Actions)",
+  "main": "send.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
