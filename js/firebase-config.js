@@ -17,7 +17,7 @@ var firebaseConfig = {
 // Web Push certificate (public key) from Firebase console →
 // Project settings → Cloud Messaging → Web Push certificates.
 // Leave empty until generated; the push switch stays hidden.
-var PUSH_VAPID_KEY = "";
+var PUSH_VAPID_KEY = "BNjkBm6heoRkA-hr1ZcJ_zcTKhhXDpOt4sfHjPtyZtZxXBqfiDBVFRvmB0lwjrLzN46Vur3r4Kr2b4wBVKIehzQ";
 
 // Initialise Firebase app
 firebase.initializeApp(firebaseConfig);
