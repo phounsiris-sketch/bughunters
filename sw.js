@@ -1,24 +1,34 @@
-// Background push (Firebase Cloud Messaging). Wrapped so the app still
-// works offline if the SDK can't be fetched.
-try {
-  importScripts(
-    'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js'
-  );
-  firebase.initializeApp({
-    apiKey: 'AIzaSyC09Xv4oCPmQ4YLOFx7GW_FUDYJ7Qis5nI',
-    authDomain: 'godsmash-badminton.firebaseapp.com',
-    projectId: 'godsmash-badminton',
-    storageBucket: 'godsmash-badminton.firebasestorage.app',
-    messagingSenderId: '433540643983',
-    appId: '1:433540643983:web:7447507a2075f7838204fa'
-  });
-  // Messages carry `notification` + `fcmOptions.link`: the SDK shows them
-  // and opens the link (e.g. .../#session=ID) when tapped
-  firebase.messaging();
-} catch (e) {}
+// Web push (sent through Firebase Cloud Messaging). We show the banner
+// ourselves for every message — with the app open or closed — so iPhone
+// never sees a "silent" push (iOS revokes push for apps that do that).
+self.addEventListener('push', function (e) {
+  var msg = {};
+  try { msg = e.data ? e.data.json() : {}; } catch (err) { msg = { notification: { body: e.data ? e.data.text() : '' } }; }
+  var n = msg.notification || (msg.data && msg.data.title ? msg.data : {}) || {};
+  var link = (msg.fcmOptions && msg.fcmOptions.link) || (msg.data && msg.data.link) || './';
+  e.waitUntil(self.registration.showNotification(n.title || 'Godsmash', {
+    body: n.body || '',
+    tag: link,
+    renotify: true,
+    data: { link: link }
+  }));
+});
 
-var CACHE_NAME = 'godsmash-v10';
+// Tapping a notification opens (or focuses) the app at the right page
+self.addEventListener('notificationclick', function (e) {
+  var link = (e.notification.data && e.notification.data.link) || './';
+  e.notification.close();
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      if ('focus' in list[i]) {
+        return list[i].focus().then(function (c) { return c.navigate ? c.navigate(link) : c; });
+      }
+    }
+    return clients.openWindow(link);
+  }));
+});
+
+var CACHE_NAME = 'godsmash-v11';
 var ASSETS = [
   './',
   './index.html',

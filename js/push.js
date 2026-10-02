@@ -108,13 +108,4 @@ function openFromHash() {
 }
 window.addEventListener("hashchange", openFromHash);
 
-// Keep showing pushes while the app is open (FCM only auto-shows in background)
-try {
-  if (pushSupported()) {
-    firebase.messaging().onMessage(function (payload) {
-      var n = payload.notification || {};
-      showToast((n.title ? n.title + " — " : "") + (n.body || ""));
-      if (typeof updateNotifications === "function") updateNotifications();
-    });
-  }
-} catch (e) {}
+// The service worker (sw.js) shows every push itself, app open or closed.

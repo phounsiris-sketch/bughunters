@@ -97,7 +97,19 @@ async function sendTest(db) {
       webpush: { fcmOptions: { link: APP_URL } }
     });
     sent += res.successCount;
-    res.responses.forEach((r, i) => { if (!r.success) console.log(`  ✗ ${names[doc.id]}: ${r.error && r.error.code}`); });
+    const dead = {};
+    res.responses.forEach((r, i) => {
+      if (r.success) return;
+      const code = r.error && r.error.code;
+      console.log(`  ✗ ${names[doc.id]}: ${code}`);
+      if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
+        dead["tokens." + list[i]] = admin.firestore.FieldValue.delete();
+      }
+    });
+    if (Object.keys(dead).length) {
+      await doc.ref.update(dead).catch(() => {});
+      console.log(`  removed ${Object.keys(dead).length} expired device(s) of ${names[doc.id]}`);
+    }
     console.log(`  ${names[doc.id]}: ${res.successCount}/${list.length} device(s)`);
   }
   console.log(devices ? `Test push sent to ${sent} of ${devices} device(s).` : "No devices have notifications on yet — turn them on in Settings → Profile first.");
