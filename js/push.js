@@ -93,7 +93,6 @@ function pushSettingsCard() {
     html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
   } else {
     html += '<div class="perm-note">' + t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">' + (st === "needsHomeScreen" ? "iPhone, browser tab" : "state: " + st) + '</div>';
   }
   return html + '</div>';
 }

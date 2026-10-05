@@ -46,6 +46,13 @@ function plainUserName(u) {
   return u.displayName || (u.email ? u.email.split("@")[0] : t("unknownPlayer"));
 }
 
+/** Join / Skip in the reader's language, whichever language the poll was made in */
+function answerLabel(a) {
+  if (a === "Join" || a === "ມາ") return t("answerJoin");
+  if (a === "Skip" || a === "ບໍ່ມາ") return t("answerSkip");
+  return a;
+}
+
 function getUserName(uid) {
   if (!uid) return "";
   var u = dbFindById(DB_CACHE.users, uid);
@@ -175,7 +182,7 @@ function _renderPollCard(poll) {
 
   // The plan
   html += '<div class="poll-plan">';
-  html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + np.duration + 'h)' : '') + '</div>';
+  html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '') + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">' + icon('court', 14) + ' ' + escapeHtml(np.courtName || '') +
     (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
   if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
@@ -192,7 +199,7 @@ function _renderPollCard(poll) {
     html += '<div class="poll-option poll-answer' + (mine ? ' voted' : '') + '"' +
       (isVotable ? ' role="radio" aria-checked="' + mine + '" onclick="respondPoll(\'' + poll.id + '\',' + ai + ')"' : ' style="cursor:default"') + '>';
     html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(np.answers[ai]) +
+    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(answerLabel(np.answers[ai])) +
       (ai === 0 ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
     if (uids.length) html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px">' + uids.map(getUserName).join(', ') + '</div>';
     html += '</div>';
@@ -274,7 +281,7 @@ function showVoteForOthers(pollId) {
     rows += '<div class="proxy-row" data-uid="' + u.id + '" data-answer="' + cur + '">';
     rows += '<div class="proxy-name">' + escapeHtml(plainUserName(u)) + (u.manual ? ' ✍️' : '') + '</div><div class="proxy-pills">';
     for (var ai = 0; ai < np.answers.length; ai++) {
-      rows += '<button type="button" class="proxy-pill' + (cur === ai ? ' active' : '') + '" onclick="_proxyPick(this,' + ai + ')">' + escapeHtml(np.answers[ai]) + '</button>';
+      rows += '<button type="button" class="proxy-pill' + (cur === ai ? ' active' : '') + '" onclick="_proxyPick(this,' + ai + ')">' + escapeHtml(answerLabel(np.answers[ai])) + '</button>';
     }
     rows += '<button type="button" class="proxy-pill' + (cur === -1 ? ' active' : '') + '" onclick="_proxyPick(this,-1)">—</button>';
     rows += '</div></div>';

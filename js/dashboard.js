@@ -11,7 +11,6 @@ var dashPeriod = "monthly";
 var dashTab = "leaders";
 var _dashChart = null;
 
-var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function loadDashboard() {
   // Reuse the app-wide listeners (they re-render the dashboard on change)
@@ -53,7 +52,7 @@ function _pollDate(p) {
 
 function _periodLabel() {
   var now = new Date();
-  if (dashPeriod === "monthly") return MONTHS[now.getMonth()] + " " + now.getFullYear();
+  if (dashPeriod === "monthly") return monthShort(now.getMonth()) + " " + now.getFullYear();
   if (dashPeriod === "quarterly") return "Q" + (Math.floor(now.getMonth() / 3) + 1) + " " + now.getFullYear();
   if (dashPeriod === "yearly") return String(now.getFullYear());
   return t("allTime");
@@ -238,7 +237,7 @@ function _renderPeriodTable(allSessions) {
   if (!byYear) {
     for (var m = 0; m < 12; m++) {
       var k = now.getFullYear() + "-" + m;
-      buckets[k] = { label: MONTHS[m] + " " + now.getFullYear(), list: [] };
+      buckets[k] = { label: monthShort(m) + " " + now.getFullYear(), list: [] };
       order.push(k);
     }
   }

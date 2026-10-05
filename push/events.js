@@ -31,8 +31,11 @@ const TEXT = {
   }
 };
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const fmtDate = (iso) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]; };
+const MONTHS = {
+  en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  la: ["ມັງກອນ","ກຸມພາ","ມີນາ","ເມສາ","ພຶດສະພາ","ມິຖຸນາ","ກໍລະກົດ","ສິງຫາ","ກັນຍາ","ຕຸລາ","ພະຈິກ","ທັນວາ"]
+};
+const fmtDate = (iso, lang) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MONTHS[lang === "la" ? "la" : "en"][d.getUTCMonth()]; };
 const fmtLAK = (n) => Math.round(n || 0).toLocaleString("en-US") + " ₭";
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : ""));
 const ms = (x) => (!x ? 0 : typeof x === "number" ? x : typeof x.toMillis === "function" ? x.toMillis() : x._seconds ? x._seconds * 1000 : 0);
@@ -55,7 +58,8 @@ function collectMessages(data, since, now, opts) {
   opts = opts || {};
   const out = [];
   const name = (uid) => { const u = data.users[uid]; return (u && (u.displayName || (u.email || "").split("@")[0])) || "?"; };
-  const T = (uid) => TEXT[(data.langs || {})[uid] === "la" ? "la" : "en"];
+  const L_ = (uid) => ((data.langs || {})[uid] === "la" ? "la" : "en");
+  const T = (uid) => TEXT[L_(uid)];
   const link = (h) => (opts.appUrl || "") + h;
   const isNew = (t) => t > since && t <= now;
 
@@ -64,13 +68,13 @@ function collectMessages(data, since, now, opts) {
     if (isNew(ms(p.createdAt)) && (p.status === "draft" || p.status === "open")) {
       Object.keys(data.users).forEach((uid) => {
         if (uid === p.createdBy || data.users[uid].manual) return;
-        out.push({ uid, title: T(uid).newPollT, body: fill(T(uid).newPollB, { name: name(p.createdBy), date: fmtDate(info.date), time: info.time || "", court: info.court || "" }), link: link("#polls") });
+        out.push({ uid, title: T(uid).newPollT, body: fill(T(uid).newPollB, { name: name(p.createdBy), date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link("#polls") });
       });
     }
     if (p.status === "confirmed" && isNew(ms(p.confirmedAt))) {
       const joined = p.confirmedPlayers || Object.keys(info.responses).filter((u) => info.responses[u] === 0);
       joined.forEach((uid) => {
-        out.push({ uid, title: T(uid).confirmedT, body: fill(T(uid).confirmedB, { date: fmtDate(info.date), time: info.time || "", court: info.court || "" }), link: link(p.sessionId ? "#session=" + p.sessionId : "#polls") });
+        out.push({ uid, title: T(uid).confirmedT, body: fill(T(uid).confirmedB, { date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link(p.sessionId ? "#session=" + p.sessionId : "#polls") });
       });
     }
   });
@@ -84,7 +88,7 @@ function collectMessages(data, since, now, opts) {
       const people = new Set([...(s.players || []), ...Object.keys(L.shares)]);
       people.forEach((uid) => {
         const owe = L.transfers.filter((tr) => tr.from === uid).reduce((a, tr) => a + tr.amount, 0);
-        out.push({ uid, title: T(uid).billT, body: fill(owe ? T(uid).billOwe : T(uid).billNone, { date: fmtDate(s.date), amount: fmtLAK(owe) }), link: link("#session=" + s.id) });
+        out.push({ uid, title: T(uid).billT, body: fill(owe ? T(uid).billOwe : T(uid).billNone, { date: fmtDate(s.date, L_(uid)), amount: fmtLAK(owe) }), link: link("#session=" + s.id) });
       });
     }
     const at = s.settledAt || {};

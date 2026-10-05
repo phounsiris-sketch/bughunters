@@ -168,13 +168,32 @@ function formatMoneyInput(el) {
   try { el.setSelectionRange(pos, pos); } catch (e) {}
 }
 
-/** "2026-10-01" → "1 Oct 2026" */
+/* ---------- Dates in the current language (browsers often lack Lao) ---------- */
+var _MONTHS = {
+  en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+  la: ["ມັງກອນ","ກຸມພາ","ມີນາ","ເມສາ","ພຶດສະພາ","ມິຖຸນາ","ກໍລະກົດ","ສິງຫາ","ກັນຍາ","ຕຸລາ","ພະຈິກ","ທັນວາ"]
+};
+var _WEEKDAYS = {   // Sunday first, like Date.getDay()
+  en: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+  la: ["ອາທິດ","ຈັນ","ອັງຄານ","ພຸດ","ພະຫັດ","ສຸກ","ເສົາ"]
+};
+var _WEEKDAYS_NARROW = { en: ["S","M","T","W","T","F","S"], la: ["ອາ","ຈ","ອ","ພ","ພຫ","ສຸ","ສ"] };
+function _dl() { return currentLang === "la" ? "la" : "en"; }
+/** Short month: "Oct" / "ຕຸລາ" */
+function monthShort(m) { return _dl() === "la" ? _MONTHS.la[m] : _MONTHS.en[m].slice(0, 3); }
+/** "October 2026" / "ຕຸລາ 2026" */
+function monthYear(y, m) { return _MONTHS[_dl()][m] + " " + y; }
+function weekdayShort(wd) { return _WEEKDAYS[_dl()][wd]; }
+function weekdayNarrow(wd) { return _WEEKDAYS_NARROW[_dl()][wd]; }
+/** Hours: "2h" / "2 ຊມ" */
+function fmtHours(n) { return n + t("hShort"); }
+
+/** "2026-10-01" → "1 Oct 2026" / "1 ຕຸລາ 2026" */
 function fmtDate(iso) {
   if (!iso) return "";
-  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var d = new Date(iso + "T00:00:00");
   if (isNaN(d.getTime())) return iso;
-  return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+  return d.getDate() + " " + monthShort(d.getMonth()) + " " + d.getFullYear();
 }
 
 /** Same colour for the same person everywhere */
@@ -258,8 +277,7 @@ function filterBarHtml(statusOpts, statusVal, months, monthVal, onStatus, onMont
 
 function _monthName(ym) {
   var p = ym.split("-");
-  return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1)
-    .toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { month: "long", year: "numeric" });
+  return monthYear(parseInt(p[0], 10), parseInt(p[1], 10) - 1);
 }
 
 /** Distinct "YYYY-MM" values, newest first */
@@ -317,7 +335,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v19"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v20"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

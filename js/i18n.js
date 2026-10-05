@@ -271,6 +271,12 @@ var translations = {
     navDashboard: "Dashboard",
     navSettings: "Settings",
     navProfile: "Profile",
+    appTagline: "Badminton booking & cost splitting",
+    back: "Back",
+    breadcrumb: "Breadcrumb",
+    prevMonth: "Previous month",
+    nextMonth: "Next month",
+    hShort: "h",
     myDetails: "My details",
     appearance: "Appearance",
     themeDark: "Dark",
@@ -681,6 +687,12 @@ var translations = {
     navDashboard: "ແດຊບອດ",
     navSettings: "ຕັ້ງຄ່າ",
     navProfile: "ໂປຣໄຟລ໌",
+    appTagline: "ຈອງເດີ່ນ ແລະ ແບ່ງຄ່າໃຊ້ຈ່າຍແບດມິນຕັນ",
+    back: "ກັບຄືນ",
+    breadcrumb: "ເສັ້ນທາງ",
+    prevMonth: "ເດືອນກ່ອນ",
+    nextMonth: "ເດືອນໜ້າ",
+    hShort: " ຊມ",
     myDetails: "ຂໍ້ມູນຂອງຂ້ອຍ",
     appearance: "ຮູບແບບການສະແດງ",
     themeDark: "ມືດ",
@@ -868,6 +880,10 @@ function applyI18n() {
       els[i].textContent = t(key);
     }
   }
+
+  // Screen-reader labels
+  var arEls = document.querySelectorAll("[data-i18n-aria]");
+  for (var a = 0; a < arEls.length; a++) arEls[a].setAttribute("aria-label", t(arEls[a].getAttribute("data-i18n-aria")));
 
   // Elements with data-i18n-placeholder (explicit placeholder override)
   var phEls = document.querySelectorAll("[data-i18n-placeholder]");

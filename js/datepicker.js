@@ -41,7 +41,7 @@ function _dpLabel(input) {
   if (!v) return t("pickDate");
   var d = new Date(v + "T00:00:00");
   if (isNaN(d.getTime())) return v;
-  return d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { weekday: "short" }) + ", " + fmtDate(v);
+  return weekdayShort(d.getDay()) + ", " + fmtDate(v);
 }
 
 function _dpSync(input) {
@@ -102,8 +102,7 @@ function _iso(y, m, d) {
 }
 
 function _dpRenderMonth(input, pop, year, month) {
-  var loc = currentLang === "la" ? "lo-LA" : "en-GB";
-  var title = new Date(year, month, 1).toLocaleDateString(loc, { month: "long", year: "numeric" });
+  var title = monthYear(year, month);
   var today = _todayIso();
   var selected = input.value;
 
@@ -112,13 +111,12 @@ function _dpRenderMonth(input, pop, year, month) {
   var days = new Date(year, month + 1, 0).getDate();
 
   var html = '<div class="dp-head">' +
-    '<button type="button" class="dp-nav" data-nav="-1" aria-label="Previous month">' + icon("prev", 18) + '</button>' +
+    '<button type="button" class="dp-nav" data-nav="-1" aria-label="' + t("prevMonth") + '">' + icon("prev", 18) + '</button>' +
     '<div class="dp-title">' + escapeHtml(title) + '</div>' +
-    '<button type="button" class="dp-nav" data-nav="1" aria-label="Next month">' + icon("next", 18) + '</button></div>';
+    '<button type="button" class="dp-nav" data-nav="1" aria-label="' + t("nextMonth") + '">' + icon("next", 18) + '</button></div>';
   html += '<div class="dp-grid">';
   for (var w = 0; w < 7; w++) {
-    var wd = new Date(2024, 0, 1 + w); // 1 Jan 2024 is a Monday
-    html += '<div class="dp-wd">' + escapeHtml(wd.toLocaleDateString(loc, { weekday: "narrow" })) + '</div>';
+    html += '<div class="dp-wd">' + escapeHtml(weekdayNarrow((w + 1) % 7)) + '</div>'; // Monday first
   }
   for (var b = 0; b < first; b++) html += '<div></div>';
   for (var d = 1; d <= days; d++) {

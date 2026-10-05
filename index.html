@@ -33,7 +33,7 @@
   <div id="login-page" class="login-page">
     <div class="login-logo" style="font-size:56px">&#127992;</div>
     <div class="login-title">Godsmash</div>
-    <div class="login-subtitle">Badminton booking &amp; cost splitting</div>
+    <div class="login-subtitle" data-i18n="appTagline">Badminton booking &amp; cost splitting</div>
     <div class="login-form">
       <div class="dashboard-tabs" style="margin-bottom:20px">
         <button class="dash-tab active" id="authTabLogin" onclick="setAuthMode('login')" data-i18n="signIn">Sign in</button>
@@ -98,13 +98,13 @@
   <div class="app-header">
     <div class="header-top">
       <div style="display:flex;align-items:center">
-        <button class="back-btn" id="backBtn" onclick="crumbBack()" style="display:none" aria-label="Back">
+        <button class="back-btn" id="backBtn" onclick="crumbBack()" style="display:none" aria-label="Back" data-i18n-aria="back">
           <span data-icon="back" data-size="22"></span>
         </button>
         <span id="headerTitle" class="header-title">Godsmash</span>
       </div>
       <div class="header-controls">
-        <button class="bell-btn" onclick="toggleNotifications(event)" aria-label="Notifications">
+        <button class="bell-btn" onclick="toggleNotifications(event)" aria-label="Notifications" data-i18n-aria="notifications">
           <span data-icon="bell" data-size="20"></span><span class="badge" id="bellBadge" style="display:none">0</span>
         </button>
         <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
@@ -116,7 +116,7 @@
 
   <!-- Content -->
   <div class="content">
-    <nav class="breadcrumb" id="breadcrumb" style="display:none" aria-label="Breadcrumb"></nav>
+    <nav class="breadcrumb" id="breadcrumb" style="display:none" aria-label="Breadcrumb" data-i18n-aria="breadcrumb"></nav>
 
     <!-- PAGE: Polls -->
     <div class="page active" id="page-polls">
@@ -192,7 +192,7 @@
   </div>
 
   <!-- FAB -->
-  <button class="fab-btn" id="fab" onclick="showCreatePoll()" aria-label="Create poll">+</button>
+  <button class="fab-btn" id="fab" onclick="showCreatePoll()" aria-label="Create poll" data-i18n-aria="createPoll">+</button>
 
 </div>
 

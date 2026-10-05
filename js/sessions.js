@@ -298,7 +298,7 @@ function renderSessionsList(sessions) {
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
     var cocks = sessionCocks(s);
-    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + s.duration + 'h)' : '') +
+    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + fmtHours(s.duration) + ')' : '') +
       (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') + '</div>';
     html += '<div class="avatar-stack">';
     players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
@@ -330,7 +330,7 @@ function renderSessionsList(sessions) {
 function _monthLabel(ym) {
   var p = ym.split("-");
   var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1);
-  return d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { month: "long", year: "numeric" });
+  return monthYear(d.getFullYear(), d.getMonth());
 }
 
 /** Edit date / time / court / duration from the session card */
@@ -482,7 +482,7 @@ function _renderWaitingForBill(s) {
 function _renderSessionHeader(s) {
   var html = '<div style="text-align:center;margin-bottom:16px">';
   html += '<div style="font-size:16px;font-weight:700">' + fmtDate(s.date) + '</div>';
-  html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + s.duration + 'h' : '') +
+  html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
   html += '</div>';
   return html;
@@ -503,7 +503,7 @@ function _renderSplitResult(s) {
   // Cost breakdown
   html += '<div class="cost-breakdown">';
   var nCocks = sessionCocks(s);
-  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer, s.duration ? s.duration + 'h' : '');
+  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer, s.duration ? fmtHours(s.duration) : '');
   html += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer, nCocks ? nCocks + ' ' + t("cocks") : '');
   html += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
   html += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
@@ -514,7 +514,7 @@ function _renderSplitResult(s) {
   var n = players.length;
   if (L.totals.court > 0) {
     html += _payTypeCard(s, icon("court", 18), t("court"),
-      escapeHtml(s.courtName || "") + ' — ' + (s.duration || 0) + 'h × ' + fmtLAK(s.pricePerHour),
+      escapeHtml(s.courtName || "") + ' — ' + fmtHours(s.duration || 0) + ' × ' + fmtLAK(s.pricePerHour),
       L.totals.court, s.courtPayer, "court", _even(players, L.totals.court));
   }
   if (L.totals.shuttle > 0) {
@@ -954,7 +954,7 @@ function _updateEditTotals() {
   var data = _editToSessionData();
 
   var courtEl = document.getElementById("courtCostDisplay");
-  if (courtEl) courtEl.innerHTML = (edit.duration || 0) + 'h × ' + fmtLAK(data.pricePerHour) + ' = <b style="color:var(--accent)">' + fmtLAK(data.courtCost) + '</b>';
+  if (courtEl) courtEl.innerHTML = fmtHours(edit.duration || 0) + ' × ' + fmtLAK(data.pricePerHour) + ' = <b style="color:var(--accent)">' + fmtLAK(data.courtCost) + '</b>';
 
   for (var i = 0; i < edit.shuttlecocks.length; i++) {
     var sc = edit.shuttlecocks[i];
@@ -1227,7 +1227,7 @@ function buildMessengerText(s) {
   var settled = s.settled || {};
   var num = function (v) { return Math.round(v || 0).toLocaleString("en-US"); };
   var d = s.date ? new Date(s.date + "T00:00:00") : null;
-  var weekday = d ? d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { weekday: "short" }) + " " : "";
+  var weekday = d ? weekdayShort(d.getDay()) + " " : "";
   var who = function (uids) {
     var names = [];
     uids.forEach(function (u) { if (u && names.indexOf(_plainName(u)) < 0) names.push(_plainName(u)); });
@@ -1241,7 +1241,7 @@ function buildMessengerText(s) {
   // 1) Total of each type — (name) = who paid it
   out.push("");
   out.push("\uD83E\uDDFE " + t("msgCosts"));
-  if (L.totals.court > 0) out.push(t("court") + (s.duration ? " " + s.duration + "h" : "") + ": " + num(L.totals.court) + who([s.courtPayer]));
+  if (L.totals.court > 0) out.push(t("court") + (s.duration ? " " + fmtHours(s.duration) : "") + ": " + num(L.totals.court) + who([s.courtPayer]));
   if (L.totals.shuttle > 0) {
     var nCocks = sessionCocks(s);
     out.push(t("msgCocks") + (nCocks ? " \u00D7" + nCocks : "") + ": " + num(L.totals.shuttle) + who([s.shuttlePayer]));
