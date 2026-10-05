@@ -1230,6 +1230,20 @@ function buildMessengerText(s) {
   var out = [];
 
   out.push("\uD83C\uDFF8 " + weekday + fmtDate(s.date) + (s.courtName ? " \u00B7 " + s.courtName : ""));
+  // Total of each type first, with who paid it
+  var by = function (uids) {
+    var names = [];
+    uids.forEach(function (u) { if (u && names.indexOf(_plainName(u)) < 0) names.push(_plainName(u)); });
+    return names.length ? " \u00B7 " + t("paidBy") + " " + names.join(", ") : "";
+  };
+  out.push("");
+  if (L.totals.court > 0) out.push("\uD83C\uDFDF\uFE0F " + t("court") + (s.duration ? " (" + s.duration + "h)" : "") + ": " + num(L.totals.court) + by([s.courtPayer]));
+  if (L.totals.shuttle > 0) {
+    var nCocks = sessionCocks(s);
+    out.push("\uD83C\uDFF8 " + t("shuttlecocks") + (nCocks ? " (" + nCocks + " " + t("cocks") + ")" : "") + ": " + num(L.totals.shuttle) + by([s.shuttlePayer]));
+  }
+  if (L.totals.other > 0) out.push("\uD83E\uDD64 " + t("otherCosts") + ": " + num(L.totals.other) + by((s.otherCosts || []).map(function (oc) { return oc.paidBy; })));
+  if (L.totals.dinner > 0) out.push("\uD83C\uDF7D\uFE0F " + t("dinnerBill") + ": " + num(L.totals.dinner) + by([s.dinner && s.dinner.paidBy]));
   out.push("\uD83D\uDCB0 " + t("total") + ": " + fmtLAK(L.totals.grand));
 
   // One line per payer: their total, then who gets what
