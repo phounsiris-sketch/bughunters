@@ -153,21 +153,53 @@ function _renderLeaderboard() {
   return html;
 }
 
-/** Card with the top 3 of a { uid: value } map */
+/** Leaderboard card for a { uid: value } map: a podium for the top 3
+    (2nd · 1st · 3rd) with everyone else listed below. `warn` cards
+    (no-shows etc.) are a plain list — nobody wants a podium for that. */
 function _topCard(emoji, title, map, fmt, warn, sub, tieBreak) {
   var uids = Object.keys(map).filter(function (u) { return map[u] > 0; });
   uids.sort(function (a, b) { return map[b] - map[a] || (tieBreak ? tieBreak(a, b) : 0); });
-  var medals = ["🥇", "🥈", "🥉"];
+  // Equal values share a rank (1, 1, 3 …)
+  var rank = {};
+  uids.forEach(function (u, i) { rank[u] = i > 0 && map[u] === map[uids[i - 1]] ? rank[uids[i - 1]] : i + 1; });
+  var open = function (u) { return 'onclick="dashTab=\'activity\';dashActivityUser=\'' + u + '\';_renderDashboard()"'; };
+
   var html = '<div class="card leader-card' + (warn ? ' warn' : '') + '"><div class="card-title">' + emoji + ' ' + title + '</div>';
   if (!uids.length) {
-    html += '<div style="font-size:13px;color:var(--text-muted)">' + (warn ? t("lbNobody") : t("noData")) + '</div>';
+    return html + '<div style="font-size:13px;color:var(--text-muted)">' + (warn ? t("lbNobody") : t("noData")) + '</div></div>';
   }
-  uids.slice(0, 3).forEach(function (u, i) {
-    html += '<div class="leader-row" onclick="dashTab=\'activity\';dashActivityUser=\'' + u + '\';_renderDashboard()">' +
-      '<span class="leader-medal">' + (warn ? (i + 1) + '.' : medals[i]) + '</span>' + avatarHtml(u, 30) +
-      '<span class="leader-name">' + getUserName(u) + (sub ? sub(u) : '') + '</span>' +
-      '<span class="leader-value">' + fmt(map[u]) + '</span></div>';
-  });
+
+  var start = 0;
+  if (!warn) {
+    var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+    html += '<div class="podium">';
+    [1, 0, 2].forEach(function (pos) {            // 2nd · 1st · 3rd
+      var u = uids[pos];
+      if (!u) { html += '<div class="pod empty"></div>'; return; }
+      var r = Math.min(rank[u], 3);
+      html += '<div class="pod r' + r + '" ' + open(u) + '>' +
+        '<div class="pod-avatar">' + avatarHtml(u, pos === 0 ? 64 : 52) + '<span class="pod-medal">' + medals[r] + '</span></div>' +
+        '<div class="pod-name">' + getUserName(u) + '</div>' +
+        '<div class="pod-value">' + fmt(map[u]) + '</div>' +
+        (sub ? sub(u) : '') +
+        '<div class="pod-block">' + rank[u] + '</div></div>';
+    });
+    html += '</div>';
+    start = 3;
+  }
+
+  var rest = uids.slice(start, start + 10);
+  if (rest.length) {
+    html += '<div class="leader-list">';
+    rest.forEach(function (u) {
+      html += '<div class="leader-row" ' + open(u) + '>' +
+        '<span class="leader-rank">' + rank[u] + '</span>' + avatarHtml(u, 30) +
+        '<span class="leader-name">' + getUserName(u) + (sub ? sub(u) : '') + '</span>' +
+        '<span class="leader-value">' + fmt(map[u]) + '</span></div>';
+    });
+    html += '</div>';
+  }
+  if (uids.length > start + 10) html += '<div class="leader-more">+' + (uids.length - start - 10) + '</div>';
   return html + '</div>';
 }
 

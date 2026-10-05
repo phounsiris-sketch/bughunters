@@ -2462,6 +2462,108 @@ img.person-avatar {
   cursor: pointer;
 }
 
+/* Podium: 2nd · 1st · 3rd */
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+
+.pod {
+  --pod-c: #c9d2de;
+  --pod-bg: rgba(201, 210, 222, 0.28);
+  flex: 1;
+  min-width: 0;
+  max-width: 124px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+}
+
+.pod.r1 { --pod-c: #f5c542; --pod-bg: rgba(245, 197, 66, 0.32); }
+.pod.r3 { --pod-c: #d08a4c; --pod-bg: rgba(208, 138, 76, 0.30); }
+.pod.empty { visibility: hidden; }
+
+.pod-avatar {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.pod-avatar .person-avatar {
+  border: 3px solid var(--pod-c);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15), 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.pod-medal {
+  position: absolute;
+  right: -8px;
+  bottom: -6px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pod-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pod-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.pod .leader-sub { justify-content: center; gap: 6px; }
+
+.pod-block {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-radius: 12px 12px 4px 4px;
+  background: linear-gradient(180deg, var(--pod-bg), rgba(255, 255, 255, 0.02));
+  border-top: 3px solid var(--pod-c);
+  color: var(--pod-c);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.pod.r1 .pod-block { height: 78px; }
+.pod.r2 .pod-block { height: 58px; }
+.pod.r3 .pod-block { height: 42px; }
+
+.leader-list {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.leader-rank {
+  width: 24px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.leader-card.warn .leader-rank { color: var(--orange); }
+
+.leader-more {
+  padding-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .leader-medal {
   width: 24px;
   text-align: center;
