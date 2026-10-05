@@ -1219,7 +1219,8 @@ function _plainName(uid) {
   return u && u.displayName ? u.displayName : "?";
 }
 
-/** Short Messenger summary: total, then who pays whom (one line each) */
+/** Messenger summary, short lines so it reads well in a narrow chat bubble:
+    costs by type (who paid), then each payer's total and whom to pay */
 function buildMessengerText(s) {
   var L = computeLedger(s);
   var players = s.players || [];
@@ -1227,40 +1228,51 @@ function buildMessengerText(s) {
   var num = function (v) { return Math.round(v || 0).toLocaleString("en-US"); };
   var d = s.date ? new Date(s.date + "T00:00:00") : null;
   var weekday = d ? d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { weekday: "short" }) + " " : "";
-  var out = [];
-
-  out.push("\uD83C\uDFF8 " + weekday + fmtDate(s.date) + (s.courtName ? " \u00B7 " + s.courtName : ""));
-  // Total of each type first, with who paid it
-  var by = function (uids) {
+  var who = function (uids) {
     var names = [];
     uids.forEach(function (u) { if (u && names.indexOf(_plainName(u)) < 0) names.push(_plainName(u)); });
-    return names.length ? " \u00B7 " + t("paidBy") + " " + names.join(", ") : "";
+    return names.length ? " (" + names.join(", ") + ")" : "";
   };
+  var out = [];
+
+  out.push("\uD83C\uDFF8 " + weekday + fmtDate(s.date));
+  if (s.courtName) out.push("\uD83D\uDCCD " + s.courtName);
+
+  // 1) Total of each type — (name) = who paid it
   out.push("");
-  if (L.totals.court > 0) out.push("\uD83C\uDFDF\uFE0F " + t("court") + (s.duration ? " (" + s.duration + "h)" : "") + ": " + num(L.totals.court) + by([s.courtPayer]));
+  out.push("\uD83E\uDDFE " + t("msgCosts"));
+  if (L.totals.court > 0) out.push(t("court") + (s.duration ? " " + s.duration + "h" : "") + ": " + num(L.totals.court) + who([s.courtPayer]));
   if (L.totals.shuttle > 0) {
     var nCocks = sessionCocks(s);
-    out.push("\uD83C\uDFF8 " + t("shuttlecocks") + (nCocks ? " (" + nCocks + " " + t("cocks") + ")" : "") + ": " + num(L.totals.shuttle) + by([s.shuttlePayer]));
+    out.push(t("msgCocks") + (nCocks ? " \u00D7" + nCocks : "") + ": " + num(L.totals.shuttle) + who([s.shuttlePayer]));
   }
-  if (L.totals.other > 0) out.push("\uD83E\uDD64 " + t("otherCosts") + ": " + num(L.totals.other) + by((s.otherCosts || []).map(function (oc) { return oc.paidBy; })));
-  if (L.totals.dinner > 0) out.push("\uD83C\uDF7D\uFE0F " + t("dinnerBill") + ": " + num(L.totals.dinner) + by([s.dinner && s.dinner.paidBy]));
-  out.push("\uD83D\uDCB0 " + t("total") + ": " + fmtLAK(L.totals.grand));
+  if (L.totals.other > 0) out.push(t("msgOther") + ": " + num(L.totals.other) + who((s.otherCosts || []).map(function (oc) { return oc.paidBy; })));
+  if (L.totals.dinner > 0) out.push(t("msgDinner") + ": " + num(L.totals.dinner) + who([s.dinner && s.dinner.paidBy]));
+  out.push("\uD83D\uDCB0 " + t("total") + ": " + num(L.totals.grand) + " \u20AD");
 
-  // One line per payer: their total, then who gets what
+  // 2) Each payer: total, then whom to pay (one per line)
   var byFrom = {}, order = [];
   L.transfers.forEach(function (tr) {
     if (!byFrom[tr.from]) { byFrom[tr.from] = []; order.push(tr.from); }
     byFrom[tr.from].push(tr);
   });
-  if (order.length) out.push("");
+  if (order.length) {
+    out.push("");
+    out.push("\uD83D\uDCB8 " + t("msgWhoPays"));
+  }
   order.forEach(function (from) {
     var trs = byFrom[from];
     var total = trs.reduce(function (a, tr) { return a + tr.amount; }, 0);
     var allPaid = trs.every(function (tr) { return settled[tr.key]; });
-    var parts = trs.map(function (tr) {
-      return _plainName(tr.to) + " " + num(tr.amount) + (settled[tr.key] && !allPaid ? " \u2705" : "");
+    var mark = allPaid ? "\u2705 " : "\u2B1C ";
+    if (trs.length === 1) {
+      out.push(mark + _plainName(from) + " " + num(total) + " \u2192 " + _plainName(trs[0].to));
+      return;
+    }
+    out.push(mark + _plainName(from) + " " + num(total));
+    trs.forEach(function (tr) {
+      out.push("     \u2192 " + _plainName(tr.to) + " " + num(tr.amount) + (settled[tr.key] && !allPaid ? " \u2705" : ""));
     });
-    out.push((allPaid ? "\u2705 " : "\u25AB\uFE0F ") + _plainName(from) + ": " + num(total) + " \u2192 " + parts.join(", "));
   });
 
   var payers = {};
