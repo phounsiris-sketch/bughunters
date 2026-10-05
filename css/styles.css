@@ -3777,3 +3777,120 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
   font-size: 11px;
   color: var(--text-dim);
 }
+
+/* ========== Activity: votes vs games ========== */
+.act-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.act-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+
+.act-total b { font-size: 20px; color: var(--text); }
+.act-total span { font-size: 11px; color: var(--text-muted); }
+
+.act-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.act-row:last-of-type { border-bottom: 0; }
+
+.act-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.act-rank {
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.act-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.act-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.act-rate small { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+.act-rate.good { color: var(--accent); }
+.act-rate.mid { color: var(--orange); }
+.act-rate.low { color: var(--red); }
+.act-rate.none { color: var(--text-dim); }
+
+.act-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 3px 30px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.act-bar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 86px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.act-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.act-bar span { display: block; height: 100%; border-radius: 4px; }
+.act-bar-row.vote .act-bar span { background: #60a5fa; }
+.act-bar-row.play .act-bar span { background: var(--accent); }
+
+.act-bar-num {
+  width: 40px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.act-extra {
+  margin: 4px 0 0 30px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

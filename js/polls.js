@@ -27,6 +27,7 @@ function loadPolls() {
     pollsUnsubscribe = dbGetPolls(function (polls) {
       lastPolls = polls;
       if (currentPage === "polls") renderPolls(polls);
+      if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (typeof updateNotifications === "function") updateNotifications();
     });
   }

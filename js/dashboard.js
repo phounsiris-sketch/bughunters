@@ -68,7 +68,7 @@ function _renderDashboard() {
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb(null);
 
   var html = '<div class="dashboard-tabs">';
-  var tabs = [["leaders", t("leaderboard")], ["spending", t("spending")], ["activity", t("activity")]];
+  var tabs = [["leaders", t("leaderboard")], ["activity", t("activity")], ["spending", t("spending")]];
   for (var ti = 0; ti < tabs.length; ti++) {
     html += '<button class="dash-tab' + (tabs[ti][0] === dashTab ? ' active' : '') + '" onclick="switchDashTab(\'' + tabs[ti][0] + '\')">' + tabs[ti][1] + '</button>';
   }
@@ -396,45 +396,58 @@ function _renderActivityTab() {
   }
   setBreadcrumb(null);
 
-  var played = {}, voted = {}, dined = {};
+  // Per player: polls created, Join votes, games played, dinners — compared
+  // with the totals of the period
+  var played = {}, voted = {}, dined = {}, created = {}, dinners = 0;
+  var inc = function (m, u) { m[u] = (m[u] || 0) + 1; };
   sessions.forEach(function (s) {
-    (s.players || []).forEach(function (u) { played[u] = (played[u] || 0) + 1; });
-    if (s.dinner) (s.dinner.diners || []).forEach(function (u) { dined[u] = (dined[u] || 0) + 1; });
+    (s.players || []).forEach(function (u) { inc(played, u); });
+    if (s.dinner && (s.dinner.diners || []).length) { dinners++; s.dinner.diners.forEach(function (u) { inc(dined, u); }); }
   });
   polls.forEach(function (p) {
+    if (p.createdBy) inc(created, p.createdBy);
     var r = _pollResponses(p);
-    Object.keys(r).forEach(function (u) { if (r[u] === 0) voted[u] = (voted[u] || 0) + 1; });
+    Object.keys(r).forEach(function (u) { if (r[u] === 0) inc(voted, u); });
   });
 
   var uidSet = {};
   DB_CACHE.users.forEach(function (u) { uidSet[u.id] = true; });
   Object.keys(played).forEach(function (u) { uidSet[u] = true; });
   var uids = Object.keys(uidSet);
-  uids.sort(function (a, b) { return (played[b] || 0) - (played[a] || 0) || (voted[b] || 0) - (voted[a] || 0); });
+  var score = function (u) { return (played[u] || 0) + (voted[u] || 0) + (dined[u] || 0) + (created[u] || 0); };
+  uids.sort(function (a, b) { return score(b) - score(a) || (played[b] || 0) - (played[a] || 0); });
 
-  html += '<div class="cost-breakdown">';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("sessionsWord") + '</div><div class="cost-card-value">' + sessions.length + '</div></div>';
-  html += '<div class="cost-card"><div class="cost-card-label">' + t("pollsWord") + '</div><div class="cost-card-value">' + polls.length + '</div></div>';
-  html += '</div>';
+  html += '<div class="act-totals">' +
+    '<div class="act-total">' + icon("polls", 18) + '<b>' + polls.length + '</b><span>' + t("pollsWord") + '</span></div>' +
+    '<div class="act-total">' + icon("shuttle", 18) + '<b>' + sessions.length + '</b><span>' + t("sessionsWord") + '</span></div>' +
+    '<div class="act-total">' + icon("dinner", 18) + '<b>' + dinners + '</b><span>' + t("dinnersWord") + '</span></div></div>';
 
   if (!uids.length) return html + '<div class="empty-state"><div class="empty-icon">👥</div><div>' + t("noData") + '</div></div>';
 
-  var maxPlayed = 1;
-  uids.forEach(function (u) { maxPlayed = Math.max(maxPlayed, played[u] || 0); });
+  var bar = function (cls, iconName, label, n, total) {
+    var pct = total ? Math.round(n / total * 100) : 0;
+    return '<div class="act-bar-row ' + cls + '"><span class="act-bar-label">' + icon(iconName, 12) + ' ' + label + '</span>' +
+      '<span class="act-bar"><span style="width:' + pct + '%"></span></span>' +
+      '<span class="act-bar-num">' + n + '/' + total + '</span></div>';
+  };
 
   html += '<div class="card"><div class="card-title">' + t("activity") + ' — ' + _periodLabel() + '</div>';
   uids.forEach(function (u, ui) {
-    var p = played[u] || 0, v = voted[u] || 0, color = COLORS[ui % COLORS.length];
-    html += '<div class="activity-row" onclick="setActivityUser(\'' + u + '\')">';
-    html += '<div style="font-size:14px;font-weight:700;color:var(--text-dim);min-width:20px;text-align:center">' + (ui + 1) + '</div>';
-    html += avatarHtml(u, 28);
-    html += '<div style="flex:1;min-width:0">';
-    html += '<div style="display:flex;justify-content:space-between;gap:6px;margin-bottom:3px"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap">🏸 ' + p + '/' + sessions.length + ' • 🗳️ ' + v + '/' + polls.length + ' • ' + icon("dinner", 12) + ' ' + (dined[u] || 0) + '</div></div>';
-    html += '<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + Math.round(p / maxPlayed * 100) + '%;background:' + color + '"></div></div>';
-    html += '</div></div>';
+    var p = played[u] || 0, v = voted[u] || 0;
+    // Show-up: games played compared with Join votes
+    var rate = v ? Math.round(Math.min(p, v) / v * 100) : null;
+    var rcls = rate === null ? 'none' : rate >= 80 ? 'good' : rate >= 50 ? 'mid' : 'low';
+    html += '<div class="act-row" onclick="setActivityUser(\'' + u + '\')">';
+    html += '<div class="act-head"><span class="act-rank">' + (ui + 1) + '</span>' + avatarHtml(u, 30) +
+      '<span class="act-name">' + getUserName(u) + '</span>' +
+      '<span class="act-rate ' + rcls + '" title="' + t("showUpHint") + '">' + (rate === null ? '—' : rate + '%') + '<small>' + t("showUp") + '</small></span></div>';
+    html += bar('vote', 'polls', t("votedJoin"), v, polls.length);
+    html += bar('play', 'shuttle', t("playedWord"), p, sessions.length);
+    html += '<div class="act-extra">' + icon("dinner", 12) + ' ' + t("dinnersWord") + ' ' + (dined[u] || 0) + '/' + dinners +
+      ' · ✍️ ' + t("pollsCreated") + ' ' + (created[u] || 0) + '</div>';
+    html += '</div>';
   });
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">🏸 ' + t("sessionsAttended") + ' • 🗳️ ' + t("pollsJoined") + ' • ' + icon("dinner", 12) + ' ' + t("dinnersJoined") + ' • ' + t("tapForDetails") + '</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("showUpHint") + ' • ' + t("tapForDetails") + '</div>';
   html += '</div>';
   return html;
 }

@@ -2,7 +2,7 @@
    router.js — Page navigation system
    ============================================================ */
 
-var currentPage = "polls";
+var currentPage = "dashboard";
 var pageHistory = [];
 
 /**
@@ -73,7 +73,7 @@ function goBack() {
     var prev = pageHistory.pop();
     showPage(prev, false);
   } else {
-    showPage("polls", false);
+    showPage("dashboard", false);
   }
 }
 
@@ -110,7 +110,7 @@ function showAppPage() {
   if (authC) authC.style.display = "none";
   if (appC) appC.style.display = "";
 
-  showPage("polls");
+  showPage("dashboard"); // land on the dashboard after login
 }
 
 /* ──────────────────────────────────────────────────────────

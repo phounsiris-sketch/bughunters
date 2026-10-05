@@ -119,7 +119,7 @@
     <nav class="breadcrumb" id="breadcrumb" style="display:none" aria-label="Breadcrumb" data-i18n-aria="breadcrumb"></nav>
 
     <!-- PAGE: Polls -->
-    <div class="page active" id="page-polls">
+    <div class="page" id="page-polls">
       <div id="pollsList"></div>
     </div>
 
@@ -139,7 +139,7 @@
     </div>
 
     <!-- PAGE: Dashboard -->
-    <div class="page" id="page-dashboard">
+    <div class="page active" id="page-dashboard">
       <div id="dashboardContent"></div>
     </div>
 
@@ -169,17 +169,17 @@
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <div class="nav-item active" onclick="showPage('polls')" id="nav-polls">
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <span class="nav-icon" data-icon="dashboard" data-size="22"></span>
+      <span data-i18n="navDashboard">Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('polls')" id="nav-polls">
       <span class="nav-icon" data-icon="polls" data-size="22"></span><span class="badge nav-badge" id="navBadge-polls" style="display:none">0</span>
       <span data-i18n="navPolls">Polls</span>
     </div>
     <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
       <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
       <span data-i18n="navSessions">Sessions</span>
-    </div>
-    <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard">
-      <span class="nav-icon" data-icon="dashboard" data-size="22"></span>
-      <span data-i18n="navDashboard">Dashboard</span>
     </div>
     <div class="nav-item" onclick="showPage('profile')" id="nav-profile">
       <span class="nav-icon" data-icon="user" data-size="22"></span>
