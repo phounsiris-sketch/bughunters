@@ -266,10 +266,6 @@ function renderSessionsList(sessions) {
       '<span class="pay-banner-cta">' + (pay.oweTotal ? t("payNow") : t("view")) + ' ' + icon("chevron", 14) + '</span></button>';
   }
 
-  if (sessionView === "recent") {
-    html += '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
-  }
-
   // Filters, then latest first
   var list = inView.filter(function (s) {
     if (sessionStatusFilter && sessionStatus(s).key !== sessionStatusFilter) return false;
@@ -281,7 +277,8 @@ function renderSessionsList(sessions) {
     container.innerHTML = html +
       '<div class="empty-state"><div class="empty-icon">' + icon("sessions", 44) + '</div>' +
       '<div>' + (inView.length ? t("noMatch") : sessionView === "history" ? t("noHistory") : t("noSessions")) + '</div>' +
-      (sessionView === "recent" && !inView.length ? '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' : '') +
+      (sessionView === "recent" && !inView.length ? '<div style="margin-top:8px;font-size:13px">' + t("createFirst") + '</div>' +
+        '<button class="btn-primary" style="margin-top:16px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>' : '') +
       '</div>';
     return;
   }

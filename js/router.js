@@ -40,10 +40,14 @@ function showPage(page, pushHistory) {
   var activeNav = document.getElementById("nav-" + (page === "config" ? "settings" : page));
   if (activeNav) activeNav.classList.add("active");
 
-  // FAB visibility — only show on polls page
+  // Floating + button: new poll (Polls, Dashboard) or new session (Sessions)
   var fab = document.getElementById("fab");
   if (fab) {
-    fab.style.display = (page === "polls" || page === "dashboard") ? "" : "none"; // everyone can create a poll
+    var fabSession = page === "sessions";
+    fab.style.display = (page === "polls" || page === "dashboard" || fabSession) ? "" : "none"; // everyone can create
+    fab.setAttribute("aria-label", t(fabSession ? "newSession" : "createPoll"));
+    fab.title = t(fabSession ? "newSession" : "createPoll");
+    fab.onclick = fabSession ? function () { createAdHocSession(); } : function () { showCreatePoll(); };
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level
