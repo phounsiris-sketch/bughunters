@@ -77,7 +77,7 @@ function disablePush() {
   });
 }
 
-/** Settings → Profile card */
+/** Settings → Notifications card */
 function pushSettingsCard() {
   if (!PUSH_VAPID_KEY) return "";
   var st = pushState();
@@ -95,7 +95,6 @@ function pushSettingsCard() {
     html += '<div class="perm-note">' + t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted);margin-top:6px">' + (st === "needsHomeScreen" ? "iPhone, browser tab" : "state: " + st) + '</div>';
   }
-  html += '<div style="font-size:11px;color:var(--text-dim);margin-top:10px;text-align:right">' + APP_VERSION + '</div>';
   return html + '</div>';
 }
 

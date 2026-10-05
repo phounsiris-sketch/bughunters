@@ -3558,3 +3558,43 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 }
 
 .palette-swatch span { flex: 1; }
+
+/* ========== Profile header ========== */
+.profile-head { text-align: center; }
+.profile-name { margin-top: 10px; font-size: 18px; font-weight: 700; color: var(--text); }
+.profile-email { font-size: 13px; color: var(--text-muted); }
+
+/* ========== Segmented choice (theme, language) ========== */
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.seg-btn {
+  flex: 1;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.app-version {
+  margin: 4px 0 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}

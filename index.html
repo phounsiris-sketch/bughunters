@@ -149,6 +149,12 @@
     </div>
 
     <!-- PAGE: Settings -->
+    <!-- PAGE: Profile (your info, QR codes) -->
+    <div class="page" id="page-profile">
+      <div id="profileContent"></div>
+    </div>
+
+    <!-- PAGE: Settings (notifications, appearance, language, configuration) -->
     <div class="page" id="page-settings">
       <div id="settingsContent"></div>
     </div>
@@ -175,9 +181,13 @@
       <span class="nav-icon" data-icon="dashboard" data-size="22"></span>
       <span data-i18n="navDashboard">Dashboard</span>
     </div>
-    <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+    <div class="nav-item" onclick="showPage('profile')" id="nav-profile">
       <span class="nav-icon" data-icon="user" data-size="22"></span>
       <span data-i18n="navProfile">Profile</span>
+    </div>
+    <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+      <span class="nav-icon" data-icon="settings" data-size="22"></span>
+      <span data-i18n="navSettings">Settings</span>
     </div>
   </div>
 

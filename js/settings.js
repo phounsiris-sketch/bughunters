@@ -40,19 +40,25 @@ function _configTabs() {
    ────────────────────────────────────────────────────────── */
 
 function renderSettings() {
-  if (typeof currentPage !== "undefined" && currentPage === "config") { _renderConfigPage(); return; }
+  var page = typeof currentPage !== "undefined" ? currentPage : "";
+  if (page === "config") { _renderConfigPage(); return; }
+  if (page === "profile") {
+    var pc = document.getElementById("profileContent");
+    if (!pc) return;
+    // Don't wipe the profile form while the user is typing in it
+    if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
+    pc.innerHTML = _renderProfileTab();
+    _fillQrCard();
+    return;
+  }
   var container = document.getElementById("settingsContent");
-  if (!container) return;
-  // Don't wipe the profile form while the user is typing in it
-  if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
-  container.innerHTML = _renderProfileTab();
-  _fillQrCard();
+  if (container) container.innerHTML = _renderSettingsPage();
 }
 
 function _renderConfigPage() {
   var container = document.getElementById("configContent");
   if (!container) return;
-  setBreadcrumb([{ label: t("navProfile"), action: "showPage('settings')" }, { label: t("configuration") }]);
+  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("configuration") }]);
   var tabs = _configTabs();
   if (!tabs.some(function (x) { return x[0] === settingsTab; })) settingsTab = 'players';
 
@@ -81,24 +87,30 @@ function _renderConfigPage() {
   if (settingsTab === 'qr') _fillQrCard();
 }
 
-/* ---------- Profile ---------- */
+/* ---------- Profile: who you are, your QR codes ---------- */
 function _renderProfileTab() {
   var prof = currentUserProfile || {};
-  var pName = prof.displayName || '';
-  var html = '<div class="card">';
+  var email = prof.email || (currentUser && currentUser.email) || '';
+  var html = '<div class="card profile-head">';
   html += '<div class="avatar-edit">' + avatarHtml(currentUser ? currentUser.uid : '', 84) +
     '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">\uD83D\uDCF7</button></div>';
   html += '<input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">';
-  html += '<div style="text-align:center;margin-bottom:12px">' +
+  html += '<div class="profile-name">' + escapeHtml(prof.displayName || '') + '</div>';
+  html += '<div class="profile-email">' + escapeHtml(email) + '</div>';
+  html += '<div style="margin-top:8px">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div>';
+  html += '<div style="margin-top:6px">' +
     '<button class="link-btn" style="display:inline;margin:0" onclick="document.getElementById(\'avatarFile\').click()">' + t("changePhoto") + '</button>' +
-    (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') +
-    '<div style="margin-top:6px">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div></div>';
-  html += '<div class="form-group"><label class="form-label">' + t("emailLabel") + '</label>';
-  html += '<input class="form-input" value="' + escapeHtml(prof.email || (currentUser && currentUser.email) || '') + '" disabled></div>';
+    (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div>';
+  html += '</div>';
+
+  // Personal details
+  html += '<div class="card"><div class="card-title">' + icon("user", 14) + ' ' + t("myDetails") + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("displayName") + '</label>';
-  html += '<input class="form-input" id="pfName" value="' + escapeHtml(pName) + '"></div>';
+  html += '<input class="form-input" id="pfName" value="' + escapeHtml(prof.displayName || '') + '"></div>';
   html += '<div class="form-group"><label class="form-label">' + t("phone") + '</label>';
   html += phoneInputHtml("pfPhone", prof.phone) + '</div>';
+  html += '<div class="form-group"><label class="form-label">' + t("emailLabel") + '</label>';
+  html += '<input class="form-input" value="' + escapeHtml(email) + '" disabled></div>';
   html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
   html += '</div>';
 
@@ -106,20 +118,31 @@ function _renderProfileTab() {
   qrOwner = currentUser ? currentUser.uid : null;
   html += _qrCardHtml(t("myQrCodes"), t("myQrHint"), null);
 
+  html += _renderMergeCard();
+  html += '<button class="btn-danger" onclick="logoutUser()">' + t("logout") + '</button>';
+  return html;
+}
+
+/* ---------- Settings: notifications, appearance, language, configuration ---------- */
+function _seg(options, current, onclickFn) {
+  return '<div class="seg">' + options.map(function (o) {
+    return '<button class="seg-btn' + (o[0] === current ? ' active' : '') + '" onclick="' + onclickFn + '(\'' + o[0] + '\')">' + o[1] + '</button>';
+  }).join('') + '</div>';
+}
+
+function setThemeMode(mode) { if (mode !== currentTheme) toggleTheme(); renderSettings(); }
+function setLanguage(lang) { if (lang !== currentLang) toggleLang(); renderSettings(); }
+
+function _renderSettingsPage() {
+  var html = '';
+  // 1. Notifications
   if (typeof pushSettingsCard === "function") html += pushSettingsCard();
 
-  html += '<button class="card nav-card" onclick="showPage(\'config\')">' +
-    '<span class="nav-card-icon">' + icon("settings", 22) + '</span>' +
-    '<span class="nav-card-text"><b>' + t("configuration") + '</b><small>' + t("configurationHint") + '</small></span>' +
-    icon("chevron", 16) + '</button>';
-
-  html += _renderMergeCard();
-
-  html += '<div class="card"><div class="card-title">' + t("appSettings") + '</div>';
-  html += '<div class="settings-item"><div class="settings-label">' + t("language") + '</div><button class="edit-btn" onclick="toggleLang()">' + (currentLang === 'en' ? 'English → ລາວ' : 'ລາວ → English') + '</button></div>';
-  html += '<div class="settings-item"><div class="settings-label">' + t("theme") + '</div><button class="edit-btn" onclick="toggleTheme()">' + (currentTheme === 'dark' ? '🌙 → ☀️' : '☀️ → 🌙') + '</button></div>';
-  // Dark style picker
-  html += '<div class="settings-label" style="margin-top:12px">' + t("darkStyle") + '</div>';
+  // 2. Appearance
+  html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
+  html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
+  html += _seg([["dark", "🌙 " + t("themeDark")], ["light", "☀️ " + t("themeLight")]], currentTheme, "setThemeMode");
+  html += '<div class="settings-label" style="margin:14px 0 0">' + t("darkStyle") + '</div>';
   html += '<div class="palette-grid">';
   PALETTES.forEach(function (p) {
     var on = currentTheme === 'dark' && currentPalette === p[0];
@@ -127,10 +150,20 @@ function _renderProfileTab() {
       '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
       (on ? '✔ ' : '') + t(p[1]) + '</button>';
   });
-  html += '</div>';
+  html += '</div></div>';
+
+  // 3. Language
+  html += '<div class="card"><div class="card-title">🌐 ' + t("language") + '</div>';
+  html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';
 
-  html += '<button class="btn-danger" onclick="logoutUser()">' + t("logout") + '</button>';
+  // 4. Configuration
+  html += '<button class="card nav-card" onclick="showPage(\'config\')">' +
+    '<span class="nav-card-icon">' + icon("settings", 22) + '</span>' +
+    '<span class="nav-card-text"><b>' + t("configuration") + '</b><small>' + t("configurationHint") + '</small></span>' +
+    icon("chevron", 16) + '</button>';
+
+  html += '<div class="app-version">Godsmash ' + APP_VERSION + '</div>';
   return html;
 }
 

@@ -58,7 +58,7 @@ function toggleTheme() {
   currentTheme = (currentTheme === "dark") ? "light" : "dark";
   localStorage.setItem("theme", currentTheme);
   applyTheme();
-  if (typeof currentPage !== "undefined" && currentPage === "settings" && typeof renderSettings === "function") renderSettings();
+  if (typeof currentPage !== "undefined" && (currentPage === "settings" || currentPage === "profile") && typeof renderSettings === "function") renderSettings();
 }
 
 /**
@@ -273,7 +273,7 @@ function monthsOf(items, getDate) {
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
-  if ((currentPage === "settings" || currentPage === "config") && typeof renderSettings === "function") {
+  if ((currentPage === "settings" || currentPage === "profile" || currentPage === "config") && typeof renderSettings === "function") {
     renderSettings();
   } else if (currentPage === "polls" && typeof renderPolls === "function") {
     renderPolls(lastPolls);
@@ -317,7 +317,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v18"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v19"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
