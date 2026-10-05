@@ -6,7 +6,8 @@ const admin = require("firebase-admin");
 const { collectMessages } = require("./events");
 
 const APP_URL = process.env.APP_URL || "https://phounsiris-sketch.github.io/bughunters/";
-const TZ_OFFSET_H = 7; // Vientiane (UTC+7), for the weekly reminder
+const TZ_OFFSET_H = 7;  // Vientiane / Bangkok (UTC+7)
+const REMIND_HOUR = 9;  // daily payment reminder from 9:00
 
 async function main() {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -38,12 +39,17 @@ async function main() {
   const tokens = {}, langs = {};
   tokensSnap.forEach((d) => { tokens[d.id] = Object.keys(d.data().tokens || {}); langs[d.id] = d.data().lang; });
 
-  // Weekly reminder: Sunday after 10:00 Vientiane time, once per Sunday
+  // Daily payment reminder: first run after 9:00 Bangkok time, once a day
   const local = new Date(now + TZ_OFFSET_H * 3600e3);
   const today = local.toISOString().slice(0, 10);
-  const remind = local.getUTCDay() === 0 && local.getUTCHours() >= 10 && state.lastReminder !== today;
+  const remind = local.getUTCHours() >= REMIND_HOUR && state.lastReminder !== today;
 
-  const messages = collectMessages({ users, polls, sessions, langs }, state.lastRun, now, { remind, appUrl: APP_URL });
+  // "Game in 1 hour" reminders already sent (forget after 2 days)
+  const startSent = {};
+  Object.entries(state.startSent || {}).forEach(([id, at]) => { if (now - at < 2 * 86400e3) startSent[id] = at; });
+
+  const messages = collectMessages({ users, polls, sessions, langs }, state.lastRun, now, { remind, appUrl: APP_URL, startSent });
+  messages.forEach((m) => { if (m.startOf) startSent[m.startOf] = now; });
   let sent = 0, failed = 0;
   const dead = {}; // uid -> [bad tokens]
 
@@ -74,8 +80,8 @@ async function main() {
     await db.collection("pushTokens").doc(uid).update(upd).catch(() => {});
   }
 
-  await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null) }, { merge: true });
-  console.log(`events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", weekly reminder sent" : ""}`);
+  await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null), startSent }, { merge: true });
+  console.log(`events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", daily payment reminder sent" : ""}`);
 }
 
 /** Manual test: one push to every registered device, nothing else changes */
@@ -112,7 +118,7 @@ async function sendTest(db) {
     }
     console.log(`  ${names[doc.id]}: ${res.successCount}/${list.length} device(s)`);
   }
-  console.log(devices ? `Test push sent to ${sent} of ${devices} device(s).` : "No devices have notifications on yet — turn them on in Settings → Profile first.");
+  console.log(devices ? `Test push sent to ${sent} of ${devices} device(s).` : "No devices have notifications on yet — turn them on in Settings first.");
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

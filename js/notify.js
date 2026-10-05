@@ -1,13 +1,13 @@
 /* ============================================================
    notify.js — In-app notifications (no server needed).
-   Events are derived from data the app already listens to:
-     newPoll    — a poll you haven't answered yet
-     confirmed  — a plan you joined was confirmed
-     billReady  — the bill of a session you played is ready
-     paidToYou  — someone's payment to you was marked paid
-   The bell shows events newer than the last time you opened it;
-   tab badges show what is waiting for you (unanswered polls,
-   payments you still owe).
+   Events are derived from data the app already listens to.
+   Two categories, coloured differently in the list:
+     Notifications (blue)  — newPoll, confirmed, billReady, paidToYou
+     Reminders (amber)     — payReminder (daily from 9:00 until paid),
+                             gameSoon (from 1 hour before a game)
+   The bell shows events newer than the last time you opened it; the
+   list keeps history (scroll), and items can be deleted one by one or
+   all at once (stored per device). Tab badges show what is waiting.
    ============================================================ */
 
 function _seenKey() { return "notifSeen_" + (currentUser ? currentUser.uid : ""); }
@@ -23,49 +23,99 @@ function _tsOf(x) {
   return 0;
 }
 
-/** All events for the signed-in user, newest first */
+/* ---------- Deleted items (per device) ---------- */
+function _hideKey() { return "notifHidden_" + (currentUser ? currentUser.uid : ""); }
+function _hidden() {
+  try { return JSON.parse(localStorage.getItem(_hideKey())) || { ids: [], before: 0 }; } catch (e) { return { ids: [], before: 0 }; }
+}
+function _saveHidden(h) {
+  h.ids = h.ids.slice(-300);
+  try { localStorage.setItem(_hideKey(), JSON.stringify(h)); } catch (e) {}
+}
+function _isHidden(ev, h) { return ev.time <= h.before || h.ids.indexOf(ev.id) >= 0; }
+
+/* Bangkok / Vientiane time (UTC+7) helpers */
+var _TZ_MS = 7 * 3600e3;
+/** Today 9:00 Bangkok time, in ms */
+function _today9() {
+  var local = new Date(Date.now() + _TZ_MS);
+  return Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), 9) - _TZ_MS;
+}
+/** Session start in ms (date + time are Bangkok time) */
+function sessionStartMs(s) {
+  if (!s || !s.date || !s.time) return 0;
+  var d = s.date.split("-").map(Number), tm = s.time.split(":").map(Number);
+  if (!d[0] || isNaN(tm[0])) return 0;
+  return Date.UTC(d[0], d[1] - 1, d[2], tm[0], tm[1] || 0) - _TZ_MS;
+}
+
+/** All events for the signed-in user (not deleted), newest first */
 function computeNotifications() {
   var me = currentUser ? currentUser.uid : null;
   if (!me) return [];
   var events = [];
+  var now = Date.now();
 
   (typeof lastPolls !== "undefined" ? lastPolls : []).forEach(function (p) {
     var np = normalizePoll(p);
     var answered = np.responses.hasOwnProperty(me);
     if ((p.status === "draft" || p.status === "open") && !isPollArchived(p) && !answered) {
-      events.push({ type: "newPoll", time: _tsOf(p.createdAt), icon: "polls",
+      events.push({ id: "poll_" + p.id, cat: "notif", type: "newPoll", time: _tsOf(p.createdAt), icon: "polls",
         text: t("nNewPoll").replace("{name}", getUserName(p.createdBy)).replace("{date}", fmtDate(np.date)),
         action: "showPage('polls')" });
     }
     if (p.status === "confirmed" && np.responses[me] === 0) {
-      events.push({ type: "confirmed", time: _tsOf(p.confirmedAt) || _tsOf(p.createdAt), icon: "check",
+      events.push({ id: "conf_" + p.id, cat: "notif", type: "confirmed", time: _tsOf(p.confirmedAt) || _tsOf(p.createdAt), icon: "check",
         text: t("nConfirmed").replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),
         action: p.sessionId ? "showSessionDetail('" + p.sessionId + "')" : "showPage('polls')" });
     }
   });
 
+  var owe = {}, oweLatest = 0; // to -> amount still unpaid
   (typeof lastSessions !== "undefined" ? lastSessions : []).forEach(function (s) {
+    // Reminder: my game starts within the hour
+    var start = sessionStartMs(s);
+    if (start && (s.players || []).indexOf(me) >= 0 && now >= start - 3600e3 && now < start) {
+      events.push({ id: "soon_" + s.id, cat: "remind", type: "gameSoon", time: start - 3600e3, icon: "clock",
+        text: t("nGameSoon").replace("{time}", escapeHtml(s.time || "")).replace("{court}", escapeHtml(s.courtName || "")),
+        action: "showSessionDetail('" + s.id + "')" });
+    }
     if (!s.calculated) return;
     var L = computeLedger(s);
     var involved = (s.players || []).indexOf(me) >= 0 || L.shares[me];
     if (involved && s.billAt) {
       var mine = L.transfers.filter(function (tr) { return tr.from === me; }).reduce(function (a, tr) { return a + tr.amount; }, 0);
-      events.push({ type: "billReady", time: _tsOf(s.billAt), icon: "sessions",
+      events.push({ id: "bill_" + s.id, cat: "notif", type: "billReady", time: _tsOf(s.billAt), icon: "sessions",
         text: (mine ? t("nBillOwe").replace("{amount}", fmtLAK(mine)) : t("nBillNothing")) + " • " + fmtDate(s.date),
         action: "showSessionDetail('" + s.id + "')" });
     }
-    var at = s.settledAt || {};
+    var at = s.settledAt || {}, settled = s.settled || {};
     L.transfers.forEach(function (tr) {
-      if (tr.to === me && (s.settled || {})[tr.key] && at[tr.key]) {
-        events.push({ type: "paidToYou", time: _tsOf(at[tr.key]), icon: "wallet",
+      if (tr.to === me && settled[tr.key] && at[tr.key]) {
+        events.push({ id: "paid_" + s.id + "_" + tr.key, cat: "notif", type: "paidToYou", time: _tsOf(at[tr.key]), icon: "wallet",
           text: t("nPaidToYou").replace("{name}", getUserName(tr.from)).replace("{amount}", fmtLAK(tr.amount)),
           action: "showSessionDetail('" + s.id + "')" });
+      }
+      if (tr.from === me && !settled[tr.key]) {
+        owe[tr.to] = (owe[tr.to] || 0) + tr.amount;
+        oweLatest = Math.max(oweLatest, _tsOf(s.billAt));
       }
     });
   });
 
+  // Reminder: what I still owe, renewed every morning at 9:00 until paid
+  var nine = _today9(), day = new Date(nine + _TZ_MS).toISOString().slice(0, 10);
+  var remindAt = now >= nine ? nine : nine - 86400e3;
+  Object.keys(owe).forEach(function (to) {
+    events.push({ id: "owe_" + to + "_" + day, cat: "remind", type: "payReminder", time: Math.max(remindAt, oweLatest), icon: "wallet",
+      text: t("nOweReminder").replace("{name}", getUserName(to)).replace("{amount}", fmtLAK(owe[to])),
+      action: "showPage('payments')" });
+  });
+
+  var h = _hidden();
+  events = events.filter(function (ev) { return !_isHidden(ev, h); });
   events.sort(function (a, b) { return b.time - a.time; });
-  return events.slice(0, 40);
+  return events.slice(0, 100);
 }
 
 /** Refresh the bell and the tab badges */
@@ -99,6 +149,8 @@ function _setBadge(id, n) {
   el.style.display = n > 0 ? "" : "none";
 }
 
+var notifFilter = "all"; // all | remind | notif
+
 function toggleNotifications(e) {
   if (e) e.stopPropagation();
   var panel = document.getElementById("notifPanel");
@@ -111,15 +163,62 @@ function toggleNotifications(e) {
   _setBadge("bellBadge", 0);
 }
 
+function setNotifFilter(f, e) {
+  if (e) e.stopPropagation();
+  notifFilter = f;
+  _renderNotifPanel(computeNotifications(), _lastSeen());
+}
+
+/** Delete one item from the list */
+function dismissNotif(id, e) {
+  if (e) e.stopPropagation();
+  var h = _hidden();
+  if (h.ids.indexOf(id) < 0) h.ids.push(id);
+  _saveHidden(h);
+  _renderNotifPanel(computeNotifications(), _lastSeen());
+  updateNotifications();
+}
+
+/** Delete everything currently in the list */
+function clearAllNotifs(e) {
+  if (e) e.stopPropagation();
+  var h = _hidden();
+  h.before = Date.now();
+  h.ids = [];
+  _saveHidden(h);
+  _renderNotifPanel(computeNotifications(), _lastSeen());
+  updateNotifications();
+}
+
+function openNotif(i) {
+  var ev = (_notifShown || [])[i];
+  document.getElementById("notifPanel").classList.remove("open");
+  if (ev) (new Function(ev.action))();
+}
+
+var _notifShown = [];
 function _renderNotifPanel(events, seen) {
   var panel = document.getElementById("notifPanel");
-  var html = '<div class="notif-head">' + t("notifications") + '</div>';
-  if (!events.length) html += '<div class="notif-empty">' + t("noNotifications") + '</div>';
-  events.forEach(function (ev) {
-    html += '<button class="notif-item' + (ev.time > seen ? ' unread' : '') + '" onclick="document.getElementById(\'notifPanel\').classList.remove(\'open\');' + ev.action.replace(/"/g, "&quot;") + '">' +
-      '<span class="notif-icon n-' + ev.type + '">' + icon(ev.icon, 18) + '</span>' +
-      '<span class="notif-text">' + ev.text + '<span class="notif-time">' + _timeAgo(ev.time) + '</span></span></button>';
+  var counts = { all: events.length, remind: 0, notif: 0 };
+  events.forEach(function (ev) { counts[ev.cat]++; });
+  var list = events.filter(function (ev) { return notifFilter === "all" || ev.cat === notifFilter; });
+  _notifShown = list;
+
+  var html = '<div class="notif-head"><span>' + t("notifications") + '</span>' +
+    (events.length ? '<button class="notif-clear" onclick="clearAllNotifs(event)">' + icon("trash", 14) + ' ' + t("clearAll") + '</button>' : '') + '</div>';
+  html += '<div class="notif-filters">' + [["all", t("allWord")], ["remind", t("reminders")], ["notif", t("notificationsWord")]].map(function (f) {
+    return '<button class="notif-chip c-' + f[0] + (notifFilter === f[0] ? ' active' : '') + '" onclick="setNotifFilter(\'' + f[0] + '\',event)">' + f[1] + ' <b>' + counts[f[0]] + '</b></button>';
+  }).join('') + '</div>';
+  html += '<div class="notif-list">';
+  if (!list.length) html += '<div class="notif-empty">' + t("noNotifications") + '</div>';
+  list.forEach(function (ev, i) {
+    html += '<div class="notif-item cat-' + ev.cat + (ev.time > seen ? ' unread' : '') + '" role="button" tabindex="0" onclick="openNotif(' + i + ')">' +
+      '<span class="notif-icon">' + icon(ev.icon, 18) + '</span>' +
+      '<span class="notif-text"><span class="notif-tag">' + (ev.cat === "remind" ? t("reminderTag") : t("notificationTag")) + '</span>' + ev.text +
+      '<span class="notif-time">' + _timeAgo(ev.time) + '</span></span>' +
+      '<button class="notif-del" aria-label="' + t("delete") + '" onclick="dismissNotif(\'' + ev.id + '\',event)">\u2715</button></div>';
   });
+  html += '</div>';
   panel.innerHTML = html;
 }
 

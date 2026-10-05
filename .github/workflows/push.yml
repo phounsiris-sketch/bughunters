@@ -1,7 +1,10 @@
 name: Send push notifications
 
-# Checks Firestore for new polls / bills / payments and sends web pushes.
-# GitHub runs schedules best-effort: expect pushes a few to ~30 minutes late.
+# Checks Firestore for new polls / bills / payments, daily payment reminders
+# and "game in 1 hour" reminders, and sends web pushes.
+# GitHub runs schedules best-effort (often only every few hours). For
+# punctual reminders, an external cron (e.g. cron-job.org) can start this
+# workflow through the API every 5-10 minutes (workflow_dispatch).
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -22,6 +25,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main   # always run the latest sender code
       - uses: actions/setup-node@v4
         with:
           node-version: 20

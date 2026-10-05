@@ -20,14 +20,16 @@ const TEXT = {
     confirmedT: "✅ Plan confirmed", confirmedB: "{date} {time} at {court}. See you there!",
     billT: "🧾 Bill ready", billOwe: "{date}: you owe {amount}. Tap to pay.", billNone: "{date}: nothing for you to pay.",
     paidT: "💸 Payment received", paidB: "{name} paid you {amount}",
-    remindT: "⏰ Payment reminder", remindB: "You still owe {amount} in total. Tap to see who to pay."
+    remindT: "⏰ Payment reminder", remindB: "You still owe {list} — {amount} in total. Tap to pay.",
+    startT: "⏰ Game in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)"
   },
   la: {
     newPollT: "🏸 ໂຫວດໃໝ່", newPollB: "{name}: {date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ?",
     confirmedT: "✅ ຢືນຢັນແຜນແລ້ວ", confirmedB: "{date} {time} ທີ່ {court}. ພົບກັນ!",
     billT: "🧾 ບິນພ້ອມແລ້ວ", billOwe: "{date}: ທ່ານຕ້ອງຈ່າຍ {amount}. ແຕະເພື່ອຈ່າຍ.", billNone: "{date}: ທ່ານບໍ່ຕ້ອງຈ່າຍ.",
     paidT: "💸 ໄດ້ຮັບເງິນແລ້ວ", paidB: "{name} ຈ່າຍໃຫ້ທ່ານ {amount}",
-    remindT: "⏰ ແຈ້ງເຕືອນຈ່າຍເງິນ", remindB: "ທ່ານຍັງຄ້າງຈ່າຍທັງໝົດ {amount}. ແຕະເພື່ອເບິ່ງ."
+    remindT: "⏰ ແຈ້ງເຕືອນຈ່າຍເງິນ", remindB: "ທ່ານຍັງຄ້າງ {list} — ລວມ {amount}. ແຕະເພື່ອຈ່າຍ.",
+    startT: "⏰ ອີກ 1 ຊົ່ວໂມງຫຼິ້ນແລ້ວ — ກຽມພ້ອມ!", startB: "ແບດມິນຕັນ {time} ທີ່ {court} (ອີກ {min} ນາທີ)"
   }
 };
 
@@ -51,8 +53,10 @@ function pollInfo(p) {
 /**
  * @param data { users:{uid:doc}, polls:[doc+id], sessions:[doc+id], langs:{uid:'en'|'la'} }
  * @param since last run (ms); @param now (ms)
- * @param opts { remind: boolean, appUrl }
- * @returns [{ uid, title, body, link }]
+ * @param opts { remind: boolean (daily payment reminder), appUrl,
+ *                startSent: { sessionId: ms } sessions already reminded }
+ * @returns [{ uid, title, body, link, startOf? }] — startOf = session id of a
+ *          "game in 1 hour" reminder (the caller records it in startSent)
  */
 function collectMessages(data, since, now, opts) {
   opts = opts || {};
@@ -79,7 +83,7 @@ function collectMessages(data, since, now, opts) {
     }
   });
 
-  const owedTotal = {};
+  const owed = {}; // from -> to -> amount still unpaid
   data.sessions.forEach((s) => {
     if (!s.calculated) return;
     const L = computeLedger(s);
@@ -96,17 +100,47 @@ function collectMessages(data, since, now, opts) {
       if (settled[tr.key] && isNew(ms(at[tr.key]))) {
         out.push({ uid: tr.to, title: T(tr.to).paidT, body: fill(T(tr.to).paidB, { name: name(tr.from), amount: fmtLAK(tr.amount) }), link: link("#session=" + s.id) });
       }
-      if (!settled[tr.key]) owedTotal[tr.from] = (owedTotal[tr.from] || 0) + tr.amount;
+      if (!settled[tr.key]) {
+        owed[tr.from] = owed[tr.from] || {};
+        owed[tr.from][tr.to] = (owed[tr.from][tr.to] || 0) + tr.amount;
+      }
     });
   });
 
+  // Daily payment reminder (every morning until it is marked paid)
   if (opts.remind) {
-    Object.keys(owedTotal).forEach((uid) => {
-      out.push({ uid, title: T(uid).remindT, body: fill(T(uid).remindB, { amount: fmtLAK(owedTotal[uid]) }), link: link("#payments") });
+    Object.keys(owed).forEach((uid) => {
+      const to = owed[uid];
+      const total = Object.values(to).reduce((a, b) => a + b, 0);
+      const list = Object.keys(to).map((r) => name(r) + " " + fmtLAK(to[r])).join(", ");
+      out.push({ uid, title: T(uid).remindT, body: fill(T(uid).remindB, { list, amount: fmtLAK(total) }), link: link("#payments") });
     });
   }
+
+  // Game starts within the next hour → remind its players once
+  const startSent = opts.startSent || {};
+  data.sessions.forEach((s) => {
+    const start = sessionStart(s);
+    if (!start || startSent[s.id]) return;
+    const left = start - now;
+    if (left <= 0 || left > 60 * 60e3) return;
+    (s.players || []).forEach((uid) => {
+      out.push({ uid, title: T(uid).startT, startOf: s.id,
+        body: fill(T(uid).startB, { time: s.time || "", court: s.courtName || "", min: Math.max(1, Math.round(left / 60e3)) }),
+        link: link("#session=" + s.id) });
+    });
+  });
   // Manual players can't receive pushes
   return out.filter((m) => data.users[m.uid] && !data.users[m.uid].manual);
 }
 
-module.exports = { collectMessages, computeLedger };
+/** Session start in ms — date + time are Vientiane / Bangkok time (UTC+7) */
+function sessionStart(s) {
+  if (!s.date || !s.time) return 0;
+  const [y, m, d] = s.date.split("-").map(Number);
+  const [hh, mm] = s.time.split(":").map(Number);
+  if (!y || isNaN(hh)) return 0;
+  return Date.UTC(y, m - 1, d, hh - 7, mm || 0);
+}
+
+module.exports = { collectMessages, computeLedger, sessionStart };

@@ -3089,15 +3089,15 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   top: 64px;
   right: 10px;
   z-index: 250;
-  width: min(360px, calc(100vw - 20px));
-  max-height: 70vh;
-  overflow-y: auto;
+  width: min(380px, calc(100vw - 20px));
   padding: 8px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
   display: none;
+  --c-remind: #f59e0b;
+  --c-notif: #60a5fa;
 }
 
 .notif-panel.open {
@@ -3106,12 +3106,61 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 }
 
 .notif-head {
-  padding: 6px 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 8px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.notif-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--red);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.notif-filters {
+  display: flex;
+  gap: 6px;
+  padding: 0 4px 8px;
+}
+
+.notif-chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notif-chip b { font-weight: 700; opacity: .8; }
+.notif-chip.active { color: #fff; border-color: transparent; background: var(--primary); }
+.notif-chip.c-remind.active { background: var(--c-remind); color: #1a1205; }
+.notif-chip.c-notif.active { background: var(--c-notif); color: #06142b; }
+
+/* About 5 items visible; scroll for older ones */
+.notif-list {
+  max-height: 340px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .notif-empty {
@@ -3122,25 +3171,25 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 }
 
 .notif-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
   width: 100%;
-  padding: 10px 8px;
+  min-height: 64px;
+  padding: 10px 30px 10px 10px;
+  margin-bottom: 4px;
   border-radius: 10px;
+  border-left: 3px solid var(--c-notif);
   text-align: left;
   color: var(--text);
-  background: none;
-  border: none;
+  cursor: pointer;
 }
 
-.notif-item:hover {
-  background: var(--surface);
-}
-
-.notif-item.unread {
-  background: rgba(74, 222, 128, 0.08);
-}
+.notif-item.cat-remind { border-left-color: var(--c-remind); }
+.notif-item:hover { background: var(--surface); }
+.notif-item.unread { background: rgba(96, 165, 250, 0.10); }
+.notif-item.cat-remind.unread { background: rgba(245, 158, 11, 0.12); }
 
 .notif-icon {
   flex-shrink: 0;
@@ -3150,15 +3199,27 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface);
-  color: var(--accent);
+  background: rgba(96, 165, 250, 0.15);
+  color: var(--c-notif);
 }
 
-.n-newPoll { color: #60a5fa; }
-.n-billReady { color: var(--orange); }
-.n-paidToYou { color: var(--accent); }
+.cat-remind .notif-icon { background: rgba(245, 158, 11, 0.16); color: var(--c-remind); }
+
+.notif-tag {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--c-notif);
+}
+
+.cat-remind .notif-tag { color: var(--c-remind); }
 
 .notif-text {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   line-height: 1.35;
 }
@@ -3169,6 +3230,22 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+.notif-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.notif-del:hover { background: var(--surface); color: var(--red); }
 
 /* ========== My payments ========== */
 .pay-banner {
