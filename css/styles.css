@@ -9,6 +9,12 @@
   --orange: #f59e0b;
   --red: #ef4444;
   --share-green: #25D366;
+  /* Pieces that follow the dark style (see "Dark styles" at the end) */
+  --accent-rgb: 74, 222, 128;
+  --poll-card-bg: linear-gradient(160deg, #1f4672 0%, #173459 100%);
+  --poll-card-border: #3d6fa8;
+  --poll-option-bg: rgba(6, 13, 26, 0.45);
+  --pay-banner-bg: linear-gradient(135deg, #b45309, #d97706);
 
   /* Page is darker than cards so cards stand out; inner boxes sit between */
   --bg: #060d1a;
@@ -1874,8 +1880,8 @@ body[data-theme="dark"] { color-scheme: dark; }
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.25);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
 }
 
 .proxy-row {
@@ -2828,8 +2834,8 @@ button.crumb:hover {
 
 /* ========== Poll cards: brighter in dark mode only ========== */
 body:not([data-theme="light"]) .poll-card {
-  background: linear-gradient(160deg, #1f4672 0%, #173459 100%);
-  border-color: #3d6fa8;
+  background: var(--poll-card-bg);
+  border-color: var(--poll-card-border);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 
@@ -2839,12 +2845,12 @@ body:not([data-theme="light"]) .poll-card .poll-plan {
 }
 
 body:not([data-theme="light"]) .poll-card .poll-option {
-  background: rgba(6, 13, 26, 0.45);
+  background: var(--poll-option-bg);
   border-color: rgba(255, 255, 255, 0.14);
 }
 
 body:not([data-theme="light"]) .poll-card .poll-option.voted {
-  background: rgba(74, 222, 128, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
   border-color: var(--accent);
 }
 
@@ -2853,7 +2859,7 @@ body:not([data-theme="light"]) .poll-card .poll-option div {
 }
 
 body:not([data-theme="light"]) .poll-card .joined-box {
-  background: rgba(74, 222, 128, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
 }
 
 /* ========== QR rows (Settings) ========== */
@@ -3173,7 +3179,7 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   margin-bottom: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #b45309, #d97706);
+  background: var(--pay-banner-bg);
   color: #fff;
   border: none;
   box-shadow: var(--card-shadow);
@@ -3469,3 +3475,86 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* ========== Dark styles (Profile → Theme). Navy Teal is the default ========== */
+body[data-palette="violet"]:not([data-theme="light"]) {
+  --primary: #7c4dff; --primary-light: #9575ff; --accent: #5eead4; --accent-rgb: 94, 234, 212; --blue: #a855f7;
+  --bg: #110e1a; --surface: #171323; --card: #201a31; --border: #372d55;
+  --text: #ece9f5; --text-secondary: #bdb5d6; --text-muted: #958cb3; --text-dim: #665e85;
+  --input-bg: #171323; --chip-bg: #171323;
+  --poll-card-bg: linear-gradient(160deg, #2c2346 0%, #201a31 100%); --poll-card-border: #4a3d75;
+  --poll-option-bg: rgba(17, 14, 26, 0.5);
+  --pay-banner-bg: linear-gradient(135deg, #be185d, #db2777);
+}
+
+body[data-palette="court"]:not([data-theme="light"]) {
+  --primary: #1d5fd1; --primary-light: #3b82f6; --accent: #7dd3fc; --accent-rgb: 125, 211, 252; --blue: #0e7490;
+  --bg: #0a1220; --surface: #0e192c; --card: #14233d; --border: #284572;
+  --text: #eef4fb; --text-secondary: #b3c4da; --text-muted: #8aa0bd; --text-dim: #5a7090;
+  --input-bg: #0e192c; --chip-bg: #0e192c;
+  --poll-card-bg: linear-gradient(160deg, #1b3157 0%, #14233d 100%); --poll-card-border: #3a64a3;
+  --poll-option-bg: rgba(10, 18, 32, 0.5);
+  --pay-banner-bg: linear-gradient(135deg, #b45309, #d97706);
+}
+/* White court line on poll cards */
+body[data-palette="court"]:not([data-theme="light"]) .poll-card { border-left: 3px solid #e8f1ff; }
+
+body[data-palette="clean"]:not([data-theme="light"]) {
+  --primary: #3b74d9; --primary-light: #5b8def; --accent: #6ee7b7; --accent-rgb: 110, 231, 183; --blue: #5b5fc7;
+  --bg: #121212; --surface: #181818; --card: #1f1f1f; --border: #2f2f2f;
+  --text: #e8e8e8; --text-secondary: #b8b8b8; --text-muted: #8f8f8f; --text-dim: #5f5f5f;
+  --input-bg: #181818; --chip-bg: #181818;
+  --poll-card-bg: #242424; --poll-card-border: #383838;
+  --poll-option-bg: rgba(18, 18, 18, 0.6);
+  --pay-banner-bg: linear-gradient(135deg, #c2410c, #ea580c);
+}
+
+body[data-palette="midnight"]:not([data-theme="light"]) {
+  --primary: #5b4dff; --primary-light: #7468ff; --accent: #5eead4; --accent-rgb: 94, 234, 212; --blue: #1d6fe0;
+  --bg: #0c0e1c; --surface: #121528; --card: #1a1e38; --border: #30365f;
+  --text: #eceef8; --text-secondary: #b6bbdb; --text-muted: #8b91b8; --text-dim: #5c6288;
+  --input-bg: #121528; --chip-bg: #121528;
+  --poll-card-bg: linear-gradient(160deg, #262b50 0%, #1a1e38 100%); --poll-card-border: #424a85;
+  --poll-option-bg: rgba(12, 14, 28, 0.5);
+  --pay-banner-bg: linear-gradient(135deg, #a21caf, #db2777);
+}
+
+/* Theme picker in Profile */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.palette-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-opt.active {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.25);
+}
+
+.palette-swatch {
+  display: flex;
+  width: 100%;
+  height: 26px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.palette-swatch span { flex: 1; }

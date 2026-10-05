@@ -118,6 +118,16 @@ function _renderProfileTab() {
   html += '<div class="card"><div class="card-title">' + t("appSettings") + '</div>';
   html += '<div class="settings-item"><div class="settings-label">' + t("language") + '</div><button class="edit-btn" onclick="toggleLang()">' + (currentLang === 'en' ? 'English → ລາວ' : 'ລາວ → English') + '</button></div>';
   html += '<div class="settings-item"><div class="settings-label">' + t("theme") + '</div><button class="edit-btn" onclick="toggleTheme()">' + (currentTheme === 'dark' ? '🌙 → ☀️' : '☀️ → 🌙') + '</button></div>';
+  // Dark style picker
+  html += '<div class="settings-label" style="margin-top:12px">' + t("darkStyle") + '</div>';
+  html += '<div class="palette-grid">';
+  PALETTES.forEach(function (p) {
+    var on = currentTheme === 'dark' && currentPalette === p[0];
+    html += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')">' +
+      '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
+      (on ? '✔ ' : '') + t(p[1]) + '</button>';
+  });
+  html += '</div>';
   html += '</div>';
 
   html += '<button class="btn-danger" onclick="logoutUser()">' + t("logout") + '</button>';

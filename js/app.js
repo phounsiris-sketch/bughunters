@@ -16,18 +16,49 @@ var COLORS = [
 
 var currentTheme = localStorage.getItem("theme") || "dark";
 
+/* Dark styles: [id, name key, swatch colours, header colour] */
+var PALETTES = [
+  ["navy", "palNavy", ["#060d1a", "#18304f", "#0d9488", "#4ade80"], "#0d9488"],
+  ["violet", "palViolet", ["#110e1a", "#201a31", "#7c4dff", "#5eead4"], "#7c4dff"],
+  ["court", "palCourt", ["#0a1220", "#14233d", "#1d5fd1", "#7dd3fc"], "#1d5fd1"],
+  ["clean", "palClean", ["#121212", "#1f1f1f", "#3b74d9", "#6ee7b7"], "#3b74d9"],
+  ["midnight", "palMidnight", ["#0c0e1c", "#1a1e38", "#5b4dff", "#1d6fe0"], "#5b4dff"]
+];
+var currentPalette = (function () {
+  var v = null;
+  try { v = localStorage.getItem("palette"); } catch (e) {}
+  return PALETTES.some(function (p) { return p[0] === v; }) ? v : "navy";
+})();
+
+/** Apply theme + dark style to the page and the phone's status bar */
+function applyTheme() {
+  document.body.setAttribute("data-theme", currentTheme);
+  document.body.setAttribute("data-palette", currentPalette);
+  var pal = PALETTES.filter(function (p) { return p[0] === currentPalette; })[0] || PALETTES[0];
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", currentTheme === "light" ? "#0d9488" : pal[3]);
+  var themeBtn = document.getElementById("themeBtn");
+  if (themeBtn) themeBtn.textContent = (currentTheme === "dark") ? "\u2600\uFE0F" : "\uD83C\uDF19";
+}
+
+/** Pick a dark style (also switches to dark mode) */
+function setPalette(id) {
+  currentPalette = id;
+  currentTheme = "dark";
+  try { localStorage.setItem("palette", id); localStorage.setItem("theme", "dark"); } catch (e) {}
+  applyTheme();
+  if (typeof renderSettings === "function") renderSettings();
+  if (typeof _renderDashboard === "function" && typeof currentPage !== "undefined" && currentPage === "dashboard") _renderDashboard();
+}
+
 /**
  * Toggle between dark and light themes
  */
 function toggleTheme() {
   currentTheme = (currentTheme === "dark") ? "light" : "dark";
-  document.body.setAttribute("data-theme", currentTheme);
   localStorage.setItem("theme", currentTheme);
-
-  var themeBtn = document.getElementById("themeBtn");
-  if (themeBtn) {
-    themeBtn.textContent = (currentTheme === "dark") ? "\u2600\uFE0F" : "\uD83C\uDF19";
-  }
+  applyTheme();
+  if (typeof currentPage !== "undefined" && currentPage === "settings" && typeof renderSettings === "function") renderSettings();
 }
 
 /**
@@ -270,11 +301,7 @@ function refreshCurrentPage(reason) {
 
 function initApp() {
   // Apply saved theme
-  document.body.setAttribute("data-theme", currentTheme);
-  var themeBtn = document.getElementById("themeBtn");
-  if (themeBtn) {
-    themeBtn.textContent = (currentTheme === "dark") ? "\u2600\uFE0F" : "\uD83C\uDF19";
-  }
+  applyTheme();
 
   // Apply translations
   if (typeof applyI18n === "function") {
@@ -290,7 +317,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v16"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v17"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
@@ -330,7 +357,7 @@ function fillStaticIcons(root) {
 fillStaticIcons();
 
 // Theme + language on the sign-in screen too
-document.body.setAttribute("data-theme", currentTheme);
+applyTheme();
 if (typeof applyI18n === "function") applyI18n();
 
 // Splash follows the saved theme / language
