@@ -1260,9 +1260,10 @@ function buildMessengerText(s) {
     out.push("");
     out.push("\uD83D\uDCB8 " + t("msgWhoPays"));
   }
-  order.forEach(function (from) {
+  order.forEach(function (from, i) {
     var trs = byFrom[from];
     var total = trs.reduce(function (a, tr) { return a + tr.amount; }, 0);
+    if (i > 0) out.push(""); // blank line between payers
     var allPaid = trs.every(function (tr) { return settled[tr.key]; });
     var mark = allPaid ? "\u2705 " : "\u2B1C ";
     if (trs.length === 1) {
