@@ -37,13 +37,13 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var activeNav = document.getElementById("nav-" + page);
+  var activeNav = document.getElementById("nav-" + (page === "config" ? "settings" : page));
   if (activeNav) activeNav.classList.add("active");
 
   // FAB visibility — only show on polls page
   var fab = document.getElementById("fab");
   if (fab) {
-    fab.style.display = (page === "polls" && (typeof can !== "function" || can("createPoll"))) ? "" : "none";
+    fab.style.display = page === "polls" ? "" : "none"; // everyone can create a poll
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level
@@ -60,6 +60,8 @@ function showPage(page, pushHistory) {
     loadPayments();
   } else if (page === "settings" && typeof loadSettings === "function") {
     loadSettings();
+  } else if (page === "config" && typeof loadConfig === "function") {
+    loadConfig();
   }
 }
 

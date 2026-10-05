@@ -1,6 +1,6 @@
 /* ============================================================
-   settings.js — Settings with sub-menu:
-                 Profile | Players | Courts | Cocks | QR
+   settings.js — Profile page (your own info, QR, notifications) and the
+                 Configuration page: Players | Courts | Cocks | Players' QR | General
    Depends on: db.js (DB_CACHE, dbAddCourt, dbUpdateCourt, dbDeleteCourt,
                       dbAddShuttlecock, dbUpdateShuttlecock,
                       dbDeleteShuttlecock, dbUpdateUser, dbSetQrCodes),
@@ -10,10 +10,12 @@
                        escapeHtml, fmtLAK, fmtShort, COLORS)
    ============================================================ */
 
+var SETTINGS_TABS = [['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabPlayersQr'], ['general', 'tabGeneral']];
 var settingsTab = (function () {
-  try { return localStorage.getItem('settingsTab') || 'profile'; } catch (e) { return 'profile'; }
+  var v = null;
+  try { v = localStorage.getItem('settingsTab'); } catch (e) {}
+  return SETTINGS_TABS.some(function (x) { return x[0] === v; }) ? v : 'players';
 })();
-var SETTINGS_TABS = [['profile', 'tabProfile'], ['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabQR'], ['general', 'tabGeneral']];
 
 function setSettingsTab(tab) {
   settingsTab = tab;
@@ -26,20 +28,40 @@ function loadSettings() {
   renderSettings();
 }
 
+function loadConfig() { renderSettings(); }
+
+/** Tabs on the Configuration page (Players' QR only for editConfig) */
+function _configTabs() {
+  return SETTINGS_TABS.filter(function (x) { return x[0] !== 'qr' || can("editConfig"); });
+}
+
 /* ──────────────────────────────────────────────────────────
    Render
    ────────────────────────────────────────────────────────── */
 
 function renderSettings() {
+  if (typeof currentPage !== "undefined" && currentPage === "config") { _renderConfigPage(); return; }
   var container = document.getElementById("settingsContent");
   if (!container) return;
+  // Don't wipe the profile form while the user is typing in it
+  if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
+  container.innerHTML = _renderProfileTab();
+  _fillQrCard();
+}
 
-  var tabsEl = document.getElementById("settingsTabs");
+function _renderConfigPage() {
+  var container = document.getElementById("configContent");
+  if (!container) return;
+  setBreadcrumb([{ label: t("navProfile"), action: "showPage('settings')" }, { label: t("configuration") }]);
+  var tabs = _configTabs();
+  if (!tabs.some(function (x) { return x[0] === settingsTab; })) settingsTab = 'players';
+
+  var tabsEl = document.getElementById("configTabs");
   if (tabsEl) {
     var tHtml = '';
-    for (var ti = 0; ti < SETTINGS_TABS.length; ti++) {
-      tHtml += '<button class="dash-tab' + (SETTINGS_TABS[ti][0] === settingsTab ? ' active' : '') +
-        '" style="padding:8px 4px;font-size:12px" onclick="setSettingsTab(\'' + SETTINGS_TABS[ti][0] + '\')">' + t(SETTINGS_TABS[ti][1]) + '</button>';
+    for (var ti = 0; ti < tabs.length; ti++) {
+      tHtml += '<button class="dash-tab' + (tabs[ti][0] === settingsTab ? ' active' : '') +
+        '" style="padding:8px 4px;font-size:12px" onclick="setSettingsTab(\'' + tabs[ti][0] + '\')">' + t(tabs[ti][1]) + '</button>';
     }
     tabsEl.innerHTML = tHtml;
     tabsEl.classList.add("tabs-scroll");
@@ -47,18 +69,16 @@ function renderSettings() {
     if (activeTab && activeTab.scrollIntoView) activeTab.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
-  // Don't wipe the profile form while the user is typing in it
-  if (settingsTab === 'profile' && document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
   if (settingsTab === 'general' && document.activeElement && document.activeElement.id === 'gMinPlayers') return;
 
   var html = '';
-  if (settingsTab === 'profile') html = _renderProfileTab();
-  else if (settingsTab === 'players') html = _renderPlayersTab();
+  if (settingsTab === 'players') html = _renderPlayersTab();
   else if (settingsTab === 'courts') html = _renderCourtsTab();
   else if (settingsTab === 'shuttle') html = _renderShuttleTab();
   else if (settingsTab === 'qr') html = _renderQrTab();
   else if (settingsTab === 'general') html = _renderGeneralTab();
   container.innerHTML = html;
+  if (settingsTab === 'qr') _fillQrCard();
 }
 
 /* ---------- Profile ---------- */
@@ -78,11 +98,21 @@ function _renderProfileTab() {
   html += '<div class="form-group"><label class="form-label">' + t("displayName") + '</label>';
   html += '<input class="form-input" id="pfName" value="' + escapeHtml(pName) + '"></div>';
   html += '<div class="form-group"><label class="form-label">' + t("phone") + '</label>';
-  html += '<input class="form-input" id="pfPhone" inputmode="tel" value="' + escapeHtml(prof.phone || '') + '" placeholder="020 xxxx xxxx"></div>';
+  html += phoneInputHtml("pfPhone", prof.phone) + '</div>';
   html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
   html += '</div>';
 
+  // My payment QR codes — everyone manages their own
+  qrOwner = currentUser ? currentUser.uid : null;
+  html += _qrCardHtml(t("myQrCodes"), t("myQrHint"), null);
+
   if (typeof pushSettingsCard === "function") html += pushSettingsCard();
+
+  html += '<button class="card nav-card" onclick="showPage(\'config\')">' +
+    '<span class="nav-card-icon">' + icon("settings", 22) + '</span>' +
+    '<span class="nav-card-text"><b>' + t("configuration") + '</b><small>' + t("configurationHint") + '</small></span>' +
+    icon("chevron", 16) + '</button>';
+
   html += _renderMergeCard();
 
   html += '<div class="card"><div class="card-title">' + t("appSettings") + '</div>';
@@ -123,7 +153,9 @@ function _permBadges(perms) {
 
 function saveProfileSettings() {
   var name = document.getElementById("pfName").value.trim();
-  var phone = document.getElementById("pfPhone").value.trim();
+  var ph = readPhone("pfPhone");
+  if (!ph.ok) { showToast(t("phoneInvalid")); return; }
+  var phone = ph.value;
   if (!name) { showToast(t("displayName")); return; }
 
   dbUpdateUser(currentUser.uid, { displayName: name, phone: phone || null })
@@ -155,7 +187,7 @@ function _renderPlayersTab() {
       (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted)">' +
       (u.manual ? '\u270D\uFE0F ' + t("manualPlayer") : '\u2709\uFE0F ' + t("registeredPlayer")) +
-      (u.phone ? ' \u2022 \uD83D\uDCDE ' + escapeHtml(u.phone) : '') + '</div>';
+      (u.phone ? ' \u2022 \uD83D\uDCDE ' + escapeHtml(fmtPhone(u.phone)) : '') + '</div>';
     if (!u.manual) html += '<div style="margin-top:4px">' + _permBadges(userPerms(u)) + '</div>';
     html += '</div></div>';
     if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
@@ -214,11 +246,13 @@ function showPlayerModal(uid, onSaved) {
     '<div class="form-group"><label class="form-label">' + t("name") + '</label>' +
       '<input class="form-input" id="mPlayerName" value="' + escapeHtml(u ? u.displayName : '') + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("phone") + '</label>' +
-      '<input class="form-input" id="mPlayerPhone" inputmode="tel" value="' + escapeHtml(u && u.phone ? u.phone : '') + '" placeholder="020 xxxx xxxx"></div>';
+      phoneInputHtml("mPlayerPhone", u && u.phone) + '</div>';
 
   modalCallback = function () {
     var name = document.getElementById("mPlayerName").value.trim();
-    var phone = document.getElementById("mPlayerPhone").value.trim() || null;
+    var ph = readPhone("mPlayerPhone");
+    if (!ph.ok) { showToast(t("phoneInvalid")); return; }
+    var phone = ph.value;
     if (!name) { showToast(t("name")); return; }
 
     // Avoid two roster entries with the same name
@@ -383,24 +417,37 @@ function deleteSettingsShuttlecock(id) {
 }
 
 /* ---------- QR codes: up to 3 per person (court, cocks, dinner & other) ---------- */
-var qrOwner = null; // whose QR codes the QR tab is editing
+var qrOwner = null;       // whose QR codes are being edited right now
+var configQrOwner = null; // manual player picked on Configuration → Players' QR
 
-function _qrEditableUsers() {
-  // Yourself, plus manual players (they can't sign in to upload their own)
-  return DB_CACHE.users.filter(function (u) { return (currentUser && u.id === currentUser.uid) || (u.manual && can("editConfig")); });
+/** Manual players (they can't sign in to upload their own) — editConfig */
+function _qrManualPlayers() {
+  if (!can("editConfig")) return [];
+  return DB_CACHE.users.filter(function (u) { return u.manual; });
 }
 
 function _renderQrTab() {
-  if (!qrOwner && currentUser) qrOwner = currentUser.uid;
-  var people = _qrEditableUsers();
-  var html = '<div class="card"><div class="card-title">📱 ' + t("qrCodes") + '</div>';
-  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("qrHint") + '</div>';
-  html += '<div class="form-group"><label class="form-label">' + t("qrOwner") + '</label><select class="form-select" onchange="qrOwner=this.value;renderSettings()">';
+  var people = _qrManualPlayers();
+  if (!people.length) {
+    qrOwner = null;
+    return '<div class="card"><div class="card-title">📱 ' + t("tabPlayersQr") + '</div>' +
+      '<div style="font-size:13px;color:var(--text-muted)">' + t("noManualPlayers") + '</div></div>';
+  }
+  if (!configQrOwner || !people.some(function (u) { return u.id === configQrOwner; })) configQrOwner = people[0].id;
+  qrOwner = configQrOwner;
+  var sel = '<div class="form-group"><label class="form-label">' + t("qrOwner") + '</label><select class="form-select" onchange="configQrOwner=this.value;renderSettings()">';
   people.forEach(function (u) {
-    var me = currentUser && u.id === currentUser.uid;
-    html += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + (me ? ' (' + t("you") + ')' : ' ✍️') + '</option>';
+    sel += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + ' ✍️</option>';
   });
-  html += '</select></div>';
+  sel += '</select></div>';
+  return _qrCardHtml(t("tabPlayersQr"), t("qrManualHint"), sel);
+}
+
+/** Card with the three QR slots of `qrOwner` */
+function _qrCardHtml(title, hint, extra) {
+  var html = '<div class="card"><div class="card-title">' + icon("qr", 14) + ' ' + title + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + hint + '</div>';
+  if (extra) html += extra;
   html += '<div id="qrSlots" class="qr-list">';
   var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
   var icons = { court: "court", shuttle: "shuttle", dinner: "dinner" };
@@ -417,24 +464,25 @@ function _renderQrTab() {
   });
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:10px">' + t("qrFallbackHint") + '</div>';
-  html += '</div>';
+  return html + '</div>';
+}
 
-  // Fill the three images once the DOM exists
-  setTimeout(function () {
-    if (!qrOwner) return;
-    dbGetUserQr(qrOwner).then(function (qr) {
-      QR_TYPES.forEach(function (type) {
-        var img = document.getElementById("qrImg_" + type);
-        var del = document.getElementById("qrDel_" + type);
-        if (!img) return;
-        img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
-        if (del) del.style.display = qr[type] ? "" : "none";
-        var st = document.getElementById("qrStatus_" + type);
-        if (st) { st.textContent = qr[type] ? t("qrUploaded") : t("noQr"); st.classList.toggle("ok", !!qr[type]); }
-      });
+/** Fill the three images once the card is in the DOM */
+function _fillQrCard() {
+  var owner = qrOwner;
+  if (!owner || !document.getElementById("qrSlots")) return;
+  dbGetUserQr(owner).then(function (qr) {
+    if (owner !== qrOwner) return;
+    QR_TYPES.forEach(function (type) {
+      var img = document.getElementById("qrImg_" + type);
+      var del = document.getElementById("qrDel_" + type);
+      if (!img) return;
+      img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
+      if (del) del.style.display = qr[type] ? "" : "none";
+      var st = document.getElementById("qrStatus_" + type);
+      if (st) { st.textContent = qr[type] ? t("qrUploaded") : t("noQr"); st.classList.toggle("ok", !!qr[type]); }
     });
-  }, 0);
-  return html;
+  });
 }
 
 function handleQrUpload(type, input) {

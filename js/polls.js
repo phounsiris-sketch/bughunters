@@ -115,7 +115,7 @@ function renderPolls(polls) {
   if (showing.length === 0) {
     html += '<div class="empty-state"><div class="empty-icon">' + icon("polls", 44) + '</div>' +
       '<div>' + (inView.length ? t("noMatch") : pollView === "history" ? t("noHistory") : t("noPolls")) + '</div>';
-    if (pollView === "active" && !inView.length && can("createPoll")) {
+    if (pollView === "active" && !inView.length) {
       html += '<div style="margin-top:8px;font-size:13px">' + t("createFirstPoll") + '</div>' +
         '<button class="btn-primary" style="margin-top:16px" onclick="showCreatePoll()">+ ' + t("createPoll") + '</button>';
     }
@@ -385,7 +385,6 @@ function _todayIso() {
 }
 
 function showCreatePoll() {
-  if (!can("createPoll")) { showToast(t("noPermission")); return; }
   var first = DB_CACHE.courts[0];
   newPoll = {
     date: _todayIso(),
@@ -407,7 +406,7 @@ function renderPollCreateForm() {
   if (courts.length === 0) {
     container.innerHTML = '<div class="card"><div class="card-title">' + t('createPoll') + '</div>' +
       '<div class="empty-state" style="padding:20px"><div>' + t('noCourtsYet') + '</div>' +
-      '<button class="btn-secondary" style="margin-top:12px" onclick="settingsTab=\'courts\';showPage(\'settings\')">' + t('navSettings') + ' → ' + t('tabCourts') + '</button></div></div>';
+      '<button class="btn-secondary" style="margin-top:12px" onclick="settingsTab=\'courts\';showPage(\'config\')">' + t('configuration') + ' → ' + t('tabCourts') + '</button></div></div>';
     return;
   }
   if (!newPoll.courtId || !dbFindById(courts, newPoll.courtId)) newPoll.courtId = courts[0].id;

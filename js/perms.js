@@ -8,9 +8,9 @@ var SUPER_ADMIN_EMAIL = "phounsiri.s@aidctech.com.la";
 
 // Permissions the Super Admin can grant to each player
 var PERMISSIONS = [
-  { key: "createPoll",  icon: "🗳️" },  // create / confirm / cancel polls
-  { key: "editSession", icon: "📅" },        // session details, create / delete sessions
-  { key: "editBill",    icon: "🧾" },        // costs, payers, dinner, payments
+  { key: "createPoll",  icon: "🗳️" },  // manage everyone's polls (own polls need nothing)
+  { key: "editSession", icon: "📅" },        // details of any session; delete any session
+  { key: "editBill",    icon: "🧾" },        // costs, payers, dinner, payments of any session
   { key: "editConfig",  icon: "⚙️" }         // courts, cocks, manual players, settings
 ];
 
@@ -37,8 +37,6 @@ function syncMyPerms() {
   if (!currentUser) return;
   var me = dbFindById(DB_CACHE.users, currentUser.uid);
   if (me && currentUserProfile) currentUserProfile.perms = me.perms || {};
-  var fab = document.getElementById("fab");
-  if (fab && typeof currentPage !== "undefined") fab.style.display = (currentPage === "polls" && can("createPoll")) ? "" : "none";
 }
 
 function dbSetUserPerm(uid, key, value) {

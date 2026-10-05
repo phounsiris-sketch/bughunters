@@ -266,7 +266,7 @@ function renderSessionsList(sessions) {
       '<span class="pay-banner-cta">' + (pay.oweTotal ? t("payNow") : t("view")) + ' ' + icon("chevron", 14) + '</span></button>';
   }
 
-  if (sessionView === "recent" && can("editSession")) {
+  if (sessionView === "recent") {
     html += '<button class="btn-secondary" style="margin-bottom:12px" onclick="createAdHocSession()">+ ' + t("newSession") + '</button>';
   }
 
@@ -297,10 +297,16 @@ function renderSessionsList(sessions) {
     html += '<div style="min-width:0;flex:1">';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
-    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + s.duration + 'h)' : '') + '</div>';
+    var cocks = sessionCocks(s);
+    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + s.duration + 'h)' : '') +
+      (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') + '</div>';
     html += '<div class="avatar-stack">';
     players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
-    html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("players") + '</span></div>';
+    if (players.length > 7) html += '<span class="avatar-more">+' + (players.length - 7) + '</span>';
+    html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("joinedPlayers").toLowerCase() + '</span></div>';
+    if (s.createdBy) {
+      html += '<div class="session-by">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
+    }
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0">' +
       '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
@@ -392,7 +398,6 @@ function _permError(error) {
 
 /** Start a session directly (without a poll), with me as the first player */
 function createAdHocSession() {
-  if (!can("editSession")) { showToast(t("noPermission")); return; }
   var court = DB_CACHE.courts[0];
   var data = {
     pollId: null,
@@ -497,8 +502,9 @@ function _renderSplitResult(s) {
 
   // Cost breakdown
   html += '<div class="cost-breakdown">';
-  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer);
-  html += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer);
+  var nCocks = sessionCocks(s);
+  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer, s.duration ? s.duration + 'h' : '');
+  html += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer, nCocks ? nCocks + ' ' + t("cocks") : '');
   html += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
   html += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
   html += '</div>';
@@ -618,10 +624,15 @@ function _detailLine(label, amount, payerUid) {
     '</div><div class="item-price">' + fmtLAK(amount) + '</div></div>';
 }
 
-function _costCard(icon, label, amount, payerUid) {
+/** Number of cocks used in a session */
+function sessionCocks(s) {
+  return (s.shuttlecocks || []).reduce(function (a, c) { return a + (Number(c.qty) || 0); }, 0);
+}
+
+function _costCard(icon, label, amount, payerUid, meta) {
   return '<div class="cost-card"><div class="cost-icon">' + icon + '</div>' +
     '<div class="cost-card-label">' + label + '</div>' +
-    '<div class="cost-card-value">' + fmtShort(amount) + '</div>' +
+    '<div class="cost-card-value">' + (meta ? '<span class="cost-card-meta">' + meta + '</span>' : '') + fmtShort(amount) + '</div>' +
     '<div class="cost-card-sub">' + (payerUid && amount ? getUserName(payerUid) : '&nbsp;') + '</div></div>';
 }
 
@@ -1208,77 +1219,36 @@ function _plainName(uid) {
   return u && u.displayName ? u.displayName : "?";
 }
 
+/** Short Messenger summary: total, then who pays whom (one line each) */
 function buildMessengerText(s) {
   var L = computeLedger(s);
   var players = s.players || [];
-  var n = players.length;
   var settled = s.settled || {};
-  var line = "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501";
   var num = function (v) { return Math.round(v || 0).toLocaleString("en-US"); };
-  var out = [];
-
-  // When & where
-  var start = s.time || "18:00";
-  var sp = start.split(":");
-  var endMin = parseInt(sp[0], 10) * 60 + parseInt(sp[1] || "0", 10) + Math.round((s.duration || 0) * 60);
-  var end = String(Math.floor(endMin / 60) % 24).padStart(2, "0") + ":" + String(endMin % 60).padStart(2, "0");
   var d = s.date ? new Date(s.date + "T00:00:00") : null;
   var weekday = d ? d.toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { weekday: "short" }) + " " : "";
+  var out = [];
 
-  out.push("\uD83C\uDFF8 " + t("msgTitle") + " \u2014 " + weekday + fmtDate(s.date));
-  out.push("\uD83D\uDCCD " + (s.courtName || "") + (s.courtLocation ? " (" + s.courtLocation + ")" : ""));
-  out.push("\uD83D\uDD55 " + start + "\u2013" + end + (s.duration ? " (" + s.duration + "h)" : ""));
-  out.push("\uD83D\uDC65 " + n + " " + t("players") + ": " + players.map(_plainName).join(", "));
+  out.push("\uD83C\uDFF8 " + weekday + fmtDate(s.date) + (s.courtName ? " \u00B7 " + s.courtName : ""));
+  out.push("\uD83D\uDCB0 " + t("total") + ": " + fmtLAK(L.totals.grand));
 
-  // Costs
-  out.push("");
-  out.push(line);
-  out.push("\uD83E\uDDFE " + t("msgCosts"));
-  out.push("");
-  if (L.totals.court > 0) {
-    out.push("\uD83C\uDFDF\uFE0F " + t("court") + ": " + fmtLAK(L.totals.court));
-    out.push("     " + t("paidBy") + " " + _plainName(s.courtPayer) + " \u00B7 \u00F7" + n + " = " + num(L.totals.court / n) + " " + t("each"));
-  }
-  if (L.totals.shuttle > 0) {
-    var cocks = (s.shuttlecocks || []).map(function (c) { return c.qty + " " + c.brand; }).join(", ");
-    out.push("\uD83E\uDEB6 " + t("shuttlecocks") + " (" + cocks + "): " + fmtLAK(L.totals.shuttle));
-    out.push("     " + t("paidBy") + " " + _plainName(s.shuttlePayer) + " \u00B7 \u00F7" + n + " = " + num(L.totals.shuttle / n) + " " + t("each"));
-  }
-  var ocs = s.otherCosts || [];
-  for (var i = 0; i < ocs.length; i++) {
-    out.push("\uD83E\uDD64 " + ocs[i].desc + ": " + fmtLAK(ocs[i].amount));
-    out.push("     " + t("paidBy") + " " + _plainName(ocs[i].paidBy) + " \u00B7 " +
-      (ocs[i].forUid ? t("for") + " " + _plainName(ocs[i].forUid) : "\u00F7" + n + " = " + num(ocs[i].amount / n) + " " + t("each")));
-  }
-  if (L.totals.dinner > 0) {
-    var diners = s.dinner.diners || [];
-    out.push("\uD83C\uDF7D\uFE0F " + t("dinnerBill") + ": " + fmtLAK(L.totals.dinner));
-    out.push("     " + t("paidBy") + " " + _plainName(s.dinner.paidBy) + " \u00B7 \u00F7" + diners.length + " = " + num(L.totals.dinner / diners.length) + " " + t("each"));
-    out.push("     (" + diners.map(_plainName).join(", ") + ")");
-  }
-  out.push("");
-  out.push("\uD83D\uDCB0 " + t("total").toUpperCase() + ": " + fmtLAK(L.totals.grand));
+  // One line per payer: their total, then who gets what
+  var byFrom = {}, order = [];
+  L.transfers.forEach(function (tr) {
+    if (!byFrom[tr.from]) { byFrom[tr.from] = []; order.push(tr.from); }
+    byFrom[tr.from].push(tr);
+  });
+  if (order.length) out.push("");
+  order.forEach(function (from) {
+    var trs = byFrom[from];
+    var total = trs.reduce(function (a, tr) { return a + tr.amount; }, 0);
+    var allPaid = trs.every(function (tr) { return settled[tr.key]; });
+    var parts = trs.map(function (tr) {
+      return _plainName(tr.to) + " " + num(tr.amount) + (settled[tr.key] && !allPaid ? " \u2705" : "");
+    });
+    out.push((allPaid ? "\u2705 " : "\u25AB\uFE0F ") + _plainName(from) + ": " + num(total) + " \u2192 " + parts.join(", "));
+  });
 
-  // Payments, grouped by who receives the money
-  if (L.transfers.length) {
-    out.push("");
-    out.push(line);
-    out.push("\uD83E\uDDEE " + t("settlement").toUpperCase());
-    out.push("");
-    var lastTo = null;
-    for (var k = 0; k < L.transfers.length; k++) {
-      var tr = L.transfers[k];
-      if (tr.to !== lastTo) {
-        if (lastTo !== null) out.push("");
-        lastTo = tr.to;
-        out.push("\uD83D\uDCB8 " + t("payTo").toUpperCase() + " " + _plainName(tr.to).toUpperCase() + " (" + fmtLAK(L.received[tr.to]) + ")");
-      }
-      out.push((settled[tr.key] ? "\u2705 " : "\u25AB\uFE0F ") + _plainName(tr.from) + ": " + fmtLAK(tr.amount));
-      out.push("     " + transferBreakdown(tr));
-    }
-  }
-
-  // People who don't need to pay anyone
   var payers = {};
   L.transfers.forEach(function (tr) { payers[tr.from] = true; });
   var nothing = players.filter(function (u) { return !payers[u]; });

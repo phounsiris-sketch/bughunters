@@ -192,6 +192,31 @@ textarea {
   border-color: var(--primary);
 }
 
+/* Phone: fixed +856 20 prefix + 8 digits */
+.phone-field {
+  display: flex;
+  align-items: stretch;
+}
+
+.phone-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--chip-bg);
+  border: 1px solid var(--border);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.phone-field .form-input {
+  border-radius: 0 10px 10px 0;
+  letter-spacing: 1px;
+}
+
 .form-select {
   width: 100%;
   padding: 10px 36px 10px 12px;
@@ -1505,6 +1530,41 @@ textarea {
   margin-top: 2px;
 }
 
+.cost-card-meta {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.session-by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.avatar-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .cost-card-sub {
   font-size: 11px;
   color: var(--text-secondary);
@@ -2409,6 +2469,7 @@ img.person-avatar {
 }
 
 .leader-name {
+  display: block;
   flex: 1;
   min-width: 0;
   font-size: 14px;
@@ -2416,6 +2477,21 @@ img.person-avatar {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.leader-sub {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.leader-sub span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .leader-value {
@@ -3355,4 +3431,41 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text-secondary);
+}
+
+/* ========== Profile → Configuration link ========== */
+.nav-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.nav-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--chip-bg);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.nav-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-card-text small {
+  font-size: 12px;
+  color: var(--text-muted);
 }

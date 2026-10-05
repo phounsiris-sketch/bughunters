@@ -166,6 +166,40 @@ function avatarHtml(uid, size) {
   return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
 }
 
+/* ---------- Phone numbers: Lao mobile, +856 20 + 8 digits ---------- */
+var PHONE_PREFIX = "+856 20";
+
+/** The 8 local digits of a stored number ("+8562055551234", "020 5555 1234" → "55551234") */
+function phoneDigits(v) {
+  var d = String(v || "").replace(/\D/g, "");
+  if (d.indexOf("856") === 0) d = d.slice(3);
+  if (d.charAt(0) === "0") d = d.slice(1);
+  if (d.indexOf("20") === 0 && d.length > 8) d = d.slice(2);
+  return d.slice(-8);
+}
+
+/** "+856 20 5555 1234" for display */
+function fmtPhone(v) {
+  var d = phoneDigits(v);
+  return d ? PHONE_PREFIX + " " + d.slice(0, 4) + " " + d.slice(4) : "";
+}
+
+/** Input with the fixed +856 20 prefix that only takes 8 digits */
+function phoneInputHtml(id, value) {
+  return '<div class="phone-field"><span class="phone-prefix">' + PHONE_PREFIX + '</span>' +
+    '<input class="form-input" id="' + id + '" type="tel" inputmode="numeric" maxlength="8" autocomplete="tel-local" placeholder="xxxxxxxx"' +
+    ' value="' + phoneDigits(value) + '" oninput="this.value=this.value.replace(/\\D/g,\'\').slice(0,8)"></div>';
+}
+
+/** Read a phone input: { ok, value } — value is "+85620xxxxxxxx" or null when empty */
+function readPhone(id) {
+  var el = document.getElementById(id);
+  var d = el ? el.value.replace(/\D/g, "") : "";
+  if (!d) return { ok: true, value: null };
+  if (d.length !== 8) return { ok: false, value: null };
+  return { ok: true, value: "+85620" + d };
+}
+
 /** Latest first: by play date + time, then by creation time */
 function byLatest(getDate) {
   return function (a, b) {
@@ -208,7 +242,7 @@ function monthsOf(items, getDate) {
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
-  if (currentPage === "settings" && typeof renderSettings === "function") {
+  if ((currentPage === "settings" || currentPage === "config") && typeof renderSettings === "function") {
     renderSettings();
   } else if (currentPage === "polls" && typeof renderPolls === "function") {
     renderPolls(lastPolls);
@@ -256,7 +290,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v12"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v13"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

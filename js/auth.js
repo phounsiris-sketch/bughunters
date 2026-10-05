@@ -72,7 +72,9 @@ function submitAuth() {
 
   // Register
   var name = (document.getElementById("regName").value || "").trim();
-  var phone = (document.getElementById("regPhone").value || "").trim();
+  var ph = readPhone("regPhone");
+  if (!ph.ok) { done(); showToast(t("phoneInvalid")); return; }
+  var phone = ph.value;
   var password2 = document.getElementById("regPasswordConfirm").value || "";
   if (!name) { done(); showToast(t("displayName")); return; }
   if (password !== password2) { done(); showToast(t("errPasswordMismatch")); return; }
@@ -147,7 +149,9 @@ function saveProfile() {
   var nameInput = document.getElementById("profileName");
   var phoneInput = document.getElementById("profilePhone");
   var displayName = nameInput ? nameInput.value.trim() : "";
-  var phone = phoneInput ? phoneInput.value.trim() : "";
+  var ph = readPhone("profilePhone");
+  if (!ph.ok) { showToast(t("phoneInvalid")); return; }
+  var phone = ph.value;
 
   if (!displayName) {
     showToast(t("displayName"));

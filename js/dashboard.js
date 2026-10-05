@@ -110,12 +110,13 @@ function _renderLeaderboard() {
   var pollById = {};
   lastPolls.forEach(function (p) { pollById[p.id] = p; });
 
-  var played = {}, paid = {}, answered = {}, noVote = {}, noShow = {};
+  var played = {}, paid = {}, answered = {}, dined = {}, noVote = {}, noShow = {};
   function inc(map, uid, n) { if (uid) map[uid] = (map[uid] || 0) + (n === undefined ? 1 : n); }
 
   sessions.forEach(function (s) {
     var players = s.players || [];
     players.forEach(function (u) { inc(played, u); });
+    if (s.dinner) (s.dinner.diners || []).forEach(function (u) { inc(dined, u); });
     if (s.calculated) {
       var L = computeLedger(s);
       Object.keys(L.paid).forEach(function (u) { if (L.paid[u] > 0) inc(paid, u, L.paid[u]); });
@@ -131,14 +132,21 @@ function _renderLeaderboard() {
   polls.forEach(function (p) {
     Object.keys(_pollResponses(p)).forEach(function (u) { inc(answered, u); });
   });
+  // Activity score = poll answers + games played + dinners joined
   var active = {};
-  Object.keys(played).forEach(function (u) { inc(active, u, played[u]); });
-  Object.keys(answered).forEach(function (u) { inc(active, u, answered[u]); });
+  [answered, played, dined].forEach(function (m) { Object.keys(m).forEach(function (u) { inc(active, u, m[u]); }); });
+  var activeBreakdown = function (u) {
+    return '<span class="leader-sub">' +
+      '<span>' + icon("polls", 12) + ' ' + (answered[u] || 0) + '</span>' +
+      '<span>' + icon("shuttle", 12) + ' ' + (played[u] || 0) + '</span>' +
+      '<span>' + icon("dinner", 12) + ' ' + (dined[u] || 0) + '</span></span>';
+  };
 
   var html = '<div class="leader-grid">';
   html += _topCard("🏸", t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
   html += _topCard("💳", t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
-  html += _topCard("📊", t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); });
+  html += _topCard("📊", t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); }, false, activeBreakdown,
+    function (a, b) { return (played[b] || 0) - (played[a] || 0) || (dined[b] || 0) - (dined[a] || 0); });
   html += _topCard("🙅", t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
   html += _topCard("🤷", t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
   html += '</div>';
@@ -147,18 +155,18 @@ function _renderLeaderboard() {
 }
 
 /** Card with the top 3 of a { uid: value } map */
-function _topCard(icon, title, map, fmt, warn) {
+function _topCard(emoji, title, map, fmt, warn, sub, tieBreak) {
   var uids = Object.keys(map).filter(function (u) { return map[u] > 0; });
-  uids.sort(function (a, b) { return map[b] - map[a]; });
+  uids.sort(function (a, b) { return map[b] - map[a] || (tieBreak ? tieBreak(a, b) : 0); });
   var medals = ["🥇", "🥈", "🥉"];
-  var html = '<div class="card leader-card' + (warn ? ' warn' : '') + '"><div class="card-title">' + icon + ' ' + title + '</div>';
+  var html = '<div class="card leader-card' + (warn ? ' warn' : '') + '"><div class="card-title">' + emoji + ' ' + title + '</div>';
   if (!uids.length) {
     html += '<div style="font-size:13px;color:var(--text-muted)">' + (warn ? t("lbNobody") : t("noData")) + '</div>';
   }
   uids.slice(0, 3).forEach(function (u, i) {
     html += '<div class="leader-row" onclick="dashTab=\'activity\';dashActivityUser=\'' + u + '\';_renderDashboard()">' +
       '<span class="leader-medal">' + (warn ? (i + 1) + '.' : medals[i]) + '</span>' + avatarHtml(u, 30) +
-      '<span class="leader-name">' + getUserName(u) + '</span>' +
+      '<span class="leader-name">' + getUserName(u) + (sub ? sub(u) : '') + '</span>' +
       '<span class="leader-value">' + fmt(map[u]) + '</span></div>';
   });
   return html + '</div>';

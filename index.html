@@ -43,7 +43,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" data-i18n="phone">Phone</label>
-            <input class="form-input" id="regPhone" inputmode="tel" autocomplete="tel" placeholder="020 xxxx xxxx">
+            <div class="phone-field"><span class="phone-prefix">+856 20</span><input class="form-input" id="regPhone" type="tel" inputmode="numeric" maxlength="8" autocomplete="tel-local" placeholder="xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'').slice(0,8)"></div>
           </div>
         </div>
         <div class="form-group">
@@ -81,7 +81,7 @@
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="phone">Phone</label>
-      <input class="form-input" id="profilePhone" placeholder="Optional">
+      <div class="phone-field"><span class="phone-prefix">+856 20</span><input class="form-input" id="profilePhone" type="tel" inputmode="numeric" maxlength="8" autocomplete="tel-local" placeholder="xxxxxxxx" oninput="this.value=this.value.replace(/\D/g,'').slice(0,8)"></div>
     </div>
     <button class="btn-primary" onclick="saveProfile()" data-i18n="saveContinue">Save &amp; Continue</button>
   </div>
@@ -146,8 +146,13 @@
 
     <!-- PAGE: Settings -->
     <div class="page" id="page-settings">
-      <div class="dashboard-tabs" id="settingsTabs"></div>
       <div id="settingsContent"></div>
+    </div>
+
+    <!-- PAGE: Configuration (courts, cocks, players, group settings) -->
+    <div class="page" id="page-config">
+      <div class="dashboard-tabs" id="configTabs"></div>
+      <div id="configContent"></div>
     </div>
 
   </div>
@@ -167,8 +172,8 @@
       <span data-i18n="navDashboard">Dashboard</span>
     </div>
     <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
-      <span class="nav-icon" data-icon="settings" data-size="22"></span>
-      <span data-i18n="navSettings">Settings</span>
+      <span class="nav-icon" data-icon="user" data-size="22"></span>
+      <span data-i18n="navProfile">Profile</span>
     </div>
   </div>
 
