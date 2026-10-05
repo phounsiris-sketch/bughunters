@@ -43,7 +43,7 @@ function showPage(page, pushHistory) {
   // FAB visibility — only show on polls page
   var fab = document.getElementById("fab");
   if (fab) {
-    fab.style.display = page === "polls" ? "" : "none"; // everyone can create a poll
+    fab.style.display = (page === "polls" || page === "dashboard") ? "" : "none"; // everyone can create a poll
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level

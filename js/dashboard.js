@@ -142,10 +142,10 @@ function _renderLeaderboard() {
   };
 
   var html = '<div class="leader-grid">';
-  html += _topCard("🏸", t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
-  html += _topCard("💳", t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
   html += _topCard("📊", t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); }, false, activeBreakdown,
     function (a, b) { return (played[b] || 0) - (played[a] || 0) || (dined[b] || 0) - (dined[a] || 0); });
+  html += _topCard("🏸", t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
+  html += _topCard("💳", t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
   html += _topCard("🙅", t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
   html += _topCard("🤷", t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
   html += '</div>';

@@ -3894,3 +3894,20 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
   align-items: center;
   gap: 4px;
 }
+
+/* Dashboard: raised button in the middle of the bottom bar */
+.nav-item.nav-center .nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-top: -20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--blue));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  border: 3px solid var(--bg);
+}
+
+.nav-item.nav-center.active .nav-icon { box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.35); }
