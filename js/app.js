@@ -297,6 +297,8 @@ function refreshCurrentPage(reason) {
     renderPolls(lastPolls);
   } else if (currentPage === "poll-create" && reason === "courts" && typeof renderPollCreateForm === "function") {
     renderPollCreateForm();
+  } else if (currentPage === "session-create" && (reason === "courts" || reason === "users") && typeof renderSessionCreateForm === "function") {
+    renderSessionCreateForm();
   } else if (currentPage === "sessions" && typeof renderSessionsList === "function") {
     renderSessionsList(lastSessions);
   } else if (currentPage === "payments" && typeof renderPayments === "function") {
@@ -335,7 +337,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v26"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v28"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

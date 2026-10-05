@@ -394,25 +394,104 @@ function _permError(error) {
 }
 
 /** Start a session directly (without a poll), with me as the first player */
+var newSes = null;
+
+/** "+ New session": opens the form page — nothing is saved until "Create session" */
 function createAdHocSession() {
   var court = DB_CACHE.courts[0];
-  var data = {
+  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [] };
+  showPage("session-create");
+  renderSessionCreateForm();
+}
+
+function renderSessionCreateForm() {
+  var container = document.getElementById("sessionCreateContent");
+  if (!container || !newSes) return;
+  setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: t("newSession") }]);
+
+  var courts = DB_CACHE.courts;
+  if (!courts.length) {
+    container.innerHTML = '<div class="card"><div class="card-title">' + t("newSession") + '</div>' +
+      '<div class="empty-state" style="padding:20px"><div>' + t("noCourtsYet") + '</div>' +
+      '<button class="btn-secondary" style="margin-top:12px" onclick="settingsTab=\'courts\';showPage(\'config\')">' + t("configuration") + ' → ' + t("tabCourts") + '</button></div></div>';
+    return;
+  }
+  if (!newSes.courtId || !dbFindById(courts, newSes.courtId)) newSes.courtId = courts[0].id;
+
+  // Plan
+  var html = '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t("plan") + '</div>';
+  html += '<div class="form-row">';
+  html += '<div class="form-group"><label class="form-label">' + t("date") + '</label>';
+  html += '<input type="date" class="form-input" value="' + newSes.date + '" onchange="newSes.date=this.value"></div>';
+  html += '<div class="form-group"><label class="form-label">' + t("startTime") + '</label>';
+  html += '<input type="time" class="form-input" value="' + newSes.time + '" onchange="newSes.time=this.value"></div>';
+  html += '</div><div class="form-row">';
+  html += '<div class="form-group" style="flex:2;margin-bottom:0"><label class="form-label">' + t("court") + '</label>';
+  html += '<select class="form-select" data-cs-type="court" data-cs-onpick="sesPickCourt" onchange="newSes.courtId=this.value">';
+  courts.forEach(function (c) {
+    html += '<option value="' + c.id + '"' + (c.id === newSes.courtId ? ' selected' : '') + '>' +
+      escapeHtml(c.name) + (c.location ? ' — ' + escapeHtml(c.location) : '') + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div class="form-group" style="flex:1;margin-bottom:0"><label class="form-label">' + t("duration") + ' (h)</label>';
+  html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newSes.duration + '" onchange="newSes.duration=parseFloat(this.value)||2"></div>';
+  html += '</div></div>';
+
+  // Players
+  html += '<div class="card"><div class="card-title">👥 ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
+  html += '<div class="chips" id="newSesPlayers">' + _newSesChips() + '</div>';
+  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
+
+  html += '<button class="btn-primary" id="newSesSubmit" onclick="submitNewSession()">' + t("createSession") + '</button>';
+  container.innerHTML = html;
+}
+
+function sesPickCourt(id) {
+  if (newSes) newSes.courtId = id;
+  setTimeout(renderSessionCreateForm, 300); // let the court list refresh first
+}
+
+function _newSesChips() {
+  return DB_CACHE.users.map(function (u) {
+    var on = newSes.players.indexOf(u.id) >= 0;
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? '\u2714 ' : '') + getUserName(u.id) + '</div>';
+  }).join('');
+}
+
+function newSesToggle(uid) {
+  var i = newSes.players.indexOf(uid);
+  if (i >= 0) newSes.players.splice(i, 1); else newSes.players.push(uid);
+  document.getElementById("newSesPlayers").innerHTML = _newSesChips();
+  document.getElementById("newSesCount").textContent = newSes.players.length;
+}
+
+function submitNewSession() {
+  var court = dbFindById(DB_CACHE.courts, newSes.courtId);
+  if (!newSes.date || !newSes.time || !(newSes.duration > 0) || !court) { showToast(t("fillAllFields")); return; }
+  if (!newSes.players.length) { showToast(t("pickPlayersFirst")); return; }
+  var btn = document.getElementById("newSesSubmit");
+  if (btn) btn.disabled = true;
+  dbCreateSession({
     pollId: null,
-    date: _todayIso(),
-    time: "18:00",
-    duration: 2,
-    courtId: court ? court.id : null,
-    courtName: court ? court.name : null,
-    courtLocation: court ? (court.location || null) : null,
-    pricePerHour: court ? (court.pricePerHour || 0) : 0,
+    date: newSes.date,
+    time: newSes.time,
+    duration: newSes.duration,
+    courtId: court.id,
+    courtName: court.name,
+    courtLocation: court.location || null,
+    pricePerHour: court.pricePerHour || 0,
     status: "active",
-    players: currentUser ? [currentUser.uid] : [],
+    players: newSes.players.slice(),
     calculated: false,
     createdBy: currentUser ? currentUser.uid : null
-  };
-  dbCreateSession(data)
-    .then(function (ref) { showSessionDetail(ref.id); })
-    .catch(function (error) { showToast(_permError(error)); });
+  }).then(function (ref) {
+    newSes = null;
+    showToast(t("sessionCreated") + " ✔");
+    showSessionDetail(ref.id);
+  }).catch(function (error) {
+    if (btn) btn.disabled = false;
+    showToast(_permError(error));
+  });
 }
 
 /* ──────────────────────────────────────────────────────────

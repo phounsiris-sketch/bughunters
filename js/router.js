@@ -37,7 +37,8 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var activeNav = document.getElementById("nav-" + (page === "config" ? "settings" : page));
+  var navOf = { config: "settings", "session-create": "sessions", "poll-create": "polls" };
+  var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
 
   // Floating + button: new poll (Polls, Dashboard) or new session (Sessions)
