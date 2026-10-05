@@ -163,6 +163,12 @@ function _renderSettingsPage() {
     '<span class="nav-card-text"><b>' + t("configuration") + '</b><small>' + t("configurationHint") + '</small></span>' +
     icon("chevron", 16) + '</button>';
 
+  // 5. Recently deleted
+  html += '<button class="card nav-card" onclick="showPage(\'trash\')">' +
+    '<span class="nav-card-icon">' + icon("trash", 22) + '</span>' +
+    '<span class="nav-card-text"><b>' + t("recentlyDeleted") + '</b><small>' + t("recentlyDeletedHint") + '</small></span>' +
+    icon("chevron", 16) + '</button>';
+
   html += '<div class="app-version">Godsmash ' + APP_VERSION + '</div>';
   return html;
 }
@@ -319,8 +325,7 @@ function showPlayerModal(uid, onSaved) {
 function deleteManualPlayer(uid) {
   var u = dbFindById(DB_CACHE.users, uid);
   if (!u || !confirm(t("delete") + " " + (u.displayName || "") + "?")) return;
-  dbDeleteManualPlayer(uid)
-    .then(function () { showToast(t("delete") + " \u2714"); })
+  trashDoc("player", "users", uid, plainUserName(u))
     .catch(function (error) { showToast(_permError(error)); });
 }
 
@@ -390,9 +395,9 @@ function showCourtModal(courtId, onSaved) {
 }
 
 function deleteSettingsCourt(id) {
-  if (!confirm(t("delete") + "?")) return;
-  dbDeleteCourt(id)
-    .then(function () { showToast(t("delete") + " ✔"); })
+  var c = dbFindById(DB_CACHE.courts, id);
+  if (!confirm(t("delete") + (c ? " " + c.name : "") + "?")) return;
+  trashDoc("court", "courts", id, c ? c.name : t("court"))
     .catch(function (error) { showToast(_permError(error)); });
 }
 
@@ -453,9 +458,10 @@ function showShuttleModal(brandId, onSaved) {
 }
 
 function deleteSettingsShuttlecock(id) {
-  if (!confirm(t("delete") + "?")) return;
-  dbDeleteShuttlecock(id)
-    .then(function () { showToast(t("delete") + " ✔"); })
+  var b = dbFindById(DB_CACHE.shuttlecocks, id);
+  var name = b ? (b.name || b.brand || "") : "";
+  if (!confirm(t("delete") + (name ? " " + name : "") + "?")) return;
+  trashDoc("shuttle", "shuttlecocks", id, name || t("shuttlecocks"))
     .catch(function (error) { showToast(_permError(error)); });
 }
 
@@ -545,8 +551,10 @@ function handleQrUpload(type, input) {
 
 function removeQr(type) {
   if (!qrOwner || !confirm(t("delete") + "?")) return;
-  dbSetUserQr(qrOwner, type, null)
-    .then(function () { renderSettings(); })
+  var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
+  var owner = qrOwner;
+  trashField("qr", "qrcodes", owner, type, "QR " + labels[type] + " — " + getUserName(owner))
+    .then(function () { delete _qrCache[owner]; renderSettings(); })
     .catch(function (error) { showToast(_permError(error)); });
 }
 
@@ -680,12 +688,31 @@ function resetPollsAndSessions() {
   if (!confirm(t("resetConfirm"))) return;
   showToast(t("loading"));
 
+  // Everything goes to the trash (restorable for 30 days), in batches
   var count = 0;
   function wipe(name) {
     return fsdb.collection(name).get().then(function (snap) {
-      var jobs = [];
-      snap.forEach(function (doc) { count++; jobs.push(doc.ref.delete()); });
-      return Promise.all(jobs);
+      var docs = [];
+      snap.forEach(function (doc) { docs.push(doc); });
+      var chain = Promise.resolve();
+      for (var i = 0; i < docs.length; i += 200) {
+        (function (part) {
+          chain = chain.then(function () {
+            var batch = fsdb.batch();
+            part.forEach(function (doc) {
+              var d = doc.data();
+              var label = (name === "polls" ? t("trashKind_poll") + " " : "") + fmtDate(d.date) + (d.time ? " " + d.time : "") + (d.courtName ? " · " + d.courtName : "");
+              var entry = _trashEntry(name === "polls" ? "poll" : "session", name, doc.id, label);
+              entry.data = d;
+              batch.set(fsdb.collection("trash").doc(), entry);
+              batch.delete(doc.ref);
+              count++;
+            });
+            return batch.commit();
+          });
+        })(docs.slice(i, i + 200));
+      }
+      return chain;
     });
   }
   wipe("polls")

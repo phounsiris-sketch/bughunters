@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v28';
+var CACHE_NAME = 'godsmash-v29';
 var ASSETS = [
   './',
   './index.html',
@@ -47,6 +47,7 @@ var ASSETS = [
   './js/settings.js',
   './js/payments.js',
   './js/notify.js',
+  './js/trash.js',
   './js/push.js',
   './js/icons.js',
   './icons/favicon-32.png',

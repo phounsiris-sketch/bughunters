@@ -8,6 +8,7 @@ const { collectMessages } = require("./events");
 const APP_URL = process.env.APP_URL || "https://phounsiris-sketch.github.io/bughunters/";
 const TZ_OFFSET_H = 7;  // Vientiane / Bangkok (UTC+7)
 const REMIND_HOUR = 9;  // daily payment reminder from 9:00
+const TRASH_DAYS = 30;  // Recently deleted keeps items this long
 
 async function main() {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -79,6 +80,11 @@ async function main() {
     dead[uid].forEach((tk) => (upd["tokens." + tk] = admin.firestore.FieldValue.delete()));
     await db.collection("pushTokens").doc(uid).update(upd).catch(() => {});
   }
+
+  // Recently deleted: remove entries older than 30 days for good
+  const old = await db.collection("trash").where("deletedAt", "<", now - TRASH_DAYS * 86400e3).get();
+  for (const d of old.docs) await d.ref.delete();
+  if (old.size) console.log(`trash: removed ${old.size} item(s) older than ${TRASH_DAYS} days`);
 
   await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null), startSent }, { merge: true });
   console.log(`events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", daily payment reminder sent" : ""}`);

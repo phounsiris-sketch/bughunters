@@ -164,6 +164,11 @@
       <div id="settingsContent"></div>
     </div>
 
+    <!-- PAGE: Recently deleted -->
+    <div class="page" id="page-trash">
+      <div id="trashContent"></div>
+    </div>
+
     <!-- PAGE: Configuration (courts, cocks, players, group settings) -->
     <div class="page" id="page-config">
       <div class="dashboard-tabs" id="configTabs"></div>
@@ -206,6 +211,7 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+<div class="undo-toast" id="undoToast" role="status"></div>
 
 <!-- Modal -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
@@ -244,6 +250,7 @@
 <script src="js/settings.js"></script>
 <script src="js/payments.js"></script>
 <script src="js/notify.js"></script>
+<script src="js/trash.js"></script>
 <script src="js/push.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/select.js"></script>

@@ -1274,16 +1274,22 @@ function settleTransfers(s, keys, value) {
 
 function deleteSessionById(sessionId) {
   if (!confirm(t("deleteConfirm"))) return;
+  var s = (currentSession && currentSession.id === sessionId) ? currentSession : null;
+  lastSessions.forEach(function (x) { if (x.id === sessionId) s = x; });
   if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
   sessionEditing = false;
 
-  dbDeleteSession(sessionId)
+  // To the trash (30 days) with Undo
+  trashDoc("session", "sessions", sessionId, trashLabelSession(s))
     .then(function () {
-      showToast(t("deleteSession") + " ✔");
       currentSessionId = null;
       showPage("sessions", false);
     })
     .catch(function (error) { showToast(_permError(error)); });
+}
+
+function trashLabelSession(s) {
+  return s ? fmtDate(s.date) + (s.time ? " " + s.time : "") + (s.courtName ? " · " + s.courtName : "") : t("sessionsWord");
 }
 
 /* ──────────────────────────────────────────────────────────
