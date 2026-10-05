@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v25';
+var CACHE_NAME = 'godsmash-v26';
 var ASSETS = [
   './',
   './index.html',
@@ -87,16 +87,20 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Network-first for app assets (so new deploys show up), cache as offline fallback
+  // Network-first for app assets (so new deploys show up), cache as offline fallback.
+  // Our own files skip the browser's HTTP cache (GitHub Pages allows 10 min),
+  // revalidating instead, so a new version shows on the next open.
   if (e.request.method !== 'GET') return;
+  var own = new URL(e.request.url).origin === self.location.origin;
   e.respondWith(
-    fetch(e.request).then(function(resp) {
+    fetch(own ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(function(resp) {
       var clone = resp.clone();
       caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
       return resp;
     }).catch(function() {
       return caches.match(e.request).then(function(cached) {
-        return cached || caches.match('./index.html');
+        // Offline: open the app shell for page loads only, never in place of a script
+        return cached || (e.request.mode === 'navigate' ? caches.match('./index.html') : Response.error());
       });
     })
   );
