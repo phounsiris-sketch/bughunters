@@ -997,9 +997,11 @@ function applyI18n() {
   var headerSub = document.getElementById("headerSub");
   if (headerSub) headerSub.textContent = t("headerSub");
 
+  // Language buttons: Solar globe + the language you can switch to
+  var globe = typeof icon === "function" ? icon("globe", 16) + " " : "";
   var langBtn = document.getElementById("langBtn");
-  if (langBtn) langBtn.textContent = currentLang === "en" ? "LA" : "EN";
+  if (langBtn) langBtn.innerHTML = globe + (currentLang === "en" ? "LA" : "EN");
   var authLangBtn = document.getElementById("authLangBtn");
-  if (authLangBtn) authLangBtn.textContent = currentLang === "en" ? "\u0EA5\u0EB2\u0EA7" : "English";
+  if (authLangBtn) authLangBtn.innerHTML = globe + (currentLang === "en" ? "\u0EA5\u0EB2\u0EA7" : "English");
   document.documentElement.lang = currentLang === "la" ? "lo" : "en";
 }
