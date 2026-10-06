@@ -1,0 +1,45 @@
+name: Merge players (admin)
+
+# One-off: move everything of one player into another. Dry run unless
+# "apply" is ticked. Backups of every changed document go to
+# Recently deleted (30 days).
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "Merge FROM (display name or user id)"
+        required: true
+      into:
+        description: "Merge INTO (display name or user id)"
+        required: true
+      apply:
+        description: "Apply the changes (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: push-sender   # never at the same time as the push sender
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: push/package-lock.json
+      - run: npm ci
+        working-directory: push
+      - run: node merge.js
+        working-directory: push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FROM: ${{ inputs.from }}
+          INTO: ${{ inputs.into }}
+          APPLY: ${{ inputs.apply }}

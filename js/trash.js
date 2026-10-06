@@ -10,7 +10,7 @@
 var TRASH_DAYS = 30;
 var TRASH_KINDS = {               // kind -> icon
   session: "sessions", poll: "polls", court: "court",
-  shuttle: "shuttle", player: "users", qr: "qr"
+  shuttle: "shuttle", player: "users", qr: "qr", backup: "history"
 };
 
 function _trashEntry(kind, collection, docId, label) {
