@@ -302,7 +302,7 @@ function renderSessionsList(sessions) {
     if (players.length > 7) html += '<span class="avatar-more">+' + (players.length - 7) + '</span>';
     html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("joinedPlayers").toLowerCase() + '</span></div>';
     if (s.createdBy) {
-      html += '<div class="session-by">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
+      html += '<div class="session-by" role="button" onclick="showUserProfile(\'' + s.createdBy + '\',event)">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
     }
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0">' +
@@ -549,7 +549,7 @@ function renderSessionDetail() {
 /** Read-only view for players while the organiser hasn't entered the bill */
 function _renderWaitingForBill(s) {
   var html = '<div class="card"><div class="card-title">\uD83D\uDC65 ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
-  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
+  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div>';
   html += '<div class="empty-state"><div class="empty-icon">\uD83E\uDDFE</div><div>' + t("waitingForBill") + '</div></div>';
   return html;

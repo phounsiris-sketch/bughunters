@@ -177,7 +177,7 @@ function _renderPollCard(poll) {
 
   var html = '<div class="card poll-card">';
   html += '<div class="poll-header">';
-  html += '<span class="poll-author">' + avatarHtml(poll.createdBy, 28) + '<span><span class="poll-author-by">' + t('createdBy') + '</span> <b>' + getUserName(poll.createdBy) + '</b></span></span>';
+  html += '<span class="poll-author" role="button" onclick="showUserProfile(\'' + poll.createdBy + '\',event)">' + avatarHtml(poll.createdBy, 28) + '<span><span class="poll-author-by">' + t('createdBy') + '</span> <b>' + getUserName(poll.createdBy) + '</b></span></span>';
   html += '<span class="poll-status ' + statusClass + '">' + statusLabel + '</span>';
   html += '</div>';
 

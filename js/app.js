@@ -293,6 +293,8 @@ function refreshCurrentPage(reason) {
   if (typeof updateNotifications === "function") updateNotifications();
   if ((currentPage === "settings" || currentPage === "profile" || currentPage === "config") && typeof renderSettings === "function") {
     renderSettings();
+  } else if (currentPage === "user" && typeof loadUserProfile === "function") {
+    loadUserProfile();
   } else if (currentPage === "polls" && typeof renderPolls === "function") {
     renderPolls(lastPolls);
   } else if (currentPage === "poll-create" && reason === "courts" && typeof renderPollCreateForm === "function") {
@@ -337,7 +339,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v30"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v31"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

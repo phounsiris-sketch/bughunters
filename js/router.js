@@ -69,6 +69,8 @@ function showPage(page, pushHistory) {
     loadConfig();
   } else if (page === "trash" && typeof loadTrash === "function") {
     loadTrash();
+  } else if (page === "user" && typeof loadUserProfile === "function") {
+    loadUserProfile();
   }
 }
 

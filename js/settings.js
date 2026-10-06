@@ -230,7 +230,7 @@ function _renderPlayersTab() {
   for (var i = 0; i < users.length; i++) {
     var u = users[i];
     var isMe = currentUser && u.id === currentUser.uid;
-    html += '<div class="settings-item"><div class="settings-left">';
+    html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + u.id + '\',event)">';
     html += avatarHtml(u.id, 34);
     html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
       (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';

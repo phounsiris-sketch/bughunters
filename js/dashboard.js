@@ -481,7 +481,8 @@ function _renderPlayerActivity(uid, sessions, polls) {
   // Who + period
   var html = '<div class="card profile-hero">' + avatarHtml(uid, 56) +
     '<div style="min-width:0"><div class="profile-hero-name">' + getUserName(uid) + (isMe ? ' <span class="perm-badge on">' + t("you") + '</span>' : '') + '</div>' +
-    '<div class="profile-hero-sub">' + icon("calendar", 13) + ' ' + _periodLabel() + '</div></div></div>';
+    '<div class="profile-hero-sub">' + icon("calendar", 13) + ' ' + _periodLabel() + '</div></div>' +
+    '<button class="edit-btn" style="margin-left:auto;flex-shrink:0" onclick="showUserProfile(\'' + uid + '\',event)">' + icon("user", 14) + ' ' + t("viewProfile") + '</button></div>';
 
   // Four balanced stat tiles
   html += '<div class="stat-grid">';
