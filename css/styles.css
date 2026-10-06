@@ -4011,3 +4011,5 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 .user-qr-item img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; background: #fff; cursor: zoom-in; }
 
 .poll-author, .session-by { cursor: pointer; }
+
+.avatar-zoom { display: inline-block; cursor: zoom-in; border-radius: 50%; }

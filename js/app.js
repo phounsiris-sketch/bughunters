@@ -250,6 +250,13 @@ function readPhone(id) {
   return { ok: true, value: "+85620" + d };
 }
 
+/** Avatar that opens the full photo when tapped (if the person has one) */
+function avatarZoomHtml(uid, size) {
+  var u = typeof dbFindById === "function" ? dbFindById(DB_CACHE.users, uid) : null;
+  if (!u || !u.avatarUrl) return avatarHtml(uid, size);
+  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(dbFindById(DB_CACHE.users,\'' + uid + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
+}
+
 /** Latest first: by play date + time, then by creation time */
 function byLatest(getDate) {
   return function (a, b) {
@@ -339,7 +346,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v31"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v32"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

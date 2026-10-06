@@ -39,7 +39,7 @@ function loadUserProfile() {
   var showUp = joinVotes ? Math.round(Math.min(played, joinVotes) / joinVotes * 100) + "%" : "—";
 
   var html = '<div class="card profile-head">';
-  html += '<div class="avatar-edit">' + avatarHtml(uid, 84) + '</div>';
+  html += '<div class="avatar-edit">' + avatarZoomHtml(uid, 84) + '</div>';
   html += '<div class="profile-name">' + escapeHtml(plainUserName(u)) + '</div>';
   html += '<div style="margin-top:8px">' + (u.manual ? '<span class="perm-badge">✍️ ' + t("manualPlayer") + '</span>' : _permBadges(userPerms(u))) + '</div>';
   if (u.phone) {

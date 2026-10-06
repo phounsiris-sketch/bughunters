@@ -92,7 +92,7 @@ function _renderProfileTab() {
   var prof = currentUserProfile || {};
   var email = prof.email || (currentUser && currentUser.email) || '';
   var html = '<div class="card profile-head">';
-  html += '<div class="avatar-edit">' + avatarHtml(currentUser ? currentUser.uid : '', 84) +
+  html += '<div class="avatar-edit">' + avatarZoomHtml(currentUser ? currentUser.uid : '', 84) +
     '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">\uD83D\uDCF7</button></div>';
   html += '<input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">';
   html += '<div class="profile-name">' + escapeHtml(prof.displayName || '') + '</div>';
