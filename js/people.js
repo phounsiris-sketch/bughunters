@@ -41,9 +41,9 @@ function loadUserProfile() {
   var html = '<div class="card profile-head">';
   html += '<div class="avatar-edit">' + avatarZoomHtml(uid, 84) + '</div>';
   html += '<div class="profile-name">' + escapeHtml(plainUserName(u)) + '</div>';
-  html += '<div style="margin-top:8px">' + (u.manual ? '<span class="perm-badge">✍️ ' + t("manualPlayer") + '</span>' : _permBadges(userPerms(u))) + '</div>';
+  html += '<div style="margin-top:8px">' + (u.manual ? '<span class="perm-badge">' + icon("manual", 12) + ' ' + t("manualPlayer") + '</span>' : _permBadges(userPerms(u))) + '</div>';
   if (u.phone) {
-    html += '<div class="user-contact"><a class="edit-btn" href="tel:' + escapeHtml(u.phone) + '">📞 ' + escapeHtml(fmtPhone(u.phone)) + '</a>' +
+    html += '<div class="user-contact"><a class="edit-btn" href="tel:' + escapeHtml(u.phone) + '">' + icon("phone", 14) + ' ' + escapeHtml(fmtPhone(u.phone)) + '</a>' +
       '<a class="edit-btn" href="https://wa.me/' + escapeHtml(u.phone.replace(/\D/g, "")) + '" target="_blank" rel="noopener">WhatsApp</a></div>';
   }
   if (isSuperAdmin() && u.email) html += '<div class="profile-email" style="margin-top:6px">' + escapeHtml(u.email) + '</div>';
@@ -67,10 +67,10 @@ function loadUserProfile() {
     '<span class="nav-card-icon">' + icon("dashboard", 22) + '</span>' +
     '<span class="nav-card-text"><b>' + t("seeActivity") + '</b><small>' + t("seeActivityHint") + '</small></span>' + icon("chevron", 16) + '</button>';
   if (isSuperAdmin() && !u.manual && userPerms(u) !== "super") {
-    html += '<button class="btn-secondary" onclick="showPermsModal(\'' + uid + '\')">🔑 ' + t("permissions") + '</button>';
+    html += '<button class="btn-secondary" onclick="showPermsModal(\'' + uid + '\')">' + icon("key", 16) + ' ' + t("permissions") + '</button>';
   }
   if (u.manual && can("editConfig")) {
-    html += '<button class="btn-secondary" onclick="showPlayerModal(\'' + uid + '\')">✏️ ' + t("editDetails") + '</button>';
+    html += '<button class="btn-secondary" onclick="showPlayerModal(\'' + uid + '\')">' + icon("pen", 16) + ' ' + t("editDetails") + '</button>';
   }
   box.innerHTML = html;
 

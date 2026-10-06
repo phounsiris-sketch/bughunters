@@ -8,10 +8,10 @@ var SUPER_ADMIN_EMAIL = "phounsiri.s@aidctech.com.la";
 
 // Permissions the Super Admin can grant to each player
 var PERMISSIONS = [
-  { key: "createPoll",  icon: "🗳️" },  // manage everyone's polls (own polls need nothing)
-  { key: "editSession", icon: "📅" },        // details of any session; delete any session
-  { key: "editBill",    icon: "🧾" },        // costs, payers, dinner, payments of any session
-  { key: "editConfig",  icon: "⚙️" }         // courts, cocks, manual players, settings
+  { key: "createPoll",  icon: "vote" },  // manage everyone's polls (own polls need nothing)
+  { key: "editSession", icon: "calendar" },        // details of any session; delete any session
+  { key: "editBill",    icon: "bill" },        // costs, payers, dinner, payments of any session
+  { key: "editConfig",  icon: "settings" }         // courts, cocks, manual players, settings
 ];
 
 function isSuperAdmin() {

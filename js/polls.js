@@ -212,7 +212,7 @@ function _renderPollCard(poll) {
 
   // Joined players
   if (joined.length) {
-    html += '<div class="joined-box"><div class="card-title" style="margin-bottom:6px">👥 ' + t('joinedPlayers') + ' (' + joined.length + ')</div><div class="chips" style="margin-bottom:0">';
+    html += '<div class="joined-box"><div class="card-title" style="margin-bottom:6px">' + icon("users", 14) + ' ' + t('joinedPlayers') + ' (' + joined.length + ')</div><div class="chips" style="margin-bottom:0">';
     joined.forEach(function (uid) { html += '<div class="chip active avatar-chip">' + avatarHtml(uid, 22) + getUserName(uid) + '</div>'; });
     html += '</div></div>';
   }
@@ -220,7 +220,7 @@ function _renderPollCard(poll) {
   if (isVotable && isCreator) {
     html += '<button class="edit-btn" style="margin-top:10px" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>';
     if (enough) {
-      html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">✔ ' +
+      html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
         t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
     } else {
       html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
@@ -280,7 +280,7 @@ function showVoteForOthers(pollId) {
   DB_CACHE.users.forEach(function (u) {
     var cur = np.responses.hasOwnProperty(u.id) ? np.responses[u.id] : -1;
     rows += '<div class="proxy-row" data-uid="' + u.id + '" data-answer="' + cur + '">';
-    rows += '<div class="proxy-name">' + escapeHtml(plainUserName(u)) + (u.manual ? ' ✍️' : '') + '</div><div class="proxy-pills">';
+    rows += '<div class="proxy-name">' + escapeHtml(plainUserName(u)) + (u.manual ? ' ' + icon("manual", 12) : '') + '</div><div class="proxy-pills">';
     for (var ai = 0; ai < np.answers.length; ai++) {
       rows += '<button type="button" class="proxy-pill' + (cur === ai ? ' active' : '') + '" onclick="_proxyPick(this,' + ai + ')">' + escapeHtml(answerLabel(np.answers[ai])) + '</button>';
     }
@@ -443,7 +443,7 @@ function renderPollCreateForm() {
   html += '</div>';
 
   // Answers
-  html += '<div class="card"><div class="card-title">🗳️ ' + t('answers') + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("vote", 14) + ' ' + t('answers') + '</div>';
   for (var i = 0; i < newPoll.answers.length; i++) {
     html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
     html += '<span class="radio-dot"></span>';

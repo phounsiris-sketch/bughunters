@@ -295,7 +295,7 @@ function renderSessionsList(sessions) {
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
     var cocks = sessionCocks(s);
-    html += '<div class="session-court">📍 ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + fmtHours(s.duration) + ')' : '') +
+    html += '<div class="session-court">' + icon("pin", 12) + ' ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + fmtHours(s.duration) + ')' : '') +
       (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') + '</div>';
     html += '<div class="avatar-stack">';
     players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
@@ -313,9 +313,9 @@ function renderSessionsList(sessions) {
 
     if (canDetails || canBill) {
       html += '<div class="session-actions">';
-      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">✏️ ' + t("editDetails") + '</button>';
-      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">🧾 ' + t("editBillShort") + '</button>';
-      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">🗑️</button>';
+      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 14) + ' ' + t("editDetails") + '</button>';
+      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">' + icon("bill", 14) + ' ' + t("editBillShort") + '</button>';
+      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">' + icon("trash", 16) + '</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -438,7 +438,7 @@ function renderSessionCreateForm() {
   html += '</div></div>';
 
   // Players
-  html += '<div class="card"><div class="card-title">👥 ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
+  html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
   html += '<div class="chips" id="newSesPlayers">' + _newSesChips() + '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
 
@@ -454,7 +454,7 @@ function sesPickCourt(id) {
 function _newSesChips() {
   return DB_CACHE.users.map(function (u) {
     var on = newSes.players.indexOf(u.id) >= 0;
-    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? '\u2714 ' : '') + getUserName(u.id) + '</div>';
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
   }).join('');
 }
 
@@ -549,10 +549,10 @@ function renderSessionDetail() {
 
 /** Read-only view for players while the organiser hasn't entered the bill */
 function _renderWaitingForBill(s) {
-  var html = '<div class="card"><div class="card-title">\uD83D\uDC65 ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
+  var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
   (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div>';
-  html += '<div class="empty-state"><div class="empty-icon">\uD83E\uDDFE</div><div>' + t("waitingForBill") + '</div></div>';
+  html += '<div class="empty-state"><div class="empty-icon">' + icon("bill", 44) + '</div><div>' + t("waitingForBill") + '</div></div>';
   return html;
 }
 
@@ -587,7 +587,7 @@ function _renderSplitResult(s) {
   html += '</div>';
 
   // 1) Pay by type: one card per cost, with the payer's QR and each player's part
-  html += '<div class="section-title">💳 ' + t("payByType") + '</div>';
+  html += '<div class="section-title">' + icon("card", 14) + ' ' + t("payByType") + '</div>';
   var n = players.length;
   if (L.totals.court > 0) {
     html += _payTypeCard(s, icon("court", 18), t("court"),
@@ -617,7 +617,7 @@ function _renderSplitResult(s) {
   }
 
   // 2) Settlement after deduction: one row per pair of people
-  html += '<div class="card"><div class="card-title">🧮 ' + t("settlement") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("calc", 14) + ' ' + t("settlement") + '</div>';
   if (L.transfers.length === 0) {
     html += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
   } else {
@@ -631,7 +631,7 @@ function _renderSplitResult(s) {
       html += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
       html += '<div class="settle-head"><div style="font-size:14px"><b>' + getUserName(tr.from) + '</b> → <b>' + getUserName(tr.to) + '</b></div><div>';
       if (isDone) {
-        html += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">✔ ' + t("paid") + '</button>'
+        html += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
                         : '<span class="person-status status-payer">' + t("paid") + '</span>';
       } else if (canMark) {
         html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
@@ -676,7 +676,7 @@ function _renderSplitResult(s) {
   html += '<div class="messenger-preview" id="messengerPreview">' + escapeHtml(buildMessengerText(s)) + '</div>';
 
   if (canEditBill(s) || canEditSessionDetails(s)) {
-    html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">✏️ ' + t("editCosts") + '</button>';
+    html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">' + icon("pen", 14) + ' ' + t("editCosts") + '</button>';
   }
   if (canDeleteSession(s)) {
     html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
@@ -697,7 +697,7 @@ function _canMarkTransfer(s, tr) {
 
 function _detailLine(label, amount, payerUid) {
   return '<div class="item-row"><div class="item-name" style="font-size:13px">' + label +
-    (payerUid ? '<div style="font-size:11px;color:var(--text-muted)">💳 ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
+    (payerUid ? '<div style="font-size:11px;color:var(--text-muted)">' + icon("card", 12) + ' ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
     '</div><div class="item-price">' + fmtLAK(amount) + '</div></div>';
 }
 
@@ -706,8 +706,8 @@ function sessionCocks(s) {
   return (s.shuttlecocks || []).reduce(function (a, c) { return a + (Number(c.qty) || 0); }, 0);
 }
 
-function _costCard(icon, label, amount, payerUid, meta) {
-  return '<div class="cost-card"><div class="cost-icon">' + icon + '</div>' +
+function _costCard(iconHtml, label, amount, payerUid, meta) {
+  return '<div class="cost-card"><div class="cost-icon">' + iconHtml + '</div>' +
     '<div class="cost-card-label">' + label + '</div>' +
     '<div class="cost-card-value">' + (meta ? '<span class="cost-card-meta">' + meta + '</span>' : '') + fmtShort(amount) + '</div>' +
     '<div class="cost-card-sub">' + (payerUid && amount ? getUserName(payerUid) : '&nbsp;') + '</div></div>';
@@ -721,9 +721,9 @@ function _even(uids, amount) {
 }
 
 /** One cost (court, cocks, a drink, dinner): who paid, their QR, each player's part */
-function _payTypeCard(s, icon, title, desc, total, payer, qrType, parts, extra) {
+function _payTypeCard(s, iconHtml, title, desc, total, payer, qrType, parts, extra) {
   var html = '<div class="card pay-card">';
-  html += '<div class="pay-card-head"><div style="min-width:0"><div class="pay-card-title">' + icon + ' ' + title + '</div>' +
+  html += '<div class="pay-card-head"><div style="min-width:0"><div class="pay-card-title">' + iconHtml + ' ' + title + '</div>' +
     (desc ? '<div class="pay-card-desc">' + desc + '</div>' : '') + '</div>' +
     '<div class="pay-card-total">' + fmtLAK(total) + '</div></div>';
 
@@ -731,7 +731,7 @@ function _payTypeCard(s, icon, title, desc, total, payer, qrType, parts, extra) 
   if (payer) {
     html += '<div class="receiver-box">';
     html += '<div class="receiver-info">' + avatarHtml(payer, 40) +
-      '<div style="min-width:0"><div class="receiver-label">💳 ' + t("paidFirst") + '</div>' +
+      '<div style="min-width:0"><div class="receiver-label">' + icon("card", 12) + ' ' + t("paidFirst") + '</div>' +
       '<div class="receiver-name">' + getUserName(payer) + '</div>' +
       '<div class="receiver-hint">' + t("scanToPay") + '</div></div></div>';
     html += '<div class="qr-slot qr-big" data-uid="' + payer + '" data-type="' + qrType + '"></div>';
@@ -777,7 +777,7 @@ function _fillQrSlots(root) {
 function openImage(src) {
   var viewer = document.createElement("div");
   viewer.className = "image-viewer";
-  viewer.innerHTML = '<img src="' + src + '" alt=""><button class="image-viewer-close" aria-label="Close">\u2715</button>';
+  viewer.innerHTML = '<img src="' + src + '" alt=""><button class="image-viewer-close" aria-label="Close">' + icon("close", 26) + '</button>';
   viewer.addEventListener("click", function () { viewer.remove(); });
   document.body.appendChild(viewer);
 }
@@ -861,11 +861,11 @@ function renderEditForm() {
   var lockDetails = canDetails ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
   var lockBill = canBill ? '<fieldset class="perm-fs">' : '<fieldset class="perm-fs perm-lock" disabled>';
   if (!canDetails || !canBill) {
-    html += '<div class="perm-note">\uD83D\uDD12 ' + t(canBill ? "onlyBillEditable" : "onlyDetailsEditable") + '</div>';
+    html += '<div class="perm-note">' + icon("lock", 14) + ' ' + t(canBill ? "onlyBillEditable" : "onlyDetailsEditable") + '</div>';
   }
 
   // When & where
-  html += lockDetails + '<div class="card"><div class="card-title">\uD83D\uDCC5 ' + t("courtDetails") + '</div>';
+  html += lockDetails + '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t("courtDetails") + '</div>';
   html += '<div class="form-row">';
   html += '<div class="form-group"><label class="form-label">' + t("date") + '</label><input type="date" class="form-input" value="' + edit.date + '" onchange="edit.date=this.value"></div>';
   html += '<div class="form-group"><label class="form-label">' + t("startTime") + '</label><input type="time" class="form-input" value="' + edit.time + '" onchange="edit.time=this.value"></div>';
@@ -881,7 +881,7 @@ function renderEditForm() {
   html += '</div>';
   html += '<div class="cost-display" id="courtCostDisplay"></div>';
   html += '</fieldset>' + lockBill;
-  html += '<div class="form-group" style="margin-top:8px"><label class="form-label">\uD83D\uDCB3 ' + t("courtPayer") + '</label>';
+  html += '<div class="form-group" style="margin-top:8px"><label class="form-label">' + icon("card", 12) + ' ' + t("courtPayer") + '</label>';
   html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickCourtPayer" onchange="edit.courtPayer=this.value">' + _payerOptions(edit.courtPayer, edit.players) + '</select></div>';
   html += '</fieldset>' + lockDetails;
   html += '</div>';
@@ -889,11 +889,11 @@ function renderEditForm() {
   // Players
   var pickable = _pickableUids();
   html += '</fieldset>' + lockDetails;
-  html += '<div class="card"><div class="card-title">👥 ' + t("players") + ' (' + edit.players.length + ')</div>';
+  html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + edit.players.length + ')</div>';
   html += '<div class="chips">';
   for (var ui = 0; ui < pickable.length; ui++) {
     var on = edit.players.indexOf(pickable[ui]) >= 0;
-    html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + avatarHtml(pickable[ui], 22) + (on ? '\u2714 ' : '') + getUserName(pickable[ui]) + '</div>';
+    html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + avatarHtml(pickable[ui], 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(pickable[ui]) + '</div>';
   }
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("payerHint") + '</div>';
@@ -911,11 +911,11 @@ function renderEditForm() {
     html += '<input type="number" class="qty-num" min="0" value="' + sc.qty + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
     html += '<button onclick="editShuttleQty(' + si + ',1)">+</button></div>';
     html += '<div class="item-price" id="scRowTotal' + si + '"></div>';
-    html += '<button class="remove-btn" onclick="edit.shuttlecocks.splice(' + si + ',1);renderEditForm()">✕</button>';
+    html += '<button class="remove-btn" onclick="edit.shuttlecocks.splice(' + si + ',1);renderEditForm()">' + icon("close", 16) + '</button>';
     html += '</div>';
   }
   html += '<button class="add-btn-dashed" onclick="showAddShuttlecock()">+ ' + t("addBrand") + '</button>';
-  html += '<div class="form-group" style="margin-top:10px"><label class="form-label">💳 ' + t("shuttlePayer") + '</label>';
+  html += '<div class="form-group" style="margin-top:10px"><label class="form-label">' + icon("card", 12) + ' ' + t("shuttlePayer") + '</label>';
   html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickShuttlePayer" onchange="edit.shuttlePayer=this.value">' + _payerOptions(edit.shuttlePayer, edit.players) + '</select></div>';
   html += '<div class="subtotal-row"><span>' + t("shuttleTotal") + '</span><span id="shuttleTotal"></span></div>';
   html += '</div>';
@@ -926,9 +926,9 @@ function renderEditForm() {
   for (var oi = 0; oi < edit.otherCosts.length; oi++) {
     var oc = edit.otherCosts[oi];
     html += '<div class="item-row"><div class="item-name">' + escapeHtml(oc.desc) +
-      '<div style="font-size:11px;color:var(--text-muted)">💳 ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
+      '<div style="font-size:11px;color:var(--text-muted)">' + icon("card", 12) + ' ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
       '<div class="item-price">' + fmtLAK(oc.amount) + '</div>' +
-      '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">✕</button></div>';
+      '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">' + icon("close", 16) + '</button></div>';
   }
   html += '<button class="add-btn-dashed" onclick="showAddOtherCost()">+ ' + t("addOtherCost") + '</button>';
   html += '</div>';
@@ -941,12 +941,12 @@ function renderEditForm() {
     var d = edit.dinner;
     html += '<div class="form-row">';
     html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (\u20AD)</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
-    html += '<div class="form-group"><label class="form-label">💳 ' + t("dinnerPayer") + '</label><select class="form-select" data-cs-type="player" data-cs-onpick="editPickDinnerPayer" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
+    html += '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("dinnerPayer") + '</label><select class="form-select" data-cs-type="player" data-cs-onpick="editPickDinnerPayer" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
     html += '</div>';
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
     for (var di = 0; di < pickable.length; di++) {
       var dOn = d.diners.indexOf(pickable[di]) >= 0;
-      html += '<div class="chip' + (dOn ? ' active' : '') + '" onclick="editToggleDiner(\'' + pickable[di] + '\')">' + (dOn ? '✔ ' : '') + getUserName(pickable[di]) + '</div>';
+      html += '<div class="chip' + (dOn ? ' active' : '') + '" onclick="editToggleDiner(\'' + pickable[di] + '\')">' + (dOn ? icon("check", 12) + ' ' : '') + getUserName(pickable[di]) + '</div>';
     }
     html += '</div>';
     html += '<div class="form-group"><label class="form-label">' + t("uploadReceipt") + '</label>';
@@ -1169,7 +1169,7 @@ function showAddOtherCost() {
     '<input type="text" class="form-input" id="modalDesc" placeholder="' + t("otherCostPlaceholder") + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("amount") + ' (\u20AD)</label>' +
     moneyInput('modalAmount', 0, '') + '</div>' +
-    '<div class="form-group"><label class="form-label">💳 ' + t("paidBy") + '</label>' +
+    '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("paidBy") + '</label>' +
     '<select class="form-select" id="modalPaidBy">' + _payerOptions(currentUser ? currentUser.uid : "", pickable) + '</select></div>' +
     '<div class="form-group"><label class="form-label">' + t("splitBetween") + '</label>' +
     '<select class="form-select" id="modalFor">' + forOpts + '</select></div>';

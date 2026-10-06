@@ -142,12 +142,12 @@ function _renderLeaderboard() {
   };
 
   var html = '<div class="leader-grid">';
-  html += _topCard("📊", t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); }, false, activeBreakdown,
+  html += _topCard(icon("chart", 14), t("lbMostActive"), active, function (v) { return v + ' ' + t("activitiesWord"); }, false, activeBreakdown,
     function (a, b) { return (played[b] || 0) - (played[a] || 0) || (dined[b] || 0) - (dined[a] || 0); });
-  html += _topCard("🏸", t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
-  html += _topCard("💳", t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
-  html += _topCard("🙅", t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
-  html += _topCard("🤷", t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
+  html += _topCard(icon("shuttle", 14), t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
+  html += _topCard(icon("card", 14), t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
+  html += _topCard(icon("noshow", 14), t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
+  html += _topCard(icon("question", 14), t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("lbHint") + '</div>';
   return html;
@@ -171,7 +171,7 @@ function _topCard(emoji, title, map, fmt, warn, sub, tieBreak) {
 
   var start = 0;
   if (!warn) {
-    var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+    var medals = { 1: icon("medal", 20, "medal-1"), 2: icon("medal", 20, "medal-2"), 3: icon("medal", 20, "medal-3") };
     html += '<div class="podium">';
     [1, 0, 2].forEach(function (pos) {            // 2nd · 1st · 3rd
       var u = uids[pos];
@@ -240,7 +240,7 @@ function _renderSpendingTab(sessions, allSessions) {
   html += _renderPeriodTable(allSessions);
 
   if (!sessions.length) {
-    return html + '<div class="empty-state"><div class="empty-icon">📊</div><div>' + t("noData") + '</div></div>';
+    return html + '<div class="empty-state"><div class="empty-icon">' + icon("chart", 44) + '</div><div>' + t("noData") + '</div></div>';
   }
 
   html += '<div class="card"><div class="card-title">' + t("perPerson") + '</div>';
@@ -422,7 +422,7 @@ function _renderActivityTab() {
     '<div class="act-total">' + icon("shuttle", 18) + '<b>' + sessions.length + '</b><span>' + t("sessionsWord") + '</span></div>' +
     '<div class="act-total">' + icon("dinner", 18) + '<b>' + dinners + '</b><span>' + t("dinnersWord") + '</span></div></div>';
 
-  if (!uids.length) return html + '<div class="empty-state"><div class="empty-icon">👥</div><div>' + t("noData") + '</div></div>';
+  if (!uids.length) return html + '<div class="empty-state"><div class="empty-icon">' + icon("users", 44) + '</div><div>' + t("noData") + '</div></div>';
 
   var bar = function (cls, iconName, label, n, total) {
     var pct = total ? Math.round(n / total * 100) : 0;
@@ -444,7 +444,7 @@ function _renderActivityTab() {
     html += bar('vote', 'polls', t("votedJoin"), v, polls.length);
     html += bar('play', 'shuttle', t("playedWord"), p, sessions.length);
     html += '<div class="act-extra">' + icon("dinner", 12) + ' ' + t("dinnersWord") + ' ' + (dined[u] || 0) + '/' + dinners +
-      ' · ✍️ ' + t("pollsCreated") + ' ' + (created[u] || 0) + '</div>';
+      ' · ' + icon("manual", 12) + ' ' + t("pollsCreated") + ' ' + (created[u] || 0) + '</div>';
     html += '</div>';
   });
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("showUpHint") + ' • ' + t("tapForDetails") + '</div>';

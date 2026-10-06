@@ -84,7 +84,7 @@ function pushSettingsCard() {
   var html = '<div class="card"><div class="card-title">' + icon("bell", 14) + ' ' + t("pushTitle") + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("pushHint") + '</div>';
   if (st === "on") {
-    html += '<div class="settings-item"><div class="settings-label" style="color:var(--accent)">✔ ' + t("pushOn") + '</div>' +
+    html += '<div class="settings-item"><div class="settings-label" style="color:var(--accent)">' + icon("check", 14) + ' ' + t("pushOn") + '</div>' +
       '<button class="edit-btn" onclick="disablePush()">' + t("pushTurnOff") + '</button></div>';
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="localTestPush()">' + icon("bell", 16) + ' ' + t("pushLocalTest") + '</button>';
     html += '<div id="pushLocalResult" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>';

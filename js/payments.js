@@ -62,7 +62,7 @@ function renderPayments() {
       '<div class="pay-person-total">' + fmtLAK(g.total) + '</div></div>';
     html += '<div class="qr-strip" data-qr-uid="' + g.uid + '"><div class="qr-missing">' + t("loading") + '</div></div>';
     html += _paymentItems(g, "owe");
-    html += '<button class="btn-primary" onclick="markGroupPaid(\'owe\',\'' + g.uid + '\')">✔ ' + t("markAllPaidTo").replace("{name}", getUserName(g.uid)) + '</button>';
+    html += '<button class="btn-primary" onclick="markGroupPaid(\'owe\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markAllPaidTo").replace("{name}", getUserName(g.uid)) + '</button>';
     html += '</div>';
   });
 
@@ -76,7 +76,7 @@ function renderPayments() {
         '<div style="flex:1;min-width:0"><div class="pay-person-name">' + getUserName(g.uid) + '</div></div>' +
         '<div class="pay-person-total" style="color:var(--accent)">' + fmtLAK(g.total) + '</div></div>';
       html += _paymentItems(g, "owed");
-      html += '<button class="btn-secondary" onclick="markGroupPaid(\'owed\',\'' + g.uid + '\')">✔ ' + t("markReceived") + '</button>';
+      html += '<button class="btn-secondary" onclick="markGroupPaid(\'owed\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markReceived") + '</button>';
       html += '</div>';
     });
   }

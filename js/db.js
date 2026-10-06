@@ -14,7 +14,8 @@ function dbOnError(err) {
     : "Cannot connect to database: " + ((err && err.message) || err);
   var bar = document.createElement("div");
   bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 14px;background:#b91c1c;color:#fff;font-size:13px;text-align:center";
-  bar.textContent = "\u26A0 " + msg;
+  bar.textContent = msg;
+  if (typeof icon === "function") bar.insertAdjacentHTML("afterbegin", icon("warning", 14) + " ");
   bar.onclick = function () { bar.remove(); };
   document.body.appendChild(bar);
 }

@@ -2502,9 +2502,20 @@ img.person-avatar {
   position: absolute;
   right: -8px;
   bottom: -6px;
-  font-size: 22px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+
+/* Solar medal in gold / silver / bronze */
+.medal-1 { color: #f5c542; }
+.medal-2 { color: #c9d2de; }
+.medal-3 { color: #d08a4c; }
 
 .pod-name {
   max-width: 100%;
@@ -4018,3 +4029,12 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 .qr-row.qr-main .qr-thumb { width: 84px; height: 84px; }
 .qr-extras-toggle { display: block; margin: 10px 0 6px; font-size: 13px; }
 #qrExtras { margin-top: 4px; }
+
+/* Solar icons inside buttons and labels */
+.edit-btn .si, .delete-btn .si, .btn-primary .si, .btn-secondary .si, .remove-btn .si, .theme-toggle .si { vertical-align: -0.25em; }
+.delete-btn, .remove-btn, .notif-del { display: inline-flex; align-items: center; justify-content: center; }
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; }
+.empty-icon .si { opacity: 0.8; }
+.toast .si { vertical-align: -0.25em; }
+.image-viewer-close { display: flex; align-items: center; justify-content: center; }
+.perm-badge .si { vertical-align: -0.2em; }

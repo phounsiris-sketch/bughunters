@@ -108,7 +108,7 @@ function _csOpenMenu(select) {
       ed.className = "cs-edit";
       ed.setAttribute("data-edit", opt.value);
       ed.setAttribute("aria-label", "Edit");
-      ed.textContent = "\u270F\uFE0F";
+      ed.innerHTML = icon("pen", 14);
       item.appendChild(ed);
     }
     menu.appendChild(item);

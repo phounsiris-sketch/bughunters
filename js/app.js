@@ -38,7 +38,7 @@ function applyTheme() {
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", currentTheme === "light" ? "#0d9488" : pal[3]);
   var themeBtn = document.getElementById("themeBtn");
-  if (themeBtn) themeBtn.textContent = (currentTheme === "dark") ? "\u2600\uFE0F" : "\uD83C\uDF19";
+  if (themeBtn) themeBtn.innerHTML = icon(currentTheme === "dark" ? "sun" : "moon", 18);
 }
 
 /** Pick a dark style (also switches to dark mode) */
@@ -68,7 +68,9 @@ function showToast(msg) {
   var toast = document.getElementById("toast");
   if (!toast) return;
 
-  toast.textContent = msg;
+  // A trailing ✔ becomes the Solar check icon
+  var ok = /\s*\u2714\uFE0F?$/.test(msg);
+  toast.innerHTML = escapeHtml(String(msg).replace(/\s*\u2714\uFE0F?$/, "")) + (ok ? " " + icon("check", 16) : "");
   toast.classList.add("show");
 
   setTimeout(function () {
@@ -346,7 +348,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v33"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v34"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

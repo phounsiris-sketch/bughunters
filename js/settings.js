@@ -94,7 +94,7 @@ function _renderProfileTab() {
   var email = prof.email || (currentUser && currentUser.email) || '';
   var html = '<div class="card profile-head">';
   html += '<div class="avatar-edit">' + avatarZoomHtml(currentUser ? currentUser.uid : '', 84) +
-    '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">\uD83D\uDCF7</button></div>';
+    '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">' + icon("camera", 16) + '</button></div>';
   html += '<input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">';
   html += '<div class="profile-name">' + escapeHtml(prof.displayName || '') + '</div>';
   html += '<div class="profile-email">' + escapeHtml(email) + '</div>';
@@ -142,19 +142,19 @@ function _renderSettingsPage() {
   // 2. Appearance
   html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
   html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
-  html += _seg([["dark", "🌙 " + t("themeDark")], ["light", "☀️ " + t("themeLight")]], currentTheme, "setThemeMode");
+  html += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
   html += '<div class="settings-label" style="margin:14px 0 0">' + t("darkStyle") + '</div>';
   html += '<div class="palette-grid">';
   PALETTES.forEach(function (p) {
     var on = currentTheme === 'dark' && currentPalette === p[0];
     html += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')">' +
       '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
-      (on ? '✔ ' : '') + t(p[1]) + '</button>';
+      (on ? icon("check", 12) + ' ' : '') + t(p[1]) + '</button>';
   });
   html += '</div></div>';
 
   // 3. Language
-  html += '<div class="card"><div class="card-title">🌐 ' + t("language") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
   html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';
 
@@ -195,10 +195,10 @@ function removeAvatar() {
 
 /** Small badges listing what someone may do */
 function _permBadges(perms) {
-  if (perms === "super") return '<span class="perm-badge super">\uD83D\uDC51 ' + t("superAdmin") + '</span>';
+  if (perms === "super") return '<span class="perm-badge super">' + icon("crown", 12) + ' ' + t("superAdmin") + '</span>';
   var on = PERMISSIONS.filter(function (p) { return perms[p.key]; });
   if (!on.length) return '<span class="perm-badge">' + t("roleMember") + '</span>';
-  return on.map(function (p) { return '<span class="perm-badge on">' + p.icon + ' ' + t("perm_" + p.key) + '</span>'; }).join(' ');
+  return on.map(function (p) { return '<span class="perm-badge on">' + icon(p.icon, 12) + ' ' + t("perm_" + p.key) + '</span>'; }).join(' ');
 }
 
 function saveProfileSettings() {
@@ -226,7 +226,7 @@ function _appUrl() {
 
 function _renderPlayersTab() {
   var users = DB_CACHE.users;
-  var html = '<div class="card"><div class="card-title">\uD83D\uDC65 ' + t("playerRoster") + ' (' + users.length + ')</div>';
+  var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("playerRoster") + ' (' + users.length + ')</div>';
   if (!users.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
   for (var i = 0; i < users.length; i++) {
     var u = users[i];
@@ -236,17 +236,17 @@ function _renderPlayersTab() {
     html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
       (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted)">' +
-      (u.manual ? '\u270D\uFE0F ' + t("manualPlayer") : '\u2709\uFE0F ' + t("registeredPlayer")) +
-      (u.phone ? ' \u2022 \uD83D\uDCDE ' + escapeHtml(fmtPhone(u.phone)) : '') + '</div>';
+      (u.manual ? icon("manual", 12) + ' ' + t("manualPlayer") : icon("mail", 12) + ' ' + t("registeredPlayer")) +
+      (u.phone ? ' \u2022 ' + icon("phone", 12) + ' ' + escapeHtml(fmtPhone(u.phone)) : '') + '</div>';
     if (!u.manual) html += '<div style="margin-top:4px">' + _permBadges(userPerms(u)) + '</div>';
     html += '</div></div>';
     if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
-      html += '<button class="edit-btn" onclick="showPermsModal(\'' + u.id + '\')">\uD83D\uDD11 ' + t("permissions") + '</button>';
+      html += '<button class="edit-btn" onclick="showPermsModal(\'' + u.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
     }
     if (u.manual && can("editConfig")) {
       html += '<div style="display:flex;gap:8px">';
-      html += '<button class="edit-btn" onclick="showPlayerModal(\'' + u.id + '\')">\u270F\uFE0F</button>';
-      html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + u.id + '\')">\u2715</button>';
+      html += '<button class="edit-btn" onclick="showPlayerModal(\'' + u.id + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + u.id + '\')">' + icon("trash", 16) + '</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -257,7 +257,7 @@ function _renderPlayersTab() {
   }
   html += '</div>';
 
-  html += '<div class="card"><div class="card-title">\u2709\uFE0F ' + t("invitePlayers") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("mail", 14) + ' ' + t("invitePlayers") + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">' + t("inviteHint") + '</div>';
   html += '<input class="form-input" value="' + escapeHtml(_appUrl()) + '" readonly onclick="this.select()" style="margin-bottom:8px">';
   html += '<button class="btn-primary" onclick="copyInviteLink()">' + t("copyInvite") + '</button>';
@@ -273,7 +273,7 @@ function showPermsModal(uid) {
   var rows = '';
   PERMISSIONS.forEach(function (p) {
     rows += '<label class="perm-row"><input type="checkbox" data-perm="' + p.key + '"' + (perms[p.key] ? ' checked' : '') + '>' +
-      '<div><div style="font-weight:600">' + p.icon + ' ' + t("perm_" + p.key) + '</div>' +
+      '<div><div style="font-weight:600">' + icon(p.icon, 14) + ' ' + t("perm_" + p.key) + '</div>' +
       '<div style="font-size:11px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
   });
   document.getElementById("modalTitle").textContent = t("permissions") + " \u2014 " + (u.displayName || "");
@@ -352,12 +352,12 @@ function _renderCourtsTab() {
     var c = courts[i];
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">📍 ' + escapeHtml(c.location || '—') + '</div></div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || '—') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(c.pricePerHour) + '/h</div>';
     if (can("editConfig")) {
-      html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">✏️</button>';
-      html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">✕</button>';
+      html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">' + icon("trash", 16) + '</button>';
     }
     html += '</div></div>';
   }
@@ -417,8 +417,8 @@ function _renderShuttleTab() {
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(tube) + '/' + t("tube") + '</div>';
     if (can("editConfig")) {
-      html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">✏️</button>';
-      html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">✕</button>';
+      html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">' + icon("trash", 16) + '</button>';
     }
     html += '</div></div>';
   }
@@ -480,14 +480,14 @@ function _renderQrTab() {
   var people = _qrManualPlayers();
   if (!people.length) {
     qrOwner = null;
-    return '<div class="card"><div class="card-title">📱 ' + t("tabPlayersQr") + '</div>' +
+    return '<div class="card"><div class="card-title">' + icon("qr", 14) + ' ' + t("tabPlayersQr") + '</div>' +
       '<div style="font-size:13px;color:var(--text-muted)">' + t("noManualPlayers") + '</div></div>';
   }
   if (!configQrOwner || !people.some(function (u) { return u.id === configQrOwner; })) configQrOwner = people[0].id;
   qrOwner = configQrOwner;
   var sel = '<div class="form-group"><label class="form-label">' + t("qrOwner") + '</label><select class="form-select" onchange="configQrOwner=this.value;renderSettings()">';
   people.forEach(function (u) {
-    sel += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + ' ✍️</option>';
+    sel += '<option value="' + u.id + '"' + (u.id === qrOwner ? ' selected' : '') + '>' + escapeHtml(plainUserName(u)) + ' · ' + t("manualPlayer") + '</option>';
   });
   sel += '</select></div>';
   return _qrCardHtml(t("tabPlayersQr"), t("qrManualHint"), sel);
@@ -598,8 +598,8 @@ function _renderGeneralTab() {
     return h;
   };
   var locked = !can("editConfig");
-  var html = (locked ? '<div class="perm-note">\uD83D\uDD12 ' + t("noPermission") + '</div><fieldset class="perm-fs perm-lock" disabled>' : '<fieldset class="perm-fs">') +
-    '<div class="card"><div class="card-title">⚙️ ' + t("tabGeneral") + '</div>';
+  var html = (locked ? '<div class="perm-note">' + icon("lock", 14) + ' ' + t("noPermission") + '</div><fieldset class="perm-fs perm-lock" disabled>' : '<fieldset class="perm-fs">') +
+    '<div class="card"><div class="card-title">' + icon("settings", 14) + ' ' + t("tabGeneral") + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>';
   html += '<input type="number" class="form-input" id="gMinPlayers" min="2" max="30" value="' + minPlayersSetting() + '" onchange="saveAppSetting(\'minPlayers\', Math.max(2, parseInt(this.value, 10) || 4))">';
   html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
@@ -634,7 +634,7 @@ function saveAppSetting(key, value) {
 function _renderMergeCard() {
   var manual = DB_CACHE.users.filter(function (u) { return u.manual; });
   if (!manual.length || !currentUser || !isSuperAdmin()) return '';
-  var html = '<div class="card"><div class="card-title">🔗 ' + t("mergeTitle") + '</div>';
+  var html = '<div class="card"><div class="card-title">' + icon("link", 14) + ' ' + t("mergeTitle") + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("mergeHint") + '</div>';
   html += '<div class="form-group"><select class="form-select" id="mergeSelect"><option value="">' + t("mergePick") + '</option>';
   manual.forEach(function (u) { html += '<option value="' + u.id + '">' + escapeHtml(plainUserName(u)) + '</option>'; });

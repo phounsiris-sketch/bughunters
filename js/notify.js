@@ -216,7 +216,7 @@ function _renderNotifPanel(events, seen) {
       '<span class="notif-icon">' + icon(ev.icon, 18) + '</span>' +
       '<span class="notif-text"><span class="notif-tag">' + (ev.cat === "remind" ? t("reminderTag") : t("notificationTag")) + '</span>' + ev.text +
       '<span class="notif-time">' + _timeAgo(ev.time) + '</span></span>' +
-      '<button class="notif-del" aria-label="' + t("delete") + '" onclick="dismissNotif(\'' + ev.id + '\',event)">\u2715</button></div>';
+      '<button class="notif-del" aria-label="' + t("delete") + '" onclick="dismissNotif(\'' + ev.id + '\',event)">' + icon("close", 18) + '</button></div>';
   });
   html += '</div>';
   panel.innerHTML = html;
