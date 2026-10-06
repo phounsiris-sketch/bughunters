@@ -81,7 +81,7 @@ async function main() {
   const qrIntoRef = db.collection("qrcodes").doc(into.id);
   const qrInto = (await qrIntoRef.get()).data() || {};
   const qrCopy = {};
-  ["court", "shuttle", "dinner"].forEach((k) => { if (qrFrom[k] && !qrInto[k]) qrCopy[k] = qrFrom[k]; });
+  ["main", "court", "shuttle", "dinner"].forEach((k) => { if (qrFrom[k] && !qrInto[k]) qrCopy[k] = qrFrom[k]; });
   const phoneCopy = from.phone && !into.phone ? from.phone : null;
 
   changes.forEach((c) => console.log("  • " + c.text));

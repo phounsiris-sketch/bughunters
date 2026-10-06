@@ -24,11 +24,12 @@ function setSettingsTab(tab) {
 }
 
 function loadSettings() {
+  qrExtrasOpen = false; // opens by itself when someone has extra QR codes
   // Data comes from the shared cache; it re-renders this page when it changes
   renderSettings();
 }
 
-function loadConfig() { renderSettings(); }
+function loadConfig() { qrExtrasOpen = false; renderSettings(); }
 
 /** Tabs on the Configuration page (Players' QR only for editConfig) */
 function _configTabs() {
@@ -492,44 +493,72 @@ function _renderQrTab() {
   return _qrCardHtml(t("tabPlayersQr"), t("qrManualHint"), sel);
 }
 
-/** Card with the three QR slots of `qrOwner` */
+var qrExtrasOpen = false;
+
+/** One QR row (thumb, title, status, upload / delete) */
+function _qrRowHtml(type, title, iconName, big) {
+  var html = '<div class="qr-row' + (big ? ' qr-main' : '') + '" id="qrCell_' + type + '">';
+  html += '<div class="qr-thumb" id="qrImg_' + type + '"><div class="qr-missing">' + icon("qr", 22) + '</div></div>';
+  html += '<div class="qr-row-info"><div class="qr-row-title">' + icon(iconName, 16) + ' ' + title + '</div>' +
+    '<div class="qr-row-status" id="qrStatus_' + type + '">' + t("loading") + '</div></div>';
+  html += '<input type="file" id="qrFile_' + type + '" accept="image/*" style="display:none" onchange="handleQrUpload(\'' + type + '\',this)">';
+  html += '<div class="qr-row-actions">';
+  html += '<button class="edit-btn icon-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()" aria-label="' + t("uploadQR") + '">' + icon("camera", 18) + '<span>' + t("uploadQR") + '</span></button>';
+  html += '<button class="delete-btn icon-btn" id="qrDel_' + type + '" style="display:none" onclick="removeQr(\'' + type + '\')" aria-label="' + t("delete") + '">' + icon("trash", 18) + '</button>';
+  return html + '</div></div>';
+}
+
+/** QR card of `qrOwner`: one main QR, optional extras per payment type */
 function _qrCardHtml(title, hint, extra) {
   var html = '<div class="card"><div class="card-title">' + icon("qr", 14) + ' ' + title + '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + hint + '</div>';
   if (extra) html += extra;
-  html += '<div id="qrSlots" class="qr-list">';
+  html += '<div id="qrSlots" class="qr-list">' + _qrRowHtml("main", t("qrMain"), "qr", true) + '</div>';
   var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
   var icons = { court: "court", shuttle: "shuttle", dinner: "dinner" };
-  QR_TYPES.forEach(function (type) {
-    html += '<div class="qr-row" id="qrCell_' + type + '">';
-    html += '<div class="qr-thumb" id="qrImg_' + type + '"><div class="qr-missing">' + icon("qr", 22) + '</div></div>';
-    html += '<div class="qr-row-info"><div class="qr-row-title">' + icon(icons[type], 16) + ' ' + labels[type] + '</div>' +
-      '<div class="qr-row-status" id="qrStatus_' + type + '">' + t("loading") + '</div></div>';
-    html += '<input type="file" id="qrFile_' + type + '" accept="image/*" style="display:none" onchange="handleQrUpload(\'' + type + '\',this)">';
-    html += '<div class="qr-row-actions">';
-    html += '<button class="edit-btn icon-btn" onclick="document.getElementById(\'qrFile_' + type + '\').click()" aria-label="' + t("uploadQR") + '">' + icon("camera", 18) + '<span>' + t("uploadQR") + '</span></button>';
-    html += '<button class="delete-btn icon-btn" id="qrDel_' + type + '" style="display:none" onclick="removeQr(\'' + type + '\')" aria-label="' + t("delete") + '">' + icon("trash", 18) + '</button>';
-    html += '</div></div>';
-  });
+  html += '<button class="link-btn qr-extras-toggle" id="qrExtrasToggle" onclick="toggleQrExtras()">' + (qrExtrasOpen ? '− ' : '+ ') + t("qrExtrasToggle") + '</button>';
+  html += '<div id="qrExtras" class="qr-list" style="' + (qrExtrasOpen ? '' : 'display:none') + '">';
+  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("qrExtrasHint") + '</div>';
+  QR_TYPES.forEach(function (type) { html += _qrRowHtml(type, labels[type], icons[type], false); });
   html += '</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:10px">' + t("qrFallbackHint") + '</div>';
   return html + '</div>';
 }
 
-/** Fill the three images once the card is in the DOM */
+function toggleQrExtras() {
+  qrExtrasOpen = !qrExtrasOpen;
+  var box = document.getElementById("qrExtras"), btn = document.getElementById("qrExtrasToggle");
+  if (box) box.style.display = qrExtrasOpen ? "" : "none";
+  if (btn) btn.textContent = (qrExtrasOpen ? '− ' : '+ ') + t("qrExtrasToggle");
+}
+
+/** Fill the images once the card is in the DOM. Older 3-slot uploads are
+    moved over once: the first one becomes the main QR. */
 function _fillQrCard() {
   var owner = qrOwner;
   if (!owner || !document.getElementById("qrSlots")) return;
   dbGetUserQr(owner).then(function (qr) {
     if (owner !== qrOwner) return;
-    QR_TYPES.forEach(function (type) {
+    if (!qr.main && (qr.court || qr.shuttle || qr.dinner)) {
+      var main = qr.court || qr.shuttle || qr.dinner;
+      var upd = { main: main };
+      QR_TYPES.forEach(function (k) { if (qr[k] === main) upd[k] = null; });
+      delete _qrCache[owner];
+      fsdb.collection("qrcodes").doc(owner).set(upd, { merge: true })
+        .then(function () { if (owner === qrOwner) _fillQrCard(); }).catch(function () {});
+      return;
+    }
+    if (qrExtras(qr).length && !qrExtrasOpen) toggleQrExtras();
+    ["main"].concat(QR_TYPES).forEach(function (type) {
       var img = document.getElementById("qrImg_" + type);
       var del = document.getElementById("qrDel_" + type);
       if (!img) return;
       img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
       if (del) del.style.display = qr[type] ? "" : "none";
       var st = document.getElementById("qrStatus_" + type);
-      if (st) { st.textContent = qr[type] ? t("qrUploaded") : t("noQr"); st.classList.toggle("ok", !!qr[type]); }
+      if (st) {
+        st.textContent = qr[type] ? t("qrUploaded") : (type === "main" ? t("noQr") : t("qrUsesMain"));
+        st.classList.toggle("ok", !!qr[type]);
+      }
     });
   });
 }
@@ -551,7 +580,7 @@ function handleQrUpload(type, input) {
 
 function removeQr(type) {
   if (!qrOwner || !confirm(t("delete") + "?")) return;
-  var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
+  var labels = { main: t("qrMainShort"), court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
   var owner = qrOwner;
   trashField("qr", "qrcodes", owner, type, "QR " + labels[type] + " — " + getUserName(owner))
     .then(function () { delete _qrCache[owner]; renderSettings(); })
@@ -666,7 +695,7 @@ function mergeManualPlayer(manualId) {
       }
       jobs.push(dbGetUserQr(manualId).then(function (qr) {
         return dbGetUserQr(me).then(function (mine) {
-          var copy = QR_TYPES.filter(function (k) { return qr[k] && !mine[k]; });
+          var copy = ["main"].concat(QR_TYPES).filter(function (k) { return qr[k] && !mine[k]; });
           return Promise.all(copy.map(function (k) { return dbSetUserQr(me, k, qr[k]); }));
         });
       }));

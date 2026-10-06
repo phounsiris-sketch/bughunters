@@ -78,9 +78,11 @@ function loadUserProfile() {
     var el = document.getElementById("userQr");
     if (!el || viewUserId !== uid) return;
     var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
-    var any = QR_TYPES.filter(function (k) { return qr[k]; });
-    el.innerHTML = any.length ? any.map(function (k) {
-      return '<div class="user-qr-item"><img src="' + qr[k] + '" alt="QR" onclick="openImage(this.src)"><span>' + labels[k] + '</span></div>';
+    var main = qrFor(qr, null);
+    var items = main ? [{ url: main, label: t("qrMainShort") }] : [];
+    qrExtras(qr).forEach(function (x) { items.push({ url: x.url, label: labels[x.type] }); });
+    el.innerHTML = items.length ? items.map(function (x) {
+      return '<div class="user-qr-item"><img src="' + x.url + '" alt="QR" onclick="openImage(this.src)"><span>' + x.label + '</span></div>';
     }).join('') : '<div style="font-size:13px;color:var(--text-muted)">' + t("noQr") + '</div>';
   });
 }

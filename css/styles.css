@@ -4013,3 +4013,8 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 .poll-author, .session-by { cursor: pointer; }
 
 .avatar-zoom { display: inline-block; cursor: zoom-in; border-radius: 50%; }
+
+/* One main payment QR, optional extras */
+.qr-row.qr-main .qr-thumb { width: 84px; height: 84px; }
+.qr-extras-toggle { display: block; margin: 10px 0 6px; font-size: 13px; }
+#qrExtras { margin-top: 4px; }

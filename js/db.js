@@ -254,7 +254,19 @@ function dbSetAppSettings(data) {
 // { court: dataUrl, shuttle: dataUrl, dinner: dataUrl } — kept out of the
 // users collection so the roster stays small.
 
-var QR_TYPES = ["court", "shuttle", "dinner"];
+var QR_TYPES = ["court", "shuttle", "dinner"]; // optional extras per payment type
+// qrcodes/{uid}.main is the person's one payment QR; a type QR overrides it.
+
+/** The QR to show for paying `type` (court / shuttle / dinner) */
+function qrFor(qr, type) {
+  return (type && qr[type]) || qr.main || qr.court || qr.shuttle || qr.dinner || null;
+}
+
+/** Extras that differ from the main QR: [{ type, url }] */
+function qrExtras(qr) {
+  var main = qrFor(qr, null);
+  return QR_TYPES.filter(function (k) { return qr[k] && qr[k] !== main; }).map(function (k) { return { type: k, url: qr[k] }; });
+}
 var _qrCache = {};
 
 function dbGetUserQr(uid) {

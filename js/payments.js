@@ -102,10 +102,11 @@ function _fillQrStrips(root) {
     dbGetUserQr(strip.getAttribute("data-qr-uid")).then(function (qr) {
       var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
       var html = "";
-      QR_TYPES.forEach(function (type) {
-        if (!qr[type]) return;
-        html += '<div class="qr-strip-item"><img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' +
-          '<div>' + icon(COST_ICON[type], 12) + ' ' + labels[type] + '</div></div>';
+      var main = qrFor(qr, null);
+      if (main) html += '<div class="qr-strip-item"><img src="' + main + '" alt="QR" onclick="openImage(this.src)"><div>' + icon("qr", 12) + ' ' + t("qrMainShort") + '</div></div>';
+      qrExtras(qr).forEach(function (x) {
+        html += '<div class="qr-strip-item"><img src="' + x.url + '" alt="QR" onclick="openImage(this.src)">' +
+          '<div>' + icon(COST_ICON[x.type], 12) + ' ' + labels[x.type] + '</div></div>';
       });
       strip.innerHTML = html || '<div class="qr-missing">' + t("noQr") + '</div>';
     });

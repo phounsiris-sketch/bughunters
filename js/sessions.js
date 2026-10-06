@@ -532,7 +532,8 @@ function renderSessionDetail() {
   var container = document.getElementById("sessionDetailContent");
   if (!container || !currentSession) return;
   var s = currentSession;
-  setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date) }]);
+  // The session can arrive after the user has moved on — leave other pages alone
+  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date) }]);
 
   if (!s.calculated && !sessionEditing) {
     if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
@@ -764,9 +765,7 @@ function _fillQrSlots(root) {
     var uid = slot.getAttribute("data-uid");
     var type = slot.getAttribute("data-type");
     dbGetUserQr(uid).then(function (qr) {
-      var order = [type].concat(QR_TYPES.filter(function (x) { return x !== type; }));
-      var url = null;
-      for (var i = 0; i < order.length && !url; i++) url = qr[order[i]];
+      var url = qrFor(qr, type);
       slot.innerHTML = url
         ? '<img src="' + url + '" alt="QR" onclick="openImage(this.src)">'
         : '<div class="qr-missing">' + t("noQr") + '</div>';
@@ -854,7 +853,7 @@ function renderEditForm() {
   var courts = DB_CACHE.courts;
   var html = "";
   var canDetails = canEditSessionDetails(currentSession), canBill = canEditBill(currentSession);
-  setBreadcrumb([
+  if (currentPage === "session-detail") setBreadcrumb([
     { label: t("navSessions"), action: "showPage('sessions')" },
     { label: fmtDate(edit.date), action: currentSession && currentSession.calculated ? "cancelEditSession()" : "showPage('sessions')" },
     { label: t("editCosts") }
