@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v50**.
+run it. App version at the time of writing: **v51**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -45,7 +45,7 @@ The app has two zones, kept visually apart so nobody confuses them:
 | Zone | Header colour | Who sees it | What's in it |
 |---|---|---|---|
 | **Private (my group)** | Your theme colour | Only members of the group | Polls, sessions, bills, matches, stats, members |
-| **Public** | Pink/purple with a "Public — everyone can see this" banner | Every signed-in user | Open games, play buddies, public groups, the court directory |
+| **Public** | Pink/purple with a "Public — everyone can see this" banner | Every signed-in user | Open games, play buddies, the gear Market, public groups, the court directory |
 
 **Bottom bar:** Polls · Sessions · **Home** (middle) · Stats · Public.
 Stats and Public only show once groups are turned on (see section 15).
@@ -249,15 +249,16 @@ record **one game at a time**:
 
 A game **counts in Stats as soon as it's saved**; nobody needs to confirm it. If a
 score is wrong, the person who saved it (or an admin) taps ✎ to fix it or 🗑 to
-delete it.
+delete it. Each game shows **who added it** and, if it was changed, **who edited
+it last** and when (stored as `createdBy` / `updatedBy`, `updatedAt`).
 
 ### Stats tab
 
 | Tab | Shows |
 |---|---|
 | **Ranking** | **Pair ranking first**, then the individual ranking. This month or all time |
-| **Head to head** | Pick two players or two pairs to see their record against each other |
-| **Progress** | Rating over time (sparkline), matches and minutes per month, win rate, longest win streak |
+| **Head to head** | Your own summary, no picking needed: your total W–L, then your record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game you played, in any mode |
+| **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line, W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |
 
 How the numbers are worked out:
 
@@ -305,7 +306,7 @@ Everything about you is in **one card with one Save button**:
   relationship status.
   - The date of birth uses three lists (**day / month / year**), so the year is
     one tap away.
-- **How I play:** your level (6 buttons, see section 7), hand, position, home
+- **How I play:** your level (6 buttons, see section 7), hand, position (front, back or both), home
   court, the days you're usually free, and the **time** you usually play (from–to).
 
 Only the name is required.
@@ -333,8 +334,16 @@ Add **rackets, shoes and other gear** (bag, grip, shirt…).
 - For the photo, tap the big **Add a photo** box to take or choose a picture.
 - Mark **one main item per type**; it shows on your profile.
 
-Tick **For sale** and set a price, and the item appears on **Home → Gear for
-sale** for members of your groups.
+Tick **For sale** to sell an item:
+
+- set a price (in your group's currency) and the province;
+- choose **who can see it**:
+  - **My groups** (default): it's on **Home → Gear for sale** for your groups.
+  - **Everyone (Market)**: it's also on **Public → Market**.
+
+Buyers on the Market see the photo, price, province and seller. They get a
+**WhatsApp** button if you show your phone to everyone; otherwise they can open
+your profile. Untick *For sale* once it's sold.
 
 ---
 
@@ -360,6 +369,11 @@ Anyone can host a game: date, time, court, slots, level and price per person.
 
 A list of public groups in your city, with **Join** (open groups) or **Ask to
 join** (an admin approves, and you get a push when they do).
+
+### Market
+
+Gear people sell to **everyone**, filtered by province, each item in its own
+currency. Items sold only to a group stay on that group's Home page.
 
 ### Courts
 
@@ -437,7 +451,7 @@ Firestore collections. Every private item carries a `groupId`.
 | `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]` (one game per record), minutes, createdBy | Firestore has no nested arrays, so games are `{a,b}` objects |
 | `courts/{id}` | name, address, phone, courts, lat, lng, createdBy | Shared; **no price** |
 | `shuttlecocks/{id}` | groupId, brand, price, cocksPerTube | |
-| `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice | |
+| `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice, saleCurrency, saleScope (groups/public), saleCity, sellerName | Any signed-in user can read gear (the Market) |
 | `openGames/{id}` | hostId, city, date, time, courtId, slots, level, price, players, waitlist, log, status | Public |
 | `invites/{id}` | from, to, date, time, courtId, message, status | |
 | `reports/{id}` | from, about, reason, details, groupId or none | |

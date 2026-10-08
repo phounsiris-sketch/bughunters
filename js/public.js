@@ -43,7 +43,7 @@ function loadPublic() {
   setBreadcrumb(null);
   var tabs = document.getElementById("publicTabs");
   if (tabs) {
-    tabs.innerHTML = [["games", "openGames"], ["buddies", "playBuddies"], ["groups", "publicGroups"], ["courts", "courtDirectory"]].map(function (x) {
+    tabs.innerHTML = [["games", "openGames"], ["buddies", "playBuddies"], ["market", "market"], ["groups", "publicGroups"], ["courts", "courtDirectory"]].map(function (x) {
       return '<button class="dash-tab' + (publicTab === x[0] ? ' active' : '') + '" onclick="setPublicTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
     }).join('');
   }
@@ -64,6 +64,7 @@ function loadPublic() {
     }).catch(function (e) { _publicGroups = []; showToast(_permError(e)); });
   }
   if (publicTab === "buddies" && typeof loadBuddies === "function") loadBuddies();
+  if (publicTab === "market" && typeof loadMarket === "function") loadMarket();
   _locateMe();
   renderPublic();
 }
@@ -86,6 +87,7 @@ function renderPublic() {
   if (!box) return;
   if (publicTab === "buddies") box.innerHTML = _cityFilterHtml() + _renderBuddies();
   else if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();
+  else if (publicTab === "market") box.innerHTML = _cityFilterHtml() + _renderMarket();
   else if (publicTab === "courts") box.innerHTML = _renderDirectory();
   else box.innerHTML = _cityFilterHtml() + _renderGames();
 }

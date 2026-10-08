@@ -335,6 +335,48 @@ function answerDinner(sid, yes) {
 
 /* ---------- Gear board (group) ---------- */
 
+/* ---------- Market (Public): gear for sale to everyone ----------
+   gear/{id}.forSale + saleScope "public" (default "groups" = only on the
+   Home board of the seller's groups), saleCity, salePrice, saleCurrency. */
+var _market = null;
+
+function loadMarket() {
+  fsdb.collection("gear").where("forSale", "==", true).get().then(function (snap) {
+    var list = [];
+    snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
+    _market = list;
+    _gearBoard = list;
+    if (currentPage === "public" && publicTab === "market") renderPublic();
+  }).catch(function (e) { _market = []; showToast(_permError(e)); });
+}
+
+function _salePrice(g) { return g.salePrice ? fmtMoneyIn(g.salePrice, g.saleCurrency) : t("priceAsk"); }
+
+function _renderMarket() {
+  if (_market === null) return '<div class="empty-state">' + t("loading") + '</div>';
+  var city = publicCity(), me = currentUser.uid;
+  var list = _market.filter(function (g) {
+    return g.saleScope === "public" && !isBlockedPair(g.uid) && (city === "all" || !g.saleCity || normCity(g.saleCity) === city);
+  });
+  var html = '<div class="form-hint" style="margin:0 2px 10px">' + t("marketHint") + '</div>';
+  if (!list.length) return html + '<div class="empty-state">' + icon("shuttle", 40) + '<div>' + t("marketEmpty") + '</div></div>';
+  list.forEach(function (g) {
+    var u = findUser(g.uid);
+    var seller = (u && plainUserName(u)) || g.sellerName || "?";
+    var phone = u && u.phone && canSeeField(u, "phone") ? u.phone.replace(/\D/g, "") : "";
+    html += '<div class="card market-card">' +
+      (g.photo ? '<img class="market-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="openImage(this.src)">' : '<div class="market-photo empty">' + icon(g.kind === "other" ? "other" : "shuttle", 36) + '</div>') +
+      '<div class="market-body"><div class="market-top"><b>' + escapeHtml(g.name) + '</b><span class="market-price">' + _salePrice(g) + '</span></div>' +
+      '<div class="market-facts">' + t("gearKind_" + (g.kind || "other")) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') + (g.saleCity ? ' · ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.saleCity)) : '') + '</div>' +
+      (g.note ? '<div class="market-note">' + escapeHtml(g.note) + '</div>' : '') +
+      '<div class="market-seller" onclick="showUserProfile(\'' + g.uid + '\',event)">' + avatarHtml(g.uid, 24) + '<span>' + escapeHtml(seller) + (g.uid === me ? ' (' + t("you") + ')' : '') + '</span></div>' +
+      (g.uid !== me ? '<div class="game-actions">' + (phone ? '<a class="btn-primary contact-btn" href="https://wa.me/' + escapeHtml(phone) + '?text=' + encodeURIComponent(t("marketAskText").replace("{item}", g.name)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
+        '<button class="btn-secondary" onclick="showUserProfile(\'' + g.uid + '\',event)">' + t("viewSeller") + '</button></div>' : '') +
+      '</div></div>';
+  });
+  return html;
+}
+
 var _gearBoard = null;
 
 function gearBoardCardHtml() {
@@ -353,7 +395,7 @@ function gearBoardCardHtml() {
   return '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("gearForSale") + ' (' + mine.length + ')</div>' + mine.map(function (g) {
     return '<div class="gear-row" onclick="showUserProfile(\'' + g.uid + '\',event)">' +
       (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="">' : '<span class="gear-photo empty">' + icon("shuttle", 18) + '</span>') +
-      '<span class="gear-text"><b>' + escapeHtml(g.name) + '</b><small>' + getUserName(g.uid) + (g.salePrice ? ' · ' + fmtLAK(g.salePrice) : '') +
+      '<span class="gear-text"><b>' + escapeHtml(g.name) + '</b><small>' + getUserName(g.uid) + ' · ' + _salePrice(g) +
       (g.note ? ' · ' + escapeHtml(g.note) : '') + '</small></span></div>';
   }).join('') + '</div>';
 }

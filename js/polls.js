@@ -455,7 +455,8 @@ function confirmPoll(pollId) {
       var court = findCourt(np.courtId);
       var sessionRef = fsdb.collection("sessions").doc();
       newSessionId = sessionRef.id;
-      transaction.set(sessionRef, {
+      // The session belongs to the poll's group (the rules refuse a session without one)
+      transaction.set(sessionRef, withGroup({
         pollId: pollId,
         date: np.date || null,
         time: np.time || null,
@@ -471,7 +472,7 @@ function confirmPoll(pollId) {
         calculated: false,
         createdBy: pollData.createdBy || currentUser.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      }, pollData.groupId));
 
       transaction.update(pollRef, { status: 'confirmed', confirmedPlayers: players, sessionId: sessionRef.id, confirmedAt: Date.now() });
     });

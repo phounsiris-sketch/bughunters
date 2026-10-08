@@ -91,8 +91,9 @@ function groupScoped(ref) {
 }
 
 /** Stamp new data with the current group */
-function withGroup(data) {
-  if (GROUPS_ON && currentGroupId) data.groupId = currentGroupId;
+/** Tag new group data with its group (gid if given, else the current group) */
+function withGroup(data, gid) {
+  if (GROUPS_ON && (gid || currentGroupId)) data.groupId = gid || currentGroupId;
   return data;
 }
 
@@ -108,6 +109,12 @@ function isGroupAdminMe() {
   if (isSuperAdmin()) return true;
   var m = myMember();
   return !!(m && m.status === "active" && (m.role === "owner" || m.role === "admin"));
+}
+
+/** Money in a given currency ("LAK" / "THB" / "USD") */
+function fmtMoneyIn(n, cur) {
+  var c = CURRENCIES[cur] ? cur : "LAK";
+  return Math.round(n || 0).toLocaleString("en-US") + " " + CURRENCIES[c].symbol;
 }
 
 function groupCurrency() {

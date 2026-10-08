@@ -13,6 +13,7 @@ var VIS_DEFAULT = { gender: "groups", age: "groups", relationship: "me", selfLev
   position: "everyone", homeCourtId: "groups", daysFree: "groups", phone: "groups" };
 var _myPrivate = null;
 var _gearCache = {};   // uid -> [gear]
+var _gearLoadedAt = {}; // uid -> when it was last read
 var aboutForm = null;
 
 function profileVis(u, key) { return ((u && u.vis) || {})[key] || VIS_DEFAULT[key] || "groups"; }
@@ -91,7 +92,7 @@ function aboutCardHtml() {
   html += '<div class="settings-section about-sub">' + icon("shuttle", 13) + ' ' + t("howIPlay") + '</div>';
   html += row(t("selfLevel"), "selfLevel", levelButtonsHtml(f.selfLevel, function (l) { return "aboutSet('selfLevel','" + l + "')"; }));
   html += row(t("hand"), "hand", seg("hand", ["right", "left"], "hand_"));
-  html += row(t("position"), "position", seg("position", ["front", "back"], "pos_"));
+  html += row(t("position"), "position", seg("position", ["front", "back", "both"], "pos_"));
   html += row(t("homeCourt"), "homeCourtId", '<select class="form-select" onchange="aboutForm.homeCourtId=this.value"><option value="">—</option>' +
     (DB_CACHE.allCourts || DB_CACHE.courts || []).map(function (c) { return '<option value="' + c.id + '"' + (f.homeCourtId === c.id ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>'; }).join('') + '</select>');
   html += row(t("daysFree"), "daysFree", '<div class="chips">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
@@ -178,15 +179,19 @@ function loadGear(uid) {
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
     list.sort(function (a, b) { return (b.main ? 1 : 0) - (a.main ? 1 : 0) || String(a.kind).localeCompare(String(b.kind)); });
     _gearCache[uid] = list;
+    _gearLoadedAt[uid] = Date.now();
     return list;
   }).catch(function () { return []; });
 }
 
 function gearCardHtml(uid, editable) {
   var list = _gearCache[uid];
-  if (!list) {
+  // Someone else's gear: read it again when their profile opens, so new
+  // items and photos show (the copy in memory may be from earlier)
+  var stale = !_gearLoadedAt[uid] || (!editable && Date.now() - _gearLoadedAt[uid] > 5000);
+  if (!list || stale) {
     loadGear(uid).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(uid, editable); });
-    list = [];
+    list = list || [];
   }
   var shown = editable ? list : list.filter(function (g) { return g.main; }).concat(list.filter(function (g) { return !g.main; }));
   var html = '<div class="card" id="gearCard"><div class="card-title">' + icon("shuttle", 14) + ' ' + t(editable ? "myGear" : "gear") + '</div>';
@@ -197,7 +202,7 @@ function gearCardHtml(uid, editable) {
       '<span class="gear-text"><b>' + escapeHtml(g.name) + (g.main ? ' <span class="tag">' + t("mainItem") + '</span>' : '') + '</b>' +
       '<small>' + t("gearKind_" + g.kind) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') +
       (g.weight ? ' · ' + escapeHtml(g.weight) : '') + (g.string ? ' · ' + escapeHtml(g.string) + (g.tension ? ' ' + g.tension + ' lbs' : '') : '') +
-      (g.shoeSize ? ' · EU ' + g.shoeSize : '') + (g.forSale ? ' · ' + t("forSale") + (g.salePrice ? ' ' + fmtLAK(g.salePrice) : '') : '') + '</small></span></div>';
+      (g.shoeSize ? ' · EU ' + g.shoeSize : '') + (g.forSale ? ' · ' + t("forSale") + (g.salePrice ? ' ' + fmtMoneyIn(g.salePrice, g.saleCurrency) : '') + (g.saleScope === "public" ? ' · ' + t("saleScope_public") : '') : '') + '</small></span></div>';
   });
   if (editable && list.length < 10) html += '<button class="add-btn-dashed" onclick="showGearModal(null)">+ ' + t("addGear") + '</button>';
   return html + '</div>';
@@ -205,6 +210,7 @@ function gearCardHtml(uid, editable) {
 
 var _gearPhoto = null;
 var GEAR_KINDS = ["racket", "shoes", "other"];
+function _gearSaleToggle(on) { var b = document.getElementById("gSaleBox"); if (b) b.hidden = !on; }
 
 function showGearModal(id) {
   var mine = _gearCache[currentUser.uid] || [];
@@ -224,6 +230,17 @@ function showGearModal(id) {
         '<input type="file" accept="image/*" id="gPhotoFile" style="display:none"></label>' +
         (_gearPhoto ? '<button type="button" class="link-btn" style="color:var(--red)" id="gPhotoRemove">' + t("removePhoto") + '</button>' : '') + '</div>' +
       '<label class="perm-row"><input type="checkbox" id="gMain"' + (f.main ? ' checked' : '') + '><div><b>' + t("mainItem") + '</b><div class="form-hint">' + t("mainItemHint") + '</div></div></label>' +
+      // Selling: shown to my groups first; "Everyone" also lists it in Public → Market
+      '<label class="perm-row"><input type="checkbox" id="gSale"' + (f.forSale ? ' checked' : '') + ' onchange="_gearSaleToggle(this.checked)"><div><b>' + t("forSale") + '</b><div class="form-hint">' + t("forSaleHint") + '</div></div></label>' +
+      '<div id="gSaleBox"' + (f.forSale ? '' : ' hidden') + '>' +
+        '<div class="form-group"><label class="form-label">' + t("salePrice") + ' (' + curSymbol() + ')</label>' + moneyInput("gSalePrice", f.salePrice || 0, "") + '</div>' +
+        '<div class="form-group"><label class="form-label">' + t("saleWhoSees") + '</label><div class="seg" id="gSaleScope">' +
+          [["groups", t("saleScope_groups")], ["public", t("saleScope_public")]].map(function (o) {
+            return '<button type="button" class="seg-btn' + ((f.saleScope || "groups") === o[0] ? ' active' : '') + '" data-scope="' + o[0] + '">' + o[1] + '</button>';
+          }).join('') + '</div><div class="form-hint">' + t("saleScopeHint") + '</div></div>' +
+        '<div class="form-group"><label class="form-label">' + t("city") + '</label><select class="form-select" id="gSaleCity">' +
+          cityOptionsHtml(f.saleCity || (typeof publicCity === "function" && publicCity() !== "all" ? publicCity() : (currentGroup && currentGroup.city) || "Vientiane")) + '</select></div>' +
+      '</div>' +
       '<details class="more-details"><summary>' + t("moreDetails") + '</summary>' +
         '<div class="form-group"><label class="form-label">' + t("brand") + '</label><input class="form-input" id="gBrand" list="gBrands" value="' + escapeHtml(f.brand || "") + '">' +
           '<datalist id="gBrands">' + ["Yonex", "Li-Ning", "Victor", "Apacs", "Kawasaki", "Mizuno", "Felet"].map(function (b) { return '<option value="' + b + '">'; }).join('') + '</datalist></div>' +
@@ -233,10 +250,11 @@ function showGearModal(id) {
           '<div class="form-group"><label class="form-label">' + t("stringName") + '</label><input class="form-input" id="gString" placeholder="BG80" value="' + escapeHtml(f.string || "") + '"></div>'
         : f.kind === "shoes" ? '<div class="form-group"><label class="form-label">' + t("shoeSize") + ' (EU)</label><input type="number" class="form-input" id="gShoe" min="34" max="48" value="' + escapeHtml(String(f.shoeSize || "")) + '"></div>' : '') +
         '<div class="form-group"><label class="form-label">' + t("note") + '</label><input class="form-input" id="gNote" maxlength="100" value="' + escapeHtml(f.note || "") + '"></div>' +
-        '<label class="perm-row"><input type="checkbox" id="gSale"' + (f.forSale ? ' checked' : '') + '><div><b>' + t("forSale") + '</b><div class="form-hint">' + t("forSaleHint") + '</div></div></label>' +
-        '<div class="form-group"><label class="form-label">' + t("salePrice") + ' (' + curSymbol() + ')</label>' + moneyInput("gSalePrice", f.salePrice || 0, "") + '</div>' +
       '</details>' +
       (g ? '<button class="btn-danger" onclick="deleteGear(\'' + g.id + '\')">' + t("delete") + '</button>' : '');
+    document.querySelectorAll("#gSaleScope [data-scope]").forEach(function (b) {
+      b.onclick = function () { f.saleScope = b.getAttribute("data-scope"); document.querySelectorAll("#gSaleScope .seg-btn").forEach(function (x) { x.classList.toggle("active", x === b); }); };
+    });
     document.querySelectorAll("#modalBody [data-kind]").forEach(function (b) {
       b.onclick = function () { f.name = document.getElementById("gName").value; f.kind = b.getAttribute("data-kind"); draw(); };
     });
@@ -254,7 +272,10 @@ function showGearModal(id) {
     var val = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
     var data = { uid: currentUser.uid, kind: f.kind, name: val("gName"), main: document.getElementById("gMain").checked,
       brand: val("gBrand") || null, note: val("gNote") || null, weight: null, string: null, tension: null, shoeSize: null,
-      forSale: document.getElementById("gSale").checked, salePrice: parseMoney(val("gSalePrice")) || null };
+      forSale: document.getElementById("gSale").checked, salePrice: parseMoney(val("gSalePrice")) || null,
+      saleScope: f.saleScope === "public" ? "public" : "groups", saleCity: val("gSaleCity") || null,
+      saleCurrency: groupCurrency(), sellerName: (currentUserProfile && currentUserProfile.displayName) || null };
+    if (!data.forSale) { data.saleScope = "groups"; }
     if (f.kind === "racket") { data.weight = val("gWeight") || null; data.string = val("gString") || null; data.tension = parseInt(val("gTension"), 10) || null; }
     else if (f.kind === "shoes") data.shoeSize = parseInt(val("gShoe"), 10) || null;
     if (!data.name) { showToast(t("name")); return; }
