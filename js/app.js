@@ -24,28 +24,42 @@ var PALETTES = [
   ["clean", "palClean", ["#121212", "#1f1f1f", "#3b74d9", "#6ee7b7"], "#3b74d9"],
   ["midnight", "palMidnight", ["#0c0e1c", "#1a1e38", "#5b4dff", "#1d6fe0"], "#5b4dff"]
 ];
-var currentPalette = (function () {
+/* Light styles: same shape. Mint is the original light look */
+var LIGHT_PALETTES = [
+  ["mint", "palMint", ["#e4eaf2", "#ffffff", "#0d9488", "#16a34a"], "#0d9488"],
+  ["lilac", "palLilac", ["#ece8f6", "#ffffff", "#6d4aff", "#0d9488"], "#6d4aff"],
+  ["sky", "palSky", ["#e3ecf8", "#ffffff", "#1d5fd1", "#0284c7"], "#1d5fd1"],
+  ["paper", "palPaper", ["#ececec", "#ffffff", "#2f6fd6", "#059669"], "#2f6fd6"],
+  ["sunrise", "palSunrise", ["#f6ede4", "#ffffff", "#ea580c", "#0d9488"], "#ea580c"]
+];
+function _savedPalette(key, list, fallback) {
   var v = null;
-  try { v = localStorage.getItem("palette"); } catch (e) {}
-  return PALETTES.some(function (p) { return p[0] === v; }) ? v : "navy";
-})();
+  try { v = localStorage.getItem(key); } catch (e) {}
+  return list.some(function (p) { return p[0] === v; }) ? v : fallback;
+}
+var currentPalette = _savedPalette("palette", PALETTES, "navy");
+var currentLightPalette = _savedPalette("paletteLight", LIGHT_PALETTES, "mint");
 
 /** Apply theme + dark style to the page and the phone's status bar */
 function applyTheme() {
   document.body.setAttribute("data-theme", currentTheme);
   document.body.setAttribute("data-palette", currentPalette);
-  var pal = PALETTES.filter(function (p) { return p[0] === currentPalette; })[0] || PALETTES[0];
+  document.body.setAttribute("data-lpalette", currentLightPalette);
+  var light = currentTheme === "light";
+  var list = light ? LIGHT_PALETTES : PALETTES, id = light ? currentLightPalette : currentPalette;
+  var pal = list.filter(function (p) { return p[0] === id; })[0] || list[0];
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", currentTheme === "light" ? "#0d9488" : pal[3]);
+  if (meta) meta.setAttribute("content", pal[3]);
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.innerHTML = icon(currentTheme === "dark" ? "sun" : "moon", 18);
 }
 
-/** Pick a dark style (also switches to dark mode) */
+/** Pick a style; a light style switches to light mode, a dark one to dark */
 function setPalette(id) {
-  currentPalette = id;
-  currentTheme = "dark";
-  try { localStorage.setItem("palette", id); localStorage.setItem("theme", "dark"); } catch (e) {}
+  var light = LIGHT_PALETTES.some(function (p) { return p[0] === id; });
+  if (light) currentLightPalette = id; else currentPalette = id;
+  currentTheme = light ? "light" : "dark";
+  try { localStorage.setItem(light ? "paletteLight" : "palette", id); localStorage.setItem("theme", currentTheme); } catch (e) {}
   applyTheme();
   if (typeof renderSettings === "function") renderSettings();
   if (typeof _renderDashboard === "function" && typeof currentPage !== "undefined" && currentPage === "dashboard") _renderDashboard();
@@ -348,7 +362,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v41"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v42"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

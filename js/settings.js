@@ -143,13 +143,15 @@ function _renderSettingsPage() {
   html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
   html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
   html += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
-  html += '<div class="settings-label" style="margin:14px 0 0">' + t("darkStyle") + '</div>';
+  var light = currentTheme === 'light';
+  html += '<div class="settings-label" style="margin:14px 0 0">' + t(light ? "lightStyle" : "darkStyle") + '</div>';
   html += '<div class="palette-grid">';
-  PALETTES.forEach(function (p) {
-    var on = currentTheme === 'dark' && currentPalette === p[0];
-    html += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')">' +
-      '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
-      (on ? icon("check", 12) + ' ' : '') + t(p[1]) + '</button>';
+  (light ? LIGHT_PALETTES : PALETTES).forEach(function (p) {
+    var on = (light ? currentLightPalette : currentPalette) === p[0];
+    html += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
+      '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') +
+      (on ? '<i class="palette-check">' + icon("check", 11) + '</i>' : '') + '</span>' +
+      '<span class="palette-name">' + t(p[1]) + '</span></button>';
   });
   html += '</div></div>';
 

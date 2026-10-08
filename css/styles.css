@@ -3709,28 +3709,59 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
   --pay-banner-bg: linear-gradient(135deg, #a21caf, #db2777);
 }
 
-/* Theme picker in Profile */
+/* Light styles (Settings → Appearance). Mint is the original light look */
+body[data-theme="light"][data-lpalette="lilac"] {
+  --primary: #6d4aff; --primary-light: #8b6dff; --accent: #0d9488; --accent-rgb: 13, 148, 136; --blue: #7c3aed;
+  --bg: #ece8f6; --surface: #f6f3fc; --card: #ffffff; --border: #d9d0ee;
+  --text: #1b1530; --text-secondary: #43395f; --text-muted: #625882; --text-dim: #9289b0;
+  --input-bg: #f6f3fc; --chip-bg: #f6f3fc;
+}
+
+body[data-theme="light"][data-lpalette="sky"] {
+  --primary: #1d5fd1; --primary-light: #3b82f6; --accent: #0284c7; --accent-rgb: 2, 132, 199; --blue: #1d4ed8;
+  --bg: #e3ecf8; --surface: #f1f6fc; --card: #ffffff; --border: #c9d8ec;
+  --text: #0d1b30; --text-secondary: #344a66; --text-muted: #546a87; --text-dim: #8598b2;
+  --input-bg: #f1f6fc; --chip-bg: #f1f6fc;
+}
+
+body[data-theme="light"][data-lpalette="paper"] {
+  --primary: #2f6fd6; --primary-light: #4a86e8; --accent: #059669; --accent-rgb: 5, 150, 105; --blue: #4f46e5;
+  --bg: #ececec; --surface: #f6f6f6; --card: #ffffff; --border: #dcdcdc;
+  --text: #1a1a1a; --text-secondary: #424242; --text-muted: #636363; --text-dim: #9a9a9a;
+  --input-bg: #f6f6f6; --chip-bg: #f6f6f6;
+}
+
+body[data-theme="light"][data-lpalette="sunrise"] {
+  --primary: #ea580c; --primary-light: #f97316; --accent: #0d9488; --accent-rgb: 13, 148, 136; --blue: #c2410c;
+  --bg: #f6ede4; --surface: #fbf5ef; --card: #ffffff; --border: #ecdccb;
+  --text: #2a1a0e; --text-secondary: #5a4331; --text-muted: #7b6450; --text-dim: #ad9886;
+  --input-bg: #fbf5ef; --chip-bg: #fbf5ef;
+}
+
+/* Style picker: all five in one row */
 .palette-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
   margin-top: 10px;
 }
 
 .palette-opt {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 6px;
-  padding: 8px;
+  min-width: 0;
+  padding: 6px;
   border-radius: 12px;
   border: 2px solid var(--border);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  text-align: left;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -3740,14 +3771,35 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 }
 
 .palette-swatch {
+  position: relative;
   display: flex;
   width: 100%;
-  height: 26px;
-  border-radius: 8px;
+  height: 24px;
+  border-radius: 7px;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25);
 }
 
 .palette-swatch span { flex: 1; }
+
+.palette-check {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.palette-name {
+  display: block;
+  overflow-wrap: break-word;   /* break only between words (Lao too) */
+}
+
+@media (max-width: 380px) {
+  .palette-opt { padding: 5px 4px; font-size: 10.5px; }
+}
 
 /* ========== Profile header ========== */
 .profile-head { text-align: center; }
