@@ -240,19 +240,38 @@ function _renderPollCard(poll) {
 }
 
 /* ---------- Answer a poll (radio: one answer per person; tap again to clear) ---------- */
-var _voting = {}; // pollId -> true while a vote is being saved (ignores fast repeat taps)
-
+/** Tap an answer. Saved as a field update (not a transaction), so Firebase
+    shows it on screen instantly and syncs in the background; fast repeat
+    taps simply end on the last one. */
 function respondPoll(pollId, answerIdx) {
-  if (!currentUser || _voting[pollId]) return;
-  _voting[pollId] = true;
-  _saveVote(pollId, answerIdx, true)
-    .catch(function (error) {
-      // Older Firestore rules don't allow the vote log yet: save just the vote
-      if (error && error.code === "permission-denied") return _saveVote(pollId, answerIdx, false);
-      throw error;
-    })
-    .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); })
-    .then(function () { delete _voting[pollId]; });
+  if (!currentUser) return;
+  var poll = _findPoll(pollId);
+  if (!poll) return;
+  if (poll.status !== 'draft' && poll.status !== 'open') { showToast(t("pollClosed")); return; }
+  if (!poll.answers) { // old multi-option poll
+    _saveVote(pollId, answerIdx, false).catch(function (e) { showToast(e.message); });
+    return;
+  }
+  var uid = currentUser.uid;
+  var FV = firebase.firestore.FieldValue;
+  var responses = Object.assign({}, poll.responses || {});
+  var next = responses[uid] === answerIdx ? -1 : answerIdx;
+  if (next === -1) delete responses[uid]; else responses[uid] = next;
+
+  var basic = {};
+  basic["responses." + uid] = next === -1 ? FV.delete() : next;
+  var full = Object.assign({}, basic);
+  full["voteLog." + uid] = { a: next, at: Date.now(), by: uid };   // who / what / when
+  _markReached(poll, responses, full);
+
+  var ref = fsdb.collection("polls").doc(pollId);
+  ref.update(full).catch(function (error) {
+    // Older Firestore rules don't allow the vote log yet: save just the vote
+    if (error && error.code === "permission-denied") return ref.update(basic);
+    throw error;
+  }).catch(function (error) {
+    showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message);
+  });
 }
 
 /** Toggle my answer in a transaction; withLog also records who/when (voteLog) */
