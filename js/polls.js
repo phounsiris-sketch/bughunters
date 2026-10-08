@@ -245,10 +245,21 @@ var _voting = {}; // pollId -> true while a vote is being saved (ignores fast re
 function respondPoll(pollId, answerIdx) {
   if (!currentUser || _voting[pollId]) return;
   _voting[pollId] = true;
+  _saveVote(pollId, answerIdx, true)
+    .catch(function (error) {
+      // Older Firestore rules don't allow the vote log yet: save just the vote
+      if (error && error.code === "permission-denied") return _saveVote(pollId, answerIdx, false);
+      throw error;
+    })
+    .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); })
+    .then(function () { delete _voting[pollId]; });
+}
+
+/** Toggle my answer in a transaction; withLog also records who/when (voteLog) */
+function _saveVote(pollId, answerIdx, withLog) {
   var uid = currentUser.uid;
   var pollRef = fsdb.collection("polls").doc(pollId);
-
-  fsdb.runTransaction(function (transaction) {
+  return fsdb.runTransaction(function (transaction) {
     return transaction.get(pollRef).then(function (pollDoc) {
       if (!pollDoc.exists) throw new Error("Poll not found");
       var data = pollDoc.data();
@@ -260,11 +271,13 @@ function respondPoll(pollId, answerIdx) {
         if (responses[uid] === answerIdx) delete responses[uid];
         else responses[uid] = answerIdx;
         update.responses = responses;
-        // Who voted what, and when (for the notification list)
-        var log = data.voteLog || {};
-        log[uid] = { a: responses.hasOwnProperty(uid) ? responses[uid] : -1, at: Date.now(), by: uid };
-        update.voteLog = log;
-        _markReached(data, responses, update);
+        if (withLog) {
+          // Who voted what, and when (for the notification list)
+          var log = data.voteLog || {};
+          log[uid] = { a: responses.hasOwnProperty(uid) ? responses[uid] : -1, at: Date.now(), by: uid };
+          update.voteLog = log;
+          _markReached(data, responses, update);
+        }
       } else {
         // Old multi-option poll: answer 0 = vote for its first option
         var votes = data.votes || {};
@@ -275,8 +288,7 @@ function respondPoll(pollId, answerIdx) {
       }
       transaction.update(pollRef, update);
     });
-  }).catch(function (error) { showToast(error.message); })
-    .then(function () { delete _voting[pollId]; });
+  });
 }
 
 /** First time Join answers reach the minimum players: remember when */
