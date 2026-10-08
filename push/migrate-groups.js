@@ -3,7 +3,8 @@
      GROUP_NAME = name of the first group (default "Bughunters")
      TARGET_GROUP = id or name of a group that already exists (one made in
                     the app). The old data then goes into that group instead
-                    of a new "main" group. Needed as soon as any group exists.
+                    of a new "main" group. Empty + exactly one group = that
+                    group; empty + several groups = refuses and lists them.
      APPLY = "true" to write; otherwise a dry run that only prints the plan.
    Safe to run again: it only fills in what is missing.
    The log never shows the invite code or people's names (Actions logs of a
@@ -61,9 +62,13 @@ async function main() {
     }
     GID = byName[0].id;
     console.log(`Target: existing group "${byName[0].name}" (id ${GID})\n`);
+  } else if (groups.length === 1 && groups[0].id !== "main") {
+    // Only one group (made in the app) — that is where the old data goes
+    GID = groups[0].id;
+    console.log(`Target: the only group, "${groups[0].name}" (id ${GID})\n`);
   } else if (groups.some((g) => g.id !== "main")) {
     await listGroups();
-    throw new Error("groups already exist — run again with target_group set to the group that should get the old data");
+    throw new Error("more than one group exists — run again with target_group set to the group that should get the old data");
   }
 
   const writes = []; // [ref, data, merge, label]
@@ -78,7 +83,7 @@ async function main() {
   const settings = settingsDoc.exists ? settingsDoc.data() : {};
 
   // 1. The group
-  if (groupDoc.exists && target) {
+  if (groupDoc.exists && GID !== "main") {
     // Existing group: add the old court prices and payers it doesn't have yet
     const g = groupDoc.data(), cur = g.courtPrices || {}, add = {};
     courtsSnap.forEach((d) => { const p = d.data().pricePerHour; if (p > 0 && cur[d.id] == null) add[d.id] = p; });

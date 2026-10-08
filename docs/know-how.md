@@ -505,9 +505,9 @@ does the following:
 - It adds court prices the group doesn't have yet and never changes the prices
   it already set.
 
-If any group exists and `target_group` is empty, the job refuses and lists the
-groups (id, name, member count), so the data never lands in an unwanted extra
-group. The log never shows people's names or the invite code.
+If `target_group` is empty and there is exactly **one** group, the job uses
+that group. With several groups and no `target_group`, it refuses and lists them
+(id, name, member count), so the data never lands in the wrong group. The log never shows people's names or the invite code.
 
 ---
 

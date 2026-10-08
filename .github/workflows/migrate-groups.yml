@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       target_group:
-        description: "Existing group to put the old data in (its name or id). Leave empty only if no group exists yet"
+        description: "Group to put the old data in (name or id). Leave empty if you have only one group"
         default: ""
       group_name:
         description: "Name for a NEW group (only used when target_group is empty)"
