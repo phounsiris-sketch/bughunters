@@ -48,6 +48,7 @@ function renderSettings() {
     if (!pc) return;
     // Don't wipe the profile form while the user is typing in it
     if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
+    setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("myProfile") }]);
     pc.innerHTML = _renderProfileTab();
     _fillQrCard();
     return;
@@ -118,9 +119,6 @@ function _renderProfileTab() {
   // My payment QR codes — everyone manages their own
   qrOwner = currentUser ? currentUser.uid : null;
   html += _qrCardHtml(t("myQrCodes"), t("myQrHint"), null);
-
-  html += _renderMergeCard();
-  html += '<button class="btn-danger" onclick="logoutUser()">' + t("logout") + '</button>';
   return html;
 }
 
@@ -134,12 +132,34 @@ function _seg(options, current, onclickFn) {
 function setThemeMode(mode) { if (mode !== currentTheme) toggleTheme(); renderSettings(); }
 function setLanguage(lang) { if (lang !== currentLang) toggleLang(); renderSettings(); }
 
-function _renderSettingsPage() {
-  var html = '';
-  // 1. Notifications
-  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
+function _settingsSection(key) {
+  return '<div class="settings-section">' + t(key) + '</div>';
+}
 
-  // 2. Appearance
+function _navCard(onclick, iconName, title, hint) {
+  return '<button class="card nav-card" onclick="' + onclick + '">' +
+    '<span class="nav-card-icon">' + icon(iconName, 22) + '</span>' +
+    '<span class="nav-card-text"><b>' + title + '</b><small>' + hint + '</small></span>' +
+    icon("chevron", 16) + '</button>';
+}
+
+/* Settings (header gear): who I am first, then app, then group tools */
+function _renderSettingsPage() {
+  var prof = currentUserProfile || {};
+  var uid = currentUser ? currentUser.uid : '';
+  var html = '';
+
+  // 1. Me — tap to edit photo, details and payment QR
+  html += '<button class="card nav-card me-card" onclick="showPage(\'profile\')">' +
+    '<span class="me-avatar">' + avatarHtml(uid, 56) + '</span>' +
+    '<span class="nav-card-text"><b class="me-name">' + escapeHtml(prof.displayName || '') + '</b>' +
+    '<small>' + t("myProfileHint") + '</small>' +
+    '<span class="me-badges">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</span></span>' +
+    icon("chevron", 16) + '</button>';
+
+  // 2. App
+  html += _settingsSection("secApp");
+  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
   html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
   html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
   html += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
@@ -155,23 +175,19 @@ function _renderSettingsPage() {
   });
   html += '</div></div>';
 
-  // 3. Language
+  // Language
   html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
   html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';
 
-  // 4. Configuration
-  html += '<button class="card nav-card" onclick="showPage(\'config\')">' +
-    '<span class="nav-card-icon">' + icon("settings", 22) + '</span>' +
-    '<span class="nav-card-text"><b>' + t("configuration") + '</b><small>' + t("configurationHint") + '</small></span>' +
-    icon("chevron", 16) + '</button>';
+  // 3. Group
+  html += _settingsSection("secGroup");
+  html += _navCard("showPage('config')", "settings", t("configuration"), t("configurationHint"));
+  html += _navCard("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint"));
+  html += _renderMergeCard();
 
-  // 5. Recently deleted
-  html += '<button class="card nav-card" onclick="showPage(\'trash\')">' +
-    '<span class="nav-card-icon">' + icon("trash", 22) + '</span>' +
-    '<span class="nav-card-text"><b>' + t("recentlyDeleted") + '</b><small>' + t("recentlyDeletedHint") + '</small></span>' +
-    icon("chevron", 16) + '</button>';
-
+  // 4. Sign out
+  html += '<button class="btn-danger" style="margin-top:8px" onclick="logoutUser()">' + t("logout") + '</button>';
   html += '<div class="app-version">Godsmash ' + APP_VERSION + '</div>';
   return html;
 }

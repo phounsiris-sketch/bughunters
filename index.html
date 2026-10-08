@@ -107,8 +107,9 @@
         <button class="bell-btn" onclick="toggleNotifications(event)" aria-label="Notifications" data-i18n-aria="notifications">
           <span data-icon="bell" data-size="20"></span><span class="badge" id="bellBadge" style="display:none">0</span>
         </button>
-        <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"></button>
+        <button class="bell-btn" id="gearBtn" onclick="showPage('settings')" aria-label="Settings" data-i18n-aria="navSettings">
+          <span data-icon="settings" data-size="20"></span>
+        </button>
       </div>
     </div>
     <div class="header-sub" id="headerSub">Book &amp; split in seconds</div>
@@ -153,13 +154,12 @@
       <div id="paymentsContent"></div>
     </div>
 
-    <!-- PAGE: Settings -->
-    <!-- PAGE: Profile (your info, QR codes) -->
+    <!-- PAGE: My profile (photo, details, payment QR) — opened from Settings -->
     <div class="page" id="page-profile">
       <div id="profileContent"></div>
     </div>
 
-    <!-- PAGE: Settings (notifications, appearance, language, configuration) -->
+    <!-- PAGE: Settings (header gear): profile card, app, group -->
     <div class="page" id="page-settings">
       <div id="settingsContent"></div>
     </div>
@@ -188,21 +188,13 @@
       <span class="nav-icon" data-icon="polls" data-size="22"></span><span class="badge nav-badge" id="navBadge-polls" style="display:none">0</span>
       <span data-i18n="navPolls">Polls</span>
     </div>
-    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
-      <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
-      <span data-i18n="navSessions">Sessions</span>
-    </div>
     <div class="nav-item nav-center active" onclick="showPage('dashboard')" id="nav-dashboard">
       <span class="nav-icon" data-icon="dashboard" data-size="24"></span>
       <span data-i18n="navDashboard">Dashboard</span>
     </div>
-    <div class="nav-item" onclick="showPage('profile')" id="nav-profile">
-      <span class="nav-icon" data-icon="user" data-size="22"></span>
-      <span data-i18n="navProfile">Profile</span>
-    </div>
-    <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
-      <span class="nav-icon" data-icon="settings" data-size="22"></span>
-      <span data-i18n="navSettings">Settings</span>
+    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
+      <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
+      <span data-i18n="navSessions">Sessions</span>
     </div>
   </div>
 

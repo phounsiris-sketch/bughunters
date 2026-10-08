@@ -4110,3 +4110,20 @@ body[data-theme="light"][data-lpalette="sunrise"] {
 }
 .poll-deadline.soon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 .poll-deadline.closed { background: rgba(148, 163, 184, 0.14); color: var(--text-muted); }
+
+/* ========== Settings hub (header gear) ========== */
+.bell-btn.on { background: rgba(255, 255, 255, 0.3); border-color: rgba(255, 255, 255, 0.55); }
+
+.settings-section {
+  margin: 20px 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.me-card { padding: 14px; }
+.me-avatar { flex-shrink: 0; display: flex; }
+.me-name { font-size: 16px; }
+.me-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
