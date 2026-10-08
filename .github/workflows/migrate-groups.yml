@@ -1,14 +1,18 @@
 name: Migrate to groups (admin, once)
 
-# Turns today's data into the first group of the multi-group app.
+# Turns today's data into the first group of the multi-group app — or, with
+# target_group, puts it into a group that was already made in the app.
 # 1) run with "apply" off and read the plan, 2) run with "apply" on,
 # 3) publish the new firestore.rules in the Firebase console.
 # Safe to run again: it only fills in what is missing.
 on:
   workflow_dispatch:
     inputs:
+      target_group:
+        description: "Existing group to put the old data in (its name or id). Leave empty only if no group exists yet"
+        default: ""
       group_name:
-        description: "Name of your group"
+        description: "Name for a NEW group (only used when target_group is empty)"
         default: "Bughunters"
       apply:
         description: "Apply (leave off for a dry run)"
@@ -39,4 +43,5 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           GROUP_NAME: ${{ inputs.group_name }}
+          TARGET_GROUP: ${{ inputs.target_group }}
           APPLY: ${{ inputs.apply }}

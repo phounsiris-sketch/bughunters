@@ -454,7 +454,7 @@ repo secret `FIREBASE_SERVICE_ACCOUNT`.
 | **Backup (weekly)** (`backup.yml`) | Mondays 03:17 Vientiane time, or by hand | Saves an encrypted `.json.gz.enc` artifact, kept 60 days. Needs the secret `BACKUP_PASSWORD` |
 | **Restore backup** (`restore-backup.yml`) | After data loss | `run_id` (from the backup run's URL), `collections` (`all` or e.g. `sessions,polls`), `apply` (off = dry run) |
 | **Merge players** (`merge-players.yml`) | One person has two accounts, or a manual player later joins | `from`, `into` (name or user id), `apply` |
-| **Migrate to groups** (`migrate-groups.yml`) | Once (see section 15) | `group_name`, `apply` |
+| **Migrate to groups** (`migrate-groups.yml`) | Once (see section 15) | `target_group` (existing group, by name or id), `group_name` (only for a new group), `apply` |
 | **Deploy to GitHub Pages** (`pages.yml`) | Automatically on every push to `main` | — |
 
 **Always run a dry run first** (leave *apply* off), read the log, then run again
@@ -490,6 +490,24 @@ no Public tab. That mode is safe and works exactly as before.
    somewhere safe). Without it the weekly backup fails.
 6. **Reopen the app.** It detects the new rules and switches on groups by itself.
    Stats, Public, the group switcher and invites appear.
+
+### Rules published first and a group already made in the app?
+
+Then the old data seems "gone": it has no `groupId`, so the rules hide it. It is
+not deleted. Run **Migrate to groups** with **`target_group`** set to that
+group's name (or id), first as a dry run and then with *apply* on. The script
+does the following:
+
+- It tags the old polls, sessions, shuttlecocks, deleted items and manual players
+  with that group.
+- It adds every registered player as a member, keeping their old rights. The
+  group's owner stays the owner.
+- It adds court prices the group doesn't have yet and never changes the prices
+  it already set.
+
+If any group exists and `target_group` is empty, the job refuses and lists the
+groups (id, name, member count), so the data never lands in an unwanted extra
+group. The log never shows people's names or the invite code.
 
 ---
 

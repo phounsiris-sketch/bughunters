@@ -1,8 +1,13 @@
 /* One-off admin job: turn today's single group into the first group of the
    new multi-group app. Run from .github/workflows/migrate-groups.yml.
      GROUP_NAME = name of the first group (default "Bughunters")
+     TARGET_GROUP = id or name of a group that already exists (one made in
+                    the app). The old data then goes into that group instead
+                    of a new "main" group. Needed as soon as any group exists.
      APPLY = "true" to write; otherwise a dry run that only prints the plan.
    Safe to run again: it only fills in what is missing.
+   The log never shows the invite code or people's names (Actions logs of a
+   public repo are public).
 
    It creates
      groups/main          name, private, invite-only, Vientiane, LAK, Lao,
@@ -17,7 +22,7 @@ const admin = require("firebase-admin");
 const crypto = require("crypto");
 
 const SUPER_EMAIL = "phounsiri.s@aidctech.com.la";
-const GID = "main";
+let GID = "main";
 
 function initAdmin() {
   if (process.env.FIRESTORE_EMULATOR_HOST) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT || "demo-godsmash" });
@@ -35,6 +40,32 @@ async function main() {
   const name = (process.env.GROUP_NAME || "Bughunters").trim() || "Bughunters";
   const db = initAdmin();
   const now = Date.now();
+
+  // 0. Which group: an existing one (TARGET_GROUP) or a new "main"
+  const groupsSnap = await db.collection("groups").get();
+  const groups = groupsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const target = (process.env.TARGET_GROUP || "").trim();
+  const listGroups = async () => {
+    console.log("Groups in the app:");
+    for (const g of groups) {
+      const n = (await db.collection("members").where("gid", "==", g.id).get()).size;
+      console.log(`  • id "${g.id}"  name "${g.name || ""}"  ${n} member(s)`);
+    }
+  };
+  if (target) {
+    const hit = groups.filter((g) => g.id === target);
+    const byName = hit.length ? hit : groups.filter((g) => (g.name || "").trim().toLowerCase() === target.toLowerCase());
+    if (byName.length !== 1) {
+      await listGroups();
+      throw new Error(byName.length ? `${byName.length} groups are named "${target}" — use the group id instead` : `no group with id or name "${target}"`);
+    }
+    GID = byName[0].id;
+    console.log(`Target: existing group "${byName[0].name}" (id ${GID})\n`);
+  } else if (groups.some((g) => g.id !== "main")) {
+    await listGroups();
+    throw new Error("groups already exist — run again with target_group set to the group that should get the old data");
+  }
+
   const writes = []; // [ref, data, merge, label]
   const plan = (ref, data, label, merge = true) => writes.push([ref, data, merge, label]);
 
@@ -47,6 +78,16 @@ async function main() {
   const settings = settingsDoc.exists ? settingsDoc.data() : {};
 
   // 1. The group
+  if (groupDoc.exists && target) {
+    // Existing group: add the old court prices and payers it doesn't have yet
+    const g = groupDoc.data(), cur = g.courtPrices || {}, add = {};
+    courtsSnap.forEach((d) => { const p = d.data().pricePerHour; if (p > 0 && cur[d.id] == null) add[d.id] = p; });
+    const upd = {};
+    if (Object.keys(add).length) upd.courtPrices = add;
+    if (!g.defaultCourtPayer && settings.defaultCourtPayer) upd.defaultCourtPayer = settings.defaultCourtPayer;
+    if (!g.defaultShuttlePayer && settings.defaultShuttlePayer) upd.defaultShuttlePayer = settings.defaultShuttlePayer;
+    if (Object.keys(upd).length) plan(groupDoc.ref, upd, `group: ${Object.keys(add).length} court price(s) added${upd.defaultCourtPayer || upd.defaultShuttlePayer ? ", default payers set" : ""}`);
+  }
   if (!groupDoc.exists) {
     const courtPrices = {};
     courtsSnap.forEach((d) => { const p = d.data().pricePerHour; if (p > 0) courtPrices[d.id] = p; });
@@ -64,13 +105,19 @@ async function main() {
   // 2. Memberships
   const memberSnap = await db.collection("members").where("gid", "==", GID).get();
   const isMember = new Set(memberSnap.docs.map((d) => d.data().uid));
-  users.filter((u) => !u.manual && !isMember.has(u.id)).forEach((u) => {
-    const isOwner = owner && u.id === owner.id;
+  // A new group's owner is the app owner; an existing group keeps its owner
+  const ownerUid = groupDoc.exists ? groupDoc.data().ownerId : owner && owner.id;
+  const newMembers = users.filter((u) => !u.manual && !isMember.has(u.id));
+  newMembers.forEach((u) => {
     plan(db.collection("members").doc(GID + "_" + u.id), {
-      gid: GID, uid: u.id, role: isOwner ? "owner" : "member", perms: u.perms || {}, status: "active", joinedAt: now
-    }, `member ${u.displayName || u.id}${isOwner ? " (owner)" : Object.keys(u.perms || {}).filter((k) => u.perms[k]).length ? " with rights" : ""}`, false);
+      gid: GID, uid: u.id, role: u.id === ownerUid ? "owner" : "member", perms: u.perms || {}, status: "active", joinedAt: now
+    }, null, false);
   });
-  users.filter((u) => u.manual && !u.groupId).forEach((u) => plan(db.collection("users").doc(u.id), { groupId: GID }, `manual player ${u.displayName}`));
+  const withRights = newMembers.filter((u) => Object.keys(u.perms || {}).some((k) => u.perms[k])).length;
+  if (newMembers.length) writes.push([null, null, null, `members: ${newMembers.length} player(s) added${withRights ? ` (${withRights} keep their rights)` : ""}, ${isMember.size} already in`]);
+  const manual = users.filter((u) => u.manual && !u.groupId);
+  manual.forEach((u) => plan(db.collection("users").doc(u.id), { groupId: GID }, null));
+  if (manual.length) writes.push([null, null, null, `manual players: ${manual.length} put in the group`]);
 
   // 3. groupId on group data
   for (const col of ["polls", "sessions", "shuttlecocks", "trash"]) {
@@ -99,16 +146,15 @@ async function main() {
 
   writes.filter((w) => w[3]).forEach((w) => console.log("  • " + w[3]));
   const real = writes.filter((w) => w[0]);
-  console.log(`\n${real.length} write(s). ${owner ? "Owner: " + (owner.displayName || owner.email) : "⚠ app owner account not found — group has no owner"}`);
+  console.log(`\n${real.length} write(s).${!groupDoc.exists && !owner ? " ⚠ app owner account not found — group has no owner" : ""}`);
   if (!apply) { console.log("Dry run only — nothing was changed. Tick \"apply\" to migrate."); return; }
   for (let i = 0; i < real.length; i += 400) {
     const batch = db.batch();
     real.slice(i, i + 400).forEach(([ref, data, merge]) => batch.set(ref, data, { merge }));
     await batch.commit();
   }
-  const secret = (await db.collection("groupSecrets").doc(GID).get()).data();
-  console.log(`\nDone. Invite code for "${name}": ${secret && secret.inviteCode}`);
-  console.log("Next: publish the new firestore.rules in the Firebase console, then reopen the app.");
+  console.log(`\nDone. Old data is now in group id ${GID}. The invite link is in the app: Settings → Group.`);
+  console.log("Next: make sure the new firestore.rules are published in the Firebase console, then reopen the app.");
 }
 
 main().catch((e) => { console.error("ERROR:", e.message); process.exit(1); });
