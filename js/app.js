@@ -240,6 +240,15 @@ function avatarHtml(uid, size) {
 /* ---------- Phone numbers: Lao mobile, +856 20 + 8 digits ---------- */
 var PHONE_PREFIX = "+856 20";
 
+/* ---------- Time ranges ("18:00–21:00") ---------- */
+function fmtTimeRange(from, to) { return from ? from + (to ? "\u2013" + to : "") : ""; }
+/** Two time boxes, from – to. onFrom / onTo are onchange code using this.value. */
+function timeRangeHtml(from, to, onFrom, onTo) {
+  return '<div class="time-range"><input type="time" class="form-input" step="900" aria-label="' + t("timeFrom") + '" value="' + escapeHtml(from || "") + '" onchange="' + onFrom + '">' +
+    '<span class="time-range-dash">\u2013</span><input type="time" class="form-input" step="900" aria-label="' + t("timeTo") + '" value="' + escapeHtml(to || "") + '" onchange="' + onTo + '"></div>';
+}
+function timeRangeOk(from, to) { return !from || !to || to > from; }
+
 /** The 8 local digits of a stored number ("+8562055551234", "020 5555 1234" → "55551234") */
 function phoneDigits(v) {
   var d = String(v || "").replace(/\D/g, "");
@@ -371,7 +380,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v48"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v49"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

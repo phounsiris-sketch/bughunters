@@ -38,22 +38,27 @@ function ageFromDob(dob) {
   return a;
 }
 
-/* ---------- My profile: About me ---------- */
+/* ---------- My profile: personal info (one card, one Save) ---------- */
 
 function aboutCardHtml() {
   var me = findUser(currentUser.uid) || currentUserProfile || {};
+  var prof = currentUserProfile || me;
   var about = me.about || {};
   if (!aboutForm) {
     aboutForm = {
-      gender: about.gender || "", selfLevel: about.selfLevel || "", hand: about.hand || "", position: about.position || "",
+      name: prof.displayName || me.displayName || "", phone: phoneDigits(prof.phone || me.phone),
+      gender: about.gender || "", selfLevel: normLevel(about.selfLevel || me.selfLevel), hand: about.hand || "", position: about.position || "",
       homeCourtId: about.homeCourtId || "", daysFree: (about.daysFree || []).slice(), relationship: about.relationship || "",
-      dob: "", vis: Object.assign({}, VIS_DEFAULT, me.vis || {}), _more: false
+      timeFrom: about.timeFrom || "", timeTo: about.timeTo || "",
+      dob: "", dobD: "", dobM: "", dobY: "", vis: Object.assign({}, VIS_DEFAULT, me.vis || {})
     };
     fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) {
       _myPrivate = doc.exists ? doc.data() : {};
-      if (aboutForm) { aboutForm.dob = _myPrivate.dob || ""; if (!aboutForm.relationship) aboutForm.relationship = _myPrivate.relationship || ""; }
-      var box = document.getElementById("aboutCard");
-      if (box) box.outerHTML = aboutCardHtml();
+      if (aboutForm) {
+        _setDobParts(_myPrivate.dob || "");
+        if (!aboutForm.relationship) aboutForm.relationship = _myPrivate.relationship || "";
+      }
+      _rerenderAbout();
     }).catch(function () {});
   }
   var f = aboutForm;
@@ -67,29 +72,67 @@ function aboutCardHtml() {
     }).join('') + '</div>';
   };
   var row = function (label, key, input, visKey) {
-    return '<div class="form-group"><div class="about-label"><label class="form-label">' + label + '</label>' + vis(visKey || key) + '</div>' + input + '</div>';
+    return '<div class="form-group"><div class="about-label"><label class="form-label">' + label + '</label>' + (visKey === false ? '' : vis(visKey || key)) + '</div>' + input + '</div>';
   };
   var age = ageFromDob(f.dob);
-  var html = '<div class="card" id="aboutCard"><div class="card-title">' + icon("user", 14) + ' ' + t("aboutMe") + '</div>' +
+  var email = prof.email || (currentUser && currentUser.email) || "";
+  var html = '<div class="card" id="aboutCard"><div class="card-title">' + icon("user", 14) + ' ' + t("personalInfo") + '</div>' +
     '<div class="form-hint" style="margin-bottom:10px">' + t("aboutHint") + '</div>';
-  html += '<div class="form-group"><div class="about-label"><label class="form-label">' + t("phoneVisibility") + '</label>' + vis("phone") + '</div></div>';
-  html += row(t("selfLevel"), "selfLevel", seg("selfLevel", ["A", "B", "C", "D"]) + '<div class="form-hint">' + t("selfLevelHint") + '</div>');
+  // Who I am
+  html += row(t("displayName") + ' *', "name", '<input class="form-input" id="pfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="aboutForm.name=this.value">', false);
+  html += row(t("phone"), "phone", phoneInputHtml("pfPhone", f.phone).replace('oninput="', 'oninput="aboutForm.phone=this.value.replace(/\\D/g,\'\').slice(0,8);'));
+  html += row(t("emailLabel"), "email", '<input class="form-input" value="' + escapeHtml(email) + '" disabled>', false);
   html += row(t("gender"), "gender", seg("gender", ["male", "female", "na"], "gender_"));
-  html += row(t("dateOfBirth"), "dob", '<input type="date" class="form-input" value="' + escapeHtml(f.dob) + '" onchange="aboutForm.dob=this.value">' +
-    '<div class="form-hint">' + t("dobHint") + (age !== null ? ' · ' + t("ageN").replace("{n}", age) : '') + '</div>', "age");
-  html += '<details class="more-details"' + (f._more ? ' open' : '') + ' ontoggle="aboutForm._more=this.open"><summary>' + t("moreDetails") + '</summary>';
+  html += row(t("dateOfBirth"), "dob", _dobSelectsHtml() +
+    '<div class="form-hint">' + t("dobHint") + (age !== null ? ' · <b>' + t("ageN").replace("{n}", age) + '</b>' : '') + '</div>', "age");
   html += row(t("relationship"), "relationship", '<select class="form-select" onchange="aboutForm.relationship=this.value"><option value="">—</option>' +
     ["single", "relationship", "married", "na"].map(function (o) { return '<option value="' + o + '"' + (f.relationship === o ? ' selected' : '') + '>' + t("rel_" + o) + '</option>'; }).join('') + '</select>');
+  // How I play
+  html += '<div class="settings-section about-sub">' + icon("shuttle", 13) + ' ' + t("howIPlay") + '</div>';
+  html += row(t("selfLevel"), "selfLevel", levelButtonsHtml(f.selfLevel, function (l) { return "aboutSet('selfLevel','" + l + "')"; }));
   html += row(t("hand"), "hand", seg("hand", ["right", "left"], "hand_"));
   html += row(t("position"), "position", seg("position", ["front", "back"], "pos_"));
   html += row(t("homeCourt"), "homeCourtId", '<select class="form-select" onchange="aboutForm.homeCourtId=this.value"><option value="">—</option>' +
     (DB_CACHE.allCourts || DB_CACHE.courts || []).map(function (c) { return '<option value="' + c.id + '"' + (f.homeCourtId === c.id ? ' selected' : '') + '>' + escapeHtml(c.name) + '</option>'; }).join('') + '</select>');
   html += row(t("daysFree"), "daysFree", '<div class="chips">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
     return '<div class="chip' + (f.daysFree.indexOf(d) >= 0 ? ' active' : '') + '" onclick="aboutDay(' + d + ')">' + weekdayShort(d) + '</div>';
-  }).join('') + '</div>');
-  html += '</details>';
+  }).join('') + '</div>' +
+    '<div class="form-label" style="margin-top:10px">' + t("timeUsuallyFree") + '</div>' +
+    timeRangeHtml(f.timeFrom, f.timeTo, "aboutForm.timeFrom=this.value", "aboutForm.timeTo=this.value"));
   html += '<button class="btn-primary" onclick="saveAbout()">' + t("save") + '</button></div>';
   return html;
+}
+
+/* Date of birth as day / month / year lists — the year is one tap away */
+function _setDobParts(dob) {
+  var p = (dob || "").split("-");
+  aboutForm.dob = dob || "";
+  aboutForm.dobY = p[0] || ""; aboutForm.dobM = p[1] ? String(Number(p[1])) : ""; aboutForm.dobD = p[2] ? String(Number(p[2])) : "";
+}
+function _dobSelectsHtml() {
+  var f = aboutForm, y0 = new Date().getFullYear();
+  var opt = function (v, label, cur) { return '<option value="' + v + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + label + '</option>'; };
+  var days = '', months = '', years = '';
+  for (var d = 1; d <= 31; d++) days += opt(d, d, f.dobD);
+  for (var m = 1; m <= 12; m++) months += opt(m, _dobMonthName(m), f.dobM);
+  for (var y = y0 - 13; y >= y0 - 90; y--) years += opt(y, y, f.dobY);
+  return '<div class="dob-row">' +
+    '<select class="form-select" aria-label="' + t("day") + '" onchange="dobSet(\'dobD\',this.value)"><option value="">' + t("day") + '</option>' + days + '</select>' +
+    '<select class="form-select" aria-label="' + t("month") + '" onchange="dobSet(\'dobM\',this.value)"><option value="">' + t("month") + '</option>' + months + '</select>' +
+    '<select class="form-select" aria-label="' + t("year") + '" onchange="dobSet(\'dobY\',this.value)"><option value="">' + t("year") + '</option>' + years + '</select></div>';
+}
+function _dobMonthName(m) {
+  try { return new Date(2000, m - 1, 1).toLocaleDateString(currentLang === "la" ? "lo-LA" : "en-GB", { month: "short" }); } catch (e) { return String(m); }
+}
+function dobSet(part, v) {
+  aboutForm[part] = v;
+  var f = aboutForm;
+  if (f.dobD && f.dobM && f.dobY) {
+    var last = new Date(Number(f.dobY), Number(f.dobM), 0).getDate();
+    if (Number(f.dobD) > last) f.dobD = String(last);
+    f.dob = f.dobY + "-" + ("0" + f.dobM).slice(-2) + "-" + ("0" + f.dobD).slice(-2);
+  } else f.dob = "";
+  _rerenderAbout();
 }
 
 function aboutSet(key, v) { aboutForm[key] = aboutForm[key] === v ? "" : v; _rerenderAbout(); }
@@ -98,20 +141,31 @@ function _rerenderAbout() { var box = document.getElementById("aboutCard"); if (
 
 function saveAbout() {
   var f = aboutForm, uid = currentUser.uid;
+  var name = (f.name || "").trim();
+  if (!name) { showToast(t("displayName") + " *"); return; }
+  var ph = readPhone("pfPhone");
+  if (!ph.ok) { showToast(t("phoneInvalid")); return; }
+  if ((f.dobD || f.dobM || f.dobY) && !f.dob) { showToast(t("dobIncomplete")); return; }
   var age = ageFromDob(f.dob);
   if (f.dob && (age === null || age < 13 || age > 100)) { showToast(t("dobInvalid")); return; }
+  if (!timeRangeOk(f.timeFrom, f.timeTo)) { showToast(t("timeRangeInvalid")); return; }
   var about = { gender: f.gender || null, selfLevel: f.selfLevel || null, hand: f.hand || null, position: f.position || null,
-    homeCourtId: f.homeCourtId || null, daysFree: f.daysFree.slice().sort() };
+    homeCourtId: f.homeCourtId || null, daysFree: f.daysFree.slice().sort(), timeFrom: f.timeFrom || null, timeTo: f.timeTo || null };
   // Kept to yourself = never written where others can read it
   about.birthYear = f.dob && f.vis.age !== "me" ? Number(f.dob.slice(0, 4)) : null;
   about.relationship = f.relationship && f.vis.relationship !== "me" ? f.relationship : null;
   var vis = {};
   Object.keys(VIS_DEFAULT).forEach(function (k) { vis[k] = f.vis[k] || VIS_DEFAULT[k]; });
   Promise.all([
-    dbUpdateUser(uid, { about: about, vis: vis, selfLevel: f.selfLevel || null }),
+    dbUpdateUser(uid, { displayName: name, phone: ph.value || null, about: about, vis: vis, selfLevel: f.selfLevel || null }),
     fsdb.collection("userPrivate").doc(uid).set({ dob: f.dob || null, relationship: f.relationship || null }, { merge: true })
   ]).then(function () {
-    if (currentUserProfile) { currentUserProfile.about = about; currentUserProfile.vis = vis; }
+    if (currentUserProfile) {
+      currentUserProfile.displayName = name; currentUserProfile.phone = ph.value || null;
+      currentUserProfile.about = about; currentUserProfile.vis = vis; currentUserProfile.selfLevel = f.selfLevel || null;
+    }
+    if (_myPrivate) _myPrivate.dob = f.dob || null;
+    if (document.activeElement) document.activeElement.blur();
     showToast(t("profileSaved") + " ✔");
   }).catch(function (e) { showToast(_permError(e)); });
 }
@@ -139,7 +193,7 @@ function gearCardHtml(uid, editable) {
   if (!shown.length) html += '<div class="form-hint">' + t(editable ? "noGearYet" : "noGear") + '</div>';
   shown.forEach(function (g) {
     html += '<div class="gear-row"' + (editable ? ' onclick="showGearModal(\'' + g.id + '\')"' : '') + '>' +
-      (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="event.stopPropagation();openImage(this.src)">' : '<span class="gear-photo empty">' + icon(g.kind === "shoes" ? "user" : "shuttle", 18) + '</span>') +
+      (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="event.stopPropagation();openImage(this.src)">' : '<span class="gear-photo empty">' + icon(g.kind === "shoes" ? "user" : g.kind === "other" ? "other" : "shuttle", 18) + '</span>') +
       '<span class="gear-text"><b>' + escapeHtml(g.name) + (g.main ? ' <span class="tag">' + t("mainItem") + '</span>' : '') + '</b>' +
       '<small>' + t("gearKind_" + g.kind) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') +
       (g.weight ? ' · ' + escapeHtml(g.weight) : '') + (g.string ? ' · ' + escapeHtml(g.string) + (g.tension ? ' ' + g.tension + ' lbs' : '') : '') +
@@ -150,6 +204,7 @@ function gearCardHtml(uid, editable) {
 }
 
 var _gearPhoto = null;
+var GEAR_KINDS = ["racket", "shoes", "other"];
 
 function showGearModal(id) {
   var mine = _gearCache[currentUser.uid] || [];
@@ -160,11 +215,14 @@ function showGearModal(id) {
     var isR = f.kind === "racket";
     document.getElementById("modalBody").innerHTML =
       '<div class="form-group"><label class="form-label">' + t("gearKind") + ' *</label><div class="seg">' +
-        ["racket", "shoes"].map(function (k) { return '<button type="button" class="seg-btn' + (f.kind === k ? ' active' : '') + '" data-kind="' + k + '">' + t("gearKind_" + k) + '</button>'; }).join('') + '</div></div>' +
-      '<div class="form-group"><label class="form-label">' + t("name") + ' *</label><input class="form-input" id="gName" maxlength="40" placeholder="' + (isR ? 'Astrox 99 Pro' : 'Power Cushion 65Z') + '" value="' + escapeHtml(f.name) + '"></div>' +
+        GEAR_KINDS.map(function (k) { return '<button type="button" class="seg-btn' + (f.kind === k ? ' active' : '') + '" data-kind="' + k + '">' + t("gearKind_" + k) + '</button>'; }).join('') + '</div></div>' +
+      '<div class="form-group"><label class="form-label">' + t("name") + ' *</label><input class="form-input" id="gName" maxlength="40" placeholder="' + ({ racket: 'Astrox 99 Pro', shoes: 'Power Cushion 65Z', other: t("gearOtherHint") })[f.kind] + '" value="' + escapeHtml(f.name) + '"></div>' +
       '<div class="form-group"><label class="form-label">' + t("photo") + '</label>' +
-        (_gearPhoto ? '<img class="gear-photo big" ' + imgSrcAttrs(_gearPhoto) + ' alt="">' : '') +
-        '<input type="file" accept="image/*" class="form-input" style="padding:8px" id="gPhotoFile"></div>' +
+        '<label class="gear-photo-pick">' + (_gearPhoto ? '<img class="gear-photo big" ' + imgSrcAttrs(_gearPhoto) + ' alt="">' +
+          '<span class="gear-photo-change">' + icon("camera", 16) + ' ' + t("changePhoto") + '</span>'
+          : '<span class="gear-photo-empty">' + icon("camera", 28) + '<b>' + t("addPhoto") + '</b><small>' + t("addPhotoHint") + '</small></span>') +
+        '<input type="file" accept="image/*" id="gPhotoFile" style="display:none"></label>' +
+        (_gearPhoto ? '<button type="button" class="link-btn" style="color:var(--red)" id="gPhotoRemove">' + t("removePhoto") + '</button>' : '') + '</div>' +
       '<label class="perm-row"><input type="checkbox" id="gMain"' + (f.main ? ' checked' : '') + '><div><b>' + t("mainItem") + '</b><div class="form-hint">' + t("mainItemHint") + '</div></div></label>' +
       '<details class="more-details"><summary>' + t("moreDetails") + '</summary>' +
         '<div class="form-group"><label class="form-label">' + t("brand") + '</label><input class="form-input" id="gBrand" list="gBrands" value="' + escapeHtml(f.brand || "") + '">' +
@@ -173,7 +231,7 @@ function showGearModal(id) {
             ["2U", "3U", "4U", "5U"].map(function (w) { return '<option' + (f.weight === w ? ' selected' : '') + '>' + w + '</option>'; }).join('') + '</select></div>' +
           '<div class="form-group"><label class="form-label">' + t("tension") + ' (lbs)</label><input type="number" class="form-input" id="gTension" min="18" max="35" value="' + escapeHtml(String(f.tension || "")) + '"></div></div>' +
           '<div class="form-group"><label class="form-label">' + t("stringName") + '</label><input class="form-input" id="gString" placeholder="BG80" value="' + escapeHtml(f.string || "") + '"></div>'
-        : '<div class="form-group"><label class="form-label">' + t("shoeSize") + ' (EU)</label><input type="number" class="form-input" id="gShoe" min="34" max="48" value="' + escapeHtml(String(f.shoeSize || "")) + '"></div>') +
+        : f.kind === "shoes" ? '<div class="form-group"><label class="form-label">' + t("shoeSize") + ' (EU)</label><input type="number" class="form-input" id="gShoe" min="34" max="48" value="' + escapeHtml(String(f.shoeSize || "")) + '"></div>' : '') +
         '<div class="form-group"><label class="form-label">' + t("note") + '</label><input class="form-input" id="gNote" maxlength="100" value="' + escapeHtml(f.note || "") + '"></div>' +
         '<label class="perm-row"><input type="checkbox" id="gSale"' + (f.forSale ? ' checked' : '') + '><div><b>' + t("forSale") + '</b><div class="form-hint">' + t("forSaleHint") + '</div></div></label>' +
         '<div class="form-group"><label class="form-label">' + t("salePrice") + ' (' + curSymbol() + ')</label>' + moneyInput("gSalePrice", f.salePrice || 0, "") + '</div>' +
@@ -187,6 +245,8 @@ function showGearModal(id) {
       if (!file) return;
       resizeImageToDataUrl(file, 500, function (err, url) { if (err) { showToast(err.message); return; } _gearPhoto = url; f.name = document.getElementById("gName").value; draw(); });
     };
+    var rm = document.getElementById("gPhotoRemove");
+    if (rm) rm.onclick = function () { _gearPhoto = null; f.name = document.getElementById("gName").value; draw(); };
   };
   document.getElementById("modalTitle").textContent = g ? t("editGear") : t("addGear");
   draw();
@@ -196,7 +256,7 @@ function showGearModal(id) {
       brand: val("gBrand") || null, note: val("gNote") || null, weight: null, string: null, tension: null, shoeSize: null,
       forSale: document.getElementById("gSale").checked, salePrice: parseMoney(val("gSalePrice")) || null };
     if (f.kind === "racket") { data.weight = val("gWeight") || null; data.string = val("gString") || null; data.tension = parseInt(val("gTension"), 10) || null; }
-    else data.shoeSize = parseInt(val("gShoe"), 10) || null;
+    else if (f.kind === "shoes") data.shoeSize = parseInt(val("gShoe"), 10) || null;
     if (!data.name) { showToast(t("name")); return; }
     if (data.tension && (data.tension < 18 || data.tension > 35)) { showToast(t("tension") + " 18–35"); return; }
     var savePhoto = _gearPhoto && _gearPhoto.indexOf("data:") === 0 ? dbSaveImage(_gearPhoto, "gear") : Promise.resolve(_gearPhoto || null);
@@ -235,9 +295,10 @@ function aboutViewHtml(u) {
   var push = function (key, label, value) { if (value && canSeeField(u, key)) facts.push('<span class="about-fact"><small>' + label + '</small><b>' + value + '</b></span>'); };
   if (GROUPS_ON && dbFindById(DB_CACHE.users, u.id) && typeof playerLevel === "function") {
     var lv = playerLevel(u.id), r = computeStats().players[u.id];
-    facts.push('<span class="about-fact"><small>' + t("groupLevel") + '</small><b><span class="level-badge sm lv-' + lv + '">' + lv + '</span>' + (r && r.comp ? ' ' + Math.round(r.rating) : '') + '</b></span>');
+    if (lv || (r && r.comp)) facts.push('<span class="about-fact"><small>' + t("groupLevel") + '</small><b>' + levelBadgeHtml(lv, true) + (lv ? ' ' + escapeHtml(levelName(lv)) : '') + (r && r.comp ? ' · ' + Math.round(r.rating) : '') + '</b></span>');
   }
-  push("selfLevel", t("selfLevel"), a.selfLevel || u.selfLevel);
+  var sl = normLevel(a.selfLevel || u.selfLevel);
+  push("selfLevel", t("selfLevel"), sl ? levelBadgeHtml(sl, true) + ' ' + escapeHtml(levelName(sl)) : "");
   push("gender", t("gender"), a.gender ? t("gender_" + a.gender) : "");
   push("age", t("age"), a.birthYear ? String(ageFromYear(a.birthYear)) : "");
   push("relationship", t("relationship"), a.relationship ? t("rel_" + a.relationship) : "");
@@ -245,7 +306,8 @@ function aboutViewHtml(u) {
   push("position", t("position"), a.position ? t("pos_" + a.position) : "");
   var hc = a.homeCourtId ? findCourt(a.homeCourtId) : null;
   push("homeCourtId", t("homeCourt"), hc ? escapeHtml(hc.name) : "");
-  push("daysFree", t("daysFree"), (a.daysFree || []).map(function (d) { return weekdayShort(d); }).join(", "));
+  push("daysFree", t("daysFree"), (a.daysFree || []).map(function (d) { return weekdayShort(d); }).join(", ") +
+    (a.timeFrom ? ((a.daysFree || []).length ? " · " : "") + fmtTimeRange(a.timeFrom, a.timeTo) : ""));
   var badges = GROUPS_ON && dbFindById(DB_CACHE.users, u.id) && typeof badgesHtml === "function" ? badgesHtml(u.id, false) : "";
   if (!facts.length) return badges;
   return '<div class="card"><div class="about-facts">' + facts.join('') + '</div></div>' + badges;

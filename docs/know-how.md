@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v48**.
+run it. App version at the time of writing: **v49**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -94,7 +94,7 @@ Settings → Group:
 | Language | The group's main language, for information. Each person's app and pushes use their own language |
 | Min players | How many "Join" answers a poll needs before it can be confirmed (default 4) |
 | Default payers | Who usually pays the court and the shuttles, prefilled on new bills |
-| Usual days / time | When the group usually plays, shown to people looking for a group |
+| Usual days / time | When the group usually plays (a from–to time range), shown to people looking for a group |
 | Court prices | The group's own price per hour for each court it uses |
 
 The **invite link and QR code** are shown only to admins. *Reset code*
@@ -200,8 +200,12 @@ All groups share **one court directory**: name, address, phone, number of courts
 and a map pin. **Prices are not shared.** Each group sets its own price per hour.
 
 - **Add a court to your group:** Settings → Courts → *Add* → choose one from the
-  directory, or create a new one. Then enter your group's price.
-- **Pin the location:** in the court form, open the map, then do one of these:
+  directory, or create a new one. The form asks for just two things: the **name**
+  and your group's **price per hour**.
+- Everything else is in the folded **Map & details (optional)** section: the map
+  pin, address, phone to book, opening hours (from–to), number of courts and air
+  conditioning. If you save without opening it, the court keeps its existing pin.
+- **Pin the location:** open *Map & details*, then do one of these:
   - tap the map;
   - tap **Use my location**;
   - paste a **Google Maps link**. Both `@lat,lng` and `?q=lat,lng` forms work, as
@@ -221,13 +225,22 @@ compared across groups.
 
 ### Recording a match
 
-1. Open the session → **Matches** → **+ Record a match**. Or tap **Start → record
-   score** on the match-maker suggestion.
-2. Pick the two teams. Men's doubles is the usual case.
-3. Enter the game scores, for example 21–15 and 18–21. A **third game** box
-   appears only when the games are 1–1. Invalid badminton scores are refused
-   (21 points, win by 2, maximum 30).
+Each session has a **Games** card showing the latest games.
+
+1. **Every player of the session** (and any group admin) can tap **+ Add game**.
+   Others see the games but can't add any. You can also start from **Match maker &
+   all games**, or from **Start → record score** on a match-maker suggestion.
+2. Pick the two pairs. Men's doubles is the usual case. The format is **1 game**
+   by default; switch to *Best of 3* if needed.
+3. For each game, tap **who won**. The winner gets **21** automatically; then
+   type the **loser's points**.
+   - **Deuce:** if the loser reached 20 or more, the winner must be **2 points
+     ahead**. The app works it out (20 → 22–20, 25 → 27–25) and shows a note.
+     **30** is the most (29 → 30–29).
+   - Wrong scores can't be entered. With Best of 3, the third game only appears
+     when the games are 1–1.
 4. Optionally enter the **minutes played**. You type the number; there is no running clock.
+5. Save, and you're back in the session with the game on its card.
 
 A match **counts** once someone on the other team taps **Confirm**, or
 automatically **24 hours** after it was recorded. Until it is confirmed, the person
@@ -257,9 +270,23 @@ How the numbers are worked out:
   Exercise matches still count toward matches and minutes played.
 - You appear in the individual ranking after **10** competition matches. A pair
   appears after **5** matches together.
-- **Levels A–D** come from where you stand in the group (by percentile). Players
-  with the same rating share a level. Before you are ranked, the level shown is
-  the one an admin set or your self-rating.
+- **Levels** are the scale used in Lao badminton. They are set by people, not
+  calculated from the rating:
+
+  | Level | Name | What it means |
+  |---|---|---|
+  | **BG** | Beginner | Can hit the shuttle but struggles with consistency, serving and court position |
+  | **N** | Novice | Keeps a friendly rally, knows the rules, returns basic clears and drops |
+  | **S** | Starter / Standard | Good social player; may lack a strong smash or steady backhand |
+  | **P** | Practicer / Pre-Pro | Advanced club player, often coached; strong footwork, smashes and rotation |
+  | **C** | Club / Competitive | High-level amateur or junior competitor; local tournament level |
+  | **B&A** | National & International Pro | Provincial, national and international professionals |
+
+  - You pick your own level in your profile. A group admin can set your level for
+    the group (Settings → Members → tap a person), and that one wins.
+  - Tap **What do the levels mean?** anywhere a level is picked to see this table.
+  - Stored codes: `BG N S P CL BA`. "C" is stored as `CL` because the first
+    version used A–D, so old values are read as A→P, B→S, C→N, D→BG.
 - **Badges:** first match, 50 and 100 matches, 5 and 10 wins in a row, 5 courts,
   1,000 minutes, and pair of the month.
 - **Monthly recap:** the button makes a shareable PNG of your month. On phones it
@@ -271,10 +298,18 @@ How the numbers are worked out:
 
 Settings → Profile.
 
-### About me
+### Personal info
 
-All fields are optional: gender, level (self-rated), hand, position, home court,
-free days, date of birth (shown as age) and relationship status.
+Everything about you is in **one card with one Save button**:
+
+- **Who I am:** display name, phone, email (read-only), gender, date of birth and
+  relationship status.
+  - The date of birth uses three lists (**day / month / year**), so the year is
+    one tap away.
+- **How I play:** your level (6 buttons, see section 7), hand, position, home
+  court, the days you're usually free, and the **time** you usually play (from–to).
+
+Only the name is required.
 
 Each field has a **visibility** setting: *Everyone*, *My groups* or *Only me*.
 The defaults are:
@@ -292,9 +327,12 @@ Two fields are private by design:
 
 ### Gear
 
-Add rackets and shoes, each with a name, brand, photo and details (weight,
-string and tension, or shoe size). Mark **one racket and one pair of shoes as
-your main item**; it shows on your profile.
+Add **rackets, shoes and other gear** (bag, grip, shirt…).
+
+- Each item has a name, a photo, a brand and details: weight, string and tension
+  for rackets; size for shoes.
+- For the photo, tap the big **Add a photo** box to take or choose a picture.
+- Mark **one main item per type**; it shows on your profile.
 
 Tick **For sale** and set a price, and the item appears on **Home → Gear for
 sale** for members of your groups.
@@ -303,7 +341,10 @@ sale** for members of your groups.
 
 ## 9. The public zone
 
-Choose your **city** at the top. The choice is remembered on your device.
+Choose your **province** at the top. The choice is remembered on your device.
+All **18 provinces of Laos** are listed, from Vientiane Capital to Attapeu, plus
+*Other*. Older entries saved as "Pakse" or "Thakhek" show under Champasak and
+Khammouane.
 
 ### Open games
 
@@ -336,7 +377,7 @@ game. It is opt-in and has safety built in.
 - **Off by default.** Public → Play buddies → **Switch on**, then choose:
   - what you're looking for: doubles partner, mixed, singles, dinner after;
   - **who may invite you**: *people in my groups*, *people I've played with*, or *anyone*;
-  - your city, free times and a short intro.
+  - your province, the time you are usually free (from–to) and a short intro.
 - **Inviting someone:**
   - The invite includes a date, time, court and a short message.
   - Links and phone numbers in the message are refused.

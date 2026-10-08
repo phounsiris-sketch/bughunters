@@ -541,11 +541,11 @@ function renderSessionDetail() {
 
   if (!s.calculated && !sessionEditing) {
     if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
-    container.innerHTML = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s);
+    container.innerHTML = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(s) : "") + _renderWaitingForBill(s);
     return;
   }
 
-  var html = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "");
+  var html = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(s) : "");
   html += _renderSplitResult(s);
   container.innerHTML = html;
   _fillQrSlots(container);
@@ -567,14 +567,6 @@ function _renderSessionHeader(s) {
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
   var court = s.courtId ? findCourt(s.courtId) : null;
   if (court && hasPin(court)) html += '<div style="margin-top:6px">' + courtMapLink(court, t("directions")) + '</div>';
-  // Matches of this session (record scores, match maker) — groups only
-  var sid = s.id || (currentSession && currentSession.id);
-  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && sid) {
-    var mode = s.mode || (currentSession && currentSession.mode) || "competition";
-    var n = typeof sessionMatches === "function" ? sessionMatches(sid).length : 0;
-    html += '<div class="session-match-bar"><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span>' +
-      '<button class="btn-secondary" onclick="showSessionMatches(\'' + sid + '\')">' + icon("ranking", 15) + ' ' + t("matches") + (n ? ' (' + n + ')' : '') + '</button></div>';
-  }
   html += '</div>';
   return html;
 }
@@ -984,7 +976,7 @@ function renderEditForm() {
     date: edit.date, time: edit.time, duration: edit.duration, courtId: edit.courtId,
     courtName: (dbFindById(courts, edit.courtId) || {}).name || (currentSession && currentSession.courtName),
     courtLocation: (dbFindById(courts, edit.courtId) || {}).location
-  }) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + html;
+  }) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(currentSession) : "") + html;
   _updateEditTotals();
 }
 

@@ -20,7 +20,67 @@ var groupMembers = [];      // member docs of the current group
 var _groupUnsubs = [];
 var _myMemberUnsub = null;
 
-var CITIES = ["Vientiane", "Luang Prabang", "Pakse", "Savannakhet", "Thakhek", "Udomxai", "Other"];
+// The 18 provinces of Laos (ids kept from the first city list: "Vientiane" =
+// Vientiane Capital, "Udomxai" = Oudomxay). Old "Pakse" / "Thakhek" values
+// are read as their provinces.
+var CITIES = ["Vientiane", "Vientiane Province", "Luang Prabang", "Phongsaly", "Luang Namtha", "Udomxai", "Bokeo",
+  "Houaphanh", "Xayaboury", "Xiengkhouang", "Xaisomboun", "Bolikhamxay", "Khammouane", "Savannakhet",
+  "Salavan", "Sekong", "Champasak", "Attapeu", "Other"];
+var CITY_ALIASES = { "Pakse": "Champasak", "Thakhek": "Khammouane" };
+function normCity(c) { return CITY_ALIASES[c] || c || ""; }
+function cityLabel(c) { c = normCity(c); return c ? t("city_" + c.replace(/\s/g, "")) : ""; }
+function cityOptionsHtml(selected) {
+  selected = normCity(selected);
+  return CITIES.map(function (c) { return '<option value="' + c + '"' + (selected === c ? ' selected' : '') + '>' + cityLabel(c) + '</option>'; }).join('');
+}
+/* ---------- Player levels (the scale used in Lao badminton) ----------
+   BG Beginner · N Novice · S Starter/Standard · P Practicer/Pro ·
+   CL Club/Competitive (shown "C") · BA National & international pro
+   (shown "B&A"). The first version used A–D, so "C" there means the old
+   third tier: read A→P, B→S, C→N, D→BG. */
+var LEVELS = ["BG", "N", "S", "P", "CL", "BA"];
+var LEVEL_LEGACY = { A: "P", B: "S", C: "N", D: "BG" };
+function normLevel(l) { return LEVELS.indexOf(l) >= 0 ? l : (LEVEL_LEGACY[l] || ""); }
+function levelShort(l) { l = normLevel(l); return l === "BA" ? "B&A" : l === "CL" ? "C" : l; }
+function levelName(l) { l = normLevel(l); return l ? t("lvName_" + l) : ""; }
+function levelBadgeHtml(l, small) {
+  l = normLevel(l);
+  if (!l) return "";
+  return '<span class="level-badge' + (small ? ' sm' : '') + ' lv-' + l + '" title="' + escapeHtml(levelName(l)) + '">' + levelShort(l) + '</span>';
+}
+/** Six level buttons. onPick(l) returns the onclick code for level l. */
+function levelButtonsHtml(selected, onPick, id) {
+  selected = normLevel(selected);
+  return '<div class="level-pick"' + (id ? ' id="' + id + '"' : '') + '>' + LEVELS.map(function (l) {
+    return '<button type="button" class="level-opt lv-' + l + (selected === l ? ' active' : '') + '" data-level="' + l + '" title="' + escapeHtml(levelName(l)) + '" onclick="' + onPick(l) + '">' + levelShort(l) + '</button>';
+  }).join('') + '</div>' +
+    '<div class="form-hint level-hint">' + (selected ? '<b>' + escapeHtml(levelName(selected)) + '</b> — ' + escapeHtml(t("lvDesc_" + selected)) + ' · ' : '') +
+    '<a href="javascript:void(0)" onclick="showLevelGuide()">' + t("levelGuideLink") + '</a></div>';
+}
+/** onclick for buttons that only mark themselves active (read back on save) */
+function levelPickLocal(l) {
+  return "levelPickSet(this)";
+}
+function levelPickSet(btn) {
+  var box = btn.parentNode;
+  box.querySelectorAll(".level-opt").forEach(function (b) { b.classList.toggle("active", b === btn && !b.classList.contains("active")); });
+  var l = box.querySelector(".level-opt.active"), hint = box.nextElementSibling;
+  if (hint) hint.innerHTML = (l ? '<b>' + escapeHtml(levelName(l.dataset.level)) + '</b> — ' + escapeHtml(t("lvDesc_" + l.dataset.level)) + ' · ' : '') +
+    '<a href="javascript:void(0)" onclick="showLevelGuide()">' + t("levelGuideLink") + '</a>';
+}
+function levelPicked(id) { var b = document.querySelector("#" + id + " .level-opt.active"); return b ? b.dataset.level : ""; }
+/** The level table, as a sheet over whatever is open */
+function showLevelGuide() {
+  var el = document.createElement("div");
+  el.className = "image-viewer level-guide";
+  el.onclick = function (e) { if (e.target === el || e.target.closest(".lg-close")) el.remove(); };
+  el.innerHTML = '<div class="lg-sheet"><div class="lg-head"><b>' + t("levelGuideTitle") + '</b><button class="lg-close" aria-label="' + t("close") + '">' + icon("close", 18) + '</button></div>' +
+    LEVELS.map(function (l) {
+      return '<div class="lg-row">' + levelBadgeHtml(l) + '<div><div class="lg-name">' + escapeHtml(levelName(l)) + '</div><div class="lg-desc">' + escapeHtml(t("lvDesc_" + l)) + '</div></div></div>';
+    }).join('') + '<div class="form-hint" style="margin-top:8px">' + t("levelGuideNote") + '</div></div>';
+  document.body.appendChild(el);
+}
+
 var CURRENCIES = { LAK: { symbol: "₭", round: 1000 }, THB: { symbol: "฿", round: 1 }, USD: { symbol: "$", round: 1 } };
 
 /* ---------- Small helpers used everywhere ---------- */
@@ -307,7 +367,7 @@ function renderGroupForm(boxId, f, isEdit) {
     '<div class="form-hint">' + t(f.type === "public" ? "groupPublicHint" : "groupPrivateHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("whoCanJoin") + ' *</label>' + seg("joinMode", joinOpts) + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("city") + ' *</label><select class="form-select" onchange="groupFormSet(\'' + boxId + '\',\'city\',this.value)">' +
-    CITIES.map(function (c) { return '<option value="' + c + '"' + (f.city === c ? ' selected' : '') + '>' + t("city_" + c.replace(/\s/g, "")) + '</option>'; }).join('') + '</select></div>';
+    cityOptionsHtml(f.city) + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + t("currency") + ' *</label>' +
     seg("currency", [["LAK", "LAK ₭"], ["THB", "THB ฿"], ["USD", "USD $"]]) + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>' +
@@ -322,7 +382,7 @@ function renderGroupForm(boxId, f, isEdit) {
       return '<div class="chip' + (on ? ' active' : '') + '" onclick="groupFormDay(\'' + boxId + '\',' + d + ')">' + weekdayShort(d) + '</div>';
     }).join('') + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("usualTime") + '</label>' +
-    '<input type="time" class="form-input" value="' + escapeHtml(f.usualTime || "") + '" onchange="groupFormSet(\'' + boxId + '\',\'usualTime\',this.value,true)"></div>';
+    timeRangeHtml(f.usualTime, f.usualTimeTo, "groupFormSet('" + boxId + "','usualTime',this.value,true)", "groupFormSet('" + boxId + "','usualTimeTo',this.value,true)") + '</div>';
   html += '</details>';
   html += '<button class="btn-primary" onclick="' + (isEdit ? 'saveGroupSettings()' : 'submitNewGroup()') + '">' + t(isEdit ? "save" : "createGroup") + '</button>';
   html += '</div>';
@@ -351,7 +411,7 @@ function _groupDataFrom(f) {
   return {
     name: (f.name || "").trim(), type: f.type, joinMode: f.joinMode, city: f.city, currency: f.currency,
     lang: f.lang, minPlayers: f.minPlayers || 4, description: (f.description || "").trim(),
-    usualDays: f.usualDays || [], usualTime: f.usualTime || ""
+    usualDays: f.usualDays || [], usualTime: f.usualTime || "", usualTimeTo: f.usualTimeTo || ""
   };
 }
 
@@ -359,6 +419,7 @@ function submitNewGroup() {
   var f = newGroupForm;
   var data = _groupDataFrom(f);
   if (data.name.length < 3) { showToast(t("groupNameTooShort")); return; }
+  if (!timeRangeOk(data.usualTime, data.usualTimeTo)) { showToast(t("timeRangeInvalid")); return; }
   var uid = currentUser.uid;
   var gid = _shortId(8);
   var batch = fsdb.batch();
@@ -408,7 +469,7 @@ function joinGroup(gid, code, opts) {
     var ask = !code && g.type === "public" && g.joinMode === "ask";
     if (!code && !(g.type === "public" && (g.joinMode === "open" || g.joinMode === "ask"))) { showToast(t("inviteOnlyGroup")); return; }
     var go = function (message, level) {
-      var m = { gid: gid, uid: currentUser.uid, role: "member", perms: {}, status: ask ? "pending" : "active", joinedAt: Date.now(), level: level || "D" };
+      var m = { gid: gid, uid: currentUser.uid, role: "member", perms: {}, status: ask ? "pending" : "active", joinedAt: Date.now(), level: level || null };
       if (code) m.code = code;
       if (message) m.message = message;
       return fsdb.collection("members").doc(gid + "_" + currentUser.uid).set(m).then(function () {
@@ -423,15 +484,14 @@ function joinGroup(gid, code, opts) {
     document.getElementById("modalTitle").textContent = t(ask ? "askToJoin" : "joinGroupQ").replace("{name}", g.name);
     document.getElementById("modalBody").innerHTML =
       '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">' + escapeHtml(g.description || "") +
-        (g.city ? ' · ' + icon("pin", 12) + ' ' + escapeHtml(t("city_" + String(g.city).replace(/\s/g, ""))) : '') + '</div>' +
-      '<div class="form-group"><label class="form-label">' + t("startingLevel") + '</label><div class="seg" id="joinLevel">' +
-        ["A", "B", "C", "D"].map(function (l) { return '<button type="button" class="seg-btn' + (l === "D" ? ' active' : '') + '" onclick="this.parentNode.querySelectorAll(\'.seg-btn\').forEach(function(b){b.classList.remove(\'active\')});this.classList.add(\'active\')">' + l + '</button>'; }).join('') +
-      '</div><div class="form-hint">' + t("startingLevelHint") + '</div></div>' +
+        (g.city ? ' · ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.city)) : '') + '</div>' +
+      '<div class="form-group"><label class="form-label">' + t("startingLevel") + '</label><div id="joinLevel">' +
+        '</div>' + levelButtonsHtml((findUser(currentUser.uid) || currentUserProfile || {}).selfLevel, levelPickLocal, "joinLevelPick") +
+      '<div class="form-hint">' + t("startingLevelHint") + '</div></div>' +
       (ask ? '<div class="form-group"><label class="form-label">' + t("messageToAdmin") + '</label><textarea class="form-input" id="joinMsg" rows="2" maxlength="200" placeholder="' + t("messageToAdminHint") + '"></textarea></div>' : '');
     modalCallback = function () {
-      var lv = document.querySelector("#joinLevel .seg-btn.active");
       var msgEl = document.getElementById("joinMsg");
-      go(msgEl ? msgEl.value.trim() : "", lv ? lv.textContent : "D");
+      go(msgEl ? msgEl.value.trim() : "", levelPicked("joinLevelPick"));
     };
     openModal();
   }).catch(function (e) { showToast(_permError(e)); });
@@ -528,6 +588,7 @@ function resetInviteCode() {
 function saveGroupSettings() {
   var data = _groupDataFrom(groupEditForm);
   if (data.name.length < 3) { showToast(t("groupNameTooShort")); return; }
+  if (!timeRangeOk(data.usualTime, data.usualTimeTo)) { showToast(t("timeRangeInvalid")); return; }
   fsdb.collection("groups").doc(currentGroupId).update(data).then(function () {
     showToast(t("save") + " ✔");
   }).catch(function (e) { showToast(_permError(e)); });
@@ -549,7 +610,7 @@ function loadGroupMembers() {
     html += '<div class="settings-section">' + t("joinRequests") + ' (' + pending.length + ')</div><div class="card">';
     pending.forEach(function (m) {
       html += '<div class="settings-item"><div class="settings-left">' + avatarHtml(m.uid, 34) +
-        '<div><div class="settings-label">' + getUserName(m.uid) + ' <span class="level-chip">' + escapeHtml(m.level || "D") + '</span></div>' +
+        '<div><div class="settings-label">' + getUserName(m.uid) + ' ' + levelBadgeHtml(m.level || (findUser(m.uid) || {}).selfLevel, true) + '</div>' +
         (m.message ? '<div style="font-size:12px;color:var(--text-secondary)">“' + escapeHtml(m.message) + '”</div>' : '') + '</div></div>' +
         '<div style="display:flex;gap:6px"><button class="edit-btn" onclick="approveMember(\'' + m.id + '\')">' + t("approve") + '</button>' +
         '<button class="delete-btn" onclick="removeMember(\'' + m.id + '\',true)">' + t("decline") + '</button></div></div>';
@@ -599,6 +660,8 @@ function showMemberModal(mid) {
   var rows = '<div class="form-group"><label class="form-label">' + t("role") + '</label><div class="seg" id="memberRole">' +
     ["member", "admin"].map(function (r) { return '<button type="button" class="seg-btn' + (m.role === r ? ' active' : '') + '" data-role="' + r + '" onclick="this.parentNode.querySelectorAll(\'.seg-btn\').forEach(function(b){b.classList.remove(\'active\')});this.classList.add(\'active\')">' + t("role_" + r) + '</button>'; }).join('') +
     '</div><div class="form-hint">' + t("roleAdminHint") + '</div></div>';
+  rows += '<div class="form-group"><label class="form-label">' + t("groupLevel") + '</label>' +
+    levelButtonsHtml(m.level || (findUser(m.uid) || {}).selfLevel, levelPickLocal, "memberLevelPick") + '</div>';
   PERMISSIONS.forEach(function (p) {
     rows += '<label class="perm-row"><input type="checkbox" data-perm="' + p.key + '"' + (perms[p.key] ? ' checked' : '') + '>' +
       '<div><div style="font-weight:600">' + icon(p.icon, 14) + ' ' + t("perm_" + p.key) + '</div>' +
@@ -609,7 +672,7 @@ function showMemberModal(mid) {
   document.getElementById("modalBody").innerHTML = rows;
   modalCallback = function () {
     var role = document.querySelector("#memberRole .seg-btn.active").getAttribute("data-role");
-    var data = { role: role, perms: {} };
+    var data = { role: role, perms: {}, level: levelPicked("memberLevelPick") || null };
     document.querySelectorAll("#modalBody input[data-perm]").forEach(function (cb) { data.perms[cb.getAttribute("data-perm")] = cb.checked; });
     fsdb.collection("members").doc(mid).update(data).then(function () { closeModal(); showToast(t("save") + " ✔"); })
       .catch(function (e) { showToast(_permError(e)); });

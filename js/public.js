@@ -14,12 +14,11 @@ var _publicUnsub = null;
 var _here = null; // { lat, lng } once the browser tells us
 var GAME_TYPES = ["md", "wd", "xd", "singles", "any"];
 var PLAY_MODES = ["fun", "exercise", "competition"];
-var LEVELS = ["A", "B", "C", "D"];
 
 function publicCity() {
   var v = null;
   try { v = localStorage.getItem("publicCity"); } catch (e) {}
-  return v || (currentGroup && currentGroup.city) || "Vientiane";
+  return normCity(v || (currentGroup && currentGroup.city)) || "Vientiane";
 }
 
 function setPublicCity(v) {
@@ -78,7 +77,7 @@ function _cityFilterHtml() {
   var city = publicCity();
   return '<div class="filter-bar"><div class="form-group"><select class="form-select" onchange="setPublicCity(this.value)">' +
     '<option value="all"' + (city === "all" ? ' selected' : '') + '>' + t("allCities") + '</option>' +
-    CITIES.map(function (c) { return '<option value="' + c + '"' + (city === c ? ' selected' : '') + '>' + t("city_" + c.replace(/\s/g, "")) + '</option>'; }).join('') +
+    cityOptionsHtml(city) +
     '</select></div></div>';
 }
 
@@ -104,7 +103,7 @@ function _visibleGames() {
   return _publicGames.filter(function (g) {
     var end = gameStartMs(g) + (g.duration || 2) * 3600e3;
     if (typeof isBlockedPair === "function" && isBlockedPair(g.hostId)) return false;
-    return end > now && (city === "all" || g.city === city || (g.players || []).indexOf(currentUser.uid) >= 0 || g.hostId === currentUser.uid);
+    return end > now && (city === "all" || normCity(g.city) === city || (g.players || []).indexOf(currentUser.uid) >= 0 || g.hostId === currentUser.uid);
   }).sort(function (a, b) { return gameStartMs(a) - gameStartMs(b); });
 }
 
@@ -139,7 +138,7 @@ function gameCardHtml(g) {
   var chip = inGame ? '<span class="status-chip st-settled">' + t("youreIn") + '</span>'
     : left ? '<span class="status-chip st-upcoming">' + t("slotsLeft").replace("{n}", left) + '</span>'
     : '<span class="status-chip st-costs">' + t("gameFull") + (wait.length ? ' · ' + t("waitlistN").replace("{n}", wait.length) : '') + '</span>';
-  var levels = g.levelMin || g.levelMax ? (g.levelMin || "A") + (g.levelMax && g.levelMax !== g.levelMin ? "–" + g.levelMax : "") : "";
+  var levels = g.levelMin || g.levelMax ? levelShort(g.levelMin || "BG") + (g.levelMax && normLevel(g.levelMax) !== normLevel(g.levelMin) ? "–" + levelShort(g.levelMax || "BA") : "") : "";
   var html = '<div class="card game-card">';
   html += '<div class="game-head"><div class="game-when">' + weekdayShort(new Date(g.date + "T00:00:00").getDay()) + ' ' + fmtDate(g.date) + ' · ' + escapeHtml(g.time || "") + '</div>' + chip + '</div>';
   html += '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' · ' + dist : '') +
@@ -273,8 +272,8 @@ function renderGameForm() {
     '<button type="button" onclick="gameSet(\'duration\',Math.min(4,newGame.duration+0.5))">+</button></div></div>';
   html += '<label class="perm-row"><input type="checkbox"' + (g.hostPlays ? ' checked' : '') + ' onchange="newGame.hostPlays=this.checked"><div>' + t("iAmPlaying") + '</div></label>';
   html += '<div class="form-group"><label class="form-label">' + t("levelRange") + '</label><div class="form-row">' +
-    '<select class="form-select" onchange="newGame.levelMin=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option' + (g.levelMin === l ? ' selected' : '') + '>' + l + '</option>'; }).join('') + '</select>' +
-    '<select class="form-select" onchange="newGame.levelMax=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option' + (g.levelMax === l ? ' selected' : '') + '>' + l + '</option>'; }).join('') + '</select></div>' +
+    '<select class="form-select" onchange="newGame.levelMin=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option value="' + l + '"' + (normLevel(g.levelMin) === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select>' +
+    '<select class="form-select" onchange="newGame.levelMax=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option value="' + l + '"' + (normLevel(g.levelMax) === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-hint">' + t("levelSelfHint") + '</div></div>';
   html += '<details class="more-details"' + (g._more ? ' open' : '') + ' ontoggle="newGame._more=this.open"><summary>' + t("moreDetails") + '</summary>' +
     '<div class="form-group"><label class="form-label">' + t("gameTitle") + '</label><input class="form-input" maxlength="60" placeholder="' + t("gameTitleAuto") + '" value="' + escapeHtml(g.title) + '" oninput="newGame.title=this.value"></div>' +
@@ -333,7 +332,7 @@ function submitGame() {
 function _renderPublicGroups() {
   if (_publicGroups === null) return '<div class="empty-state">' + t("loading") + '</div>';
   var city = publicCity();
-  var list = _publicGroups.filter(function (g) { return city === "all" || g.city === city; });
+  var list = _publicGroups.filter(function (g) { return city === "all" || normCity(g.city) === city; });
   if (!list.length) return '<div class="empty-state"><div class="empty-icon">' + icon("users", 44) + '</div><div>' + t("noPublicGroups") + '</div>' +
     '<button class="btn-primary" style="margin-top:14px" onclick="showPage(\'group-create\')">+ ' + t("createGroup") + '</button></div>';
   return list.map(function (g) {
@@ -344,8 +343,8 @@ function _renderPublicGroups() {
       : '<button class="btn-primary" onclick="joinGroup(\'' + g.id + '\')">' + t(g.joinMode === "open" ? "joinGroup" : "askToJoinShort") + '</button>';
     return '<div class="card game-card"><div class="game-head"><div class="game-when">' + escapeHtml(g.name) + '</div>' +
       '<span class="tag">' + t(g.joinMode === "open" ? "joinOpen" : "joinAsk") + '</span></div>' +
-      '<div class="game-facts">' + icon("pin", 13) + ' ' + escapeHtml(t("city_" + String(g.city || "").replace(/\s/g, ""))) +
-      (days ? ' · ' + days : '') + (g.usualTime ? ' ' + escapeHtml(g.usualTime) : '') + '</div>' +
+      '<div class="game-facts">' + icon("pin", 13) + ' ' + escapeHtml(cityLabel(g.city)) +
+      (days ? ' · ' + days : '') + (g.usualTime ? ' ' + escapeHtml(fmtTimeRange(g.usualTime, g.usualTimeTo)) : '') + '</div>' +
       (g.description ? '<div class="game-note">' + escapeHtml(g.description) + '</div>' : '') +
       '<div class="game-actions">' + action + '</div></div>';
   }).join('');

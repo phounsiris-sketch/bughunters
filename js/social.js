@@ -142,14 +142,14 @@ function _renderBuddies() {
     '<option value="">' + t("lookingForAny") + '</option>' + ["doubles", "mixed", "singles", "dinner"].map(function (x) {
       return '<option value="' + x + '"' + (buddyFilter.looking === x ? ' selected' : '') + '>' + t("look_" + x) + '</option>'; }).join('') +
     '</select></div><div class="form-group"><select class="form-select" onchange="buddyFilter.level=this.value;renderPublic()"><option value="">' + t("anyLevel") + '</option>' +
-    LEVELS.map(function (l) { return '<option' + (buddyFilter.level === l ? ' selected' : '') + '>' + l + '</option>'; }).join('') + '</select></div></div>';
+    LEVELS.map(function (l) { return '<option value="' + l + '"' + (buddyFilter.level === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select></div></div>';
   if (_buddies === null) return html + '<div class="empty-state">' + t("loading") + '</div>';
   var city = publicCity();
   var list = _buddies.filter(function (u) {
     var bb = u.buddy || {};
-    return u.id !== currentUser.uid && !isBlockedPair(u.id, u) && (city === "all" || !bb.city || bb.city === city) &&
+    return u.id !== currentUser.uid && !isBlockedPair(u.id, u) && (city === "all" || !bb.city || normCity(bb.city) === city) &&
       (!buddyFilter.looking || (bb.lookingFor || []).indexOf(buddyFilter.looking) >= 0) &&
-      (!buddyFilter.level || (u.selfLevel || (u.about || {}).selfLevel) === buddyFilter.level);
+      (!buddyFilter.level || normLevel(u.selfLevel || (u.about || {}).selfLevel) === buddyFilter.level);
   });
   if (!list.length) html += '<div class="empty-state" style="padding:16px">' + t("noBuddies") + '</div>';
   list.forEach(function (u) { html += _buddyCard(u); });
@@ -161,7 +161,7 @@ function _inviteUpcoming(i) { return !i.date || i.date >= _todayIso(); }
 function _buddySetupHtml(me, age) {
   var b = me.buddy || {};
   buddyForm = buddyForm || { on: true, lookingFor: (b.lookingFor || ["doubles"]).slice(), city: b.city || (publicCity() !== "all" ? publicCity() : "Vientiane"),
-    times: b.times || "", whoCanInvite: b.whoCanInvite || "groups", intro: b.intro || "" };
+    timeFrom: b.timeFrom || "", timeTo: b.timeTo || "", times: b.times || "", whoCanInvite: b.whoCanInvite || "groups", intro: b.intro || "" };
   var f = buddyForm;
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("playBuddies") + '</div>' +
     '<div class="form-hint" style="margin-bottom:10px">' + t("buddyIntro") + '</div>';
@@ -176,10 +176,10 @@ function _buddySetupHtml(me, age) {
   html += '<div class="form-group"><label class="form-label">' + t("whoMayInvite") + ' *</label><select class="form-select" onchange="buddyForm.whoCanInvite=this.value">' +
     ["groups", "played", "anyone"].map(function (x) { return '<option value="' + x + '"' + (f.whoCanInvite === x ? ' selected' : '') + '>' + t("invitePolicy_" + x) + '</option>'; }).join('') + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + t("city") + '</label><select class="form-select" onchange="buddyForm.city=this.value">' +
-    CITIES.map(function (c) { return '<option value="' + c + '"' + (f.city === c ? ' selected' : '') + '>' + t("city_" + c.replace(/\s/g, "")) + '</option>'; }).join('') + '</select></div>';
+    cityOptionsHtml(f.city) + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + t("shortIntro") + '</label><input class="form-input" maxlength="120" placeholder="' + t("shortIntroHint") + '" value="' + escapeHtml(f.intro) + '" oninput="buddyForm.intro=this.value"></div>';
-  html += '<details class="more-details"><summary>' + t("moreDetails") + '</summary><div class="form-group"><label class="form-label">' + t("timesFree") + '</label>' +
-    '<input class="form-input" maxlength="40" placeholder="' + t("timesFreeHint") + '" value="' + escapeHtml(f.times) + '" oninput="buddyForm.times=this.value"></div></details>';
+  html += '<div class="form-group"><label class="form-label">' + t("timeUsuallyFree") + '</label>' +
+    timeRangeHtml(f.timeFrom, f.timeTo, "buddyForm.timeFrom=this.value", "buddyForm.timeTo=this.value") + '</div>';
   html += '<button class="btn-primary" onclick="saveBuddy(true)">' + t(b.on ? "save" : "buddyTurnOn") + '</button>';
   if (b.on) html += '<button class="btn-secondary" style="margin-top:8px" onclick="saveBuddy(false)">' + t("buddyTurnOff") + '</button>';
   return html + '</div>';
@@ -197,7 +197,9 @@ function saveBuddy(on) {
   var f = buddyForm || {};
   if (on && (!f.lookingFor || !f.lookingFor.length)) { showToast(t("lookingFor")); return; }
   if (on && (_myAge() === null || _myAge() < 18)) { showToast(t("buddyAdultsOnly")); return; }
-  var data = on ? { on: true, lookingFor: f.lookingFor, city: f.city, times: (f.times || "").trim(), whoCanInvite: f.whoCanInvite, intro: (f.intro || "").trim() }
+  if (on && !timeRangeOk(f.timeFrom, f.timeTo)) { showToast(t("timeRangeInvalid")); return; }
+  var data = on ? { on: true, lookingFor: f.lookingFor, city: f.city, timeFrom: f.timeFrom || null, timeTo: f.timeTo || null,
+    times: f.timeFrom ? fmtTimeRange(f.timeFrom, f.timeTo) : (f.times || "").trim(), whoCanInvite: f.whoCanInvite, intro: (f.intro || "").trim() }
     : { on: false };
   dbUpdateUser(currentUser.uid, { buddy: data }).then(function () {
     buddyForm = null;
@@ -223,7 +225,7 @@ function _buddyCard(u) {
   var bb = u.buddy || {}, lvl = u.selfLevel || (u.about || {}).selfLevel;
   var pending = _invOut.some(function (i) { return i.to === u.id && i.status === "pending"; });
   var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + u.id + '\',event)">' + avatarHtml(u.id, 44) +
-    '<div><div class="game-when" style="font-size:16px">' + escapeHtml(plainUserName(u)) + (lvl ? ' <span class="level-chip">' + escapeHtml(lvl) + '</span>' : '') + '</div>' +
+    '<div><div class="game-when" style="font-size:16px">' + escapeHtml(plainUserName(u)) + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
     (bb.intro ? '<div class="game-facts" style="margin-top:2px">' + escapeHtml(bb.intro) + '</div>' : '') + '</div></div>' +
     '<div class="game-tags">' + (bb.lookingFor || []).map(function (x) { return '<span class="tag">' + t("look_" + x) + '</span>'; }).join('') +
     (bb.times ? '<span class="tag">' + icon("clock", 12) + ' ' + escapeHtml(bb.times) + '</span>' : '') + '</div><div class="game-actions">';

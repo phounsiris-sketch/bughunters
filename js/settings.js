@@ -106,18 +106,7 @@ function _renderProfileTab() {
     (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div>';
   html += '</div>';
 
-  // Personal details
-  html += '<div class="card"><div class="card-title">' + icon("user", 14) + ' ' + t("myDetails") + '</div>';
-  html += '<div class="form-group"><label class="form-label">' + t("displayName") + '</label>';
-  html += '<input class="form-input" id="pfName" value="' + escapeHtml(prof.displayName || '') + '"></div>';
-  html += '<div class="form-group"><label class="form-label">' + t("phone") + '</label>';
-  html += phoneInputHtml("pfPhone", prof.phone) + '</div>';
-  html += '<div class="form-group"><label class="form-label">' + t("emailLabel") + '</label>';
-  html += '<input class="form-input" value="' + escapeHtml(email) + '" disabled></div>';
-  html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
-  html += '</div>';
-
-  // About me (each field with who can see it) and my rackets / shoes
+  // Personal info (each field with who can see it) and my gear
   if (typeof aboutCardHtml === "function") html += aboutCardHtml() + gearCardHtml(currentUser.uid, true);
 
   // My payment QR codes — everyone manages their own
@@ -229,24 +218,6 @@ function _permBadges(perms) {
   var on = PERMISSIONS.filter(function (p) { return perms[p.key]; });
   if (!on.length) return '<span class="perm-badge">' + t("roleMember") + '</span>';
   return on.map(function (p) { return '<span class="perm-badge on">' + icon(p.icon, 12) + ' ' + t("perm_" + p.key) + '</span>'; }).join(' ');
-}
-
-function saveProfileSettings() {
-  var name = document.getElementById("pfName").value.trim();
-  var ph = readPhone("pfPhone");
-  if (!ph.ok) { showToast(t("phoneInvalid")); return; }
-  var phone = ph.value;
-  if (!name) { showToast(t("displayName")); return; }
-
-  dbUpdateUser(currentUser.uid, { displayName: name, phone: phone || null })
-    .then(function () {
-      currentUserProfile.displayName = name;
-      currentUserProfile.phone = phone || null;
-      if (document.activeElement) document.activeElement.blur();
-      showToast(t("profileSaved") + " ✔");
-      renderSettings();
-    })
-    .catch(function (error) { showToast(_permError(error)); });
 }
 
 /* ---------- Players ---------- */
@@ -446,39 +417,46 @@ function showCourtModal(courtId, onSaved, opts) {
   var withPrice = !opts.directoryOnly && (!GROUPS_ON || !!currentGroupId);
   var inGroup = c && GROUPS_ON && currentGroup && currentGroup.courtPrices && currentGroup.courtPrices[c.id] != null;
   document.getElementById("modalTitle").textContent = c ? (GROUPS_ON && !inGroup && withPrice ? t("addToGroup") : t("editCourt")) : t("addCourt");
+  closeMapPicker("courtPin");
+  var hrs = String(c && c.hours || "").split(/\s*[\u2013-]\s*/);
+  var pinned = c && hasPin(c);
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("courtName") + ' *</label>' +
       '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("mapPin") + ' *</label>' + mapPickerHtml("courtPin") + '</div>' +
     (withPrice ? '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (' + curSymbol() + ')' +
       (GROUPS_ON ? ' — ' + escapeHtml(currentGroup ? currentGroup.name : '') : '') + ' *</label>' +
       moneyInput('mCourtPrice', c ? courtPrice(c) : 0, '') +
       (GROUPS_ON ? '<div class="form-hint">' + t("priceGroupOnly") + '</div>' : '') + '</div>' : '') +
-    '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
-      '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("phoneToBook") + '</label>' + phoneInputHtml("mCourtPhone", c && c.phone) + '</div>' +
-    '<details class="more-details"><summary>' + t("moreDetails") + '</summary>' +
+    // Everything else is optional — folded away
+    '<details class="more-details court-more" id="courtMore"><summary>' + icon("pin", 14) + ' ' + t("mapAndDetails") +
+      ' <span class="form-hint">(' + t("optional") + ')</span>' + (pinned ? ' <span class="tag">' + t("pinned") + '</span>' : '') + '</summary>' +
+      '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("courtPin") + '</div>' +
+      '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
+        '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("phoneToBook") + '</label>' + phoneInputHtml("mCourtPhone", c && c.phone) + '</div>' +
+      '<div class="form-group"><label class="form-label">' + t("openingHours") + '</label>' +
+        timeRangeHtml(hrs[0] && /^\d\d:\d\d$/.test(hrs[0]) ? hrs[0] : "", hrs[1] && /^\d\d:\d\d$/.test(hrs[1]) ? hrs[1] : "", "", "").replace('<input type="time"', '<input type="time" id="mCourtOpen"').replace(/(<span class="time-range-dash">.*?<\/span>)<input type="time"/, '$1<input type="time" id="mCourtClose"') + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("numCourts") + '</label><input type="number" class="form-input" id="mCourtCount" min="1" max="30" value="' + (c && c.courtsCount || '') + '"></div>' +
-      '<div class="form-group"><label class="form-label">' + t("openingHours") + '</label><input class="form-input" id="mCourtHours" placeholder="06:00–22:00" value="' + escapeHtml(c && c.hours || '') + '"></div>' +
       '<label class="perm-row"><input type="checkbox" id="mCourtAc"' + (c && c.aircon ? ' checked' : '') + '><div>' + t("aircon") + '</div></label>' +
     '</details>';
 
   modalCallback = function () {
     var ph = readPhone("mCourtPhone");
     if (!ph.ok) { showToast(t("phoneInvalid")); return; }
-    var pin = getMapPick("courtPin");
+    // Map never opened → keep the pin the court already has
+    var pin = mapPickerActive("courtPin") ? getMapPick("courtPin") : { lat: c ? c.lat || null : null, lng: c ? c.lng || null : null };
     var data = {
       name: document.getElementById("mCourtName").value.trim(),
       location: document.getElementById("mCourtLoc").value.trim(),
       lat: pin.lat, lng: pin.lng, phone: ph.value,
       courtsCount: parseInt(document.getElementById("mCourtCount").value, 10) || null,
-      hours: document.getElementById("mCourtHours").value.trim() || null,
+      hours: fmtTimeRange(document.getElementById("mCourtOpen").value, document.getElementById("mCourtClose").value) || null,
       aircon: document.getElementById("mCourtAc").checked
     };
     var price = withPrice ? parseMoney(document.getElementById("mCourtPrice").value) : 0;
     if (!data.name) { showToast(t("courtName")); return; }
     if (withPrice && price <= 0) { showToast(t("pricePerHour")); return; }
-    if (GROUPS_ON && !c && pin.lat === null) { showToast(t("pinNeeded")); return; }
+    if (!timeRangeOk(document.getElementById("mCourtOpen").value, document.getElementById("mCourtClose").value)) { showToast(t("timeRangeInvalid")); return; }
     if (!GROUPS_ON) data.pricePerHour = price;
     var op;
     if (c) op = dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; });
@@ -492,7 +470,13 @@ function showCourtModal(courtId, onSaved, opts) {
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
-  initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
+  // The map draws only once its section is open (a hidden map has no size)
+  var more = document.getElementById("courtMore"), mapReady = false;
+  more.addEventListener("toggle", function () {
+    if (!more.open || mapReady) return;
+    mapReady = true;
+    initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
+  });
 }
 
 function deleteSettingsCourt(id) {

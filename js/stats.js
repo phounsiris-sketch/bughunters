@@ -37,6 +37,7 @@ function loadMatches() {
     lastMatches = list.sort(function (a, b) { return String(a.date || "").localeCompare(String(b.date || "")) || ((a.createdAt || 0) - (b.createdAt || 0)); });
     _statsCache = null;
     if (/^(stats|matches|dashboard|user)$/.test(currentPage)) refreshCurrentPage("matches");
+    if (currentPage === "session-detail") refreshSessionGamesCard();
     if (typeof updateNotifications === "function") updateNotifications();
   }, dbOnError);
 }
@@ -157,28 +158,18 @@ function computeStats() {
     }
     h2h.push({ m: m, w: w, pts: sc.pts });
   });
-  // Levels from the player ranking (A top 15 %, B to 50 %, C to 80 %, D rest)
+  // The individual ranking (levels are set by people, not by rating)
   var ranked = Object.keys(players).map(function (u) { return players[u]; })
     .filter(function (p) { return p.comp >= RANK_MIN_MATCHES; }).sort(function (a, b) { return b.rating - a.rating; });
-  ranked.forEach(function (p) {
-    // Same rating = same level
-    var above = ranked.filter(function (x) { return x.rating > p.rating + 0.5; }).length;
-    var q = ranked.length > 1 ? above / (ranked.length - 1) : 0;
-    p.level = ranked.length < 4
-      ? (p.rating >= 1600 ? "A" : p.rating >= 1520 ? "B" : p.rating >= 1460 ? "C" : "D")
-      : (q <= 0.15 ? "A" : q <= 0.5 ? "B" : q <= 0.8 ? "C" : "D");
-  });
   _statsCache = { players: players, pairs: pairs, h2h: h2h, ranked: ranked, month: month };
   return _statsCache;
 }
 
-/** A player's level: from the group ranking, else what they chose when joining */
+/** A player's level (BG…B&A): set by a group admin, else their own choice; "" if none */
 function playerLevel(uid) {
-  var st = computeStats();
-  var p = st.players[uid];
-  if (p && p.level) return p.level;
   var m = typeof memberOf === "function" ? memberOf(uid) : null;
-  return (m && m.level) || (findUser(uid) && findUser(uid).selfLevel) || "D";
+  var u = findUser(uid) || {};
+  return normLevel(m && m.level) || normLevel(u.selfLevel || (u.about || {}).selfLevel) || "";
 }
 
 function ratingOf(uid) {
@@ -221,7 +212,7 @@ function _myStatsCard() {
   var me = currentUser.uid, st = computeStats(), p = st.players[me];
   var lvl = playerLevel(me);
   var html = '<div class="card my-stats" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">';
-  html += '<div class="my-stats-head"><span class="level-badge lv-' + lvl + '">' + lvl + '</span><div><div class="my-stats-title">' + t("myLevel") + '</div>' +
+  html += '<div class="my-stats-head">' + (lvl ? levelBadgeHtml(lvl) : '<span class="level-badge lv-none" onclick="event.stopPropagation();showLevelGuide()">?</span>') + '<div><div class="my-stats-title">' + t("myLevel") + '</div>' +
     '<div class="my-stats-rating">' + (p && p.comp ? Math.round(p.rating) + ' ' + _trend(p.rating, p.monthStart) : t("notRankedYet").replace("{n}", p ? p.comp : 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div></div>';
   if (p) {
     var wr = p.wins + p.losses ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
@@ -275,7 +266,7 @@ function _renderRanking() {
     var wr = w + l ? Math.round(w / (w + l) * 100) : 0;
     html += '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + '" onclick="progressUser=\'' + p.uid + '\';setStatsTab(\'progress\')">' +
       '<span class="rank-no">' + (i + 1) + '</span>' + avatarHtml(p.uid, 32) +
-      '<span class="rank-text"><b>' + getUserName(p.uid) + ' <span class="level-badge sm lv-' + p.level + '">' + p.level + '</span></b>' +
+      '<span class="rank-text"><b>' + getUserName(p.uid) + ' ' + levelBadgeHtml(playerLevel(p.uid), true) + '</b>' +
       '<small>' + Math.round(p.rating) + ' \u00B7 ' + wr + '% \u00B7 ' + _wl(w, l) + '</small></span>' + _trend(p.rating, p.monthStart) + '</div>';
   });
   html += '</div>';
@@ -410,6 +401,39 @@ function _sparkline(vals) {
 
 /* ---------- Matches of a session (+ match maker, queue) ---------- */
 
+/* ---------- Games card inside a session ----------
+   Every player of the session (and group admins) can add a game here. */
+function sessionGamesCardHtml(s) {
+  if (typeof GROUPS_ON === "undefined" || !GROUPS_ON || !s || !s.id) return "";
+  var list = sessionMatches(s.id), me = currentUser.uid;
+  var canAdd = (s.players || []).indexOf(me) >= 0 || isGroupAdminMe();
+  var mode = s.mode || "competition";
+  var nameOf = function (team) { return team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; "); };
+  var html = '<div class="card session-games" id="sessionGames"><div class="sg-head"><div class="card-title" style="margin:0">' + icon("ranking", 14) + ' ' +
+    t("gamesTitle") + (list.length ? ' (' + list.length + ')' : '') + '</div><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span></div>';
+  if (!list.length) html += '<div class="form-hint" style="margin:6px 0 10px">' + t(canAdd ? "gamesEmptyPlayer" : "gamesEmpty") + '</div>';
+  list.slice(-5).reverse().forEach(function (m) {
+    var w = matchWinner(m);
+    var sc = (m.games || []).map(function (g) { return g.a + '\u2013' + g.b; }).join(', ');
+    html += '<div class="sg-row"><span class="' + (w === "A" ? 'win' : '') + '">' + nameOf(m.teamA) + '</span>' +
+      '<b class="sg-score">' + (sc || '\u2013') + '</b><span class="' + (w === "B" ? 'win' : '') + '">' + nameOf(m.teamB) + '</span></div>';
+  });
+  html += '<div class="sg-actions">' +
+    (canAdd ? '<button class="btn-primary" onclick="addSessionGame(\'' + s.id + '\')">+ ' + t("addGame") + '</button>' : '') +
+    '<button class="btn-secondary" onclick="showSessionMatches(\'' + s.id + '\')">' + t(list.length > 5 ? "allGamesN" : "allGamesMaker").replace("{n}", list.length) + '</button></div>';
+  return html + '</div>';
+}
+
+function refreshSessionGamesCard() {
+  var el = document.getElementById("sessionGames");
+  if (el && currentSession) el.outerHTML = sessionGamesCardHtml(currentSession);
+}
+
+function addSessionGame(sid) {
+  matchesSessionId = sid;
+  startRecordMatch(null, null, "session");
+}
+
 function showSessionMatches(sessionId) {
   matchesSessionId = sessionId;
   showPage("matches");
@@ -532,7 +556,7 @@ function _renderMatchMaker(s, list) {
 
 /* ---------- Record a match ---------- */
 
-function startRecordMatch(matchId, teams) {
+function startRecordMatch(matchId, teams, from) {
   var s = _matchSession();
   if (!s) return;
   var m = matchId ? lastMatches.filter(function (x) { return x.id === matchId; })[0] : null;
@@ -540,18 +564,22 @@ function startRecordMatch(matchId, teams) {
   recMatch = m ? JSON.parse(JSON.stringify(m)) : {
     sessionId: s.id, date: s.date, type: type, mode: s.mode || "competition",
     teamA: teams ? teams.a.slice() : [], teamB: teams ? teams.b.slice() : [],
-    format: 3, games: [{ a: 0, b: 0 }, { a: 0, b: 0 }, { a: 0, b: 0 }], minutes: "", court: 1, shuttles: 1
+    format: 1, games: [_blankGame(), _blankGame(), _blankGame()], minutes: "", court: 1, shuttles: 1
   };
   if (m) {
     recMatch.format = (m.games || []).length > 1 ? 3 : 1;
-    while (recMatch.games.length < 3) recMatch.games.push({ a: 0, b: 0 });
+    // Stored as {a, b}; the form works with "who won" + the loser's points
+    recMatch.games = (m.games || []).map(function (g) { return { w: g.a > g.b ? "a" : "b", l: Math.min(g.a, g.b) }; });
+    while (recMatch.games.length < 3) recMatch.games.push(_blankGame());
   }
+  recMatch._from = from || "matches";
   showPage("match-record");
 }
 
 function loadMatchRecord() {
   var s = _matchSession();
-  setBreadcrumb([{ label: t("matches"), action: "showPage('matches')" }, { label: t("recordMatch") }]);
+  if (recMatch && recMatch._from === "session" && s) setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date), action: "showSessionDetail('" + s.id + "')" }, { label: t("addGame") }]);
+  else setBreadcrumb([{ label: t("matches"), action: "showPage('matches')" }, { label: t("recordMatch") }]);
   renderMatchRecord(s);
 }
 
@@ -578,11 +606,7 @@ function renderMatchRecord() {
     [[1, "oneGame"], [3, "bestOf3"]].map(function (x) { return '<button type="button" class="seg-btn' + (r.format === x[0] ? ' active' : '') + '" onclick="recSet(\'format\',' + x[0] + ')">' + t(x[1]) + '</button>'; }).join('') + '</div></div>';
   var w0 = _gamesWon(0), w1 = _gamesWon(1);
   var needThird = r.format === 3 && w0 >= 0 && w1 >= 0 && w0 !== w1; // 1–1 after two games
-  for (var gi = 0; gi < (r.format === 3 ? (needThird ? 3 : 2) : 1); gi++) {
-    var g = r.games[gi];
-    html += '<div class="form-group"><label class="form-label">' + t("gameN").replace("{n}", gi + 1) + (r.mode === "competition" ? ' *' : '') + '</label><div class="score-row">' +
-      _counter(gi, "a", g.a) + '<span class="score-sep">\u2013</span>' + _counter(gi, "b", g.b) + '</div></div>';
-  }
+  for (var gi = 0; gi < (r.format === 3 ? (needThird ? 3 : 2) : 1); gi++) html += _gameEntryHtml(gi);
   // Should: minutes (typed — no running timer)
   html += '<div class="form-group"><label class="form-label">' + t("timePlayed") + '</label>' +
     '<input type="number" class="form-input" inputmode="numeric" min="1" max="120" placeholder="' + t("minutesExample") + '" value="' + escapeHtml(String(r.minutes || "")) + '" oninput="recMatch.minutes=parseInt(this.value,10)||\'\'"></div>';
@@ -595,16 +619,55 @@ function renderMatchRecord() {
   box.innerHTML = html + '</div>';
 }
 
-function _counter(gi, side, v) {
-  return '<div class="score-counter"><button type="button" onclick="recScore(' + gi + ',\'' + side + '\',-1)">\u2212</button>' +
-    '<input type="number" inputmode="numeric" min="0" max="30" value="' + (v || 0) + '" onchange="recScore(' + gi + ',\'' + side + '\',0,this.value)">' +
-    '<button type="button" onclick="recScore(' + gi + ',\'' + side + '\',1)">+</button></div>';
+function _blankGame() { return { w: "", l: "" }; }
+
+/** Winner's points from the loser's: 21, or 2 ahead after 20-all, 30 at most */
+function winnerPoints(l) { l = Number(l) || 0; return l <= 19 ? 21 : l >= 29 ? 30 : l + 2; }
+
+/** One game: pick who won (21 by default), then type the loser's points */
+function _gameEntryHtml(gi) {
+  var r = recMatch, g = r.games[gi];
+  var nameOf = function (team, side) { return team.length ? team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; ") : t("team") + " " + side; };
+  var html = '<div class="form-group game-entry" data-gi="' + gi + '"><label class="form-label">' + t("gameN").replace("{n}", gi + 1) + ' *</label>' +
+    '<div class="seg seg-wrap win-pick">' + [["a", r.teamA, "A"], ["b", r.teamB, "B"]].map(function (x) {
+      return '<button type="button" class="seg-btn' + (g.w === x[0] ? ' active' : '') + '" onclick="recWinner(' + gi + ',\'' + x[0] + '\')">' + icon("crown", 13) + ' ' + nameOf(x[1], x[2]) + '</button>';
+    }).join('') + '</div>';
+  if (g.w) {
+    html += _scoreBigHtml(g) +
+      '<div class="loser-pts"><span class="form-label" style="margin:0">' + t("loserPoints") + '</span>' +
+      '<div class="score-counter"><button type="button" onclick="recLoser(' + gi + ',-1)">\u2212</button>' +
+      '<input type="number" inputmode="numeric" min="0" max="29" placeholder="?" value="' + (g.l === "" ? "" : g.l) + '" oninput="recLoserInput(' + gi + ',this.value)">' +
+      '<button type="button" onclick="recLoser(' + gi + ',1)">+</button></div></div>' +
+      '<div class="deuce-note"' + (g.l !== "" && Number(g.l) >= 20 ? '' : ' hidden') + '>' + _deuceText(g) + '</div>';
+  } else html += '<div class="form-hint">' + t("pickWinnerHint") + '</div>';
+  return html + '</div>';
 }
 
+function _scoreBigHtml(g) {
+  var wp = winnerPoints(g.l), lp = g.l === "" ? "?" : g.l;
+  var aPts = g.w === "a" ? wp : lp, bPts = g.w === "b" ? wp : lp;
+  return '<div class="score-big"><span class="' + (g.w === "a" ? 'win' : '') + '">' + aPts + '</span><span class="score-sep">\u2013</span><span class="' + (g.w === "b" ? 'win' : '') + '">' + bPts + '</span></div>';
+}
+function _deuceText(g) { return icon("warning", 13) + ' ' + t("deuceNote").replace("{w}", winnerPoints(g.l)).replace("{l}", g.l); }
+
+/** Typing the loser's points: update the score in place (no redraw, so the next tap is never lost) */
+function recLoserInput(gi, value) {
+  var g = recMatch.games[gi];
+  var v = String(value).trim() === "" ? "" : Math.max(0, Math.min(29, parseInt(value, 10) || 0));
+  g.l = v;
+  var box = document.querySelector('#matchRecordContent .game-entry[data-gi="' + gi + '"]');
+  if (!box) return;
+  var big = box.querySelector(".score-big"); if (big) big.outerHTML = _scoreBigHtml(g);
+  var note = box.querySelector(".deuce-note");
+  if (note) { note.hidden = !(v !== "" && v >= 20); note.innerHTML = _deuceText(g); }
+  var sum = document.querySelector("#matchRecordContent .live-summary"); if (sum) sum.innerHTML = _recSummary();
+}
+
+/** Which side won game gi (1 = team A, 0 = team B, -1 = not picked) */
 function _gamesWon(gi) {
   var g = recMatch.games[gi];
-  if (!g || !validGame(g.a || 0, g.b || 0)) return -1;
-  return g.a > g.b ? 1 : 0;
+  if (!g || !g.w) return -1;
+  return g.w === "a" ? 1 : 0;
 }
 
 function _recGames() {
@@ -613,8 +676,9 @@ function _recGames() {
   var out = [];
   for (var i = 0; i < n; i++) {
     var g = r.games[i];
-    if (!g || (!g.a && !g.b)) continue;
-    out.push({ a: g.a || 0, b: g.b || 0 });
+    if (!g || !g.w || g.l === "") continue;
+    var wp = winnerPoints(g.l), lp = Number(g.l);
+    out.push(g.w === "a" ? { a: wp, b: lp } : { a: lp, b: wp });
   }
   return out;
 }
@@ -648,16 +712,24 @@ function recToggle(side, uid) {
   renderMatchRecord();
 }
 
-function recScore(gi, side, delta, typed) {
+function recWinner(gi, side) { recMatch.games[gi].w = side; renderMatchRecord(); }
+
+function recLoser(gi, delta, typed) {
   var g = recMatch.games[gi];
-  var v = typed !== undefined ? parseInt(typed, 10) || 0 : (g[side] || 0) + delta;
-  g[side] = Math.max(0, Math.min(30, v));
+  var v = typed !== undefined ? (typed === "" ? "" : parseInt(typed, 10) || 0) : (g.l === "" ? Math.max(0, delta) : Number(g.l) + delta);
+  g.l = v === "" ? "" : Math.max(0, Math.min(29, v));
   renderMatchRecord();
 }
 
 function saveMatch() {
   var r = recMatch, size = _teamSize();
   if (r.teamA.length !== size || r.teamB.length !== size) { showToast(t("pickTeams").replace("{n}", size)); return; }
+  var shown = r.format === 3 ? (_gamesWon(0) >= 0 && _gamesWon(0) === _gamesWon(1) ? 2 : 3) : 1;
+  for (var gi = 0; gi < Math.min(shown, 2); gi++) {
+    var gg = r.games[gi];
+    if (!gg.w) { showToast(t("pickWinnerN").replace("{n}", gi + 1)); return; }
+    if (gg.l === "") { showToast(t("loserPointsN").replace("{n}", gi + 1)); return; }
+  }
   var games = _recGames();
   var bad = games.filter(function (g) { return !validGame(g.a, g.b); })[0];
   if (bad) { showToast(t("scoreRule").replace("{score}", bad.a + "\u2013" + bad.b)); return; }
@@ -676,9 +748,11 @@ function saveMatch() {
   if (r.id) op = fsdb.collection("matches").doc(r.id).update(data);
   else op = fsdb.collection("matches").add(withGroup(Object.assign(data, { createdBy: currentUser.uid, createdAt: Date.now(), confirmed: false })));
   op.then(function () {
+    var back = r._from;
     recMatch = null;
     showToast(t("matchSaved") + " \u2714");
-    showPage("matches", false);
+    if (back === "session") showSessionDetail(r.sessionId);
+    else showPage("matches", false);
   }).catch(function (e) { showToast(_permError(e)); });
 }
 
@@ -780,7 +854,7 @@ function makeRecap() {
   font("600", 44);
   if (best) g.fillText(t("bestPartner") + ": " + plainUserName(findUser(best)), 80, 1080);
   g.fillText(t("badges") + ": " + earned, 80, 1150);
-  font("600", 34); g.globalAlpha = 0.75; g.fillText(t("level") + " " + playerLevel(me), 80, 1260); g.globalAlpha = 1;
+  font("600", 34); g.globalAlpha = 0.75; g.fillText(playerLevel(me) ? t("level") + " " + levelShort(playerLevel(me)) + " · " + levelName(playerLevel(me)) : "", 80, 1260); g.globalAlpha = 1;
   c.toBlob(function (blob) {
     var file = typeof File !== "undefined" ? new File([blob], "godsmash-" + mk + ".png", { type: "image/png" }) : null;
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {

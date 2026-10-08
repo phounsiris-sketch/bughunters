@@ -179,6 +179,9 @@ function getMapPick(id) {
   return p ? { lat: p.lat, lng: p.lng } : { lat: null, lng: null };
 }
 
+/** Was this picker opened (so its pin is the user's latest choice)? */
+function mapPickerActive(id) { return !!_pickers[id]; }
+
 function closeMapPicker(id) {
   var p = _pickers[id];
   if (p && p.map) { try { p.map.remove(); } catch (e) {} }
