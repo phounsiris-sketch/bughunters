@@ -64,6 +64,31 @@ function computeNotifications() {
         text: t("nNewPoll").replace("{name}", getUserName(p.createdBy)).replace("{date}", fmtDate(np.date)),
         action: "showPage('polls')" });
     }
+    // Votes: who answered what (for the creator and everyone who answered)
+    var inPoll = p.createdBy === me || np.responses.hasOwnProperty(me);
+    var open = (p.status === "draft" || p.status === "open") && !isPollArchived(p);
+    var min = parseInt(p.minPlayers, 10) || minPlayersSetting();
+    var joins = Object.keys(np.responses).filter(function (u) { return np.responses[u] === 0; }).length;
+    if (inPoll && p.voteLog) {
+      Object.keys(p.voteLog).forEach(function (voter) {
+        var v = p.voteLog[voter];
+        if (!v || voter === me || v.by === me || !v.at) return;
+        var what = v.a === 0 ? t("nVotedJoin") : v.a === -1 ? t("nVoteCleared") : t("nVotedSkip").replace("{answer}", answerLabel(np.answers[v.a] || ""));
+        var text = (v.by && v.by !== voter
+          ? t("nVotedFor").replace("{by}", getUserName(v.by)).replace("{name}", getUserName(voter)).replace("{what}", what)
+          : t("nVoted").replace("{name}", getUserName(voter)).replace("{what}", what)) +
+          ' · ' + fmtDate(np.date) + (open ? ' · ' + joins + '/' + min : '');
+        events.push({ id: "vote_" + p.id + "_" + voter + "_" + v.at, cat: "notif", type: v.a === 0 ? "voteJoin" : "voteOther",
+          time: v.at, icon: "vote", text: text, action: "showPage('polls')" });
+      });
+    }
+    // Result: enough players joined
+    if (inPoll && p.reachedAt) {
+      events.push({ id: "full_" + p.id, cat: "notif", type: "pollFull", time: p.reachedAt, icon: "users",
+        text: (p.createdBy === me && open ? t("nPollFullCreator") : t("nPollFull"))
+          .replace("{date}", fmtDate(np.date)).replace("{n}", joins).replace("{min}", min),
+        action: "showPage('polls')" });
+    }
     if (p.status === "confirmed" && np.responses[me] === 0) {
       events.push({ id: "conf_" + p.id, cat: "notif", type: "confirmed", time: _tsOf(p.confirmedAt) || _tsOf(p.createdAt), icon: "check",
         text: t("nConfirmed").replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),

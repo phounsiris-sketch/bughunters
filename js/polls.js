@@ -257,6 +257,11 @@ function respondPoll(pollId, answerIdx) {
         if (responses[uid] === answerIdx) delete responses[uid];
         else responses[uid] = answerIdx;
         update.responses = responses;
+        // Who voted what, and when (for the notification list)
+        var log = data.voteLog || {};
+        log[uid] = { a: responses.hasOwnProperty(uid) ? responses[uid] : -1, at: Date.now(), by: uid };
+        update.voteLog = log;
+        _markReached(data, responses, update);
       } else {
         // Old multi-option poll: answer 0 = vote for its first option
         var votes = data.votes || {};
@@ -268,6 +273,14 @@ function respondPoll(pollId, answerIdx) {
       transaction.update(pollRef, update);
     });
   }).catch(function (error) { showToast(error.message); });
+}
+
+/** First time Join answers reach the minimum players: remember when */
+function _markReached(data, responses, update) {
+  if (data.reachedAt) return;
+  var min = parseInt(data.minPlayers, 10) || minPlayersSetting();
+  var joins = Object.keys(responses).filter(function (u) { return responses[u] === 0; }).length;
+  if (joins >= min) update.reachedAt = Date.now();
 }
 
 /* ---------- Creator answers for players who replied in chat / have no account ---------- */
@@ -308,7 +321,16 @@ function showVoteForOthers(pollId) {
         if (!canManagePoll(data)) throw new Error(t("noPermission"));
         if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
         if (data.answers) {
-          transaction.update(pollRef, { responses: chosen });
+          var before = data.responses || {}, log = data.voteLog || {}, now = Date.now();
+          var upd = { responses: chosen };
+          var uids = Object.keys(before).concat(Object.keys(chosen));
+          uids.forEach(function (u) {
+            var a = chosen.hasOwnProperty(u) ? chosen[u] : -1, was = before.hasOwnProperty(u) ? before[u] : -1;
+            if (a !== was) log[u] = { a: a, at: now, by: currentUser.uid };
+          });
+          upd.voteLog = log;
+          _markReached(data, chosen, upd);
+          transaction.update(pollRef, upd);
         } else {
           var votes = data.votes || {};
           votes[0] = Object.keys(chosen).filter(function (u) { return chosen[u] === 0; });

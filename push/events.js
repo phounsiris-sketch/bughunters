@@ -21,7 +21,10 @@ const TEXT = {
     billT: "🧾 Bill ready", billOwe: "{date}: you owe {amount}. Tap to pay.", billNone: "{date}: nothing for you to pay.",
     paidT: "💸 Payment received", paidB: "{name} paid you {amount}",
     remindT: "⏰ Payment reminder", remindB: "You still owe {list} — {amount} in total. Tap to pay.",
-    startT: "⏰ Game in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)"
+    startT: "⏰ Game in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)",
+    voteT: "🗳️ New answers · {date}", voteB: "{list} · {n}/{min} joining",
+    join: "Join", skip: "Skip", cleared: "removed",
+    fullT: "🎉 Enough players · {date}", fullCreatorB: "{n}/{min} joined — tap to confirm the plan", fullB: "{n}/{min} joined — waiting for {name} to confirm"
   },
   la: {
     newPollT: "🏸 ໂຫວດໃໝ່", newPollB: "{name}: {date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ?",
@@ -29,7 +32,10 @@ const TEXT = {
     billT: "🧾 ບິນພ້ອມແລ້ວ", billOwe: "{date}: ທ່ານຕ້ອງຈ່າຍ {amount}. ແຕະເພື່ອຈ່າຍ.", billNone: "{date}: ທ່ານບໍ່ຕ້ອງຈ່າຍ.",
     paidT: "💸 ໄດ້ຮັບເງິນແລ້ວ", paidB: "{name} ຈ່າຍໃຫ້ທ່ານ {amount}",
     remindT: "⏰ ແຈ້ງເຕືອນຈ່າຍເງິນ", remindB: "ທ່ານຍັງຄ້າງ {list} — ລວມ {amount}. ແຕະເພື່ອຈ່າຍ.",
-    startT: "⏰ ອີກ 1 ຊົ່ວໂມງຫຼິ້ນແລ້ວ — ກຽມພ້ອມ!", startB: "ແບດມິນຕັນ {time} ທີ່ {court} (ອີກ {min} ນາທີ)"
+    startT: "⏰ ອີກ 1 ຊົ່ວໂມງຫຼິ້ນແລ້ວ — ກຽມພ້ອມ!", startB: "ແບດມິນຕັນ {time} ທີ່ {court} (ອີກ {min} ນາທີ)",
+    voteT: "🗳️ ຄຳຕອບໃໝ່ · {date}", voteB: "{list} · ມາ {n}/{min} ຄົນ",
+    join: "ມາ", skip: "ບໍ່ມາ", cleared: "ຍົກເລີກ",
+    fullT: "🎉 ຄົນພໍແລ້ວ · {date}", fullCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນແຜນ", fullB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ"
   }
 };
 
@@ -69,6 +75,35 @@ function collectMessages(data, since, now, opts) {
 
   data.polls.forEach((p) => {
     const info = pollInfo(p);
+    const open = p.status === "draft" || p.status === "open";
+    const min = parseInt(p.minPlayers, 10) || 4;
+    const joins = Object.keys(info.responses).filter((u) => info.responses[u] === 0);
+    // New answers since the last run → one combined push to the poll creator
+    if (open && p.voteLog && p.createdBy) {
+      const fresh = Object.keys(p.voteLog).filter((u) => {
+        const v = p.voteLog[u];
+        return v && isNew(v.at) && u !== p.createdBy && v.by !== p.createdBy;
+      });
+      if (fresh.length) {
+        const c = p.createdBy, L = T(c);
+        const list = fresh.map((u) => {
+          const a = p.voteLog[u].a;
+          return name(u) + " " + (a === 0 ? L.join : a === -1 ? L.cleared : L.skip);
+        }).join(", ");
+        out.push({ uid: c, title: fill(L.voteT, { date: fmtDate(info.date, L_(c)) }),
+          body: fill(L.voteB, { list, n: joins.length, min }), link: link("#polls") });
+      }
+    }
+    // Enough players for the first time → creator (to confirm) and those joining
+    if (open && isNew(ms(p.reachedAt))) {
+      new Set([p.createdBy, ...joins]).forEach((uid) => {
+        if (!uid) return;
+        const L = T(uid);
+        out.push({ uid, title: fill(L.fullT, { date: fmtDate(info.date, L_(uid)) }),
+          body: fill(uid === p.createdBy ? L.fullCreatorB : L.fullB, { n: joins.length, min, name: name(p.createdBy) }),
+          link: link("#polls") });
+      });
+    }
     if (isNew(ms(p.createdAt)) && (p.status === "draft" || p.status === "open")) {
       Object.keys(data.users).forEach((uid) => {
         if (uid === p.createdBy || data.users[uid].manual) return;

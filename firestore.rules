@@ -50,7 +50,7 @@ service cloud.firestore {
       // Everyone can create a poll of their own; createPoll may restore anyone's
       allow create: if (isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid) || can('createPoll');
       // Everyone can answer; the creator manages it; createPoll manages all polls
-      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes'])) || can('createPoll') || isCreator();
+      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes', 'voteLog', 'reachedAt'])) || can('createPoll') || isCreator();
       allow delete: if can('createPoll') || isCreator();
     }
 
