@@ -611,7 +611,7 @@ function _renderSplitResult(s) {
   });
   if (L.totals.dinner > 0) {
     var receipt = s.dinner.receiptUrl
-      ? '<img src="' + s.dinner.receiptUrl + '" alt="' + t("receipt") + '" class="receipt-thumb" onclick="openImage(this.src)">' +
+      ? '<img ' + imgSrcAttrs(s.dinner.receiptUrl) + ' alt="' + t("receipt") + '" class="receipt-thumb" onclick="openImage(this.src)">' +
         '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
       : '';
     html += _payTypeCard(s, icon("dinner", 18), t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
@@ -952,7 +952,7 @@ function renderEditForm() {
     }
     html += '</div>';
     html += '<div class="form-group"><label class="form-label">' + t("uploadReceipt") + '</label>';
-    if (d.receiptUrl) html += '<img src="' + d.receiptUrl + '" class="receipt-thumb" style="margin-bottom:6px" onclick="openImage(this.src)">';
+    if (d.receiptUrl) html += '<img ' + imgSrcAttrs(d.receiptUrl) + ' class="receipt-thumb" style="margin-bottom:6px" onclick="openImage(this.src)">';
     html += '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="editReceiptChosen(this)"></div>';
     html += '<button class="btn-danger" style="padding:8px;font-size:12px" onclick="edit.dinner=null;renderEditForm()">' + t("removeDinner") + '</button>';
   }
@@ -1228,7 +1228,13 @@ function saveSessionCosts() {
   data.settledAt = {};
   data.status = computeLedger(data).transfers.length ? "active" : "completed";
 
-  dbUpdateSession(currentSessionId, data)
+  // A new receipt photo is stored on its own (images/), the session keeps a reference
+  var receipt = data.dinner && data.dinner.receiptUrl;
+  var saveReceipt = receipt && receipt.indexOf("data:") === 0
+    ? dbSaveImage(receipt, "receipt").then(function (ref) { data.dinner.receiptUrl = ref; if (edit && edit.dinner) edit.dinner.receiptUrl = ref; })
+    : Promise.resolve();
+
+  saveReceipt.then(function () { return dbUpdateSession(currentSessionId, data); })
     .then(function () {
       // Show the result straight away, even if the snapshot hasn't arrived yet
       if (currentSession) Object.assign(currentSession, data);

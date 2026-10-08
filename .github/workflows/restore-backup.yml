@@ -1,0 +1,62 @@
+name: Restore backup (admin)
+
+# Puts documents from a weekly backup back into Firestore. Dry run unless
+# "apply" is ticked. Documents in the backup overwrite the current ones
+# with the same id; everything else is left alone.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID of the Backup run (the number in its URL: …/actions/runs/<ID>)"
+        required: true
+      collections:
+        description: "Which collections: all, or a comma list such as sessions,polls"
+        default: "all"
+      apply:
+        description: "Apply the restore (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: push-sender
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: push/package-lock.json
+      - run: npm ci
+        working-directory: push
+      - uses: actions/download-artifact@v4
+        with:
+          name: godsmash-backup
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: push/dl
+      - name: Decrypt
+        working-directory: push
+        env:
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          f=$(ls dl/*.enc | head -1)
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSWORD -in "$f" -out backup.json.gz
+          gunzip -f backup.json.gz
+      - run: node restore.js
+        working-directory: push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          COLLECTIONS: ${{ inputs.collections }}
+          APPLY: ${{ inputs.apply }}

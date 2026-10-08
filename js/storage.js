@@ -67,3 +67,45 @@ function readAvatarImage(file, callback) {
   };
   reader.readAsDataURL(file);
 }
+
+/* ---------- Big images live in their own documents (images/{id}) ----------
+   A session keeps only a reference "img:<id>", so listing sessions never
+   downloads every receipt. Old data URLs keep working. Images load when an
+   <img data-img="<id>"> appears on screen (see the observer below). */
+var IMG_BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+var _imgCache = {};
+
+function isImgRef(v) { return typeof v === "string" && v.indexOf("img:") === 0; }
+
+/** Save a data URL as images/{id}; resolves with the reference "img:<id>" */
+function dbSaveImage(dataUrl, kind) {
+  var ref = fsdb.collection("images").doc();
+  return ref.set({ data: dataUrl, kind: kind || "image", createdBy: currentUser.uid, createdAt: Date.now() })
+    .then(function () { _imgCache[ref.id] = dataUrl; return "img:" + ref.id; });
+}
+
+/** src="…" for a data URL, or a placeholder that loads the referenced image */
+function imgSrcAttrs(v) {
+  if (!v) return 'src="' + IMG_BLANK + '"';
+  if (!isImgRef(v)) return 'src="' + v + '"';
+  var id = v.slice(4);
+  return _imgCache[id] ? 'src="' + _imgCache[id] + '"' : 'src="' + IMG_BLANK + '" data-img="' + id + '"';
+}
+
+function _loadImg(el) {
+  var id = el.getAttribute("data-img");
+  el.removeAttribute("data-img");
+  if (_imgCache[id]) { el.src = _imgCache[id]; return; }
+  el.classList.add("img-loading");
+  fsdb.collection("images").doc(id).get().then(function (doc) {
+    if (doc.exists) { _imgCache[id] = doc.data().data; el.src = _imgCache[id]; }
+  }).catch(function () {}).then(function () { el.classList.remove("img-loading"); });
+}
+
+(function watchImages() {
+  if (typeof MutationObserver === "undefined") return;
+  new MutationObserver(function () {
+    var els = document.querySelectorAll("img[data-img]");
+    for (var i = 0; i < els.length; i++) _loadImg(els[i]);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();

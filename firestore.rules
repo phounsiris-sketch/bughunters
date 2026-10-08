@@ -125,6 +125,14 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.deletedBy == request.auth.uid;
     }
 
+    // Big images (receipts) kept out of sessions; sessions store "img:<id>"
+    match /images/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.data is string && request.resource.data.data.size() < 900000;
+      allow delete: if isSuper() || (isAuth() && resource.data.createdBy == request.auth.uid);
+    }
+
     // Payment QR codes: your own, or a manual player's (editConfig)
     match /qrcodes/{uid} {
       allow read: if isAuth();

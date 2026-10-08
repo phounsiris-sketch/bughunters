@@ -4147,3 +4147,6 @@ body[data-theme="light"][data-lpalette="sunrise"] {
 .map-link .si { vertical-align: -0.2em; }
 .no-pin { color: var(--text-dim); }
 .leaflet-container { font: inherit; }
+
+img.img-loading { background: var(--surface); min-height: 80px; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
