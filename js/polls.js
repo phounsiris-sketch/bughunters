@@ -220,7 +220,7 @@ function _renderPollCard(poll) {
   html += '<div class="poll-plan">';
   html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '') + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">' + icon('court', 14) + ' ' + escapeHtml(np.courtName || '') +
-    (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
+    (court && court.location ? ' — ' + escapeHtml(court.location) : '') + (court ? ' ' + courtMapLink(court) : '') + '</div>';
   if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
   html += '</div>';
 

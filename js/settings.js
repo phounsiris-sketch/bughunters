@@ -370,7 +370,8 @@ function _renderCourtsTab() {
     var c = courts[i];
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || '—') + '</div></div>';
+    html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
+      (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(c.pricePerHour) + '/h</div>';
     if (can("editConfig")) {
@@ -391,7 +392,8 @@ function showCourtModal(courtId, onSaved) {
     '<div class="form-group"><label class="form-label">' + t("courtName") + '</label>' +
       '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
-      '<input class="form-input" id="mCourtLoc" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
+      '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
+    '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("courtPin") + '</div>' +
     '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (\u20AD)</label>' +
       moneyInput('mCourtPrice', c ? c.pricePerHour : 0, '') + '</div>';
 
@@ -401,16 +403,20 @@ function showCourtModal(courtId, onSaved) {
       location: document.getElementById("mCourtLoc").value.trim(),
       pricePerHour: parseMoney(document.getElementById("mCourtPrice").value)
     };
+    var pin = getMapPick("courtPin");
+    data.lat = pin.lat;
+    data.lng = pin.lng;
     if (!data.name || data.pricePerHour <= 0) {
       showToast(t("courtName") + " & " + t("pricePerHour"));
       return;
     }
     var op = c ? dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; })
                : dbAddCourt(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function (ref) { closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+    op.then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
+  initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
 }
 
 function deleteSettingsCourt(id) {
@@ -470,10 +476,11 @@ function showShuttleModal(brandId, onSaved) {
     }
     var op = b ? dbUpdateShuttlecock(b.id, data).then(function () { return { id: b.id }; })
                : dbAddShuttlecock(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function (ref) { closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+    op.then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
+  initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
 }
 
 function deleteSettingsShuttlecock(id) {

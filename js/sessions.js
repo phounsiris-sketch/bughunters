@@ -561,6 +561,8 @@ function _renderSessionHeader(s) {
   html += '<div style="font-size:16px;font-weight:700">' + fmtDate(s.date) + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
+  var court = s.courtId ? dbFindById(DB_CACHE.courts, s.courtId) : null;
+  if (court && hasPin(court)) html += '<div style="margin-top:6px">' + courtMapLink(court, t("directions")) + '</div>';
   html += '</div>';
   return html;
 }
