@@ -8,7 +8,6 @@
                   never told about "Ignore".
    Block / report users/{uid}.blocked [uid]; reports/{id}
    Dinner after   sessions/{id}.dinnerPoll { uid: true|false }
-   Round robin    sessions/{id}.tournament { pairs: [{a,b}], at, by }
    Gear board     gear/{id}.forSale + salePrice (inside your group)
    ============================================================ */
 
@@ -332,58 +331,6 @@ function answerDinner(sid, yes) {
     if (el) el.outerHTML = dinnerPollHtml(currentSession);
   }
   fsdb.collection("sessions").doc(sid).update(upd).catch(function (e) { showToast(_permError(e)); });
-}
-
-/* ---------- Round robin (Matches page) ---------- */
-
-function tournamentHtml(s, list) {
-  if (!s.tournament || !s.tournament.pairs) {
-    if ((s.players || []).length >= 6 && (canEditSessionDetails(s) || isGroupAdminMe()) && (s.gameType || "md") !== "singles") {
-      return '<button class="add-btn-dashed" onclick="startTournament(\'' + s.id + '\')">' + icon("ranking", 14) + ' ' + t("startRoundRobin") + '</button>';
-    }
-    return "";
-  }
-  var pairs = s.tournament.pairs.map(function (p) { return [p.a, p.b]; });
-  var key = function (p) { return pairKey(p); };
-  var table = pairs.map(function (p) { return { p: p, w: 0, l: 0, pts: 0 }; });
-  var done = {};
-  list.forEach(function (m) {
-    if (m.teamA.length !== 2) return;
-    var ia = -1, ib = -1;
-    pairs.forEach(function (p, i) { if (key(p) === pairKey(m.teamA)) ia = i; if (key(p) === pairKey(m.teamB)) ib = i; });
-    if (ia < 0 || ib < 0) return;
-    var w = matchWinner(m), sc = matchScore(m);
-    done[Math.min(ia, ib) + "-" + Math.max(ia, ib)] = true;
-    if (w === "A") { table[ia].w++; table[ib].l++; } else if (w === "B") { table[ib].w++; table[ia].l++; }
-    table[ia].pts += sc.pts; table[ib].pts -= sc.pts;
-  });
-  var standings = table.slice().sort(function (a, b) { return (b.w - a.w) || (b.pts - a.pts); });
-  var html = '<div class="settings-section">' + t("roundRobin") + '</div><div class="card rank-list">';
-  standings.forEach(function (r, i) {
-    html += '<div class="rank-row"><span class="rank-no">' + (i + 1) + '</span><span class="rank-avatars">' + avatarHtml(r.p[0], 26) + avatarHtml(r.p[1], 26) + '</span>' +
-      '<span class="rank-text"><b>' + getUserName(r.p[0]) + ' &amp; ' + getUserName(r.p[1]) + '</b><small>' + _wl(r.w, r.l) + ' · ' + (r.pts >= 0 ? '+' : '') + r.pts + ' ' + t("ptsShort") + '</small></span></div>';
-  });
-  html += '</div><div class="card">';
-  for (var i = 0; i < pairs.length; i++) for (var j = i + 1; j < pairs.length; j++) {
-    var isDone = done[i + "-" + j];
-    html += '<div class="rr-game' + (isDone ? ' done' : '') + '"><span>' + getUserName(pairs[i][0]) + ' &amp; ' + getUserName(pairs[i][1]) + ' <span class="vs">vs</span> ' +
-      getUserName(pairs[j][0]) + ' &amp; ' + getUserName(pairs[j][1]) + '</span>' +
-      (isDone ? icon("check", 16) : '<button class="edit-btn" onclick="startRecordMatch(null,{a:[\'' + pairs[i].join("','") + '\'],b:[\'' + pairs[j].join("','") + '\']})">' + t("record") + '</button>') + '</div>';
-  }
-  return html + '</div>';
-}
-
-/** Pairs strongest with weakest (by rating) so the round robin is even */
-function startTournament(sid) {
-  var s = _matchSession();
-  if (!s || !confirm(t("startRoundRobinConfirm"))) return;
-  var pl = (s.players || []).slice().sort(function (a, b) { return ratingOf(b) - ratingOf(a); });
-  if (pl.length % 2) pl.pop();
-  var pairs = [];
-  while (pl.length) pairs.push({ a: pl.shift(), b: pl.pop() });
-  dbUpdateSession(sid, { tournament: { pairs: pairs, at: Date.now(), by: currentUser.uid } })
-    .then(function () { if (currentSession && currentSession.id === sid) currentSession.tournament = { pairs: pairs }; renderMatchesPage(); })
-    .catch(function (e) { showToast(_permError(e)); });
 }
 
 /* ---------- Gear board (group) ---------- */

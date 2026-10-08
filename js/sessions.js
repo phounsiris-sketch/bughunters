@@ -502,8 +502,12 @@ function submitNewSession() {
    Session Detail
    ────────────────────────────────────────────────────────── */
 
-function showSessionDetail(sessionId) {
+/** Tabs inside a session: "bill" (costs, who pays) or "games" (scores) */
+var sessionTab = "bill";
+
+function showSessionDetail(sessionId, tab) {
   if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
+  sessionTab = tab === "games" ? "games" : "bill";
   currentSessionId = sessionId;
   currentSession = null;
   sessionEditing = false;
@@ -524,7 +528,8 @@ function showSessionDetail(sessionId) {
     currentSession = doc.data();
     currentSession.id = doc.id;
     // Don't wipe a form the user is typing in
-    if (!sessionEditing) renderSessionDetail();
+    if (sessionTab === "games" && _hasGamesTab()) { if (document.getElementById("sgList")) refreshSessionGames(); else renderSessionGamesTab(); }
+    else if (!sessionEditing) renderSessionDetail();
   }, dbOnError);
 }
 
@@ -538,17 +543,45 @@ function renderSessionDetail() {
   var s = currentSession;
   // The session can arrive after the user has moved on — leave other pages alone
   if (currentPage === "session-detail") setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date) }]);
+  if (sessionTab === "games" && _hasGamesTab()) { renderSessionGamesTab(); return; }
 
   if (!s.calculated && !sessionEditing) {
     if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
-    container.innerHTML = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(s) : "") + _renderWaitingForBill(s);
+    container.innerHTML = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s);
     return;
   }
 
-  var html = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(s) : "");
+  var html = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "");
   html += _renderSplitResult(s);
   container.innerHTML = html;
   _fillQrSlots(container);
+}
+
+/* ---------- Session | Games tabs (groups only) ---------- */
+function _hasGamesTab() { return typeof GROUPS_ON !== "undefined" && GROUPS_ON && typeof sessionGamesTabHtml === "function"; }
+
+function _sessionTabsHtml(s) {
+  if (!_hasGamesTab() || !s) return "";
+  var n = sessionMatches(s.id).length;
+  return '<div class="session-tabs" role="tablist">' +
+    '<button role="tab" class="session-tab' + (sessionTab !== "games" ? ' active' : '') + '" onclick="setSessionTab(\'bill\')">' + icon("bill", 15) + ' ' + t("sessionTabBill") + '</button>' +
+    '<button role="tab" class="session-tab' + (sessionTab === "games" ? ' active' : '') + '" onclick="setSessionTab(\'games\')">' + icon("ranking", 15) + ' ' + t("sessionTabGames") +
+      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>';
+}
+
+function setSessionTab(tab) {
+  if (sessionTab === tab) return;
+  sessionTab = tab;
+  if (tab === "games") { renderSessionGamesTab(); return; }
+  // Back to the bill: keep what was being typed there
+  if (sessionEditing && edit) renderEditForm(); else renderSessionDetail();
+}
+
+function renderSessionGamesTab() {
+  var container = document.getElementById("sessionDetailContent");
+  if (!container || !currentSession) return;
+  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(currentSession.date) }, { label: t("sessionTabGames") }]);
+  container.innerHTML = _renderSessionHeader(currentSession) + _sessionTabsHtml(currentSession) + sessionGamesTabHtml(currentSession);
 }
 
 /** Read-only view for players while the organiser hasn't entered the bill */
@@ -976,7 +1009,7 @@ function renderEditForm() {
     date: edit.date, time: edit.time, duration: edit.duration, courtId: edit.courtId,
     courtName: (dbFindById(courts, edit.courtId) || {}).name || (currentSession && currentSession.courtName),
     courtLocation: (dbFindById(courts, edit.courtId) || {}).location
-  }) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + (typeof sessionGamesCardHtml === "function" ? sessionGamesCardHtml(currentSession) : "") + html;
+  }) + _sessionTabsHtml(currentSession) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + html;
   _updateEditTotals();
 }
 

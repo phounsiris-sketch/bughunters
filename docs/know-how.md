@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v49**.
+run it. App version at the time of writing: **v50**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -93,6 +93,7 @@ Settings → Group:
 | Currency | LAK ₭ (rounded to 1,000), THB ฿ or USD $ (rounded to 1) |
 | Language | The group's main language, for information. Each person's app and pushes use their own language |
 | Min players | How many "Join" answers a poll needs before it can be confirmed (default 4) |
+| Highest score in a game | 31 (default) or 30 (official BWF rule) |
 | Default payers | Who usually pays the court and the shuttles, prefilled on new bills |
 | Usual days / time | When the group usually plays (a from–to time range), shown to people looking for a group |
 | Court prices | The group's own price per hour for each court it uses |
@@ -223,35 +224,32 @@ tiles, so it needs no API key and costs nothing.
 Stats are **private to each group**. They are never shown in the public zone or
 compared across groups.
 
-### Recording a match
+### Recording games (the session's Games tab)
 
-Each session has a **Games** card showing the latest games.
+A session has two tabs: **Session** (players, bill, who pays) and **Games** (scores).
+They're kept separate, and switching tabs keeps whatever you were typing in the bill.
 
-1. **Every player of the session** (and any group admin) can tap **+ Add game**.
-   Others see the games but can't add any. You can also start from **Match maker &
-   all games**, or from **Start → record score** on a match-maker suggestion.
-2. Pick the two pairs. Men's doubles is the usual case. The format is **1 game**
-   by default; switch to *Best of 3* if needed.
-3. For each game, tap **who won**. The winner gets **21** automatically; then
-   type the **loser's points**.
-   - **Deuce:** if the loser reached 20 or more, the winner must be **2 points
-     ahead**. The app works it out (20 → 22–20, 25 → 27–25) and shows a note.
-     **30** is the most (29 → 30–29).
-   - Wrong scores can't be entered. With Best of 3, the third game only appears
-     when the games are 1–1.
-4. Optionally enter the **minutes played**. You type the number; there is no running clock.
-5. Save, and you're back in the session with the game on its card.
+On the **Games** tab, **every player of the session** (and any group admin) gets
+the add-game form straight away. Others see the games but can't add any. You
+record **one game at a time**:
 
-A match **counts** once someone on the other team taps **Confirm**, or
-automatically **24 hours** after it was recorded. Until it is confirmed, the person
-who recorded it can fix or delete it. Admins can always delete a match.
+1. Pick the game type (men's doubles is the default) and choose **Team A** and
+   **Team B** by hand. There is no random or suggested team.
+2. Type both scores. The team names sit above their score box. The boxes start
+   empty, and the **− / +** buttons beside each box nudge it by one (+ on an
+   empty box starts at 21).
+3. The line under the score checks it as you type:
+   - one team must reach **21**; 21 wins only if the other has 19 or less;
+   - after **20-all** the winner must lead by **2** (22–20, 25–23…);
+   - **31** is the most a team can score (at 30-all the next point wins, 31–30).
+     A group can switch to the official **30** in Settings → Group →
+     *Highest score in a game*.
+4. Optionally type the minutes played, then **Save game**. The form clears for
+   the next game, and the list below updates for everyone at once.
 
-### Match maker and round robin
-
-- **Next match** suggests even teams from the session's players. Those who have
-  played least go first, then those who have waited longest. **Shuffle** gives another suggestion.
-- **Start a round robin** makes even pairs (strongest player with weakest). Every
-  pair plays every other pair, and the table shows wins, losses and point difference.
+A game **counts in Stats as soon as it's saved**; nobody needs to confirm it. If a
+score is wrong, the person who saved it (or an admin) taps ✎ to fix it or 🗑 to
+delete it.
 
 ### Stats tab
 
@@ -266,10 +264,11 @@ How the numbers are worked out:
 - **Ratings** are Elo-style. Everyone starts at 1500 (K = 32). Beating stronger
   players earns more, and a bigger point difference earns a little more. Pairs
   have their own rating.
-- Only **confirmed Competition** matches with a score change ratings. Fun and
-  Exercise matches still count toward matches and minutes played.
-- You appear in the individual ranking after **10** competition matches. A pair
-  appears after **5** matches together.
+- Only **Competition** games change ratings, from the moment they're saved. Fun
+  and Exercise games still count toward games and minutes played.
+- Everyone with a Competition game appears in the rankings straight away. Until
+  a player has **10** games (a pair **5**), their rating is still settling: they
+  show a small "3/10 games" tag and are listed after the settled players.
 - **Levels** are the scale used in Lao badminton. They are set by people, not
   calculated from the rating:
 
@@ -435,7 +434,7 @@ Firestore collections. Every private item carries a `groupId`.
 | `userPrivate/{uid}` | dob, relationship | Owner only |
 | `polls/{id}` | groupId, date, time, courtId, duration, options, votes, mode, gameType, status, closesAt, confirmedOption | |
 | `sessions/{id}` | groupId, date, time, duration, courtId, players, costs, payers, dinner, settled, calculated, mode, gameType, dinnerPoll, tournament | |
-| `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]`, minutes, confirmed | Firestore has no nested arrays, so games are `{a,b}` objects |
+| `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]` (one game per record), minutes, createdBy | Firestore has no nested arrays, so games are `{a,b}` objects |
 | `courts/{id}` | name, address, phone, courts, lat, lng, createdBy | Shared; **no price** |
 | `shuttlecocks/{id}` | groupId, brand, price, cocksPerTube | |
 | `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice | |
@@ -613,8 +612,8 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 | Old version still showing | Close the app fully and reopen it. Settings shows the version number |
 | Weekly backup failed | The `BACKUP_PASSWORD` secret is missing |
 | Two accounts for one person | Run *Merge players* (dry run first) |
-| Not in the ranking | You need 10 confirmed Competition matches (pairs need 5) |
-| A match doesn't count | The other team hasn't confirmed it yet. It counts automatically after 24 h |
+| Not in the ranking | Only Competition games change ratings. Check the session's mode (Fun / Exercise games count as played only) |
+| A score is refused | First to 21; after 20-all the winner leads by 2; the group's top score (31 or 30) is the most |
 | Map doesn't load | It needs internet for the map tiles. You can still paste coordinates |
 
 ---

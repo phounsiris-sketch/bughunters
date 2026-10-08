@@ -372,6 +372,10 @@ function renderGroupForm(boxId, f, isEdit) {
     seg("currency", [["LAK", "LAK ₭"], ["THB", "THB ฿"], ["USD", "USD $"]]) + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>' +
     '<input type="number" class="form-input" min="2" max="30" value="' + (f.minPlayers || 4) + '" onchange="groupFormSet(\'' + boxId + '\',\'minPlayers\',Math.max(2,parseInt(this.value,10)||4),true)"></div>';
+  if (!f.maxPoints) f.maxPoints = "31";
+  f.maxPoints = String(f.maxPoints);
+  html += '<div class="form-group"><label class="form-label">' + t("maxPointsLabel") + '</label>' +
+    seg("maxPoints", [["31", t("maxPoints31")], ["30", t("maxPoints30")]]) + '<div class="form-hint">' + t("maxPointsHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("groupDescription") + '</label>' +
     '<textarea class="form-input" rows="2" maxlength="200" placeholder="' + t("groupDescriptionHint") + '" oninput="groupFormSet(\'' + boxId + '\',\'description\',this.value,true)">' + escapeHtml(f.description || "") + '</textarea></div>';
   html += '<div class="form-group"><label class="form-label">' + t("language") + '</label>' + seg("lang", [["la", "ລາວ"], ["en", "English"]]) + '</div>';
@@ -410,7 +414,7 @@ function groupFormDay(boxId, d) {
 function _groupDataFrom(f) {
   return {
     name: (f.name || "").trim(), type: f.type, joinMode: f.joinMode, city: f.city, currency: f.currency,
-    lang: f.lang, minPlayers: f.minPlayers || 4, description: (f.description || "").trim(),
+    lang: f.lang, minPlayers: f.minPlayers || 4, maxPoints: Number(f.maxPoints) === 30 ? 30 : 31, description: (f.description || "").trim(),
     usualDays: f.usualDays || [], usualTime: f.usualTime || "", usualTimeTo: f.usualTimeTo || ""
   };
 }
