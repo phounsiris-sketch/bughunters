@@ -476,11 +476,10 @@ function showShuttleModal(brandId, onSaved) {
     }
     var op = b ? dbUpdateShuttlecock(b.id, data).then(function () { return { id: b.id }; })
                : dbAddShuttlecock(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+    op.then(function (ref) { closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
-  initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
 }
 
 function deleteSettingsShuttlecock(id) {
