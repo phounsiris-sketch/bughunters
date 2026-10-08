@@ -88,10 +88,30 @@ function computeNotifications() {
           .replace("{date}", fmtDate(np.date)).replace("{n}", joins).replace("{min}", min),
         action: "showPage('polls')" });
     }
+    // Voting deadline: reminder 3 h before (if I haven't answered) and "closed"
+    var closesAt = pollClosesAt(p);
+    if (open && closesAt) {
+      if (!np.responses.hasOwnProperty(me) && now >= closesAt - 3 * 3600e3 && now < closesAt) {
+        events.push({ id: "closing_" + p.id, cat: "remind", type: "closeSoon", time: closesAt - 3 * 3600e3, icon: "clock",
+          text: t("nCloseSoon").replace("{left}", fmtTimeLeft(closesAt - now)).replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),
+          action: "showPage('polls')" });
+      }
+      if (now >= closesAt && (p.createdBy === me || np.responses.hasOwnProperty(me))) {
+        events.push({ id: "closed_" + p.id, cat: "notif", type: "closed", time: closesAt, icon: "lock",
+          text: (p.createdBy === me ? t("nClosedCreator") : t("nClosed")).replace("{date}", fmtDate(np.date)).replace("{n}", joins).replace("{min}", min),
+          action: "showPage('polls')" });
+      }
+    }
     if (p.status === "confirmed" && np.responses[me] === 0) {
       events.push({ id: "conf_" + p.id, cat: "notif", type: "confirmed", time: _tsOf(p.confirmedAt) || _tsOf(p.createdAt), icon: "check",
         text: t("nConfirmed").replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),
         action: p.sessionId ? "showSessionDetail('" + p.sessionId + "')" : "showPage('polls')" });
+    }
+    // Plan cancelled (voting closed early) — everyone who answered
+    if (p.status === "cancelled" && p.cancelledAt && np.responses.hasOwnProperty(me) && (p.cancelledBy || p.createdBy) !== me) {
+      events.push({ id: "cancel_" + p.id, cat: "notif", type: "cancelled", time: p.cancelledAt, icon: "close",
+        text: t("nCancelled").replace("{name}", getUserName(p.cancelledBy || p.createdBy)).replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),
+        action: "showPage('polls')" });
     }
   });
 

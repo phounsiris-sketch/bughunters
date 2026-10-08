@@ -18,23 +18,29 @@ const TEXT = {
   en: {
     newPollT: "🏸 New poll", newPollB: "{name}: {date} {time} at {court} — Join or Skip?",
     confirmedT: "✅ Plan confirmed", confirmedB: "{date} {time} at {court}. See you there!",
+    cancelledT: "❌ Plan cancelled", cancelledB: "{name} cancelled {date} {time} at {court}",
     billT: "🧾 Bill ready", billOwe: "{date}: you owe {amount}. Tap to pay.", billNone: "{date}: nothing for you to pay.",
     paidT: "💸 Payment received", paidB: "{name} paid you {amount}",
     remindT: "⏰ Payment reminder", remindB: "You still owe {list} — {amount} in total. Tap to pay.",
     startT: "⏰ Game in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)",
     voteT: "🗳️ New answers · {date}", voteB: "{list} · {n}/{min} joining",
     join: "Join", skip: "Skip", cleared: "removed",
+    closeSoonT: "⏰ Voting closes in 3 hours", closeSoonB: "{date} {time} at {court} — Join or Skip? Answer now",
+    closedT: "🔒 Voting closed · {date}", closedCreatorB: "{n}/{min} joined — tap to confirm or cancel the plan", closedB: "{n}/{min} joined — waiting for {name} to confirm",
     fullT: "🎉 Enough players · {date}", fullCreatorB: "{n}/{min} joined — tap to confirm the plan", fullB: "{n}/{min} joined — waiting for {name} to confirm"
   },
   la: {
     newPollT: "🏸 ໂຫວດໃໝ່", newPollB: "{name}: {date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ?",
     confirmedT: "✅ ຢືນຢັນແຜນແລ້ວ", confirmedB: "{date} {time} ທີ່ {court}. ພົບກັນ!",
+    cancelledT: "❌ ຍົກເລີກແຜນແລ້ວ", cancelledB: "{name} ຍົກເລີກ {date} {time} ທີ່ {court}",
     billT: "🧾 ບິນພ້ອມແລ້ວ", billOwe: "{date}: ທ່ານຕ້ອງຈ່າຍ {amount}. ແຕະເພື່ອຈ່າຍ.", billNone: "{date}: ທ່ານບໍ່ຕ້ອງຈ່າຍ.",
     paidT: "💸 ໄດ້ຮັບເງິນແລ້ວ", paidB: "{name} ຈ່າຍໃຫ້ທ່ານ {amount}",
     remindT: "⏰ ແຈ້ງເຕືອນຈ່າຍເງິນ", remindB: "ທ່ານຍັງຄ້າງ {list} — ລວມ {amount}. ແຕະເພື່ອຈ່າຍ.",
     startT: "⏰ ອີກ 1 ຊົ່ວໂມງຫຼິ້ນແລ້ວ — ກຽມພ້ອມ!", startB: "ແບດມິນຕັນ {time} ທີ່ {court} (ອີກ {min} ນາທີ)",
     voteT: "🗳️ ຄຳຕອບໃໝ່ · {date}", voteB: "{list} · ມາ {n}/{min} ຄົນ",
     join: "ມາ", skip: "ບໍ່ມາ", cleared: "ຍົກເລີກ",
+    closeSoonT: "⏰ ອີກ 3 ຊົ່ວໂມງປິດໂຫວດ", closeSoonB: "{date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ? ຕອບດຽວນີ້",
+    closedT: "🔒 ປິດໂຫວດແລ້ວ · {date}", closedCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນ ຫຼື ຍົກເລີກແຜນ", closedB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ",
     fullT: "🎉 ຄົນພໍແລ້ວ · {date}", fullCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນແຜນ", fullB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ"
   }
 };
@@ -107,6 +113,27 @@ function collectMessages(data, since, now, opts) {
         });
       }
     }
+    // Voting deadline: reminder 3 h before to those who haven't answered,
+    // then "voting closed" to the creator and everyone who answered
+    const closesAt = pollCloseMs(p);
+    if (open && closesAt) {
+      if (isNew(closesAt - 3 * 3600e3) && now < closesAt) {
+        Object.keys(data.users).forEach((uid) => {
+          if (data.users[uid].manual || info.responses.hasOwnProperty(uid)) return;
+          const L = T(uid);
+          out.push({ uid, tag: "closing-" + p.id, title: L.closeSoonT,
+            body: fill(L.closeSoonB, { date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link("#polls") });
+        });
+      }
+      if (isNew(closesAt)) {
+        new Set([p.createdBy, ...Object.keys(info.responses)]).forEach((uid) => {
+          if (!uid || !data.users[uid] || data.users[uid].manual) return;
+          const L = T(uid);
+          out.push({ uid, tag: "closed-" + p.id, title: fill(L.closedT, { date: fmtDate(info.date, L_(uid)) }),
+            body: fill(uid === p.createdBy ? L.closedCreatorB : L.closedB, { n: joins.length, min, name: name(p.createdBy) }), link: link("#polls") });
+        });
+      }
+    }
     // Enough players for the first time → everyone (creator gets "tap to confirm")
     if (open && isNew(ms(p.reachedAt))) {
       Object.keys(data.users).forEach((uid) => {
@@ -127,6 +154,15 @@ function collectMessages(data, since, now, opts) {
       const joined = p.confirmedPlayers || Object.keys(info.responses).filter((u) => info.responses[u] === 0);
       joined.forEach((uid) => {
         out.push({ uid, title: T(uid).confirmedT, body: fill(T(uid).confirmedB, { date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link(p.sessionId ? "#session=" + p.sessionId : "#polls") });
+      });
+    }
+    // Voting closed early by cancelling: tell everyone who answered
+    if (p.status === "cancelled" && isNew(p.cancelledAt)) {
+      const by = p.cancelledBy || p.createdBy;
+      Object.keys(info.responses).forEach((uid) => {
+        if (uid === by || !data.users[uid] || data.users[uid].manual) return;
+        out.push({ uid, tag: "cancel-" + p.id, title: T(uid).cancelledT,
+          body: fill(T(uid).cancelledB, { name: name(by), date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link("#polls") });
       });
     }
   });
@@ -182,6 +218,19 @@ function collectMessages(data, since, now, opts) {
   return out.filter((m) => m.voteAnnounce || (data.users[m.uid] && !data.users[m.uid].manual));
 }
 
+/** Voting deadline of a poll in ms: closesAt, else midnight before the game
+    day (Bangkok time), or game start when the poll was created after that */
+function pollCloseMs(p) {
+  if (p.closesAt) return p.closesAt;
+  const date = p.date || ((p.options || [])[p.confirmedOption || 0] || {}).date;
+  if (!date) return 0;
+  const [y, m, d] = date.split("-").map(Number);
+  const [hh, mm] = (p.time || "00:00").split(":").map(Number);
+  const midnight = Date.UTC(y, m - 1, d) - 7 * 3600e3;
+  const created = ms(p.createdAt);
+  return created && created > midnight - 3600e3 ? Date.UTC(y, m - 1, d, hh || 0, mm || 0) - 7 * 3600e3 : midnight;
+}
+
 /** Session start in ms — date + time are Vientiane / Bangkok time (UTC+7) */
 function sessionStart(s) {
   if (!s.date || !s.time) return 0;
@@ -191,4 +240,4 @@ function sessionStart(s) {
   return Date.UTC(y, m - 1, d, hh - 7, mm || 0);
 }
 
-module.exports = { collectMessages, computeLedger, sessionStart };
+module.exports = { collectMessages, computeLedger, sessionStart, pollCloseMs };

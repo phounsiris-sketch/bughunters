@@ -74,6 +74,39 @@ function setPollView(view) {
 }
 
 /** Finished polls go to History: cancelled, or the play date has passed */
+/* ---------- Voting deadline: midnight before the game day (Bangkok time) ----------
+   A poll created after that midnight (same-day game) closes at game time. */
+var BKK_MS = 7 * 3600e3;
+function defaultCloseAt(date, time, createdMs) {
+  if (!date) return 0;
+  var d = date.split("-").map(Number), tm = (time || "00:00").split(":").map(Number);
+  var midnight = Date.UTC(d[0], d[1] - 1, d[2]) - BKK_MS;
+  var start = Date.UTC(d[0], d[1] - 1, d[2], tm[0] || 0, tm[1] || 0) - BKK_MS;
+  return createdMs && createdMs > midnight - 3600e3 ? start : midnight;
+}
+function _msOf(x) { return !x ? 0 : typeof x === "number" ? x : x.toMillis ? x.toMillis() : x.toDate ? x.toDate().getTime() : 0; }
+function pollClosesAt(p) {
+  if (p.closesAt) return p.closesAt;
+  var np = normalizePoll(p);
+  return defaultCloseAt(np.date, np.time, _msOf(p.createdAt));
+}
+function pollVotingOpen(p) {
+  return (p.status === 'draft' || p.status === 'open') && Date.now() < pollClosesAt(p);
+}
+/** "Fri 10 Oct, 00:00" in Bangkok time */
+function fmtCloseTime(ms) {
+  var l = new Date(ms + BKK_MS);
+  return weekdayShort(l.getUTCDay()) + ' ' + l.getUTCDate() + ' ' + monthShort(l.getUTCMonth()) + ', ' +
+    String(l.getUTCHours()).padStart(2, "0") + ':' + String(l.getUTCMinutes()).padStart(2, "0");
+}
+function fmtTimeLeft(ms) {
+  var m = Math.max(1, Math.round(ms / 60e3));
+  if (m < 60) return m + ' ' + t("minShort");
+  var h = Math.floor(m / 60);
+  if (h < 48) return h + t("hShort") + (h < 6 && m % 60 ? ' ' + (m % 60) + ' ' + t("minShort") : '');
+  return Math.round(h / 24) + ' ' + t("daysWord");
+}
+
 function isPollArchived(p) {
   if (p.status === "cancelled") return true;
   var np = normalizePoll(p);
@@ -165,7 +198,9 @@ function _findPoll(id) {
 /* ---------- Poll card ---------- */
 function _renderPollCard(poll) {
   var np = normalizePoll(poll);
-  var isVotable = (poll.status === 'draft' || poll.status === 'open');
+  var isOpen = (poll.status === 'draft' || poll.status === 'open');   // not confirmed / cancelled
+  var isVotable = isOpen && pollVotingOpen(poll);                     // before the voting deadline
+  var closesAt = pollClosesAt(poll);
   var isCreator = canManagePoll(poll); // creator, or anyone allowed to run polls
   var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
   var statusLabel = poll.status === 'confirmed' ? t('confirmed') : poll.status === 'cancelled' ? t('cancelled') : t('pollDraft');
@@ -188,6 +223,15 @@ function _renderPollCard(poll) {
     (court && court.location ? ' — ' + escapeHtml(court.location) : '') + '</div>';
   if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
   html += '</div>';
+
+  // Voting deadline
+  if (isOpen && closesAt) {
+    var left = closesAt - Date.now();
+    html += '<div class="poll-deadline' + (isVotable ? (left < 3 * 3600e3 ? ' soon' : '') : ' closed') + '">' +
+      icon(isVotable ? "clock" : "lock", 14) + ' ' + (isVotable
+        ? t("votingClosesIn").replace("{left}", fmtTimeLeft(left)).replace("{when}", fmtCloseTime(closesAt))
+        : (isCreator ? t("votingClosedCreator") : t("votingClosedWait").replace("{name}", getUserName(poll.createdBy)))) + '</div>';
+  }
 
   // Answers (radio)
   if (isVotable) {
@@ -217,7 +261,7 @@ function _renderPollCard(poll) {
     html += '</div></div>';
   }
 
-  if (isVotable && isCreator) {
+  if (isOpen && isCreator) {
     html += '<button class="edit-btn" style="margin-top:10px" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>';
     if (enough) {
       html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
@@ -231,7 +275,7 @@ function _renderPollCard(poll) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + poll.sessionId + '\')">' + t('openSession') + ' →</button>';
   }
 
-  if (isVotable && isCreator) {
+  if (isOpen && isCreator) {
     html += '<button class="btn-danger" style="margin-top:10px;padding:8px;font-size:12px" onclick="cancelPoll(\'' + poll.id + '\')">' + t('cancelPoll') + '</button>';
   }
 
@@ -248,6 +292,7 @@ function respondPoll(pollId, answerIdx) {
   var poll = _findPoll(pollId);
   if (!poll) return;
   if (poll.status !== 'draft' && poll.status !== 'open') { showToast(t("pollClosed")); return; }
+  if (!pollVotingOpen(poll)) { showToast(t("votingClosed")); return; }
   if (!poll.answers) { // old multi-option poll
     _saveVote(pollId, answerIdx, false).catch(function (e) { showToast(e.message); });
     return;
@@ -437,7 +482,7 @@ function confirmPoll(pollId) {
 /* ---------- Cancel poll ---------- */
 function cancelPoll(pollId) {
   if (!confirm(t("cancelPoll") + "?")) return;
-  dbUpdatePoll(pollId, { status: 'cancelled' })
+  dbUpdatePoll(pollId, { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: currentUser.uid })
     .then(function () { showToast(t("cancelled")); })
     .catch(function (error) { showToast(error.message); });
 }
@@ -541,6 +586,7 @@ function submitPoll() {
     answers: answers,
     responses: {},
     minPlayers: minPlayersSetting(),
+    closesAt: defaultCloseAt(newPoll.date, newPoll.time, Date.now()),   // voting deadline
     sessionId: null
   })
     .then(function () {

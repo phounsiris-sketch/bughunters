@@ -4042,3 +4042,19 @@ body[data-palette="midnight"]:not([data-theme="light"]) {
 /* Language buttons with the globe icon */
 .lang-toggle { display: inline-flex; align-items: center; gap: 5px; }
 .lang-toggle .si { flex-shrink: 0; }
+
+/* Voting deadline on poll cards */
+.poll-deadline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.poll-deadline.soon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.poll-deadline.closed { background: rgba(148, 163, 184, 0.14); color: var(--text-muted); }
