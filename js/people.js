@@ -42,12 +42,15 @@ function loadUserProfile() {
   html += '<div class="avatar-edit">' + avatarZoomHtml(uid, 84) + '</div>';
   html += '<div class="profile-name">' + escapeHtml(plainUserName(u)) + '</div>';
   html += '<div style="margin-top:8px">' + (u.manual ? '<span class="perm-badge">' + icon("manual", 12) + ' ' + t("manualPlayer") + '</span>' : _permBadges(userPerms(u))) + '</div>';
-  if (u.phone) {
+  if (u.phone && (typeof canSeeField !== "function" || canSeeField(u, "phone"))) {
     html += '<div class="user-contact"><a class="edit-btn" href="tel:' + escapeHtml(u.phone) + '">' + icon("phone", 14) + ' ' + escapeHtml(fmtPhone(u.phone)) + '</a>' +
       '<a class="edit-btn" href="https://wa.me/' + escapeHtml(u.phone.replace(/\D/g, "")) + '" target="_blank" rel="noopener">WhatsApp</a></div>';
   }
   if (isSuperAdmin() && u.email) html += '<div class="profile-email" style="margin-top:6px">' + escapeHtml(u.email) + '</div>';
   html += '</div>';
+
+  // About (only what they let me see) and their main gear
+  if (typeof aboutViewHtml === "function") html += aboutViewHtml(u);
 
   // Stats
   html += '<div class="user-stats">' +
@@ -57,6 +60,8 @@ function loadUserProfile() {
     _userStat("check", showUp, t("showUp")) +
     _userStat("wallet", fmtShort(paid), t("paidForGroup")) +
     _userStat("sessions", fmtShort(share), t("totalSpent")) + '</div>';
+
+  if (typeof gearCardHtml === "function" && !u.manual) html += gearCardHtml(uid, false);
 
   // Payment QR codes
   html += '<div class="card"><div class="card-title">' + icon("qr", 14) + ' ' + t("qrCodes") + '</div>' +

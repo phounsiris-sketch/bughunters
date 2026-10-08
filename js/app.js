@@ -335,6 +335,10 @@ function refreshCurrentPage(reason) {
     renderPayments();
   } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
     _renderDashboard();
+  } else if (currentPage === "stats" && typeof renderStats === "function") {
+    renderStats();
+  } else if (currentPage === "matches" && typeof renderMatchesPage === "function") {
+    renderMatchesPage();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
     // New / edited courts, brands or players show up in an open cost form too
     if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users)$/.test(reason)) {
@@ -367,7 +371,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v46"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v47"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

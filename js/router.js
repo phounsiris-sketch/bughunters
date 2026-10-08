@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats)$/;
+var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 function showPage(page, pushHistory) {
@@ -42,7 +42,7 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public" };
+  var navOf = { "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public", "matches": "sessions", "match-record": "sessions" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
@@ -95,6 +95,12 @@ function showPage(page, pushHistory) {
     loadPublic();
   } else if (page === "game-create" && typeof loadGameCreate === "function") {
     loadGameCreate();
+  } else if (page === "stats" && typeof loadStats === "function") {
+    loadStats();
+  } else if (page === "matches" && typeof loadMatchesPage === "function") {
+    loadMatchesPage();
+  } else if (page === "match-record" && typeof loadMatchRecord === "function") {
+    loadMatchRecord();
   }
 }
 

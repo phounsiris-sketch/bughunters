@@ -399,7 +399,7 @@ var newSes = null;
 /** "+ New session": opens the form page — nothing is saved until "Create session" */
 function createAdHocSession() {
   var court = DB_CACHE.courts[0];
-  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [] };
+  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [], mode: "competition", gameType: "md" };
   showPage("session-create");
   renderSessionCreateForm();
 }
@@ -436,6 +436,8 @@ function renderSessionCreateForm() {
   html += '<div class="form-group" style="flex:1;margin-bottom:0"><label class="form-label">' + t("duration") + ' (h)</label>';
   html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newSes.duration + '" onchange="newSes.duration=parseFloat(this.value)||2"></div>';
   html += '</div></div>';
+
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += playModeFieldsHtml(newSes, "newSes", "renderSessionCreateForm");
 
   // Players
   html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
@@ -482,6 +484,8 @@ function submitNewSession() {
     pricePerHour: courtPrice(court),
     status: "active",
     players: newSes.players.slice(),
+    mode: newSes.mode || "competition",
+    gameType: newSes.gameType || "md",
     calculated: false,
     createdBy: currentUser ? currentUser.uid : null
   }).then(function (ref) {
@@ -563,6 +567,14 @@ function _renderSessionHeader(s) {
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
   var court = s.courtId ? findCourt(s.courtId) : null;
   if (court && hasPin(court)) html += '<div style="margin-top:6px">' + courtMapLink(court, t("directions")) + '</div>';
+  // Matches of this session (record scores, match maker) — groups only
+  var sid = s.id || (currentSession && currentSession.id);
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && sid) {
+    var mode = s.mode || (currentSession && currentSession.mode) || "competition";
+    var n = typeof sessionMatches === "function" ? sessionMatches(sid).length : 0;
+    html += '<div class="session-match-bar"><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span>' +
+      '<button class="btn-secondary" onclick="showSessionMatches(\'' + sid + '\')">' + icon("ranking", 15) + ' ' + t("matches") + (n ? ' (' + n + ')' : '') + '</button></div>';
+  }
   html += '</div>';
   return html;
 }

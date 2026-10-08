@@ -221,6 +221,8 @@ function _renderPollCard(poll) {
   html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '') + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">' + icon('court', 14) + ' ' + escapeHtml(np.courtName || '') +
     (court && court.location ? ' — ' + escapeHtml(court.location) : '') + (court ? ' ' + courtMapLink(court) : '') + '</div>';
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) html += '<div class="game-tags"><span class="tag mode-' + poll.mode + '">' + t("mode_" + poll.mode) + '</span>' +
+    (poll.gameType ? '<span class="tag">' + t("gameType_" + poll.gameType) + '</span>' : '') + '</div>';
   if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
   html += '</div>';
 
@@ -464,6 +466,8 @@ function confirmPoll(pollId) {
         pricePerHour: courtPrice(court),
         status: 'active',
         players: players,
+        mode: pollData.mode || "competition",
+        gameType: pollData.gameType || "md",
         calculated: false,
         createdBy: pollData.createdBy || currentUser.uid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -502,7 +506,9 @@ function showCreatePoll() {
     duration: 2,
     courtId: first ? first.id : '',
     note: '',
-    answers: [t('answerJoin'), t('answerSkip')]
+    answers: [t('answerJoin'), t('answerSkip')],
+    mode: 'competition',
+    gameType: 'md'
   };
   showPage('poll-create');
   renderPollCreateForm();
@@ -540,6 +546,7 @@ function renderPollCreateForm() {
   html += '<div class="form-group" style="flex:1"><label class="form-label">' + t('duration') + ' (h)</label>';
   html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newPoll.duration + '" onchange="newPoll.duration=parseFloat(this.value)||2"></div>';
   html += '</div>';
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += '</div>' + playModeFieldsHtml(newPoll, "newPoll", "renderPollCreateForm") + '<div class="card">';
   html += '<div class="form-group" style="margin-bottom:0"><label class="form-label">' + t('pollNote') + '</label>';
   html += '<input class="form-input" value="' + escapeHtml(newPoll.note) + '" placeholder="' + t('pollNotePlaceholder') + '" oninput="newPoll.note=this.value"></div>';
   html += '</div>';
@@ -585,6 +592,8 @@ function submitPoll() {
     courtName: court ? court.name : '',
     answers: answers,
     responses: {},
+    mode: newPoll.mode || 'competition',
+    gameType: newPoll.gameType || 'md',
     minPlayers: minPlayersSetting(),
     closesAt: defaultCloseAt(newPoll.date, newPoll.time, Date.now()),   // voting deadline
     sessionId: null

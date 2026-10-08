@@ -67,7 +67,8 @@ function _renderDashboard() {
   if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb(null);
 
-  var html = '<div class="dashboard-tabs">';
+  var html = typeof homeLevelCardHtml === "function" ? homeLevelCardHtml() : '';
+  html += '<div class="dashboard-tabs">';
   var tabs = [["leaders", t("leaderboard")], ["activity", t("activity")], ["spending", t("spending")]];
   for (var ti = 0; ti < tabs.length; ti++) {
     html += '<button class="dash-tab' + (tabs[ti][0] === dashTab ? ' active' : '') + '" onclick="switchDashTab(\'' + tabs[ti][0] + '\')">' + tabs[ti][1] + '</button>';

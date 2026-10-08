@@ -25,6 +25,7 @@ function setSettingsTab(tab) {
 
 function loadSettings() {
   qrExtrasOpen = false; // opens by itself when someone has extra QR codes
+  if (typeof aboutForm !== "undefined") aboutForm = null; // fresh copy of my profile each visit
   // Data comes from the shared cache; it re-renders this page when it changes
   renderSettings();
 }
@@ -115,6 +116,9 @@ function _renderProfileTab() {
   html += '<input class="form-input" value="' + escapeHtml(email) + '" disabled></div>';
   html += '<button class="btn-primary" onclick="saveProfileSettings()">' + t("save") + '</button>';
   html += '</div>';
+
+  // About me (each field with who can see it) and my rackets / shoes
+  if (typeof aboutCardHtml === "function") html += aboutCardHtml() + gearCardHtml(currentUser.uid, true);
 
   // My payment QR codes — everyone manages their own
   qrOwner = currentUser ? currentUser.uid : null;

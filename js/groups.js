@@ -189,6 +189,7 @@ function switchGroup(gid) {
   _applyGroupMoney();
   if (typeof stopPolls === "function") stopPolls();
   if (typeof stopSessions === "function") stopSessions();
+  if (typeof stopMatches === "function") stopMatches();
   lastPolls = [];
   lastSessions = [];
   startGroupListeners();
@@ -196,6 +197,7 @@ function switchGroup(gid) {
   updateHeaderGroup();
   if (!currentGroupId) { showPage("groups"); return; }
   loadSessions();
+  loadMatches();
   showPage("dashboard");
 }
 
@@ -210,8 +212,10 @@ function updateHeaderGroup() {
   } else {
     el.textContent = t("headerTitle");
   }
-  var pub = document.getElementById("nav-public");
-  if (pub) pub.style.display = GROUPS_ON ? "" : "none";
+  ["nav-public", "nav-stats"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = GROUPS_ON ? "" : "none";
+  });
 }
 
 function showGroupSwitcher() {

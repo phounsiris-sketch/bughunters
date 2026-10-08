@@ -161,6 +161,43 @@ service cloud.firestore {
       allow delete: if canIn('editSession', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data)));
     }
 
+    // ── Matches (group only; stats & rankings never leave the group) ──
+    // Anyone in the group records a match; the other team confirms it
+    // (or it counts after 24 h); the recorder fixes it until it is confirmed.
+    function matchPlayers(d) { return d.teamA.concat(d.teamB); }
+    match /matches/{id} {
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.get('confirmed', false) == false;
+      allow update: if sameGroup() && isMember(gidOf(resource.data)) && (
+        // Confirm: someone on the other team (not the recorder's team)
+        (changed().hasOnly(['confirmed', 'confirmedBy', 'confirmedAt']) && request.resource.data.confirmed == true
+          && request.resource.data.confirmedBy == request.auth.uid
+          && matchPlayers(resource.data).hasAny([request.auth.uid])
+          && !(resource.data.teamA.hasAny([resource.data.createdBy]) && resource.data.teamA.hasAny([request.auth.uid]))
+          && !(resource.data.teamB.hasAny([resource.data.createdBy]) && resource.data.teamB.hasAny([request.auth.uid])))
+        // The recorder fixes it until it is confirmed
+        || (isCreator() && resource.data.get('confirmed', false) == false && request.resource.data.get('confirmed', false) == false
+            && request.resource.data.createdBy == resource.data.createdBy)
+        || isGroupAdmin(gidOf(resource.data))
+      );
+      allow delete: if (isCreator() && resource.data.get('confirmed', false) == false) || isGroupAdmin(gidOf(resource.data));
+    }
+
+    // ── Profile extras ───────────────────────────────────────
+    // Only you can read fields you keep to yourself (date of birth, …)
+    match /userPrivate/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+    // Rackets and shoes (photos in images/)
+    match /gear/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuth() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+    }
+
     // ── Courts: one shared directory (prices live on each group) ──
     match /courts/{courtId} {
       allow read: if isAuth();
