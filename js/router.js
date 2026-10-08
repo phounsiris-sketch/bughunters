@@ -14,6 +14,15 @@ var pageHistory = [];
 var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
+/** Header button with my picture (opens My profile) */
+function updateMeBtn() {
+  var b = document.getElementById("meBtn");
+  if (!b) return;
+  if (typeof currentUser === "undefined" || !currentUser) { b.style.display = "none"; return; }
+  b.style.display = "";
+  b.innerHTML = avatarHtml(currentUser.uid, 30);
+}
+
 function showPage(page, pushHistory) {
   if (typeof pushHistory === "undefined") pushHistory = true;
   if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && !currentGroupId && GROUP_PAGES.test(page)) page = "groups";
@@ -47,7 +56,11 @@ function showPage(page, pushHistory) {
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
   var gear = document.getElementById("gearBtn");
-  if (gear) gear.classList.toggle("on", /^(settings|profile|config|trash|group-settings|group-members)$/.test(page));
+  if (gear) gear.classList.toggle("on", /^(settings|config|trash|group-settings|group-members)$/.test(page));
+  // My profile: my own picture, right next to the bell
+  updateMeBtn();
+  var meBtn = document.getElementById("meBtn");
+  if (meBtn) meBtn.classList.toggle("on", page === "profile");
   // Public zone: its own header colour and a reminder that everyone can see it
   document.body.classList.toggle("zone-public", PUBLIC_PAGES.test(page));
 

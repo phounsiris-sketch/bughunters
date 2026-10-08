@@ -53,6 +53,8 @@ function loadUserProfile() {
   if (isSuperAdmin() && u.email) html += '<div class="profile-email" style="margin-top:6px">' + escapeHtml(u.email) + '</div>';
   html += '</div>';
 
+  // Their story photos (if they let me see them)
+  if (typeof storyCardHtml === "function" && !u.manual) html += storyCardHtml(uid, false);
   // About (only what they let me see) and their main gear
   if (typeof aboutViewHtml === "function") html += aboutViewHtml(u);
 

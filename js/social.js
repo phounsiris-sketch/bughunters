@@ -344,6 +344,7 @@ function loadMarket() {
   fsdb.collection("gear").where("forSale", "==", true).get().then(function (snap) {
     var list = [];
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
+    list.sort(function (a, b) { return (b.listedAt || 0) - (a.listedAt || 0); });
     _market = list;
     _gearBoard = list;
     if (currentPage === "public" && publicTab === "market") renderPublic();
@@ -370,6 +371,7 @@ function _renderMarket() {
       '<div class="market-facts">' + t("gearKind_" + (g.kind || "other")) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') + (g.saleCity ? ' · ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.saleCity)) : '') + '</div>' +
       (g.note ? '<div class="market-note">' + escapeHtml(g.note) + '</div>' : '') +
       '<div class="market-seller" onclick="showUserProfile(\'' + g.uid + '\',event)">' + avatarHtml(g.uid, 24) + '<span>' + escapeHtml(seller) + (g.uid === me ? ' (' + t("you") + ')' : '') + '</span></div>' +
+      (g.uid === me ? '<div class="game-actions"><button class="btn-primary" onclick="markGearSold(\'' + g.id + '\')">' + t("markSold") + '</button><button class="btn-secondary" onclick="removeFromSale(\'' + g.id + '\')">' + t("removeSale") + '</button></div>' : '') +
       (g.uid !== me ? '<div class="game-actions">' + (phone ? '<a class="btn-primary contact-btn" href="https://wa.me/' + escapeHtml(phone) + '?text=' + encodeURIComponent(t("marketAskText").replace("{item}", g.name)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
         '<button class="btn-secondary" onclick="showUserProfile(\'' + g.uid + '\',event)">' + t("viewSeller") + '</button></div>' : '') +
       '</div></div>';

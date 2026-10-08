@@ -106,6 +106,8 @@ function _renderProfileTab() {
     (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div>';
   html += '</div>';
 
+  // Story photos, right under the profile picture
+  if (typeof storyCardHtml === "function") html += storyCardHtml(currentUser.uid, true);
   // Personal info (each field with who can see it) and my gear
   if (typeof aboutCardHtml === "function") html += aboutCardHtml() + gearCardHtml(currentUser.uid, true);
 
@@ -201,14 +203,14 @@ function handleAvatarUpload(input) {
     input.value = "";
     if (err) { showToast(err.message); return; }
     dbUpdateUser(currentUser.uid, { avatarUrl: dataUrl })
-      .then(function () { currentUserProfile.avatarUrl = dataUrl; showToast(t("changePhoto") + " \u2714"); renderSettings(); })
+      .then(function () { currentUserProfile.avatarUrl = dataUrl; showToast(t("changePhoto") + " \u2714"); renderSettings(); if (typeof updateMeBtn === "function") setTimeout(updateMeBtn, 800); })
       .catch(function (error) { showToast(_permError(error)); });
   });
 }
 
 function removeAvatar() {
   dbUpdateUser(currentUser.uid, { avatarUrl: null })
-    .then(function () { currentUserProfile.avatarUrl = null; renderSettings(); })
+    .then(function () { currentUserProfile.avatarUrl = null; renderSettings(); if (typeof updateMeBtn === "function") setTimeout(updateMeBtn, 800); })
     .catch(function (error) { showToast(_permError(error)); });
 }
 
@@ -477,6 +479,7 @@ function showCourtModal(courtId, onSaved, opts) {
     mapReady = true;
     initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
   });
+  if (opts.openMap) more.open = true;
 }
 
 function deleteSettingsCourt(id) {

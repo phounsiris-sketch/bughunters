@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v51**.
+run it. App version at the time of writing: **v52**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -51,7 +51,7 @@ The app has two zones, kept visually apart so nobody confuses them:
 Stats and Public only show once groups are turned on (see section 15).
 
 **Header:** the group name with ▾ (tap it to switch group), the 🔔
-notifications button, and the ⚙ Settings button.
+notifications button, **your picture** (opens My profile) and the ⚙ Settings button.
 
 **Settings (⚙):** profile, appearance (dark/light, 5 colours each), language
 (English / Lao), group settings, members, courts, shuttlecocks, players,
@@ -127,6 +127,16 @@ and in matches. They can't get pushes.
 
 **Leaving a group:** Settings → Group → *Leave*. The owner can't leave their own
 group.
+
+**Deleting a group (owner only):** Settings → Group → *Danger zone* → **Delete
+group**, then type the group's name to confirm.
+
+- It deletes the group for everyone: its polls, sessions and bills, games and
+  stats, cock brands, manual players, every membership and the invite code.
+- The members keep their accounts and any other groups.
+- It can't be undone. Weekly backups (section 14) are the only way back.
+- It needs the **v52 security rules**: publish the current `firestore.rules`
+  in the Firebase console first.
 
 ---
 
@@ -211,8 +221,13 @@ and a map pin. **Prices are not shared.** Each group sets its own price per hour
   - tap **Use my location**;
   - paste a **Google Maps link**. Both `@lat,lng` and `?q=lat,lng` forms work, as
     do plain `lat, lng` numbers.
-- Once a court has a pin, sessions, polls and open games show a **Directions**
-  link that opens Google Maps. Public → Courts lists courts by distance from you.
+- Once a court has a pin, polls and open games show a **Directions** link, and the
+  session list shows a **Map** link. Public → Courts lists courts by distance from you.
+- Inside a session there are two buttons under the date:
+  - **Open location** opens Google Maps.
+  - **Share location** uses the phone's share sheet, or copies the link.
+- If the court has no pin yet, admins (and people with *editConfig*) see **Pin
+  the court location**. It opens the court with its map ready.
 
 The map uses Leaflet (bundled in `js/vendor/leaflet/`) with free OpenStreetMap
 tiles, so it needs no API key and costs nothing.
@@ -257,7 +272,7 @@ it last** and when (stored as `createdBy` / `updatedBy`, `updatedAt`).
 | Tab | Shows |
 |---|---|
 | **Ranking** | **Pair ranking first**, then the individual ranking. This month or all time |
-| **Head to head** | Your own summary, no picking needed: your total W–L, then your record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game you played, in any mode |
+| **Head to head** | One player's summary (you by default; pick anyone from the list): total W–L, then the record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game, in any mode |
 | **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line, W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |
 
 How the numbers are worked out:
@@ -296,7 +311,15 @@ How the numbers are worked out:
 
 ## 8. Profile, privacy and gear
 
-Settings → Profile.
+Tap **your picture** in the header (or Settings → Profile).
+
+### Story
+
+Up to **5 photos** under your profile picture: your game, your team, your court.
+
+- Tap **+** to add a photo and **×** to delete one.
+- Choose who sees them: *Everyone*, *My groups* (default) or *Only me*.
+- Others see them on your profile and tap a photo to open it big.
 
 ### Personal info
 
@@ -304,7 +327,7 @@ Everything about you is in **one card with one Save button**:
 
 - **Who I am:** display name, phone, email (read-only), gender, date of birth and
   relationship status.
-  - The date of birth uses three lists (**day / month / year**), so the year is
+  - The date of birth uses three lists (**day / month / year**, starting from this year), so the year is
     one tap away.
 - **How I play:** your level (6 buttons, see section 7), hand, position (front, back or both), home
   court, the days you're usually free, and the **time** you usually play (from–to).
@@ -327,7 +350,8 @@ Two fields are private by design:
 
 ### Gear
 
-Add **rackets, shoes and other gear** (bag, grip, shirt…).
+Add **rackets, shoes and bags & other gear** (grip, shirt…). They're listed in
+that order: rackets, then shoes, then bags & other.
 
 - Each item has a name, a photo, a brand and details: weight, string and tension
   for rackets; size for shoes.
@@ -343,7 +367,16 @@ Tick **For sale** to sell an item:
 
 Buyers on the Market see the photo, price, province and seller. They get a
 **WhatsApp** button if you show your phone to everyone; otherwise they can open
-your profile. Untick *For sale* once it's sold.
+your profile.
+
+- You can have **at most 3 items for sale** at a time. The gear card shows
+  "selling 2/3".
+- Each item for sale has **Mark sold** and **Remove from sale** buttons (in My gear,
+  and on your own Market cards).
+  - Mark sold takes it off the market and tags it *Sold*.
+  - Remove just takes it off sale.
+  - Either one frees a slot straight away.
+- The Market shows the newest listings first.
 
 ---
 

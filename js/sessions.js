@@ -296,7 +296,8 @@ function renderSessionsList(sessions) {
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
     var cocks = sessionCocks(s);
     html += '<div class="session-court">' + icon("pin", 12) + ' ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + fmtHours(s.duration) + ')' : '') +
-      (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') + '</div>';
+      (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') +
+      (function () { var c = s.courtId ? findCourt(s.courtId) : null; return c && hasPin(c) ? ' ' + courtMapLink(c, t("mapShort")) : ''; })() + '</div>';
     html += '<div class="avatar-stack">';
     players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
     if (players.length > 7) html += '<span class="avatar-more">+' + (players.length - 7) + '</span>';
@@ -557,6 +558,37 @@ function renderSessionDetail() {
   _fillQrSlots(container);
 }
 
+/* ---------- Where the session is: open / share the pinned court ---------- */
+function _sessionLocationHtml(court) {
+  if (!court) return "";
+  if (hasPin(court)) {
+    var url = mapsUrl(court.lat, court.lng);
+    return '<div class="loc-actions"><a class="btn-primary loc-btn" href="' + url + '" target="_blank" rel="noopener">' + icon("pin", 15) + ' ' + t("openLocation") + '</a>' +
+      '<button class="btn-secondary loc-btn" onclick="shareLocation(\'' + court.id + '\')">' + icon("link", 15) + ' ' + t("shareLocation") + '</button></div>';
+  }
+  if (typeof can === "function" && (can("editConfig") || (typeof isGroupAdminMe === "function" && isGroupAdminMe())))
+    return '<div class="loc-actions"><button class="btn-secondary loc-btn" onclick="pinSessionCourt(\'' + court.id + '\')">' + icon("pin", 15) + ' ' + t("pinCourtLocation") + '</button></div>';
+  return '<div class="form-hint" style="margin-top:6px">' + t("noPinYet") + '</div>';
+}
+
+function shareLocation(courtId) {
+  var c = findCourt(courtId);
+  if (!c || !hasPin(c)) return;
+  var url = mapsUrl(c.lat, c.lng), text = c.name + " \u2014 " + url;
+  if (navigator.share) { navigator.share({ title: c.name, text: c.name, url: url }).catch(function () {}); return; }
+  var done = function () { showToast(t("copied")); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { prompt(t("shareLocation"), text); });
+  else prompt(t("shareLocation"), text);
+}
+
+/** No pin yet: open the court with its map ready, then come back here */
+function pinSessionCourt(courtId) {
+  showCourtModal(courtId, function () {
+    if (sessionTab === "games" && typeof renderSessionGamesTab === "function") renderSessionGamesTab();
+    else if (sessionEditing && edit) renderEditForm(); else renderSessionDetail();
+  }, { openMap: true });
+}
+
 /* ---------- Session | Games tabs (groups only) ---------- */
 function _hasGamesTab() { return typeof GROUPS_ON !== "undefined" && GROUPS_ON && typeof sessionGamesTabHtml === "function"; }
 
@@ -599,7 +631,7 @@ function _renderSessionHeader(s) {
   html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
   var court = s.courtId ? findCourt(s.courtId) : null;
-  if (court && hasPin(court)) html += '<div style="margin-top:6px">' + courtMapLink(court, t("directions")) + '</div>';
+  html += _sessionLocationHtml(court);
   html += '</div>';
   return html;
 }

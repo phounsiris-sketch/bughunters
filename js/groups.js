@@ -529,6 +529,47 @@ window.addEventListener("hashchange", function () {
   if (currentUser && GROUPS_ON) joinFromHash();
 });
 
+/* ---------- Delete a group (owner only) ----------
+   Removes its polls, sessions, games, cock brands and manual players, then
+   every membership, then the group itself (with its invite code). */
+function deleteGroup() {
+  var g = currentGroup, gid = currentGroupId;
+  if (!g || !(isSuperAdmin() || g.ownerId === currentUser.uid)) return;
+  var typed = prompt(t("deleteGroupConfirm").replace("{name}", g.name));
+  if (typed === null) return;
+  if (typed.trim().toLowerCase() !== String(g.name || "").trim().toLowerCase()) { showToast(t("deleteGroupMismatch")); return; }
+  showToast(t("deletingGroup"));
+  var byGroup = function (col) { return fsdb.collection(col).where("groupId", "==", gid).get().then(function (s) { return s.docs.map(function (d) { return d.ref; }); }); };
+  Promise.all([byGroup("polls"), byGroup("sessions"), byGroup("matches"), byGroup("shuttlecocks"),
+    fsdb.collection("users").where("groupId", "==", gid).get().then(function (s) { return s.docs.filter(function (d) { return d.data().manual; }).map(function (d) { return d.ref; }); }),
+    fsdb.collection("members").where("gid", "==", gid).get()
+  ]).then(function (r) {
+    var data = r[0].concat(r[1], r[2], r[3], r[4]);
+    var members = r[5].docs.filter(function (d) { return d.data().role !== "owner"; }).map(function (d) { return d.ref; });
+    var ownerRefs = r[5].docs.filter(function (d) { return d.data().role === "owner"; }).map(function (d) { return d.ref; });
+    var chunks = function (refs) { var out = []; for (var i = 0; i < refs.length; i += 400) out.push(refs.slice(i, i + 400)); return out; };
+    var run = function (refs) {
+      return chunks(refs).reduce(function (p, part) {
+        return p.then(function () { var b = fsdb.batch(); part.forEach(function (ref) { b.delete(ref); }); return b.commit(); });
+      }, Promise.resolve());
+    };
+    // Data first (I'm still the owner), then the members, then the group
+    return run(data).then(function () { return run(members); }).then(function () {
+      var b = fsdb.batch();
+      b.delete(fsdb.collection("groupSecrets").doc(gid));
+      ownerRefs.forEach(function (ref) { b.delete(ref); });
+      b.delete(fsdb.collection("groups").doc(gid));
+      return b.commit();
+    });
+  }).then(function () {
+    delete myMemberships[gid];
+    delete myGroupsInfo[gid];
+    showToast(t("groupDeleted").replace("{name}", g.name) + " \u2714");
+    switchGroup(_activeGroupIds()[0] || null);
+    showPage("settings");
+  }).catch(function (e) { showToast(_permError(e)); });
+}
+
 function leaveGroup() {
   var m = myMember();
   if (!m || m.role === "owner") return;
@@ -554,7 +595,10 @@ function loadGroupSettings() {
     box.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>';
     return;
   }
-  box.innerHTML = '<div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>';
+  var owner = isSuperAdmin() || (currentGroup.ownerId === currentUser.uid);
+  box.innerHTML = '<div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>' +
+    (owner ? '<div class="settings-section danger-title">' + t("dangerZone") + '</div><div class="card danger-card"><div class="form-hint" style="margin-bottom:10px">' +
+      t("deleteGroupHint") + '</div><button class="btn-danger" onclick="deleteGroup()">' + icon("trash", 15) + ' ' + t("deleteGroup") + '</button></div>' : '');
   renderGroupForm("groupFormBox", groupEditForm, true);
   _renderInviteBox();
   fsdb.collection("groupSecrets").doc(currentGroupId).get().then(function (doc) {

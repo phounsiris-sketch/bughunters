@@ -180,8 +180,8 @@ function setStatsPeriod(p) { statsPeriod = p; renderStats(); }
 function renderStats() {
   var box = document.getElementById("statsContent");
   if (!box) return;
-  var tabs = '<div class="dash-tabs">' + [["ranking", "statsRanking"], ["h2h", "headToHead"], ["progress", "progress"]].map(function (x) {
-    return '<button class="dash-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
+  var tabs = '<div class="session-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"]].map(function (x) {
+    return '<button role="tab" class="session-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 15) + ' ' + t(x[1]) + '</button>';
   }).join('') + '</div>';
   var note = '<div class="private-note">' + icon("lock", 12) + ' ' + t("statsPrivate").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>';
   var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : _renderRanking();
@@ -289,10 +289,20 @@ function _h2hRows(groups, avatarsOf, nameOf) {
   }).join('');
 }
 
+var h2hUser = null;   // whose record the Head-to-head tab shows (me by default)
+
 function _renderH2H() {
-  var me = currentUser.uid;
+  var me = h2hUser || currentUser.uid;
+  // Pick a player: everyone who has played a game
+  var who = {};
+  lastMatches.forEach(function (m) { (m.teamA || []).concat(m.teamB || []).forEach(function (u) { who[u] = true; }); });
+  who[currentUser.uid] = true;
+  var uids = Object.keys(who).sort(function (a, b) { return a === currentUser.uid ? -1 : b === currentUser.uid ? 1 : getUserName(a).localeCompare(getUserName(b)); });
+  var picker = '<div class="card"><select class="form-select" id="h2hUser" onchange="h2hUser=this.value;renderStats()">' + uids.map(function (u) {
+    return '<option value="' + u + '"' + (u === me ? ' selected' : '') + '>' + escapeHtml(plainUserName(findUser(u))) + (u === currentUser.uid ? ' (' + t("you") + ')' : '') + '</option>';
+  }).join('') + '</select></div>';
   var games = _myGames(me);
-  if (!games.length) return '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("noMatchesYet") + '</div></div>';
+  if (!games.length) return picker + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("noMatchesYet") + '</div></div>';
   var vsPairs = {}, withPartner = {}, vsSingles = {}, tot = { n: 0, w: 0, pts: 0 };
   var add = function (map, k, x) { var g = map[k] || (map[k] = { n: 0, w: 0, pts: 0 }); g.n++; if (x.won) g.w++; g.pts += x.pts; };
   games.forEach(function (x) {
@@ -305,10 +315,10 @@ function _renderH2H() {
   var pairAv = function (k) { return k.split("+").map(function (u) { return avatarHtml(u, 26); }).join(''); };
   var oneAv = function (u) { return avatarHtml(u, 30); };
   var oneName = function (u) { return escapeHtml(getUserName(u)); };
-  var html = '<div class="card h2h-total"><div class="h2h-score">' + tot.w + ' \u2013 ' + (tot.n - tot.w) + '</div>' +
-    '<div class="h2h-facts">' + t("h2hMine").replace("{n}", tot.n) + ' \u00B7 ' + (tot.pts >= 0 ? '+' : '') + tot.pts + ' ' + t("ptsShort") + '</div></div>';
+  var html = picker + '<div class="card h2h-total"><div class="h2h-total-who">' + avatarHtml(me, 30) + '<b>' + escapeHtml(getUserName(me)) + '</b></div><div class="h2h-score">' + tot.w + ' \u2013 ' + (tot.n - tot.w) + '</div>' +
+    '<div class="h2h-facts">' + t(me === currentUser.uid ? "h2hMine" : "h2hTheirs").replace("{n}", tot.n) + ' \u00B7 ' + (tot.pts >= 0 ? '+' : '') + tot.pts + ' ' + t("ptsShort") + '</div></div>';
   html += '<div class="settings-section">' + t("h2hVsPairs") + '</div><div class="card rank-list">' + _h2hRows(vsPairs, pairAv, pairName) + '</div>';
-  html += '<div class="settings-section">' + t("h2hWithPartner") + '</div><div class="card rank-list">' + _h2hRows(withPartner, oneAv, oneName) + '</div>';
+  html += '<div class="settings-section">' + t(me === currentUser.uid ? "h2hWithPartner" : "h2hWithPartners") + '</div><div class="card rank-list">' + _h2hRows(withPartner, oneAv, oneName) + '</div>';
   html += '<div class="settings-section">' + t("h2hVsSingles") + '</div><div class="card rank-list">' + _h2hRows(vsSingles, oneAv, oneName) + '</div>';
   return html;
 }
@@ -672,11 +682,17 @@ function badgesHtml(uid, showLocked) {
   if (!GROUPS_ON) return "";
   var list = badgesFor(uid).filter(function (b) { return showLocked || b.earned; });
   if (!list.length) return "";
-  var html = '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("badges") +
-    (uid === currentUser.uid ? '<button class="link-btn recap-btn" onclick="makeRecap()">' + t("monthlyRecap") + '</button>' : '') + '</div><div class="badge-grid">';
+  var got = list.filter(function (b) { return b.earned; }).length;
+  var html = '<div class="card badges-card"><div class="badges-head"><div class="card-title" style="margin:0">' + icon("medal", 14) + ' ' + t("badges") +
+    ' <span class="badges-count">' + got + '/' + list.length + '</span></div>' +
+    (uid === currentUser.uid ? '<button class="btn-secondary recap-btn" onclick="makeRecap()">' + icon("camera", 14) + ' ' + t("monthlyRecap") + '</button>' : '') + '</div><div class="badge-grid">';
   list.forEach(function (b) {
-    html += '<div class="badge-item' + (b.earned ? ' earned' : '') + '" title="' + t("badgeDesc_" + b.key) + '">' + icon(b.icon, 20) +
-      '<span>' + t("badge_" + b.key) + '</span>' + (!b.earned && b.need > 1 ? '<small>' + b.value + '/' + b.need + '</small>' : '') + '</div>';
+    var pct = b.earned ? 100 : Math.min(100, Math.round((b.value || 0) / b.need * 100));
+    html += '<div class="badge-item' + (b.earned ? ' earned' : '') + '" title="' + escapeHtml(t("badgeDesc_" + b.key)) + '">' +
+      '<span class="badge-icon">' + icon(b.icon, 20) + '</span>' +
+      '<span class="badge-name">' + t("badge_" + b.key) + '</span>' +
+      '<span class="badge-bar"><i style="width:' + pct + '%"></i></span>' +
+      '<small class="badge-val">' + (b.earned ? '\u2714' : (b.need > 1 ? b.value + '/' + b.need : '\u2013')) + '</small></div>';
   });
   return html + '</div></div>';
 }

@@ -133,7 +133,7 @@ function _mapSet(id, lat, lng, pan) {
     } else {
       p.marker.setLatLng([p.lat, p.lng]);
     }
-    if (pan) p.map.setView([p.lat, p.lng], Math.max(p.map.getZoom(), 16));
+    if (pan) p.map.setView([p.lat, p.lng], Math.max(p.map.getZoom(), 16), { animate: false });
   }
   _mapStatus(id);
 }
@@ -184,6 +184,8 @@ function mapPickerActive(id) { return !!_pickers[id]; }
 
 function closeMapPicker(id) {
   var p = _pickers[id];
-  if (p && p.map) { try { p.map.remove(); } catch (e) {} }
+  // Stop any running zoom/pan first: removing a map mid-animation makes
+  // Leaflet throw from its animation callback
+  if (p && p.map) { try { p.map.stop(); p.map.off(); p.map.remove(); } catch (e) {} }
   delete _pickers[id];
 }
