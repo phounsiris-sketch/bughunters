@@ -68,6 +68,7 @@ function _renderDashboard() {
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb(null);
 
   var html = typeof homeLevelCardHtml === "function" ? homeLevelCardHtml() : '';
+  if (typeof gearBoardCardHtml === "function") html += gearBoardCardHtml();
   html += '<div class="dashboard-tabs">';
   var tabs = [["leaders", t("leaderboard")], ["activity", t("activity")], ["spending", t("spending")]];
   for (var ti = 0; ti < tabs.length; ti++) {

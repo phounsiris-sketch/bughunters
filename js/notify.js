@@ -115,6 +115,14 @@ function computeNotifications() {
     }
   });
 
+  // Play-buddy invites for me
+  if (typeof _invIn !== "undefined") _invIn.forEach(function (i) {
+    if (i.status !== "pending" || (typeof isBlockedPair === "function" && isBlockedPair(i.from))) return;
+    events.push({ id: "inv_" + i.id, cat: "notif", type: "invite", time: i.createdAt || now, icon: "users",
+      text: t("nInvite").replace("{name}", getUserName(i.from)).replace("{date}", fmtDate(i.date)),
+      action: "publicTab='buddies';showPage('public')" });
+  });
+
   // Join requests waiting for me (group admins)
   if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && currentGroup && isGroupAdminMe()) {
     groupMembers.forEach(function (m) {

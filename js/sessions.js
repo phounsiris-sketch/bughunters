@@ -541,11 +541,11 @@ function renderSessionDetail() {
 
   if (!s.calculated && !sessionEditing) {
     if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
-    container.innerHTML = _renderSessionHeader(s) + _renderWaitingForBill(s);
+    container.innerHTML = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s);
     return;
   }
 
-  var html = _renderSessionHeader(s);
+  var html = _renderSessionHeader(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "");
   html += _renderSplitResult(s);
   container.innerHTML = html;
   _fillQrSlots(container);
@@ -981,10 +981,10 @@ function renderEditForm() {
   }
 
   container.innerHTML = _renderSessionHeader({
-    date: edit.date, time: edit.time, duration: edit.duration,
+    date: edit.date, time: edit.time, duration: edit.duration, courtId: edit.courtId,
     courtName: (dbFindById(courts, edit.courtId) || {}).name || (currentSession && currentSession.courtName),
     courtLocation: (dbFindById(courts, edit.courtId) || {}).location
-  }) + html;
+  }) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + html;
   _updateEditTotals();
 }
 
@@ -1105,7 +1105,10 @@ function editToggleDiner(uid) {
 }
 
 function editAddDinner() {
-  edit.dinner = { totalBill: 0, paidBy: "", diners: edit.players.slice(), receiptUrl: null };
+  // Who said yes to "Dinner after?" (else everyone who played)
+  var poll = (currentSession && currentSession.dinnerPoll) || {};
+  var yes = Object.keys(poll).filter(function (u) { return poll[u] === true; });
+  edit.dinner = { totalBill: 0, paidBy: "", diners: yes.length ? yes : edit.players.slice(), receiptUrl: null };
   renderEditForm();
 }
 

@@ -152,6 +152,9 @@ service cloud.firestore {
         isCreator()
         // Marking a payment as paid is open to every member
         || changed().hasOnly(['settled', 'settledAt', 'status'])
+        // "Dinner after?" — each player answers for themselves
+        || (changed().hasOnly(['dinnerPoll']) && request.auth.uid in resource.data.get('players', [])
+            && request.resource.data.dinnerPoll.diff(resource.data.get('dinnerPoll', {})).affectedKeys().hasOnly([request.auth.uid]))
         || (
           (canIn('editSession', gidOf(resource.data)) || !changed().hasAny(sessionDetailKeys())) &&
           (canIn('editBill', gidOf(resource.data)) || !changed().hasAny(billKeys())) &&
@@ -247,6 +250,32 @@ service cloud.firestore {
             && request.resource.data.get('log', {}).diff(resource.data.get('log', {})).affectedKeys().hasOnly([request.auth.uid]))
       );
       allow delete: if isSuper() || (isAuth() && resource.data.hostId == request.auth.uid);
+    }
+
+    // ── Play buddies (opt-in): invites between two people ─────
+    // Only to someone who switched "open to play with new people" on.
+    // Each side reads it; the receiver accepts / ignores; the sender can
+    // withdraw it. Contact details show in the app only after Accept.
+    match /invites/{id} {
+      allow read: if isAuth() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow create: if isAuth() && request.resource.data.from == request.auth.uid
+        && request.resource.data.to != request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.get('message', '').size() <= 120
+        && get(userPath(request.resource.data.to)).data.get('buddy', {}).get('on', false) == true
+        && !(request.auth.uid in get(userPath(request.resource.data.to)).data.get('blocked', []));
+      allow update: if isAuth() && resource.data.to == request.auth.uid
+        && changed().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'ignored'];
+      allow delete: if isAuth() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    // Reports: the app owner (public zone) or the group's admins read them
+    match /reports/{id} {
+      allow create: if isAuth() && request.resource.data.from == request.auth.uid
+        && request.resource.data.get('details', '').size() <= 300;
+      allow read, delete: if isSuper()
+        || (resource.data.get('groupId', '') != '' && isGroupAdmin(resource.data.groupId));
     }
 
     // This user's push tokens (devices). The sender uses the Admin SDK.

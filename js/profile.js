@@ -143,7 +143,7 @@ function gearCardHtml(uid, editable) {
       '<span class="gear-text"><b>' + escapeHtml(g.name) + (g.main ? ' <span class="tag">' + t("mainItem") + '</span>' : '') + '</b>' +
       '<small>' + t("gearKind_" + g.kind) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') +
       (g.weight ? ' · ' + escapeHtml(g.weight) : '') + (g.string ? ' · ' + escapeHtml(g.string) + (g.tension ? ' ' + g.tension + ' lbs' : '') : '') +
-      (g.shoeSize ? ' · EU ' + g.shoeSize : '') + '</small></span></div>';
+      (g.shoeSize ? ' · EU ' + g.shoeSize : '') + (g.forSale ? ' · ' + t("forSale") + (g.salePrice ? ' ' + fmtLAK(g.salePrice) : '') : '') + '</small></span></div>';
   });
   if (editable && list.length < 10) html += '<button class="add-btn-dashed" onclick="showGearModal(null)">+ ' + t("addGear") + '</button>';
   return html + '</div>';
@@ -175,6 +175,8 @@ function showGearModal(id) {
           '<div class="form-group"><label class="form-label">' + t("stringName") + '</label><input class="form-input" id="gString" placeholder="BG80" value="' + escapeHtml(f.string || "") + '"></div>'
         : '<div class="form-group"><label class="form-label">' + t("shoeSize") + ' (EU)</label><input type="number" class="form-input" id="gShoe" min="34" max="48" value="' + escapeHtml(String(f.shoeSize || "")) + '"></div>') +
         '<div class="form-group"><label class="form-label">' + t("note") + '</label><input class="form-input" id="gNote" maxlength="100" value="' + escapeHtml(f.note || "") + '"></div>' +
+        '<label class="perm-row"><input type="checkbox" id="gSale"' + (f.forSale ? ' checked' : '') + '><div><b>' + t("forSale") + '</b><div class="form-hint">' + t("forSaleHint") + '</div></div></label>' +
+        '<div class="form-group"><label class="form-label">' + t("salePrice") + ' (' + curSymbol() + ')</label>' + moneyInput("gSalePrice", f.salePrice || 0, "") + '</div>' +
       '</details>' +
       (g ? '<button class="btn-danger" onclick="deleteGear(\'' + g.id + '\')">' + t("delete") + '</button>' : '');
     document.querySelectorAll("#modalBody [data-kind]").forEach(function (b) {
@@ -191,7 +193,8 @@ function showGearModal(id) {
   modalCallback = function () {
     var val = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
     var data = { uid: currentUser.uid, kind: f.kind, name: val("gName"), main: document.getElementById("gMain").checked,
-      brand: val("gBrand") || null, note: val("gNote") || null, weight: null, string: null, tension: null, shoeSize: null };
+      brand: val("gBrand") || null, note: val("gNote") || null, weight: null, string: null, tension: null, shoeSize: null,
+      forSale: document.getElementById("gSale").checked, salePrice: parseMoney(val("gSalePrice")) || null };
     if (f.kind === "racket") { data.weight = val("gWeight") || null; data.string = val("gString") || null; data.tension = parseInt(val("gTension"), 10) || null; }
     else data.shoeSize = parseInt(val("gShoe"), 10) || null;
     if (!data.name) { showToast(t("name")); return; }
@@ -243,6 +246,7 @@ function aboutViewHtml(u) {
   var hc = a.homeCourtId ? findCourt(a.homeCourtId) : null;
   push("homeCourtId", t("homeCourt"), hc ? escapeHtml(hc.name) : "");
   push("daysFree", t("daysFree"), (a.daysFree || []).map(function (d) { return weekdayShort(d); }).join(", "));
-  if (!facts.length) return "";
-  return '<div class="card"><div class="about-facts">' + facts.join('') + '</div></div>';
+  var badges = GROUPS_ON && dbFindById(DB_CACHE.users, u.id) && typeof badgesHtml === "function" ? badgesHtml(u.id, false) : "";
+  if (!facts.length) return badges;
+  return '<div class="card"><div class="about-facts">' + facts.join('') + '</div></div>' + badges;
 }

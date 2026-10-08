@@ -130,6 +130,7 @@ function computeStats() {
         p.games += sc.games;
         p.ptsDiff += ptsForTeam;
         if (won) { p.wins++; p.streak = p.streak >= 0 ? p.streak + 1 : 1; } else { p.losses++; p.streak = p.streak <= 0 ? p.streak - 1 : -1; }
+        p.maxStreak = Math.max(p.maxStreak || 0, p.streak);
         if (inMonth) { if (won) p.monthWins++; else p.monthLosses++; }
         var bm = p.byMonth[mk];
         if (won) bm.wins++; else bm.losses++;
@@ -245,7 +246,7 @@ function _bestPartner(p) {
 function _renderRanking() {
   var st = computeStats();
   var month = statsPeriod === "month";
-  var html = _myStatsCard();
+  var html = _myStatsCard() + badgesHtml(currentUser.uid, true);
   html += '<div class="period-toggle">' + [["month", "thisMonth"], ["all", "allTime"]].map(function (x) {
     return '<button class="period-btn' + (statsPeriod === x[0] ? ' active' : '') + '" onclick="setStatsPeriod(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
   }).join('') + '</div>';
@@ -436,6 +437,7 @@ function renderMatchesPage() {
     '<span class="tag">' + t("gameType_" + (s.gameType || "md")) + '</span><span class="tag">' + (s.players || []).length + ' ' + t("players") + '</span></div>' +
     '<div class="form-hint">' + t("modeHint_" + mode) + '</div></div>';
   html += _renderMatchMaker(s, list);
+  if (typeof tournamentHtml === "function") html += tournamentHtml(s, list);
   html += '<div class="settings-section">' + t("matches") + ' (' + list.length + ')</div>';
   if (!list.length) html += '<div class="empty-state" style="padding:14px">' + t("noMatchesYet") + '</div>';
   list.slice().reverse().forEach(function (m) { html += matchRowHtml(m); });
@@ -698,4 +700,101 @@ function homeLevelCardHtml() {
   if (!GROUPS_ON || !currentGroupId) return "";
   loadMatches();
   return '<div class="home-level">' + _myStatsCard().replace('onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')"', 'onclick="statsTab=\'ranking\';showPage(\'stats\')"') + '</div>';
+}
+
+/* ---------- Badges ---------- */
+var BADGES = [
+  { key: "first", icon: "shuttle", need: 1, val: function (p) { return p.played; } },
+  { key: "m50", icon: "medal", need: 50, val: function (p) { return p.played; } },
+  { key: "m100", icon: "crown", need: 100, val: function (p) { return p.played; } },
+  { key: "streak5", icon: "chart", need: 5, val: function (p) { return p.maxStreak || 0; } },
+  { key: "streak10", icon: "ranking", need: 10, val: function (p) { return p.maxStreak || 0; } },
+  { key: "courts5", icon: "court", need: 5, val: function (p) { return _courtsPlayed(p.uid); } },
+  { key: "min1000", icon: "clock", need: 1000, val: function (p) { return p.minutes; } },
+  { key: "pairMonth", icon: "users", need: 1, val: function (p) { return _isPairOfMonth(p.uid) ? 1 : 0; } }
+];
+
+function _courtsPlayed(uid) {
+  var seen = {};
+  (lastSessions || []).forEach(function (s) { if ((s.players || []).indexOf(uid) >= 0 && s.courtId) seen[s.courtId] = true; });
+  return Object.keys(seen).length;
+}
+
+/** Best pair this month (at least 3 Competition matches together this month) */
+function _isPairOfMonth(uid) {
+  var st = computeStats(), best = null;
+  Object.keys(st.pairs).forEach(function (k) {
+    var p = st.pairs[k];
+    if (p.monthWins + p.monthLosses < 3) return;
+    if (!best || p.rating > best.rating) best = p;
+  });
+  return !!(best && best.key.split("+").indexOf(uid) >= 0);
+}
+
+function badgesFor(uid) {
+  var p = computeStats().players[uid] || { uid: uid, played: 0, minutes: 0, maxStreak: 0 };
+  return BADGES.map(function (b) { var v = b.val(p); return { key: b.key, icon: b.icon, earned: v >= b.need, value: Math.min(v, b.need), need: b.need }; });
+}
+
+function badgesHtml(uid, showLocked) {
+  if (!GROUPS_ON) return "";
+  var list = badgesFor(uid).filter(function (b) { return showLocked || b.earned; });
+  if (!list.length) return "";
+  var html = '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("badges") +
+    (uid === currentUser.uid ? '<button class="link-btn recap-btn" onclick="makeRecap()">' + t("monthlyRecap") + '</button>' : '') + '</div><div class="badge-grid">';
+  list.forEach(function (b) {
+    html += '<div class="badge-item' + (b.earned ? ' earned' : '') + '" title="' + t("badgeDesc_" + b.key) + '">' + icon(b.icon, 20) +
+      '<span>' + t("badge_" + b.key) + '</span>' + (!b.earned && b.need > 1 ? '<small>' + b.value + '/' + b.need + '</small>' : '') + '</div>';
+  });
+  return html + '</div></div>';
+}
+
+/* ---------- Monthly recap card (an image to share) ---------- */
+function makeRecap() {
+  var me = currentUser.uid, st = computeStats(), p = st.players[me];
+  var now = new Date(), mk = _todayIso().slice(0, 7);
+  var bm = p && p.byMonth[mk] ? p.byMonth[mk] : { played: 0, wins: 0, losses: 0, minutes: 0 };
+  var wr = bm.wins + bm.losses ? Math.round(bm.wins / (bm.wins + bm.losses) * 100) + "%" : "\u2013";
+  var change = p && p.monthStart !== null ? Math.round(p.rating - p.monthStart) : 0;
+  var best = p ? _bestPartner(p) : null;
+  var earned = badgesFor(me).filter(function (b) { return b.earned; }).length;
+  var c = document.createElement("canvas");
+  c.width = 1080; c.height = 1350;
+  var g = c.getContext("2d");
+  var grad = g.createLinearGradient(0, 0, 1080, 1350);
+  grad.addColorStop(0, "#0d9488"); grad.addColorStop(1, "#1d4ed8");
+  g.fillStyle = grad; g.fillRect(0, 0, 1080, 1350);
+  g.fillStyle = "rgba(255,255,255,0.10)"; g.beginPath(); g.arc(900, 200, 300, 0, Math.PI * 2); g.fill();
+  var font = function (w, px) { g.font = w + " " + px + "px Montserrat, 'Noto Sans Lao', sans-serif"; };
+  g.fillStyle = "#fff"; g.textAlign = "left";
+  font("700", 44); g.fillText("\uD83C\uDFF8 Godsmash \u00B7 " + (currentGroup ? currentGroup.name : ""), 80, 130);
+  font("600", 40); g.globalAlpha = 0.85; g.fillText(monthYear(now.getFullYear(), now.getMonth()), 80, 200); g.globalAlpha = 1;
+  font("800", 96); g.fillText(plainUserName(findUser(me)), 80, 340);
+  var tiles = [[String(bm.played), t("matchesWord")], [wr, t("winRate")], [String(bm.minutes), t("minShort")], [(change > 0 ? "+" : "") + change, t("ratingWord")]];
+  tiles.forEach(function (x, i) {
+    var col = i % 2, row = Math.floor(i / 2), x0 = 80 + col * 470, y0 = 430 + row * 290;
+    g.fillStyle = "rgba(255,255,255,0.14)"; _roundRect(g, x0, y0, 440, 250, 36); g.fill();
+    g.fillStyle = "#fff"; font("800", 110); g.fillText(x[0], x0 + 40, y0 + 145);
+    font("600", 40); g.globalAlpha = 0.85; g.fillText(x[1], x0 + 40, y0 + 210); g.globalAlpha = 1;
+  });
+  font("600", 44);
+  if (best) g.fillText(t("bestPartner") + ": " + plainUserName(findUser(best)), 80, 1080);
+  g.fillText(t("badges") + ": " + earned, 80, 1150);
+  font("600", 34); g.globalAlpha = 0.75; g.fillText(t("level") + " " + playerLevel(me), 80, 1260); g.globalAlpha = 1;
+  c.toBlob(function (blob) {
+    var file = typeof File !== "undefined" ? new File([blob], "godsmash-" + mk + ".png", { type: "image/png" }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: "Godsmash " + mk }).catch(function () {});
+    } else {
+      var url = URL.createObjectURL(blob);
+      openImage(url);
+      var a = document.createElement("a"); a.href = url; a.download = "godsmash-" + mk + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }, "image/png");
+}
+
+function _roundRect(g, x, y, w, h, r) {
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
 }

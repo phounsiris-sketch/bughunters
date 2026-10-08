@@ -119,6 +119,7 @@ function openFromHash() {
   else if (h === "#polls") showPage("polls");
   else if (h === "#payments") showPage("payments");
   else if (h === "#public") showPage("public");
+  else if (h === "#buddies") { publicTab = "buddies"; showPage("public"); }
   else if (h === "#settings") showPage(GROUPS_ON && currentGroupId ? "group-members" : "settings");
 }
 window.addEventListener("hashchange", openFromHash);

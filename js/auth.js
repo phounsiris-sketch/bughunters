@@ -208,7 +208,8 @@ function _enterApp() {
     showAppPage();   // navigates to the dashboard
     updateHeaderGroup();
     if (GROUPS_ON && !currentGroupId) showPage("groups");
-    else { loadSessions(); if (GROUPS_ON) loadMatches(); }  // sessions feed badges, notifications and My payments
+    else { loadSessions(); if (GROUPS_ON) loadMatches(); }
+    if (GROUPS_ON) startInviteListeners();  // sessions feed badges, notifications and My payments
     if (GROUPS_ON && joinFromHash()) return; // invite link
     if (typeof openFromHash === "function") setTimeout(openFromHash, 400); // link from a push
   });
@@ -237,6 +238,7 @@ function logoutUser() {
   if (typeof stopPolls === "function") stopPolls();
   if (typeof stopSessions === "function") stopSessions();
   if (typeof stopMatches === "function") stopMatches();
+  if (typeof stopInviteListeners === "function") stopInviteListeners();
   if (typeof dbStopCache === "function") dbStopCache();
   currentUser = null;
   currentUserProfile = null;

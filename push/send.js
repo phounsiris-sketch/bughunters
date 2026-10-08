@@ -28,7 +28,7 @@ function initAdmin() {
 async function loadData(db, now) {
   const since = admin.firestore.Timestamp.fromMillis(now - POLL_DAYS * 86400e3);
   const fromDay = new Date(now - SESSION_DAYS * 86400e3 + TZ_OFFSET_H * 3600e3).toISOString().slice(0, 10);
-  const [usersSnap, openSnap, recentSnap, sessionsSnap, tokensSnap, membersSnap, groupsSnap, gamesSnap] = await Promise.all([
+  const [usersSnap, openSnap, recentSnap, sessionsSnap, tokensSnap, membersSnap, groupsSnap, gamesSnap, invitesSnap] = await Promise.all([
     db.collection("users").get(),
     db.collection("polls").where("status", "in", ["draft", "open"]).get(),
     db.collection("polls").where("createdAt", ">=", since).get(),
@@ -36,12 +36,14 @@ async function loadData(db, now) {
     db.collection("pushTokens").get(),
     db.collection("members").get(),
     db.collection("groups").get(),
-    db.collection("openGames").where("createdAt", ">=", now - POLL_DAYS * 86400e3).get()
+    db.collection("openGames").where("createdAt", ">=", now - POLL_DAYS * 86400e3).get(),
+    db.collection("invites").where("createdAt", ">=", now - POLL_DAYS * 86400e3).get()
   ]);
   // members === null before the move to groups (everyone gets poll news, as before)
   const members = membersSnap.empty ? null : membersSnap.docs.map((d) => d.data());
   const groups = {}; groupsSnap.forEach((d) => (groups[d.id] = d.data()));
   const openGames = gamesSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+  const invites = invitesSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
   const users = {}; usersSnap.forEach((d) => (users[d.id] = d.data()));
   const byId = {};
   [openSnap, recentSnap].forEach((snap) => snap.forEach((d) => (byId[d.id] = Object.assign({ id: d.id }, d.data()))));
@@ -49,8 +51,8 @@ async function loadData(db, now) {
   const sessions = sessionsSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
   const tokens = {}, langs = {};
   tokensSnap.forEach((d) => { tokens[d.id] = Object.keys(d.data().tokens || {}); langs[d.id] = d.data().lang; });
-  const reads = usersSnap.size + openSnap.size + recentSnap.size + sessionsSnap.size + tokensSnap.size + membersSnap.size + groupsSnap.size + gamesSnap.size;
-  return { users, polls, sessions, tokens, langs, reads, members, groups, openGames };
+  const reads = usersSnap.size + openSnap.size + recentSnap.size + sessionsSnap.size + tokensSnap.size + membersSnap.size + groupsSnap.size + gamesSnap.size + invitesSnap.size;
+  return { users, polls, sessions, tokens, langs, reads, members, groups, openGames, invites };
 }
 
 async function main() {
@@ -72,7 +74,7 @@ async function main() {
     return;
   }
 
-  const { users, polls, sessions, tokens, langs, reads, members, groups, openGames } = await loadData(db, now);
+  const { users, polls, sessions, tokens, langs, reads, members, groups, openGames, invites } = await loadData(db, now);
 
   // Daily payment reminder: first run after 9:00 Bangkok time, once a day
   const local = new Date(now + TZ_OFFSET_H * 3600e3);
@@ -88,7 +90,7 @@ async function main() {
   const voteSent = {};
   Object.entries(state.voteSent || {}).forEach(([id, m]) => { if (openPolls.has(id)) voteSent[id] = m; });
 
-  const all = collectMessages({ users, polls, sessions, langs, members, groups, openGames }, state.lastRun, now, { remind, appUrl: APP_URL, startSent, voteSent });
+  const all = collectMessages({ users, polls, sessions, langs, members, groups, openGames, invites }, state.lastRun, now, { remind, appUrl: APP_URL, startSent, voteSent });
   all.forEach((m) => {
     if (m.startOf) startSent[m.startOf] = now;
     if (m.voteAnnounce) { const v = m.voteAnnounce; (voteSent[v.pollId] = voteSent[v.pollId] || {})[v.voter] = v.a; }

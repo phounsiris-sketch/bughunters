@@ -39,7 +39,11 @@ function loadUserProfile() {
   var showUp = joinVotes ? Math.round(Math.min(played, joinVotes) / joinVotes * 100) + "%" : "—";
 
   var html = '<div class="card profile-head">';
+  if (typeof showPersonMenu === "function" && GROUPS_ON && !u.manual) {
+    html += '<button class="person-menu-btn" aria-label="' + t("moreActions") + '" onclick="showPersonMenu(\'' + uid + '\')">\u2026</button>';
+  }
   html += '<div class="avatar-edit">' + avatarZoomHtml(uid, 84) + '</div>';
+  if (typeof myBlocked === "function" && myBlocked().indexOf(uid) >= 0) html += '<div class="perm-note" style="margin-top:8px">' + icon("lock", 12) + ' ' + t("youBlocked") + '</div>';
   html += '<div class="profile-name">' + escapeHtml(plainUserName(u)) + '</div>';
   html += '<div style="margin-top:8px">' + (u.manual ? '<span class="perm-badge">' + icon("manual", 12) + ' ' + t("manualPlayer") + '</span>' : _permBadges(userPerms(u))) + '</div>';
   if (u.phone && (typeof canSeeField !== "function" || canSeeField(u, "phone"))) {

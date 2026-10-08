@@ -44,7 +44,7 @@ function loadPublic() {
   setBreadcrumb(null);
   var tabs = document.getElementById("publicTabs");
   if (tabs) {
-    tabs.innerHTML = [["games", "openGames"], ["groups", "publicGroups"], ["courts", "courtDirectory"]].map(function (x) {
+    tabs.innerHTML = [["games", "openGames"], ["buddies", "playBuddies"], ["groups", "publicGroups"], ["courts", "courtDirectory"]].map(function (x) {
       return '<button class="dash-tab' + (publicTab === x[0] ? ' active' : '') + '" onclick="setPublicTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
     }).join('');
   }
@@ -64,6 +64,7 @@ function loadPublic() {
       if (currentPage === "public") renderPublic();
     }).catch(function (e) { _publicGroups = []; showToast(_permError(e)); });
   }
+  if (publicTab === "buddies" && typeof loadBuddies === "function") loadBuddies();
   _locateMe();
   renderPublic();
 }
@@ -84,7 +85,8 @@ function _cityFilterHtml() {
 function renderPublic() {
   var box = document.getElementById("publicContent");
   if (!box) return;
-  if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();
+  if (publicTab === "buddies") box.innerHTML = _cityFilterHtml() + _renderBuddies();
+  else if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();
   else if (publicTab === "courts") box.innerHTML = _renderDirectory();
   else box.innerHTML = _cityFilterHtml() + _renderGames();
 }
@@ -101,6 +103,7 @@ function _visibleGames() {
   var city = publicCity(), now = Date.now();
   return _publicGames.filter(function (g) {
     var end = gameStartMs(g) + (g.duration || 2) * 3600e3;
+    if (typeof isBlockedPair === "function" && isBlockedPair(g.hostId)) return false;
     return end > now && (city === "all" || g.city === city || (g.players || []).indexOf(currentUser.uid) >= 0 || g.hostId === currentUser.uid);
   }).sort(function (a, b) { return gameStartMs(a) - gameStartMs(b); });
 }

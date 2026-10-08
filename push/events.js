@@ -32,7 +32,9 @@ const TEXT = {
     gameFullT: "✅ Game full — it's on!", gameFullB: "{date} {time} at {court} · {n} players",
     gameCancelT: "❌ Game cancelled", gameCancelB: "{name} cancelled {date} {time} at {court}",
     reqT: "👋 Join request · {group}", reqB: "{name} asked to join{msg}",
-    approvedT: "🎉 Welcome to {group}", approvedB: "Your request was approved — tap to open the group"
+    approvedT: "🎉 Welcome to {group}", approvedB: "Your request was approved — tap to open the group",
+    inviteT: "🏸 {name} invited you to play", inviteB: "{date} {time} at {court}{msg}",
+    inviteOkT: "✅ {name} accepted your invite", inviteOkB: "{date} {time} at {court} — contact details are in the app"
   },
   la: {
     newPollT: "🏸 ໂຫວດໃໝ່", newPollB: "{name}: {date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ?",
@@ -51,7 +53,9 @@ const TEXT = {
     gameFullT: "✅ ເກມເຕັມແລ້ວ — ຫຼິ້ນແນ່ນອນ!", gameFullB: "{date} {time} ທີ່ {court} · {n} ຄົນ",
     gameCancelT: "❌ ເກມຖືກຍົກເລີກ", gameCancelB: "{name} ຍົກເລີກ {date} {time} ທີ່ {court}",
     reqT: "👋 ຄຳຂໍເຂົ້າຮ່ວມ · {group}", reqB: "{name} ຂໍເຂົ້າຮ່ວມ{msg}",
-    approvedT: "🎉 ຍິນດີຕ້ອນຮັບສູ່ {group}", approvedB: "ຄຳຂໍຂອງທ່ານຖືກອະນຸມັດແລ້ວ — ແຕະເພື່ອເປີດກຸ່ມ"
+    approvedT: "🎉 ຍິນດີຕ້ອນຮັບສູ່ {group}", approvedB: "ຄຳຂໍຂອງທ່ານຖືກອະນຸມັດແລ້ວ — ແຕະເພື່ອເປີດກຸ່ມ",
+    inviteT: "🏸 {name} ຊວນທ່ານຫຼິ້ນ", inviteB: "{date} {time} ທີ່ {court}{msg}",
+    inviteOkT: "✅ {name} ຮັບຄຳຊວນຂອງທ່ານ", inviteOkB: "{date} {time} ທີ່ {court} — ຂໍ້ມູນຕິດຕໍ່ຢູ່ໃນແອັບ"
   }
 };
 
@@ -287,6 +291,22 @@ function collectMessages(data, since, now, opts) {
     if (m.status === "active" && isNew(m.approvedAt)) {
       const L = T(m.uid);
       out.push({ uid: m.uid, title: fill(L.approvedT, { group: g.name || "" }), body: L.approvedB, link: link("#group=" + m.gid) });
+    }
+  });
+
+  // Play-buddy invites (never tell the sender about "ignore")
+  (data.invites || []).forEach((i) => {
+    const blocked = (uid, other) => ((data.users[uid] || {}).blocked || []).includes(other);
+    const v = { date: fmtDate(i.date, "en"), time: i.time || "", court: i.courtName || "" };
+    if (i.status === "pending" && isNew(i.createdAt) && data.users[i.to] && !blocked(i.to, i.from)) {
+      const L = T(i.to);
+      out.push({ uid: i.to, tag: "inv-" + i.id, title: fill(L.inviteT, { name: name(i.from) }),
+        body: fill(L.inviteB, Object.assign({}, v, { date: fmtDate(i.date, L_(i.to)), msg: i.message ? " \u2014 \u201C" + i.message + "\u201D" : "" })), link: link("#buddies") });
+    }
+    if (i.status === "accepted" && isNew(i.respondedAt) && data.users[i.from]) {
+      const L = T(i.from);
+      out.push({ uid: i.from, tag: "inv-" + i.id, title: fill(L.inviteOkT, { name: name(i.to) }),
+        body: fill(L.inviteOkB, Object.assign({}, v, { date: fmtDate(i.date, L_(i.from)) })), link: link("#buddies") });
     }
   });
 
