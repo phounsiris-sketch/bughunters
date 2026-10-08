@@ -338,7 +338,7 @@ function showSessionDetailsModal(sessionId) {
   var courts = DB_CACHE.courts;
   var opts = '';
   courts.forEach(function (c) {
-    opts += '<option value="' + c.id + '"' + (c.id === s.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(c.pricePerHour) + '/h)</option>';
+    opts += '<option value="' + c.id + '"' + (c.id === s.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(courtPrice(c)) + '/h)</option>';
   });
 
   document.getElementById("modalTitle").textContent = t("editDetails");
@@ -364,7 +364,7 @@ function showSessionDetailsModal(sessionId) {
       courtId: court.id,
       courtName: court.name,
       courtLocation: court.location || null,
-      pricePerHour: court.pricePerHour || 0
+      pricePerHour: courtPrice(court)
     };
     // Court cost follows the new court / duration if the bill was already entered
     if (s.calculated && canEditBill(s)) {
@@ -466,7 +466,7 @@ function newSesToggle(uid) {
 }
 
 function submitNewSession() {
-  var court = dbFindById(DB_CACHE.courts, newSes.courtId);
+  var court = findCourt(newSes.courtId);
   if (!newSes.date || !newSes.time || !(newSes.duration > 0) || !court) { showToast(t("fillAllFields")); return; }
   if (!newSes.players.length) { showToast(t("pickPlayersFirst")); return; }
   var btn = document.getElementById("newSesSubmit");
@@ -479,7 +479,7 @@ function submitNewSession() {
     courtId: court.id,
     courtName: court.name,
     courtLocation: court.location || null,
-    pricePerHour: court.pricePerHour || 0,
+    pricePerHour: courtPrice(court),
     status: "active",
     players: newSes.players.slice(),
     calculated: false,
@@ -561,7 +561,7 @@ function _renderSessionHeader(s) {
   html += '<div style="font-size:16px;font-weight:700">' + fmtDate(s.date) + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
-  var court = s.courtId ? dbFindById(DB_CACHE.courts, s.courtId) : null;
+  var court = s.courtId ? findCourt(s.courtId) : null;
   if (court && hasPin(court)) html += '<div style="margin-top:6px">' + courtMapLink(court, t("directions")) + '</div>';
   html += '</div>';
   return html;
@@ -692,8 +692,8 @@ function _canMarkTransfer(s, tr) {
   if (!currentUser) return false;
   var me = currentUser.uid;
   if (me === tr.from || me === tr.to || canEditBill(s)) return true;
-  var from = dbFindById(DB_CACHE.users, tr.from);
-  var to = dbFindById(DB_CACHE.users, tr.to);
+  var from = findUser(tr.from);
+  var to = findUser(tr.to);
   return !!((from && from.manual) || (to && to.manual));
 }
 
@@ -793,13 +793,13 @@ function startEditSession() {
   if (!s) return;
   sessionEditing = true;
 
-  var court = dbFindById(DB_CACHE.courts, s.courtId);
+  var court = findCourt(s.courtId);
   edit = {
     date: s.date || _todayIso(),
     time: s.time || "18:00",
     duration: s.duration || 2,
     courtId: s.courtId || (DB_CACHE.courts[0] ? DB_CACHE.courts[0].id : ""),
-    pricePerHour: court ? (court.pricePerHour || 0) : (s.pricePerHour || 0),
+    pricePerHour: court ? courtPrice(court) : (s.pricePerHour || 0),
     players: (s.players || []).slice(),
     courtPayer: s.courtPayer || _defaultPayer("defaultCourtPayer", s.players),
     shuttlecocks: (s.shuttlecocks || []).map(function (x) {
@@ -876,7 +876,7 @@ function renderEditForm() {
   html += '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" data-cs-type="court" data-cs-onpick="editSetCourt" onchange="editSetCourt(this.value)">';
   if (!courts.length) html += '<option value="">' + t("noCourtsYet") + '</option>';
   for (var ci = 0; ci < courts.length; ci++) {
-    html += '<option value="' + courts[ci].id + '"' + (courts[ci].id === edit.courtId ? ' selected' : '') + '>' + escapeHtml(courts[ci].name) + ' (' + fmtLAK(courts[ci].pricePerHour) + '/h)</option>';
+    html += '<option value="' + courts[ci].id + '"' + (courts[ci].id === edit.courtId ? ' selected' : '') + '>' + escapeHtml(courts[ci].name) + ' (' + fmtLAK(courtPrice(courts[ci])) + '/h)</option>';
   }
   html += '</select></div>';
   html += '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" min="0.5" max="12" step="0.5" value="' + edit.duration + '" oninput="edit.duration=parseFloat(this.value)||0;_updateEditTotals()"></div>';
@@ -942,7 +942,7 @@ function renderEditForm() {
   } else {
     var d = edit.dinner;
     html += '<div class="form-row">';
-    html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (\u20AD)</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
+    html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (' + curSymbol() + ')</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
     html += '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("dinnerPayer") + '</label><select class="form-select" data-cs-type="player" data-cs-onpick="editPickDinnerPayer" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
     html += '</div>';
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
@@ -978,8 +978,8 @@ function renderEditForm() {
 
 /** Build the session fields that the cost form produces */
 function _editToSessionData() {
-  var court = dbFindById(DB_CACHE.courts, edit.courtId);
-  var pricePerHour = court ? (court.pricePerHour || 0) : edit.pricePerHour;
+  var court = findCourt(edit.courtId);
+  var pricePerHour = court ? courtPrice(court) : edit.pricePerHour;
   var courtCost = Math.round(pricePerHour * (edit.duration || 0));
 
   var shuttlecocks = [];
@@ -1065,8 +1065,8 @@ function editPickDinnerPayer(uid) { if (edit.dinner) edit.dinner.paidBy = uid; r
 function editSetCourt(courtId) {
   if (!edit) return;
   edit.courtId = courtId;
-  var court = dbFindById(DB_CACHE.courts, courtId);
-  if (court) edit.pricePerHour = court.pricePerHour || 0;
+  var court = findCourt(courtId);
+  if (court) edit.pricePerHour = courtPrice(court);
   renderEditForm();
 }
 
@@ -1169,7 +1169,7 @@ function showAddOtherCost() {
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("description") + '</label>' +
     '<input type="text" class="form-input" id="modalDesc" placeholder="' + t("otherCostPlaceholder") + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("amount") + ' (\u20AD)</label>' +
+    '<div class="form-group"><label class="form-label">' + t("amount") + ' (' + curSymbol() + ')</label>' +
     moneyInput('modalAmount', 0, '') + '</div>' +
     '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("paidBy") + '</label>' +
     '<select class="form-select" id="modalPaidBy">' + _payerOptions(currentUser ? currentUser.uid : "", pickable) + '</select></div>' +
@@ -1304,7 +1304,7 @@ function trashLabelSession(s) {
    ────────────────────────────────────────────────────────── */
 
 function _plainName(uid) {
-  var u = dbFindById(DB_CACHE.users, uid);
+  var u = findUser(uid);
   return u && u.displayName ? u.displayName : "?";
 }
 
@@ -1337,7 +1337,7 @@ function buildMessengerText(s) {
   }
   if (L.totals.other > 0) out.push(t("msgOther") + ": " + num(L.totals.other) + who((s.otherCosts || []).map(function (oc) { return oc.paidBy; })));
   if (L.totals.dinner > 0) out.push(t("msgDinner") + ": " + num(L.totals.dinner) + who([s.dinner && s.dinner.paidBy]));
-  out.push("\uD83D\uDCB0 " + t("total") + ": " + num(L.totals.grand) + " \u20AD");
+  out.push("\uD83D\uDCB0 " + t("total") + ": " + num(L.totals.grand) + " " + curSymbol());
 
   // 2) Each payer: total, then whom to pay (one per line)
   var byFrom = {}, order = [];

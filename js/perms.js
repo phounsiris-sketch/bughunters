@@ -22,6 +22,12 @@ function isSuperAdmin() {
 /** Does the signed-in user have permission `key`? */
 function can(key) {
   if (isSuperAdmin()) return true;
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) {
+    // Rights come from my membership in the current group
+    var m = myMember();
+    if (!m || m.status !== "active") return false;
+    return m.role === "owner" || m.role === "admin" || !!(m.perms && m.perms[key]);
+  }
   var perms = currentUserProfile && currentUserProfile.perms;
   return !!(perms && perms[key]);
 }
@@ -34,8 +40,8 @@ function userPerms(u) {
 
 /** Keep currentUserProfile.perms in sync when the Super Admin changes them */
 function syncMyPerms() {
-  if (!currentUser) return;
-  var me = dbFindById(DB_CACHE.users, currentUser.uid);
+  if (!currentUser || (typeof GROUPS_ON !== "undefined" && GROUPS_ON)) return;
+  var me = findUser(currentUser.uid);
   if (me && currentUserProfile) currentUserProfile.perms = me.perms || {};
 }
 

@@ -50,9 +50,16 @@ function dbDeleteCourt(id) {
 
 // ── Shuttlecocks ────────────────────────────────────────────
 
+function _byName(a, b) { return String(a.name || "").localeCompare(String(b.name || "")); }
+function _byCreatedDesc(a, b) {
+  var ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+  var tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+  return tb - ta;
+}
+
 function dbGetShuttlecocks(callback) {
-  return fsdb.collection("shuttlecocks")
-    .orderBy("name")
+  // Per group; sorted here so no composite index is needed
+  return groupScoped(fsdb.collection("shuttlecocks"))
     .onSnapshot(function (snap) {
       var brands = [];
       snap.forEach(function (doc) {
@@ -60,12 +67,12 @@ function dbGetShuttlecocks(callback) {
         d.id = doc.id;
         brands.push(d);
       });
-      callback(brands);
+      callback(brands.sort(_byName));
     }, dbOnError);
 }
 
 function dbAddShuttlecock(data) {
-  return fsdb.collection("shuttlecocks").add(data);
+  return fsdb.collection("shuttlecocks").add(withGroup(data));
 }
 
 function dbUpdateShuttlecock(id, data) {
@@ -106,6 +113,7 @@ function dbGetUser(uid) {
 
 /** Friend without an account, added by hand */
 function dbAddManualPlayer(data) {
+  withGroup(data);
   data.manual = true;
   data.createdBy = currentUser ? currentUser.uid : null;
   data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -123,8 +131,7 @@ function dbUpdateUser(uid, data) {
 // ── Polls ───────────────────────────────────────────────────
 
 function dbGetPolls(callback) {
-  return fsdb.collection("polls")
-    .orderBy("createdAt", "desc")
+  return groupScoped(fsdb.collection("polls"))
     .onSnapshot(function (snap) {
       var polls = [];
       snap.forEach(function (doc) {
@@ -132,11 +139,12 @@ function dbGetPolls(callback) {
         d.id = doc.id;
         polls.push(d);
       });
-      callback(polls);
+      callback(polls.sort(_byCreatedDesc));
     }, dbOnError);
 }
 
 function dbCreatePoll(data) {
+  withGroup(data);
   data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
   return fsdb.collection("polls").add(data);
 }
@@ -148,8 +156,7 @@ function dbUpdatePoll(id, data) {
 // ── Sessions ────────────────────────────────────────────────
 
 function dbGetSessions(callback) {
-  return fsdb.collection("sessions")
-    .orderBy("createdAt", "desc")
+  return groupScoped(fsdb.collection("sessions"))
     .onSnapshot(function (snap) {
       var sessions = [];
       snap.forEach(function (doc) {
@@ -157,7 +164,7 @@ function dbGetSessions(callback) {
         d.id = doc.id;
         sessions.push(d);
       });
-      callback(sessions);
+      callback(sessions.sort(_byCreatedDesc));
     }, dbOnError);
 }
 
@@ -174,6 +181,7 @@ function dbGetSession(id) {
 }
 
 function dbCreateSession(data) {
+  withGroup(data);
   data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
   return fsdb.collection("sessions").add(data);
 }
@@ -206,7 +214,8 @@ function dbSetQrCodes(data) {
 
 // ── Shared cache (one listener per collection for the whole app) ──
 
-var DB_CACHE = { users: [], courts: [], shuttlecocks: [], qrCodes: null, app: {} };
+// users / courts = the current group's roster and courts; allUsers / allCourts = everyone / the directory
+var DB_CACHE = { users: [], allUsers: [], courts: [], allCourts: [], shuttlecocks: [], qrCodes: null, app: {} };
 var _dbCacheUnsubs = [];
 
 /**
@@ -215,14 +224,17 @@ var _dbCacheUnsubs = [];
  */
 function dbStartCache(onChange) {
   dbStopCache();
-  _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.users = u; onChange("users"); }));
-  _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.courts = c; onChange("courts"); }));
+  _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.allUsers = u; rebuildGroupCache(); onChange("users"); }));
+  _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.allCourts = c; rebuildGroupCache(); onChange("courts"); }));
+  if (GROUPS_ON && !currentGroupId) return; // no group yet: nothing group-specific to load
   _dbCacheUnsubs.push(dbGetShuttlecocks(function (b) { DB_CACHE.shuttlecocks = b; onChange("shuttlecocks"); }));
-  _dbCacheUnsubs.push(dbGetQrCodes(function (q) { DB_CACHE.qrCodes = q; onChange("qrCodes"); }));
-  _dbCacheUnsubs.push(fsdb.collection("settings").doc("app").onSnapshot(function (doc) {
-    DB_CACHE.app = doc.exists ? doc.data() : {};
-    onChange("app");
-  }, dbOnError));
+  if (!GROUPS_ON) {
+    _dbCacheUnsubs.push(dbGetQrCodes(function (q) { DB_CACHE.qrCodes = q; onChange("qrCodes"); }));
+    _dbCacheUnsubs.push(fsdb.collection("settings").doc("app").onSnapshot(function (doc) {
+      DB_CACHE.app = doc.exists ? doc.data() : {};
+      onChange("app");
+    }, dbOnError));
+  }
 }
 
 function dbStopCache() {
@@ -232,6 +244,16 @@ function dbStopCache() {
   _dbCacheUnsubs = [];
 }
 
+/** Any player by id: the current roster first, then everyone (other groups, public games) */
+function findUser(uid) {
+  return dbFindById(DB_CACHE.users, uid) || dbFindById(DB_CACHE.allUsers || [], uid);
+}
+
+/** Any court by id: the group's courts first, then the shared directory */
+function findCourt(id) {
+  return dbFindById(DB_CACHE.courts, id) || dbFindById(DB_CACHE.allCourts || [], id);
+}
+
 function dbFindById(list, id) {
   for (var i = 0; i < list.length; i++) {
     if (list[i].id === id) return list[i];
@@ -239,15 +261,17 @@ function dbFindById(list, id) {
   return null;
 }
 
-// ── Group settings (settings/app) ───────────────────────────
+// ── Group settings (groups/{gid}; settings/app before groups) ──
 // { minPlayers, defaultCourtPayer, defaultShuttlePayer }
 
 function appSetting(key, fallback) {
-  var v = DB_CACHE.app ? DB_CACHE.app[key] : undefined;
+  var src = GROUPS_ON ? currentGroup : DB_CACHE.app;
+  var v = src ? src[key] : undefined;
   return v === undefined || v === null || v === "" ? fallback : v;
 }
 
 function dbSetAppSettings(data) {
+  if (GROUPS_ON) return fsdb.collection("groups").doc(currentGroupId).update(data);
   return fsdb.collection("settings").doc("app").set(data, { merge: true });
 }
 

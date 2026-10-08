@@ -56,7 +56,7 @@ function answerLabel(a) {
 
 function getUserName(uid) {
   if (!uid) return "";
-  var u = dbFindById(DB_CACHE.users, uid);
+  var u = findUser(uid);
   if (!u && currentUser && uid === currentUser.uid) u = currentUserProfile;
   if (u && u.displayName) return escapeHtml(u.displayName);
   if (u && u.email) return escapeHtml(u.email.split("@")[0]);
@@ -205,7 +205,7 @@ function _renderPollCard(poll) {
   var statusClass = poll.status === 'confirmed' ? 'confirmed' : poll.status === 'cancelled' ? 'cancelled' : 'open';
   var statusLabel = poll.status === 'confirmed' ? t('confirmed') : poll.status === 'cancelled' ? t('cancelled') : t('pollDraft');
   var minPlayers = poll.minPlayers || minPlayersSetting();
-  var court = dbFindById(DB_CACHE.courts, np.courtId);
+  var court = findCourt(np.courtId);
   var myAnswer = currentUser && np.responses.hasOwnProperty(currentUser.uid) ? np.responses[currentUser.uid] : -1;
   var joined = _pollAnswerUids(np, 0);
   var enough = joined.length >= minPlayers;
@@ -450,7 +450,7 @@ function confirmPoll(pollId) {
       var players = _pollAnswerUids(np, 0);
       if (players.length < minPlayers) throw new Error(t("needMinPlayers").replace("{n}", minPlayers));
 
-      var court = dbFindById(DB_CACHE.courts, np.courtId);
+      var court = findCourt(np.courtId);
       var sessionRef = fsdb.collection("sessions").doc();
       newSessionId = sessionRef.id;
       transaction.set(sessionRef, {
@@ -461,7 +461,7 @@ function confirmPoll(pollId) {
         courtId: np.courtId || null,
         courtName: np.courtName || null,
         courtLocation: court ? (court.location || null) : null,
-        pricePerHour: court ? (court.pricePerHour || 0) : 0,
+        pricePerHour: courtPrice(court),
         status: 'active',
         players: players,
         calculated: false,
@@ -572,7 +572,7 @@ function submitPoll() {
   var answers = newPoll.answers.map(function (a) { return (a || '').trim(); });
   if (!newPoll.courtId || !newPoll.date || !newPoll.time) { showToast(t('fillAllOptions')); return; }
   if (answers.length < 2 || answers.some(function (a) { return !a; })) { showToast(t('fillAllFields')); return; }
-  var court = dbFindById(DB_CACHE.courts, newPoll.courtId);
+  var court = findCourt(newPoll.courtId);
 
   dbCreatePoll({
     createdBy: currentUser.uid,

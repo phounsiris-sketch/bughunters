@@ -182,6 +182,14 @@ function _renderSettingsPage() {
 
   // 3. Group
   html += _settingsSection("secGroup");
+  if (GROUPS_ON && currentGroup) {
+    var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
+    html += _navCard("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint"));
+    if (isGroupAdminMe()) html += _navCard("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint"));
+    html += _navCard("showPage('group-members')", "key", t("members") + (pending && isGroupAdminMe() ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint"));
+  } else if (GROUPS_ON) {
+    html += _navCard("showPage('groups')", "users", t("yourGroups"), t("createGroupHint"));
+  }
   html += _navCard("showPage('config')", "settings", t("configuration"), t("configurationHint"));
   html += _navCard("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint"));
   html += _renderMergeCard();
@@ -256,9 +264,14 @@ function _renderPlayersTab() {
     html += '<div style="font-size:11px;color:var(--text-muted)">' +
       (u.manual ? icon("manual", 12) + ' ' + t("manualPlayer") : icon("mail", 12) + ' ' + t("registeredPlayer")) +
       (u.phone ? ' \u2022 ' + icon("phone", 12) + ' ' + escapeHtml(fmtPhone(u.phone)) : '') + '</div>';
-    if (!u.manual) html += '<div style="margin-top:4px">' + _permBadges(userPerms(u)) + '</div>';
+    if (!u.manual) html += '<div style="margin-top:4px">' + (GROUPS_ON ? memberBadges(memberOf(u.id)) : _permBadges(userPerms(u))) + '</div>';
     html += '</div></div>';
-    if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
+    if (GROUPS_ON) {
+      var mem = memberOf(u.id);
+      if (!u.manual && mem && isGroupAdminMe() && mem.role !== "owner" && !isMe) {
+        html += '<button class="edit-btn" onclick="showMemberModal(\'' + mem.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
+      }
+    } else if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
       html += '<button class="edit-btn" onclick="showPermsModal(\'' + u.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
     }
     if (u.manual && can("editConfig")) {
@@ -275,6 +288,10 @@ function _renderPlayersTab() {
   }
   html += '</div>';
 
+  if (GROUPS_ON) {
+    html += _navCard("showPage('group-settings')", "link", t("invitePlayers"), t("inviteGroupHint"));
+    return html;
+  }
   html += '<div class="card"><div class="card-title">' + icon("mail", 14) + ' ' + t("invitePlayers") + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">' + t("inviteHint") + '</div>';
   html += '<input class="form-input" value="' + escapeHtml(_appUrl()) + '" readonly onclick="this.select()" style="margin-bottom:8px">';
@@ -285,7 +302,7 @@ function _renderPlayersTab() {
 
 /** Super Admin: switch permissions on/off for a player */
 function showPermsModal(uid) {
-  var u = dbFindById(DB_CACHE.users, uid);
+  var u = findUser(uid);
   if (!u || !isSuperAdmin()) return;
   var perms = u.perms || {};
   var rows = '';
@@ -308,7 +325,7 @@ function showPermsModal(uid) {
 }
 
 function showPlayerModal(uid, onSaved) {
-  var u = uid ? dbFindById(DB_CACHE.users, uid) : null;
+  var u = uid ? findUser(uid) : null;
   document.getElementById("modalTitle").textContent = u ? t("editPlayer") : t("addPlayer");
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("name") + '</label>' +
@@ -342,7 +359,7 @@ function showPlayerModal(uid, onSaved) {
 }
 
 function deleteManualPlayer(uid) {
-  var u = dbFindById(DB_CACHE.users, uid);
+  var u = findUser(uid);
   if (!u || !confirm(t("delete") + " " + (u.displayName || "") + "?")) return;
   trashDoc("player", "users", uid, plainUserName(u))
     .catch(function (error) { showToast(_permError(error)); });
@@ -361,10 +378,13 @@ function copyInviteLink() {
   }
 }
 
-/* ---------- Courts ---------- */
+/* ---------- Courts ----------
+   With groups: courts are one shared directory (name, address, pin, phone…)
+   and each group keeps its own price in groups/{gid}.courtPrices. */
 function _renderCourtsTab() {
   var courts = DB_CACHE.courts;
   var html = '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("courts") + '</div>';
+  if (GROUPS_ON) html += '<div class="form-hint" style="margin-bottom:8px">' + t("courtsGroupHint") + '</div>';
   if (!courts.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noCourtsYet") + '</div>';
   for (var i = 0; i < courts.length; i++) {
     var c = courts[i];
@@ -373,46 +393,98 @@ function _renderCourtsTab() {
     html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
       (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
-    html += '<div class="settings-value">' + fmtLAK(c.pricePerHour) + '/h</div>';
+    html += '<div class="settings-value">' + fmtLAK(courtPrice(c)) + '/h</div>';
     if (can("editConfig")) {
       html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">' + icon("pen", 16) + '</button>';
-      html += '<button class="delete-btn" onclick="deleteSettingsCourt(\'' + c.id + '\')">' + icon("trash", 16) + '</button>';
+      html += '<button class="delete-btn" aria-label="' + t(GROUPS_ON ? "removeFromGroup" : "delete") + '" onclick="deleteSettingsCourt(\'' + c.id + '\')">' + icon("trash", 16) + '</button>';
     }
     html += '</div></div>';
   }
-  if (can("editConfig")) html += '<button class="add-btn-dashed" onclick="showCourtModal(null)">+ ' + t("addCourt") + '</button>';
+  if (can("editConfig")) {
+    html += '<button class="add-btn-dashed" onclick="showCourtModal(null)">+ ' + t("addCourt") + '</button>';
+    if (GROUPS_ON) html += '<button class="add-btn-dashed" onclick="showCourtDirectoryPicker()">' + icon("globe", 14) + ' ' + t("addFromDirectory") + '</button>';
+  }
   html += '</div>';
   return html;
 }
 
-function showCourtModal(courtId, onSaved) {
-  var c = courtId ? dbFindById(DB_CACHE.courts, courtId) : null;
-  document.getElementById("modalTitle").textContent = c ? t("editCourt") : t("addCourt");
+/** Courts in the shared directory that this group doesn't use yet (nearest first when we know where you are) */
+function showCourtDirectoryPicker() {
+  var mine = {};
+  DB_CACHE.courts.forEach(function (c) { mine[c.id] = true; });
+  var list = (DB_CACHE.allCourts || []).filter(function (c) { return !mine[c.id]; });
+  var draw = function (here) {
+    if (here) list.sort(function (a, b) { return (hasPin(a) ? distanceKm(here, a) : 1e9) - (hasPin(b) ? distanceKm(here, b) : 1e9); });
+    var html = list.length ? '' : '<div class="empty-state" style="padding:12px">' + t("directoryEmpty") + '</div>';
+    list.forEach(function (c) {
+      html += '<button class="group-row" onclick="showCourtModal(\'' + c.id + '\')">' +
+        '<span class="nav-card-icon">' + icon("court", 18) + '</span>' +
+        '<span class="group-row-text"><b>' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.location || '') +
+        (here && hasPin(c) ? ' · ' + fmtKm(distanceKm(here, c)) : '') + '</small></span>' + icon("add", 16) + '</button>';
+    });
+    document.getElementById("modalBody").innerHTML = '<div class="group-list">' + html + '</div>';
+  };
+  document.getElementById("modalTitle").textContent = t("addFromDirectory");
+  modalCallback = null;
+  draw(null);
+  openModal();
+  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (p) { draw({ lat: p.coords.latitude, lng: p.coords.longitude }); }, function () {}, { timeout: 8000, maximumAge: 300000 });
+}
+
+/**
+ * Add / edit a court. Shared details go to courts/{id}; the price goes to
+ * this group (groups/{gid}.courtPrices) — or onto the court before groups.
+ * opts.directoryOnly: from the Public tab, no group price.
+ */
+function showCourtModal(courtId, onSaved, opts) {
+  opts = opts || {};
+  var c = courtId ? findCourt(courtId) : null;
+  var withPrice = !opts.directoryOnly && (!GROUPS_ON || !!currentGroupId);
+  var inGroup = c && GROUPS_ON && currentGroup && currentGroup.courtPrices && currentGroup.courtPrices[c.id] != null;
+  document.getElementById("modalTitle").textContent = c ? (GROUPS_ON && !inGroup && withPrice ? t("addToGroup") : t("editCourt")) : t("addCourt");
   document.getElementById("modalBody").innerHTML =
-    '<div class="form-group"><label class="form-label">' + t("courtName") + '</label>' +
+    '<div class="form-group"><label class="form-label">' + t("courtName") + ' *</label>' +
       '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
+    '<div class="form-group"><label class="form-label">' + t("mapPin") + ' *</label>' + mapPickerHtml("courtPin") + '</div>' +
+    (withPrice ? '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (' + curSymbol() + ')' +
+      (GROUPS_ON ? ' — ' + escapeHtml(currentGroup ? currentGroup.name : '') : '') + ' *</label>' +
+      moneyInput('mCourtPrice', c ? courtPrice(c) : 0, '') +
+      (GROUPS_ON ? '<div class="form-hint">' + t("priceGroupOnly") + '</div>' : '') + '</div>' : '') +
     '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
       '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
-    '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("courtPin") + '</div>' +
-    '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (\u20AD)</label>' +
-      moneyInput('mCourtPrice', c ? c.pricePerHour : 0, '') + '</div>';
+    '<div class="form-group"><label class="form-label">' + t("phoneToBook") + '</label>' + phoneInputHtml("mCourtPhone", c && c.phone) + '</div>' +
+    '<details class="more-details"><summary>' + t("moreDetails") + '</summary>' +
+      '<div class="form-group"><label class="form-label">' + t("numCourts") + '</label><input type="number" class="form-input" id="mCourtCount" min="1" max="30" value="' + (c && c.courtsCount || '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("openingHours") + '</label><input class="form-input" id="mCourtHours" placeholder="06:00–22:00" value="' + escapeHtml(c && c.hours || '') + '"></div>' +
+      '<label class="perm-row"><input type="checkbox" id="mCourtAc"' + (c && c.aircon ? ' checked' : '') + '><div>' + t("aircon") + '</div></label>' +
+    '</details>';
 
   modalCallback = function () {
+    var ph = readPhone("mCourtPhone");
+    if (!ph.ok) { showToast(t("phoneInvalid")); return; }
+    var pin = getMapPick("courtPin");
     var data = {
       name: document.getElementById("mCourtName").value.trim(),
       location: document.getElementById("mCourtLoc").value.trim(),
-      pricePerHour: parseMoney(document.getElementById("mCourtPrice").value)
+      lat: pin.lat, lng: pin.lng, phone: ph.value,
+      courtsCount: parseInt(document.getElementById("mCourtCount").value, 10) || null,
+      hours: document.getElementById("mCourtHours").value.trim() || null,
+      aircon: document.getElementById("mCourtAc").checked
     };
-    var pin = getMapPick("courtPin");
-    data.lat = pin.lat;
-    data.lng = pin.lng;
-    if (!data.name || data.pricePerHour <= 0) {
-      showToast(t("courtName") + " & " + t("pricePerHour"));
-      return;
-    }
-    var op = c ? dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; })
-               : dbAddCourt(Object.assign(data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+    var price = withPrice ? parseMoney(document.getElementById("mCourtPrice").value) : 0;
+    if (!data.name) { showToast(t("courtName")); return; }
+    if (withPrice && price <= 0) { showToast(t("pricePerHour")); return; }
+    if (GROUPS_ON && !c && pin.lat === null) { showToast(t("pinNeeded")); return; }
+    if (!GROUPS_ON) data.pricePerHour = price;
+    var op;
+    if (c) op = dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; });
+    else op = dbAddCourt(Object.assign(data, { createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    op.then(function (ref) {
+      if (!GROUPS_ON || !withPrice) return ref;
+      var upd = {};
+      upd["courtPrices." + ref.id] = price;
+      return fsdb.collection("groups").doc(currentGroupId).update(upd).then(function () { return ref; });
+    }).then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
@@ -420,7 +492,16 @@ function showCourtModal(courtId, onSaved) {
 }
 
 function deleteSettingsCourt(id) {
-  var c = dbFindById(DB_CACHE.courts, id);
+  var c = findCourt(id);
+  if (GROUPS_ON) {
+    // Only take it out of this group; the court stays in the shared directory
+    if (!confirm(t("removeFromGroupConfirm").replace("{name}", c ? c.name : ""))) return;
+    var upd = {};
+    upd["courtPrices." + id] = firebase.firestore.FieldValue.delete();
+    fsdb.collection("groups").doc(currentGroupId).update(upd).then(function () { showToast(t("removeFromGroup") + " ✔"); })
+      .catch(function (error) { showToast(_permError(error)); });
+    return;
+  }
   if (!confirm(t("delete") + (c ? " " + c.name : "") + "?")) return;
   trashDoc("court", "courts", id, c ? c.name : t("court"))
     .catch(function (error) { showToast(_permError(error)); });
@@ -458,7 +539,7 @@ function showShuttleModal(brandId, onSaved) {
     '<div class="form-group"><label class="form-label">' + t("brandName") + '</label>' +
       '<input class="form-input" id="mBrandName" value="' + escapeHtml(b ? b.name : '') + '"></div>' +
     '<div class="form-row">' +
-      '<div class="form-group"><label class="form-label">' + t("pricePerTube") + ' (\u20AD)</label>' +
+      '<div class="form-group"><label class="form-label">' + t("pricePerTube") + ' (' + curSymbol() + ')</label>' +
         moneyInput('mBrandPrice', b ? b.pricePerTube : 0, '') + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("cocksPerTube") + '</label>' +
         '<input type="number" class="form-input" id="mBrandCocks" min="1" value="' + (b ? b.cocksPerTube || 12 : 12) + '"></div>' +
@@ -685,7 +766,7 @@ function _swapUid(value, oldId, newId) {
 }
 
 function mergeManualPlayer(manualId) {
-  var manual = dbFindById(DB_CACHE.users, manualId);
+  var manual = findUser(manualId);
   if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
   if (!confirm(t("mergeConfirm").replace("{name}", plainUserName(manual)))) return;
   var me = currentUser.uid;
@@ -695,7 +776,7 @@ function mergeManualPlayer(manualId) {
   var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
 
   function migrate(collection, fields) {
-    return fsdb.collection(collection).get().then(function (snap) {
+    return groupScoped(fsdb.collection(collection)).get().then(function (snap) {
       var jobs = [];
       snap.forEach(function (doc) {
         var data = doc.data();
@@ -744,7 +825,8 @@ function resetPollsAndSessions() {
   // Everything goes to the trash (restorable for 30 days), in batches
   var count = 0;
   function wipe(name) {
-    return fsdb.collection(name).get().then(function (snap) {
+    // Only the current group's polls / sessions (with groups)
+    return groupScoped(fsdb.collection(name)).get().then(function (snap) {
       var docs = [];
       snap.forEach(function (doc) { docs.push(doc); });
       var chain = Promise.resolve();
@@ -757,7 +839,7 @@ function resetPollsAndSessions() {
               var label = (name === "polls" ? t("trashKind_poll") + " " : "") + fmtDate(d.date) + (d.time ? " " + d.time : "") + (d.courtName ? " · " + d.courtName : "");
               var entry = _trashEntry(name === "polls" ? "poll" : "session", name, doc.id, label);
               entry.data = d;
-              batch.set(fsdb.collection("trash").doc(), entry);
+              batch.set(fsdb.collection("trash").doc(), withGroup(entry));
               batch.delete(doc.ref);
               count++;
             });

@@ -1,0 +1,42 @@
+name: Migrate to groups (admin, once)
+
+# Turns today's data into the first group of the multi-group app.
+# 1) run with "apply" off and read the plan, 2) run with "apply" on,
+# 3) publish the new firestore.rules in the Firebase console.
+# Safe to run again: it only fills in what is missing.
+on:
+  workflow_dispatch:
+    inputs:
+      group_name:
+        description: "Name of your group"
+        default: "Bughunters"
+      apply:
+        description: "Apply (leave off for a dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: push-sender
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: push/package-lock.json
+      - run: npm ci
+        working-directory: push
+      - run: node migrate-groups.js
+        working-directory: push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GROUP_NAME: ${{ inputs.group_name }}
+          APPLY: ${{ inputs.apply }}

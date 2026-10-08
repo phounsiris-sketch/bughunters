@@ -106,7 +106,8 @@ function initMapPicker(id, lat, lng) {
     if (!el || _pickers[id] !== p) return;
     el.innerHTML = "";
     var start = p.lat !== null ? [p.lat, p.lng] : [MAP_DEFAULT.lat, MAP_DEFAULT.lng];
-    p.map = L.map(el, { zoomControl: true, attributionControl: true }).setView(start, p.lat !== null ? 16 : 12);
+    p.map = L.map(el, { zoomControl: false, attributionControl: true }).setView(start, p.lat !== null ? 16 : 12);
+    L.control.zoom({ zoomInTitle: t("zoomIn"), zoomOutTitle: t("zoomOut") }).addTo(p.map);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'

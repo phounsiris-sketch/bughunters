@@ -115,6 +115,16 @@ function computeNotifications() {
     }
   });
 
+  // Join requests waiting for me (group admins)
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && currentGroup && isGroupAdminMe()) {
+    groupMembers.forEach(function (m) {
+      if (m.status !== "pending") return;
+      events.push({ id: "req_" + m.id, cat: "notif", type: "joinRequest", time: m.joinedAt || now, icon: "users",
+        text: t("nJoinRequest").replace("{name}", getUserName(m.uid)).replace("{group}", escapeHtml(currentGroup.name)),
+        action: "showPage('group-members')" });
+    });
+  }
+
   var owe = {}, oweLatest = 0; // to -> amount still unpaid
   (typeof lastSessions !== "undefined" ? lastSessions : []).forEach(function (s) {
     // Reminder: my game starts within the hour

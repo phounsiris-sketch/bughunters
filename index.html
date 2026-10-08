@@ -164,6 +164,39 @@
       <div id="settingsContent"></div>
     </div>
 
+    <!-- PAGE: My groups / getting started -->
+    <div class="page" id="page-groups">
+      <div id="groupsContent"></div>
+    </div>
+
+    <!-- PAGE: Create a group -->
+    <div class="page" id="page-group-create">
+      <div id="groupCreateContent"></div>
+    </div>
+
+    <!-- PAGE: Group settings + invite (admins) -->
+    <div class="page" id="page-group-settings">
+      <div id="groupSettingsContent"></div>
+    </div>
+
+    <!-- PAGE: Members & join requests -->
+    <div class="page" id="page-group-members">
+      <div id="groupMembersContent"></div>
+    </div>
+
+    <!-- PAGE: Public zone (open games, groups, courts) -->
+    <div class="page" id="page-public">
+      <div class="public-banner"><span data-icon="globe" data-size="14"></span> <span data-i18n="publicBanner">Public — everyone can see this</span></div>
+      <div class="dash-tabs" id="publicTabs"></div>
+      <div id="publicContent"></div>
+    </div>
+
+    <!-- PAGE: Host a public game -->
+    <div class="page" id="page-game-create">
+      <div class="public-banner"><span data-icon="globe" data-size="14"></span> <span data-i18n="publicGameBanner">Everyone can see this game</span></div>
+      <div id="gameCreateContent"></div>
+    </div>
+
     <!-- PAGE: Someone's profile (read-only) -->
     <div class="page" id="page-user">
       <div id="userContent"></div>
@@ -188,13 +221,17 @@
       <span class="nav-icon" data-icon="polls" data-size="22"></span><span class="badge nav-badge" id="navBadge-polls" style="display:none">0</span>
       <span data-i18n="navPolls">Polls</span>
     </div>
+    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
+      <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
+      <span data-i18n="navSessions">Sessions</span>
+    </div>
     <div class="nav-item nav-center active" onclick="showPage('dashboard')" id="nav-dashboard">
       <span class="nav-icon" data-icon="dashboard" data-size="24"></span>
       <span data-i18n="navDashboard">Dashboard</span>
     </div>
-    <div class="nav-item" onclick="showPage('sessions')" id="nav-sessions">
-      <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
-      <span data-i18n="navSessions">Sessions</span>
+    <div class="nav-item" onclick="showPage('public')" id="nav-public" style="display:none">
+      <span class="nav-icon" data-icon="globe" data-size="22"></span><span class="badge nav-badge" id="navBadge-public" style="display:none">0</span>
+      <span data-i18n="navPublic">Public</span>
     </div>
   </div>
 
@@ -239,6 +276,7 @@
 <script src="js/router.js"></script>
 <script src="js/db.js"></script>
 <script src="js/perms.js"></script>
+<script src="js/groups.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/polls.js"></script>
@@ -250,6 +288,7 @@
 <script src="js/trash.js"></script>
 <script src="js/people.js"></script>
 <script src="js/maps.js"></script>
+<script src="js/public.js"></script>
 <script src="js/push.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/select.js"></script>

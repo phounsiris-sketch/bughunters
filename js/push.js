@@ -110,11 +110,16 @@ function localTestPush() {
 function openFromHash() {
   var h = location.hash || "";
   if (!h || !currentUser) return;
+  if (/^#join=/.test(h)) return; // invite links: groups.js
   history.replaceState(null, "", location.pathname);
   var m = h.match(/^#session=([\w-]+)/);
+  var g = h.match(/^#group=([\w-]+)/);
   if (m) showSessionDetail(m[1]);
+  else if (g && typeof switchGroup === "function" && myMemberships[g[1]]) switchGroup(g[1]);
   else if (h === "#polls") showPage("polls");
   else if (h === "#payments") showPage("payments");
+  else if (h === "#public") showPage("public");
+  else if (h === "#settings") showPage(GROUPS_ON && currentGroupId ? "group-members" : "settings");
 }
 window.addEventListener("hashchange", openFromHash);
 

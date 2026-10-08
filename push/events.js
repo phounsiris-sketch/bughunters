@@ -27,7 +27,12 @@ const TEXT = {
     join: "Join", skip: "Skip", cleared: "removed",
     closeSoonT: "⏰ Voting closes in 3 hours", closeSoonB: "{date} {time} at {court} — Join or Skip? Answer now",
     closedT: "🔒 Voting closed · {date}", closedCreatorB: "{n}/{min} joined — tap to confirm or cancel the plan", closedB: "{n}/{min} joined — waiting for {name} to confirm",
-    fullT: "🎉 Enough players · {date}", fullCreatorB: "{n}/{min} joined — tap to confirm the plan", fullB: "{n}/{min} joined — waiting for {name} to confirm"
+    fullT: "🎉 Enough players · {date}", fullCreatorB: "{n}/{min} joined — tap to confirm the plan", fullB: "{n}/{min} joined — waiting for {name} to confirm",
+    gameJoinT: "🏸 {list} joined your game", gameJoinB: "{date} {time} at {court} · {n}/{slots} players",
+    gameFullT: "✅ Game full — it's on!", gameFullB: "{date} {time} at {court} · {n} players",
+    gameCancelT: "❌ Game cancelled", gameCancelB: "{name} cancelled {date} {time} at {court}",
+    reqT: "👋 Join request · {group}", reqB: "{name} asked to join{msg}",
+    approvedT: "🎉 Welcome to {group}", approvedB: "Your request was approved — tap to open the group"
   },
   la: {
     newPollT: "🏸 ໂຫວດໃໝ່", newPollB: "{name}: {date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ?",
@@ -41,7 +46,12 @@ const TEXT = {
     join: "ມາ", skip: "ບໍ່ມາ", cleared: "ຍົກເລີກ",
     closeSoonT: "⏰ ອີກ 3 ຊົ່ວໂມງປິດໂຫວດ", closeSoonB: "{date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ? ຕອບດຽວນີ້",
     closedT: "🔒 ປິດໂຫວດແລ້ວ · {date}", closedCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນ ຫຼື ຍົກເລີກແຜນ", closedB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ",
-    fullT: "🎉 ຄົນພໍແລ້ວ · {date}", fullCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນແຜນ", fullB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ"
+    fullT: "🎉 ຄົນພໍແລ້ວ · {date}", fullCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນແຜນ", fullB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ",
+    gameJoinT: "🏸 {list} ເຂົ້າຮ່ວມເກມຂອງທ່ານ", gameJoinB: "{date} {time} ທີ່ {court} · {n}/{slots} ຄົນ",
+    gameFullT: "✅ ເກມເຕັມແລ້ວ — ຫຼິ້ນແນ່ນອນ!", gameFullB: "{date} {time} ທີ່ {court} · {n} ຄົນ",
+    gameCancelT: "❌ ເກມຖືກຍົກເລີກ", gameCancelB: "{name} ຍົກເລີກ {date} {time} ທີ່ {court}",
+    reqT: "👋 ຄຳຂໍເຂົ້າຮ່ວມ · {group}", reqB: "{name} ຂໍເຂົ້າຮ່ວມ{msg}",
+    approvedT: "🎉 ຍິນດີຕ້ອນຮັບສູ່ {group}", approvedB: "ຄຳຂໍຂອງທ່ານຖືກອະນຸມັດແລ້ວ — ແຕະເພື່ອເປີດກຸ່ມ"
   }
 };
 
@@ -51,7 +61,8 @@ const MONTHS = {
 };
 const VOTE_SETTLE = 5 * 60e3; // wait until a vote has been stable for 5 minutes
 const fmtDate = (iso, lang) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MONTHS[lang === "la" ? "la" : "en"][d.getUTCMonth()]; };
-const fmtLAK = (n) => Math.round(n || 0).toLocaleString("en-US") + " ₭";
+const SYMBOL = { LAK: "₭", THB: "฿", USD: "$" };
+const fmtLAK = (n, cur) => Math.round(n || 0).toLocaleString("en-US") + " " + (SYMBOL[cur] || "₭");
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : ""));
 const ms = (x) => (!x ? 0 : typeof x === "number" ? x : typeof x.toMillis === "function" ? x.toMillis() : x._seconds ? x._seconds * 1000 : 0);
 
@@ -79,6 +90,12 @@ function collectMessages(data, since, now, opts) {
   const T = (uid) => TEXT[L_(uid)];
   const link = (h) => (opts.appUrl || "") + h;
   const isNew = (t) => t > since && t <= now;
+  // With groups, poll news goes only to members of that poll's group
+  const byGroup = {};
+  (data.members || []).forEach((m) => { if (m.status === "active") (byGroup[m.gid] = byGroup[m.gid] || []).push(m.uid); });
+  const audience = (p) => (data.members && p.groupId ? (byGroup[p.groupId] || []) : Object.keys(data.users)).filter((u) => data.users[u]);
+  const curOf = (gid) => { const g = (data.groups || {})[gid]; return (g && SYMBOL[g.currency] && g.currency) || "LAK"; };
+  const roundFor = (gid) => (curOf(gid) === "LAK" ? 1000 : 1);
 
   data.polls.forEach((p) => {
     const info = pollInfo(p);
@@ -98,7 +115,7 @@ function collectMessages(data, since, now, opts) {
       });
       if (settled.length) {
         settled.forEach((u) => out.push({ voteAnnounce: { pollId: p.id, voter: u, a: p.voteLog[u].a } }));
-        Object.keys(data.users).forEach((uid) => {
+        audience(p).forEach((uid) => {
           if (data.users[uid].manual) return;
           const mine = settled.filter((u) => u !== uid && p.voteLog[u].by !== uid); // not your own taps
           if (!mine.length) return;
@@ -118,7 +135,7 @@ function collectMessages(data, since, now, opts) {
     const closesAt = pollCloseMs(p);
     if (open && closesAt) {
       if (isNew(closesAt - 3 * 3600e3) && now < closesAt) {
-        Object.keys(data.users).forEach((uid) => {
+        audience(p).forEach((uid) => {
           if (data.users[uid].manual || info.responses.hasOwnProperty(uid)) return;
           const L = T(uid);
           out.push({ uid, tag: "closing-" + p.id, title: L.closeSoonT,
@@ -136,7 +153,7 @@ function collectMessages(data, since, now, opts) {
     }
     // Enough players for the first time → everyone (creator gets "tap to confirm")
     if (open && isNew(ms(p.reachedAt))) {
-      Object.keys(data.users).forEach((uid) => {
+      audience(p).forEach((uid) => {
         if (data.users[uid].manual) return;
         const L = T(uid);
         out.push({ uid, tag: "full-" + p.id, title: fill(L.fullT, { date: fmtDate(info.date, L_(uid)) }),
@@ -145,7 +162,7 @@ function collectMessages(data, since, now, opts) {
       });
     }
     if (isNew(ms(p.createdAt)) && (p.status === "draft" || p.status === "open")) {
-      Object.keys(data.users).forEach((uid) => {
+      audience(p).forEach((uid) => {
         if (uid === p.createdBy || data.users[uid].manual) return;
         out.push({ uid, title: T(uid).newPollT, body: fill(T(uid).newPollB, { name: name(p.createdBy), date: fmtDate(info.date, L_(uid)), time: info.time || "", court: info.court || "" }), link: link("#polls") });
       });
@@ -170,23 +187,26 @@ function collectMessages(data, since, now, opts) {
   const owed = {}; // from -> to -> amount still unpaid
   data.sessions.forEach((s) => {
     if (!s.calculated) return;
+    ctx.ROUND_TO = roundFor(s.groupId);
+    const cur = curOf(s.groupId);
     const L = computeLedger(s);
     const settled = s.settled || {};
     if (isNew(ms(s.billAt))) {
       const people = new Set([...(s.players || []), ...Object.keys(L.shares)]);
       people.forEach((uid) => {
         const owe = L.transfers.filter((tr) => tr.from === uid).reduce((a, tr) => a + tr.amount, 0);
-        out.push({ uid, title: T(uid).billT, body: fill(owe ? T(uid).billOwe : T(uid).billNone, { date: fmtDate(s.date, L_(uid)), amount: fmtLAK(owe) }), link: link("#session=" + s.id) });
+        out.push({ uid, title: T(uid).billT, body: fill(owe ? T(uid).billOwe : T(uid).billNone, { date: fmtDate(s.date, L_(uid)), amount: fmtLAK(owe, cur) }), link: link("#session=" + s.id) });
       });
     }
     const at = s.settledAt || {};
     L.transfers.forEach((tr) => {
       if (settled[tr.key] && isNew(ms(at[tr.key]))) {
-        out.push({ uid: tr.to, title: T(tr.to).paidT, body: fill(T(tr.to).paidB, { name: name(tr.from), amount: fmtLAK(tr.amount) }), link: link("#session=" + s.id) });
+        out.push({ uid: tr.to, title: T(tr.to).paidT, body: fill(T(tr.to).paidB, { name: name(tr.from), amount: fmtLAK(tr.amount, cur) }), link: link("#session=" + s.id) });
       }
       if (!settled[tr.key]) {
+        const k = tr.to + "|" + cur;
         owed[tr.from] = owed[tr.from] || {};
-        owed[tr.from][tr.to] = (owed[tr.from][tr.to] || 0) + tr.amount;
+        owed[tr.from][k] = (owed[tr.from][k] || 0) + tr.amount;
       }
     });
   });
@@ -195,9 +215,11 @@ function collectMessages(data, since, now, opts) {
   if (opts.remind) {
     Object.keys(owed).forEach((uid) => {
       const to = owed[uid];
-      const total = Object.values(to).reduce((a, b) => a + b, 0);
-      const list = Object.keys(to).map((r) => name(r) + " " + fmtLAK(to[r])).join(", ");
-      out.push({ uid, title: T(uid).remindT, body: fill(T(uid).remindB, { list, amount: fmtLAK(total) }), link: link("#payments") });
+      const totals = {};
+      Object.keys(to).forEach((k) => { const c = k.split("|")[1]; totals[c] = (totals[c] || 0) + to[k]; });
+      const list = Object.keys(to).map((k) => name(k.split("|")[0]) + " " + fmtLAK(to[k], k.split("|")[1])).join(", ");
+      const amount = Object.keys(totals).map((c) => fmtLAK(totals[c], c)).join(" + ");
+      out.push({ uid, title: T(uid).remindT, body: fill(T(uid).remindB, { list, amount }), link: link("#payments") });
     });
   }
 
@@ -214,6 +236,60 @@ function collectMessages(data, since, now, opts) {
         link: link("#session=" + s.id) });
     });
   });
+  // Public open games: who joined (to the host), full (to everyone in it),
+  // cancelled (to everyone who had joined), and "game in 1 hour"
+  (data.openGames || []).forEach((g) => {
+    const info = { date: g.date, time: g.time || "", court: g.courtName || "" };
+    const players = g.players || [];
+    const joins = Object.keys(g.log || {}).filter((u) => u !== g.hostId && g.log[u].a === "join" && isNew(g.log[u].at) && players.includes(u));
+    if (joins.length && data.users[g.hostId] && g.status !== "cancelled") {
+      const L = T(g.hostId);
+      out.push({ uid: g.hostId, tag: "game-" + g.id, title: fill(L.gameJoinT, { list: joins.map(name).join(", ") }),
+        body: fill(L.gameJoinB, Object.assign({ n: players.length, slots: g.slots, date: fmtDate(info.date, L_(g.hostId)) }, { time: info.time, court: info.court })),
+        link: link("#public") });
+    }
+    if (g.status === "full" && isNew(g.fullAt)) {
+      new Set([g.hostId, ...players]).forEach((uid) => {
+        if (!data.users[uid]) return;
+        out.push({ uid, tag: "game-" + g.id, title: T(uid).gameFullT,
+          body: fill(T(uid).gameFullB, { date: fmtDate(info.date, L_(uid)), time: info.time, court: info.court, n: players.length }), link: link("#public") });
+      });
+    }
+    if (g.status === "cancelled" && isNew(g.cancelledAt)) {
+      new Set([...players, ...(g.waitlist || [])]).forEach((uid) => {
+        if (uid === g.hostId || !data.users[uid]) return;
+        out.push({ uid, tag: "game-" + g.id, title: T(uid).gameCancelT,
+          body: fill(T(uid).gameCancelB, { name: name(g.hostId), date: fmtDate(info.date, L_(uid)), time: info.time, court: info.court }), link: link("#public") });
+      });
+    }
+    const start = sessionStart(g);
+    const key = "g_" + g.id;
+    if (g.status !== "cancelled" && start && !startSent[key] && start - now > 0 && start - now <= 60 * 60e3) {
+      new Set([g.hostId, ...players]).forEach((uid) => {
+        if (!data.users[uid]) return;
+        out.push({ uid, title: T(uid).startT, startOf: key,
+          body: fill(T(uid).startB, { time: info.time, court: info.court, min: Math.max(1, Math.round((start - now) / 60e3)) }), link: link("#public") });
+      });
+    }
+  });
+
+  // Join requests (to the group's admins) and approvals (to the person)
+  (data.members || []).forEach((m) => {
+    const g = (data.groups || {})[m.gid];
+    if (!g) return;
+    if (m.status === "pending" && isNew(m.joinedAt)) {
+      (data.members || []).filter((a) => a.gid === m.gid && a.status === "active" && (a.role === "owner" || a.role === "admin")).forEach((a) => {
+        const L = T(a.uid);
+        out.push({ uid: a.uid, tag: "req-" + m.gid, title: fill(L.reqT, { group: g.name || "" }),
+          body: fill(L.reqB, { name: name(m.uid), msg: m.message ? ": “" + m.message + "”" : "" }), link: link("#settings") });
+      });
+    }
+    if (m.status === "active" && isNew(m.approvedAt)) {
+      const L = T(m.uid);
+      out.push({ uid: m.uid, title: fill(L.approvedT, { group: g.name || "" }), body: L.approvedB, link: link("#group=" + m.gid) });
+    }
+  });
+
   // Manual players can't receive pushes; vote markers are for the caller
   return out.filter((m) => m.voteAnnounce || (data.users[m.uid] && !data.users[m.uid].manual));
 }

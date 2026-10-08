@@ -200,11 +200,18 @@ function _createProfileFromPending(user, saveOnly) {
 
 /* ---------- Enter the app once the profile exists ---------- */
 function _enterApp() {
-  seedFirestoreData();
-  initApp();       // starts the shared data cache
-  showAppPage();   // navigates to Polls
-  loadSessions();  // sessions feed badges, notifications and My payments
-  if (typeof openFromHash === "function") setTimeout(openFromHash, 400); // link from a push
+  // Find my groups first (before the migration the app runs as one group)
+  loadGroupContext().then(function () {
+    if (!GROUPS_ON) seedFirestoreData();
+    startGroupListeners();
+    initApp();       // starts the shared data cache
+    showAppPage();   // navigates to the dashboard
+    updateHeaderGroup();
+    if (GROUPS_ON && !currentGroupId) showPage("groups");
+    else loadSessions();  // sessions feed badges, notifications and My payments
+    if (GROUPS_ON && joinFromHash()) return; // invite link
+    if (typeof openFromHash === "function") setTimeout(openFromHash, 400); // link from a push
+  });
 }
 
 /* ---------- Show the sign-in form (not the profile form) ---------- */
@@ -225,6 +232,8 @@ function _resetAuthScreens() {
 
 /* ---------- Logout ---------- */
 function logoutUser() {
+  if (typeof stopGroupListeners === "function") stopGroupListeners();
+  GROUPS_ON = false; currentGroupId = null; currentGroup = null;
   if (typeof stopPolls === "function") stopPolls();
   if (typeof stopSessions === "function") stopSessions();
   if (typeof dbStopCache === "function") dbStopCache();

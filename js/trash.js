@@ -14,8 +14,8 @@ var TRASH_KINDS = {               // kind -> icon
 };
 
 function _trashEntry(kind, collection, docId, label) {
-  return { kind: kind, collection: collection, docId: docId, label: label,
-    deletedBy: currentUser.uid, deletedAt: Date.now() };
+  return withGroup({ kind: kind, collection: collection, docId: docId, label: label,
+    deletedBy: currentUser.uid, deletedAt: Date.now() });
 }
 
 /** Move one document to the trash; shows an Undo toast. Resolves with the trash id. */
@@ -118,7 +118,7 @@ function loadTrash() {
   if (!box) return;
   setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("recentlyDeleted") }]);
   box.innerHTML = '<div class="empty-state">' + t("loading") + '</div>';
-  var q = fsdb.collection("trash");
+  var q = groupScoped(fsdb.collection("trash"));
   if (!isSuperAdmin()) q = q.where("deletedBy", "==", currentUser.uid);
   q.get().then(function (snap) {
     var items = [];

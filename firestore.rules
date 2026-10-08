@@ -5,59 +5,128 @@ service cloud.firestore {
     // ── Who is asking ─────────────────────────────────────────
     function isAuth() { return request.auth != null; }
     function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
+    function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
+    function secretPath(gid) { return /databases/$(database)/documents/groupSecrets/$(gid); }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
 
-    // The one Super Admin (verified email). Can do everything and is the
-    // only person who can grant permissions.
+    // The app owner (verified email): can do everything, in every group.
     function isSuper() {
       return isAuth()
         && request.auth.token.get('email', '') == 'phounsiri.s@aidctech.com.la'
         && request.auth.token.get('email_verified', false) == true;
     }
 
-    // Permissions granted by the Super Admin, stored on users/{uid}.perms:
-    // Everyone creates and manages their OWN polls and sessions. Extra:
-    //   createPoll  — manage everyone's polls (confirm / cancel / delete)
-    //   editSession — date, time, court, players of any session; delete any
-    //   editBill    — costs, payers, dinner, receipts, payments of any session
-    //   editConfig  — courts, cocks, manual players, group settings
-    function can(p) {
-      return isSuper() || (isAuth() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('perms', {}).get(p, false) == true);
+    // ── Groups ────────────────────────────────────────────────
+    // Every poll, session, shuttlecock brand and manual player belongs to one
+    // group (field groupId — the "Migrate to groups" job adds it to old data).
+    // Membership: members/{groupId}_{uid} { gid, uid, role, perms, status }
+    //   role   owner | admin | member   (owner/admin can do everything in the group)
+    //   perms  extra rights a member can be given:
+    //          createPoll  — manage everyone's polls (confirm / cancel / delete)
+    //          editSession — date, time, court, players of any session; delete any
+    //          editBill    — costs, payers, dinner, receipts, payments of any session
+    //          editConfig  — courts & prices, cocks, manual players, group settings
+    //   status active | pending (asked to join a public group, waiting for approval)
+    function gidOf(d) { return d.groupId; }
+    function memberPath(gid) { return /databases/$(database)/documents/members/$(gid + '_' + request.auth.uid); }
+    function isMember(gid) {
+      return isAuth() && exists(memberPath(gid)) && get(memberPath(gid)).data.status == 'active';
     }
+    function isGroupAdmin(gid) {
+      return isSuper() || (isMember(gid) && get(memberPath(gid)).data.role in ['owner', 'admin']);
+    }
+    function canIn(p, gid) {
+      return isSuper() || (isMember(gid) && (get(memberPath(gid)).data.role in ['owner', 'admin']
+        || get(memberPath(gid)).data.get('perms', {}).get(p, false) == true));
+    }
+    function sameGroup() { return gidOf(request.resource.data) == gidOf(resource.data); }
 
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
     // The person who created a poll / session always manages it
     function isCreator() { return isAuth() && resource.data.get('createdBy', '') == request.auth.uid; }
     function isManual(data) { return data.get('manual', false) == true; }
 
+    match /groups/{gid} {
+      // Names of groups are not secret (public groups are listed; a private
+      // group's invite code lives in groupSecrets, which only admins read)
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if (isGroupAdmin(gid) && request.resource.data.ownerId == resource.data.ownerId)
+        || (canIn('editConfig', gid) && changed().hasOnly(['courtPrices', 'minPlayers', 'defaultCourtPayer', 'defaultShuttlePayer']))
+        || isSuper();
+      allow delete: if isSuper() || (isAuth() && resource.data.ownerId == request.auth.uid);
+    }
+
+    match /groupSecrets/{gid} {
+      allow read: if isGroupAdmin(gid);
+      // Written together with a new group by its owner, then by admins
+      allow create: if isAuth() && getAfter(groupPath(gid)).data.ownerId == request.auth.uid;
+      allow update: if isGroupAdmin(gid);
+    }
+
+    match /members/{mid} {
+      // Members see their group's roster; anyone sees their own memberships
+      allow read: if isSuper() || (isAuth() && resource.data.uid == request.auth.uid) || isMember(resource.data.gid);
+      allow create: if isSuper() || (isAuth()
+        && request.resource.data.uid == request.auth.uid
+        && mid == request.resource.data.gid + '_' + request.auth.uid
+        && (
+          // The owner of a group being created right now
+          (request.resource.data.role == 'owner' && request.resource.data.status == 'active'
+            && getAfter(groupPath(request.resource.data.gid)).data.ownerId == request.auth.uid)
+          // Joining: invite code, an open public group, or asking a public group
+          || (request.resource.data.role == 'member' && request.resource.data.get('perms', {}).size() == 0 && (
+               (request.resource.data.status == 'active'
+                 && request.resource.data.get('code', '') == get(secretPath(request.resource.data.gid)).data.inviteCode)
+            || (request.resource.data.status == 'active'
+                 && get(groupPath(request.resource.data.gid)).data.type == 'public'
+                 && get(groupPath(request.resource.data.gid)).data.joinMode == 'open')
+            || (request.resource.data.status == 'pending'
+                 && get(groupPath(request.resource.data.gid)).data.type == 'public'
+                 && get(groupPath(request.resource.data.gid)).data.joinMode == 'ask')))
+        ));
+      // Admins manage roles / rights / requests (never the owner, never to owner);
+      // a member edits only their own nickname, level and message
+      allow update: if request.resource.data.uid == resource.data.uid && request.resource.data.gid == resource.data.gid && (
+        isSuper()
+        || (isGroupAdmin(resource.data.gid) && resource.data.role != 'owner' && request.resource.data.role != 'owner')
+        || (isAuth() && resource.data.uid == request.auth.uid && changed().hasOnly(['nick', 'level', 'message', 'lastSeen']))
+      );
+      // Leave a group (not the owner), or an admin removes someone
+      allow delete: if isSuper() || (resource.data.role != 'owner' && (
+        (isAuth() && resource.data.uid == request.auth.uid) || isGroupAdmin(resource.data.gid)));
+    }
+
     // ── Players ───────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isAuth();
-      // Your own profile, without permissions; or a manual player (editConfig)
+      // Your own profile, without permissions; or a manual player of a group (editConfig)
       allow create: if (isOwner(uid) && !('perms' in request.resource.data))
-        || (can('editConfig') && isManual(request.resource.data) && !('perms' in request.resource.data))
+        || (isManual(request.resource.data) && !('perms' in request.resource.data)
+            && canIn('editConfig', request.resource.data.get('groupId', '')))
         || isSuper();
       // You may edit your profile but never your own permissions
-      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual']))
-        || (can('editConfig') && isManual(resource.data) && isManual(request.resource.data) && !changed().hasAny(['perms']))
+      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual', 'groupId']))
+        || (isManual(resource.data) && isManual(request.resource.data) && !changed().hasAny(['perms']) && sameGroup()
+            && canIn('editConfig', gidOf(resource.data)))
         || isSuper();
-      allow delete: if (can('editConfig') && isManual(resource.data)) || isSuper();
+      allow delete: if (isManual(resource.data) && canIn('editConfig', gidOf(resource.data))) || isSuper();
     }
 
     // ── Polls ─────────────────────────────────────────────────
     match /polls/{pollId} {
-      allow read: if isAuth();
-      // Everyone can create a poll of their own; createPoll may restore anyone's
-      allow create: if (isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid) || can('createPoll');
-      // Everyone can answer; the creator manages it; createPoll manages all polls
-      // Answers only before the voting deadline (closesAt, ms); the creator /
-      // createPoll can still enter answers, confirm or cancel afterwards
-      // Voting ends early when the plan is confirmed / cancelled, or at closesAt
-      allow update: if (isAuth() && changed().hasOnly(['responses', 'votes', 'voteLog', 'reachedAt'])
-                        && resource.data.get('status', 'draft') in ['draft', 'open']
-                        && (!('closesAt' in resource.data) || request.time.toMillis() < resource.data.closesAt))
-                    || can('createPoll') || isCreator();
-      allow delete: if can('createPoll') || isCreator();
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      // A member creates polls of their own in their group; createPoll may restore anyone's
+      allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
+        && (request.resource.data.get('createdBy', '') == request.auth.uid || canIn('createPoll', request.resource.data.groupId));
+      // Members answer before the deadline (closesAt) while the plan is open;
+      // the creator / createPoll can still enter answers, confirm or cancel later
+      allow update: if sameGroup() && (
+        (isMember(gidOf(resource.data)) && changed().hasOnly(['responses', 'votes', 'voteLog', 'reachedAt'])
+          && resource.data.get('status', 'draft') in ['draft', 'open']
+          && (!('closesAt' in resource.data) || request.time.toMillis() < resource.data.closesAt))
+        || canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data))));
+      allow delete: if canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data)));
     }
 
     // ── Sessions ──────────────────────────────────────────────
@@ -70,46 +139,77 @@ service cloud.firestore {
     }
 
     match /sessions/{sessionId} {
-      allow read: if isAuth();
-      // Everyone can create a session of their own (from their own poll, or
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      // A member creates a session of their own (from their own poll, or
       // standalone); createPoll / editSession may create one for anyone
-      allow create: if can('createPoll') || can('editSession')
-        || (isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid
+      allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId) && (
+        canIn('createPoll', request.resource.data.groupId) || canIn('editSession', request.resource.data.groupId)
+        || (request.resource.data.get('createdBy', '') == request.auth.uid
             && (request.resource.data.get('pollId', null) == null
-                || get(/databases/$(database)/documents/polls/$(request.resource.data.pollId)).data.get('createdBy', '') == request.auth.uid));
-      allow update: if isAuth() && (
+                || get(/databases/$(database)/documents/polls/$(request.resource.data.pollId)).data.get('createdBy', '') == request.auth.uid)));
+      allow update: if sameGroup() && isMember(gidOf(resource.data)) && (
         // The creator (the poll's creator for confirmed polls) edits everything
         isCreator()
-        // Marking a payment as paid is open to everyone
+        // Marking a payment as paid is open to every member
         || changed().hasOnly(['settled', 'settledAt', 'status'])
         || (
-          (can('editSession') || !changed().hasAny(sessionDetailKeys())) &&
-          (can('editBill') || !changed().hasAny(billKeys())) &&
-          (can('editSession') || can('editBill'))
+          (canIn('editSession', gidOf(resource.data)) || !changed().hasAny(sessionDetailKeys())) &&
+          (canIn('editBill', gidOf(resource.data)) || !changed().hasAny(billKeys())) &&
+          (canIn('editSession', gidOf(resource.data)) || canIn('editBill', gidOf(resource.data)))
         )
-      );
-      allow delete: if can('editSession') || isCreator();
-
-      match /dinner/{docId} {
-        allow read: if isAuth();
-        allow write: if can('editBill');
-      }
+      ) || isSuper();
+      allow delete: if canIn('editSession', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data)));
     }
 
-    // ── Configuration ─────────────────────────────────────────
+    // ── Courts: one shared directory (prices live on each group) ──
     match /courts/{courtId} {
       allow read: if isAuth();
-      allow write: if can('editConfig');
+      allow create: if isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid;
+      // Anyone signed in can correct a court's details (like a map); the
+      // creator / app owner can delete it
+      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '');
+      allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
 
     match /shuttlecocks/{id} {
-      allow read: if isAuth();
-      allow write: if can('editConfig');
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      allow create: if canIn('editConfig', request.resource.data.get('groupId', ''));
+      allow update: if sameGroup() && canIn('editConfig', gidOf(resource.data));
+      allow delete: if canIn('editConfig', gidOf(resource.data));
     }
 
+    // Before groups: settings/app held the group settings (now on groups/{gid})
     match /settings/{docId} {
       allow read: if isAuth();
-      allow write: if can('editConfig');
+      allow write: if isSuper();
+    }
+
+    // ── Public open games (anyone can find and join) ─────────
+    match /openGames/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.hostId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.players.size() <= request.resource.data.slots;
+      // The host edits / cancels; others only join or leave themselves (and
+      // the first on the waitlist moves up when someone leaves)
+      allow update: if isAuth() && request.resource.data.hostId == resource.data.hostId && (
+        resource.data.hostId == request.auth.uid
+        || isSuper()
+        || (changed().hasOnly(['players', 'waitlist', 'status', 'fullAt', 'log'])
+            && resource.data.status in ['open', 'full']
+            && request.resource.data.status in ['open', 'full']
+            && request.resource.data.players.size() <= resource.data.slots
+            && (!('closesAt' in resource.data) || request.time.toMillis() < resource.data.closesAt)
+            && resource.data.players.toSet().difference(request.resource.data.players.toSet()).hasOnly([request.auth.uid])
+            && resource.data.waitlist.toSet().union([request.auth.uid].toSet())
+                 .hasAll(request.resource.data.players.toSet().difference(resource.data.players.toSet()))
+            && resource.data.players.toSet().union([request.auth.uid].toSet())
+                 .hasAll(request.resource.data.waitlist.toSet().difference(resource.data.waitlist.toSet()))
+            && request.resource.data.players.toSet().union([request.auth.uid].toSet())
+                 .hasAll(resource.data.waitlist.toSet().difference(request.resource.data.waitlist.toSet()))
+            && request.resource.data.get('log', {}).diff(resource.data.get('log', {})).affectedKeys().hasOnly([request.auth.uid]))
+      );
+      allow delete: if isSuper() || (isAuth() && resource.data.hostId == request.auth.uid);
     }
 
     // This user's push tokens (devices). The sender uses the Admin SDK.
@@ -118,7 +218,7 @@ service cloud.firestore {
     }
 
     // Recently deleted (30 days). Only the person who deleted an item (or
-    // the Super Admin) sees, restores or removes it. Restoring writes the
+    // the app owner) sees, restores or removes it. Restoring writes the
     // item back through the normal rules above. The sender purges old ones.
     match /trash/{id} {
       allow read, delete: if isSuper() || (isAuth() && resource.data.deletedBy == request.auth.uid);
@@ -133,11 +233,11 @@ service cloud.firestore {
       allow delete: if isSuper() || (isAuth() && resource.data.createdBy == request.auth.uid);
     }
 
-    // Payment QR codes: your own, or a manual player's (editConfig)
+    // Payment QR codes: your own, or a manual player's (editConfig in their group)
     match /qrcodes/{uid} {
       allow read: if isAuth();
       allow write: if isOwner(uid)
-        || (can('editConfig') && isManual(get(/databases/$(database)/documents/users/$(uid)).data))
+        || (isManual(get(userPath(uid)).data) && canIn('editConfig', gidOf(get(userPath(uid)).data)))
         || isSuper();
     }
   }

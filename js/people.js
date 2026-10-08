@@ -18,7 +18,7 @@ function loadUserProfile() {
   var box = document.getElementById("userContent");
   var uid = viewUserId;
   if (!box || !uid) return;
-  var u = dbFindById(DB_CACHE.users, uid) || { id: uid };
+  var u = findUser(uid) || { id: uid };
   setBreadcrumb([{ label: t("players"), action: "goBack()" }, { label: getUserName(uid) }]);
 
   // Stats from every session / poll

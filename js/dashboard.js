@@ -326,7 +326,7 @@ function _createSpendingChart(sessions) {
   if (!canvas || typeof Chart === "undefined") return;
 
   var ps = _playerSpend(sessions);
-  var plain = function (uid) { var u = dbFindById(DB_CACHE.users, uid); return u ? u.displayName : "?"; };
+  var plain = function (uid) { var u = findUser(uid); return u ? u.displayName : "?"; };
   var css = getComputedStyle(document.body);
   var series = [
     ["court", t("courtCost"), "#0d9488"],

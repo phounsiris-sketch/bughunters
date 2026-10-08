@@ -137,11 +137,16 @@ function escapeHtml(text) {
 
 // ── Money (all amounts are whole Lao kip, LAK) ─────────────
 
-var CURRENCY = "\u20AD"; // ₭ — Lao kip
+var CURRENCY = "\u20AD"; // ₭ — Lao kip (each group can pick LAK, THB or USD)
+
+/** Symbol of the current group's currency */
+function curSymbol() {
+  return typeof GROUPS_ON !== "undefined" && GROUPS_ON && typeof groupCurrency === "function" ? CURRENCIES[groupCurrency()].symbol : CURRENCY;
+}
 
 /** Exact amount with thousands separators: 206000 → "206,000 ₭" */
 function fmtLAK(n) {
-  return Math.round(n || 0).toLocaleString("en-US") + " " + CURRENCY;
+  return Math.round(n || 0).toLocaleString("en-US") + " " + curSymbol();
 }
 
 /** Short form for summaries only: 930000 → "930K ₭", 1250000 → "1.25M ₭" */
@@ -152,7 +157,7 @@ function fmtShort(n) {
   if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
   else if (a >= 1e3) out = (v / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
   else out = String(v);
-  return out + " " + CURRENCY;
+  return out + " " + curSymbol();
 }
 
 /** "200,000" → 200000 */
@@ -223,7 +228,7 @@ function colorFor(uid) {
 /** Profile photo if the player has one, otherwise a coloured initial */
 function avatarHtml(uid, size) {
   size = size || 32;
-  var u = typeof dbFindById === "function" ? dbFindById(DB_CACHE.users, uid) : null;
+  var u = typeof dbFindById === "function" ? findUser(uid) : null;
   var style = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px';
   if (u && u.avatarUrl) {
     return '<img class="person-avatar" src="' + u.avatarUrl + '" alt="" style="' + style + '">';
@@ -268,9 +273,9 @@ function readPhone(id) {
 
 /** Avatar that opens the full photo when tapped (if the person has one) */
 function avatarZoomHtml(uid, size) {
-  var u = typeof dbFindById === "function" ? dbFindById(DB_CACHE.users, uid) : null;
+  var u = typeof dbFindById === "function" ? findUser(uid) : null;
   if (!u || !u.avatarUrl) return avatarHtml(uid, size);
-  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(dbFindById(DB_CACHE.users,\'' + uid + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
+  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(findUser(\'' + uid + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
 }
 
 /** Latest first: by play date + time, then by creation time */
@@ -333,8 +338,8 @@ function refreshCurrentPage(reason) {
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
     // New / edited courts, brands or players show up in an open cost form too
     if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users)$/.test(reason)) {
-      var court = dbFindById(DB_CACHE.courts, edit.courtId);
-      if (court) edit.pricePerHour = court.pricePerHour || 0;
+      var court = findCourt(edit.courtId);
+      if (court) edit.pricePerHour = courtPrice(court);
       renderEditForm();
     } else {
       refreshSessionDetail();
@@ -362,7 +367,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v45.1"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v46"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

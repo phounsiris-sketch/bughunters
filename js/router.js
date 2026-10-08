@@ -10,8 +10,13 @@ var pageHistory = [];
  * @param {string} page  — page element id (without the '-page' suffix handled by convention)
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
+// Private pages need a current group (after the move to groups)
+var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats)$/;
+var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
+
 function showPage(page, pushHistory) {
   if (typeof pushHistory === "undefined") pushHistory = true;
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && !currentGroupId && GROUP_PAGES.test(page)) page = "groups";
 
   // Push current page to history before switching
   if (pushHistory && currentPage && currentPage !== page) {
@@ -37,21 +42,25 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "session-create": "sessions", "poll-create": "polls" };
+  var navOf = { "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
   var gear = document.getElementById("gearBtn");
-  if (gear) gear.classList.toggle("on", /^(settings|profile|config|trash)$/.test(page));
+  if (gear) gear.classList.toggle("on", /^(settings|profile|config|trash|group-settings|group-members)$/.test(page));
+  // Public zone: its own header colour and a reminder that everyone can see it
+  document.body.classList.toggle("zone-public", PUBLIC_PAGES.test(page));
 
   // Floating + button: new poll (Polls, Dashboard) or new session (Sessions)
   var fab = document.getElementById("fab");
   if (fab) {
     var fabSession = page === "sessions";
-    fab.style.display = (page === "polls" || page === "dashboard" || fabSession) ? "" : "none"; // everyone can create
-    fab.setAttribute("aria-label", t(fabSession ? "newSession" : "createPoll"));
-    fab.title = t(fabSession ? "newSession" : "createPoll");
-    fab.onclick = fabSession ? function () { createAdHocSession(); } : function () { showCreatePoll(); };
+    var fabGame = page === "public" && typeof publicTab !== "undefined" && publicTab === "games";
+    fab.style.display = (page === "polls" || page === "dashboard" || fabSession || fabGame) ? "" : "none"; // everyone can create
+    var fabLabel = fabGame ? "newPublicGame" : fabSession ? "newSession" : "createPoll";
+    fab.setAttribute("aria-label", t(fabLabel));
+    fab.title = t(fabLabel);
+    fab.onclick = fabGame ? function () { showPage("game-create"); } : fabSession ? function () { createAdHocSession(); } : function () { showCreatePoll(); };
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level
@@ -74,6 +83,18 @@ function showPage(page, pushHistory) {
     loadTrash();
   } else if (page === "user" && typeof loadUserProfile === "function") {
     loadUserProfile();
+  } else if (page === "groups") {
+    loadGroupsPage();
+  } else if (page === "group-create") {
+    loadGroupCreate();
+  } else if (page === "group-settings") {
+    loadGroupSettings();
+  } else if (page === "group-members") {
+    loadGroupMembers();
+  } else if (page === "public" && typeof loadPublic === "function") {
+    loadPublic();
+  } else if (page === "game-create" && typeof loadGameCreate === "function") {
+    loadGameCreate();
   }
 }
 
