@@ -43,6 +43,7 @@ const MONTHS = {
   en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   la: ["ມັງກອນ","ກຸມພາ","ມີນາ","ເມສາ","ພຶດສະພາ","ມິຖຸນາ","ກໍລະກົດ","ສິງຫາ","ກັນຍາ","ຕຸລາ","ພະຈິກ","ທັນວາ"]
 };
+const VOTE_SETTLE = 5 * 60e3; // wait until a vote has been stable for 5 minutes
 const fmtDate = (iso, lang) => { if (!iso) return ""; const d = new Date(iso + "T00:00:00Z"); return d.getUTCDate() + " " + MONTHS[lang === "la" ? "la" : "en"][d.getUTCMonth()]; };
 const fmtLAK = (n) => Math.round(n || 0).toLocaleString("en-US") + " ₭";
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : ""));
@@ -78,28 +79,40 @@ function collectMessages(data, since, now, opts) {
     const open = p.status === "draft" || p.status === "open";
     const min = parseInt(p.minPlayers, 10) || 4;
     const joins = Object.keys(info.responses).filter((u) => info.responses[u] === 0);
-    // New answers since the last run → one combined push to the poll creator
-    if (open && p.voteLog && p.createdBy) {
-      const fresh = Object.keys(p.voteLog).filter((u) => {
+    // New answers → one combined push per poll to everyone (engagement period).
+    // A vote is announced only after it has stayed the same for VOTE_SETTLE
+    // (so fast Yes/No/Yes taps send one final answer), and only if it differs
+    // from what was announced before (opts.voteSent = { pollId: { voter: a } }).
+    const announced = (opts.voteSent || {})[p.id] || {};
+    if (open && p.voteLog) {
+      const settled = Object.keys(p.voteLog).filter((u) => {
         const v = p.voteLog[u];
-        return v && isNew(v.at) && u !== p.createdBy && v.by !== p.createdBy;
+        if (!v || !v.at || v.at > now - VOTE_SETTLE) return false;
+        return announced.hasOwnProperty(u) ? announced[u] !== v.a : v.a !== -1;
       });
-      if (fresh.length) {
-        const c = p.createdBy, L = T(c);
-        const list = fresh.map((u) => {
-          const a = p.voteLog[u].a;
-          return name(u) + " " + (a === 0 ? L.join : a === -1 ? L.cleared : L.skip);
-        }).join(", ");
-        out.push({ uid: c, title: fill(L.voteT, { date: fmtDate(info.date, L_(c)) }),
-          body: fill(L.voteB, { list, n: joins.length, min }), link: link("#polls") });
+      if (settled.length) {
+        settled.forEach((u) => out.push({ voteAnnounce: { pollId: p.id, voter: u, a: p.voteLog[u].a } }));
+        Object.keys(data.users).forEach((uid) => {
+          if (data.users[uid].manual) return;
+          const mine = settled.filter((u) => u !== uid && p.voteLog[u].by !== uid); // not your own taps
+          if (!mine.length) return;
+          const L = T(uid);
+          const list = mine.map((u) => {
+            const v = p.voteLog[u];
+            const who = v.by && v.by !== u ? name(u) + " (" + name(v.by) + ")" : name(u);
+            return who + " " + (v.a === 0 ? L.join : v.a === -1 ? L.cleared : L.skip);
+          }).join(", ");
+          out.push({ uid, tag: "votes-" + p.id, title: fill(L.voteT, { date: fmtDate(info.date, L_(uid)) }),
+            body: fill(L.voteB, { list, n: joins.length, min }), link: link("#polls") });
+        });
       }
     }
-    // Enough players for the first time → creator (to confirm) and those joining
+    // Enough players for the first time → everyone (creator gets "tap to confirm")
     if (open && isNew(ms(p.reachedAt))) {
-      new Set([p.createdBy, ...joins]).forEach((uid) => {
-        if (!uid) return;
+      Object.keys(data.users).forEach((uid) => {
+        if (data.users[uid].manual) return;
         const L = T(uid);
-        out.push({ uid, title: fill(L.fullT, { date: fmtDate(info.date, L_(uid)) }),
+        out.push({ uid, tag: "full-" + p.id, title: fill(L.fullT, { date: fmtDate(info.date, L_(uid)) }),
           body: fill(uid === p.createdBy ? L.fullCreatorB : L.fullB, { n: joins.length, min, name: name(p.createdBy) }),
           link: link("#polls") });
       });
@@ -165,8 +178,8 @@ function collectMessages(data, since, now, opts) {
         link: link("#session=" + s.id) });
     });
   });
-  // Manual players can't receive pushes
-  return out.filter((m) => data.users[m.uid] && !data.users[m.uid].manual);
+  // Manual players can't receive pushes; vote markers are for the caller
+  return out.filter((m) => m.voteAnnounce || (data.users[m.uid] && !data.users[m.uid].manual));
 }
 
 /** Session start in ms — date + time are Vientiane / Bangkok time (UTC+7) */

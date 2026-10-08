@@ -240,8 +240,11 @@ function _renderPollCard(poll) {
 }
 
 /* ---------- Answer a poll (radio: one answer per person; tap again to clear) ---------- */
+var _voting = {}; // pollId -> true while a vote is being saved (ignores fast repeat taps)
+
 function respondPoll(pollId, answerIdx) {
-  if (!currentUser) return;
+  if (!currentUser || _voting[pollId]) return;
+  _voting[pollId] = true;
   var uid = currentUser.uid;
   var pollRef = fsdb.collection("polls").doc(pollId);
 
@@ -272,7 +275,8 @@ function respondPoll(pollId, answerIdx) {
       }
       transaction.update(pollRef, update);
     });
-  }).catch(function (error) { showToast(error.message); });
+  }).catch(function (error) { showToast(error.message); })
+    .then(function () { delete _voting[pollId]; });
 }
 
 /** First time Join answers reach the minimum players: remember when */

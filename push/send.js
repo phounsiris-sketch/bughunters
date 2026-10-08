@@ -49,8 +49,17 @@ async function main() {
   const startSent = {};
   Object.entries(state.startSent || {}).forEach(([id, at]) => { if (now - at < 2 * 86400e3) startSent[id] = at; });
 
-  const messages = collectMessages({ users, polls, sessions, langs }, state.lastRun, now, { remind, appUrl: APP_URL, startSent });
-  messages.forEach((m) => { if (m.startOf) startSent[m.startOf] = now; });
+  // Votes already announced, per open poll (others are forgotten)
+  const openPolls = new Set(polls.filter((p) => p.status === "draft" || p.status === "open").map((p) => p.id));
+  const voteSent = {};
+  Object.entries(state.voteSent || {}).forEach(([id, m]) => { if (openPolls.has(id)) voteSent[id] = m; });
+
+  const all = collectMessages({ users, polls, sessions, langs }, state.lastRun, now, { remind, appUrl: APP_URL, startSent, voteSent });
+  all.forEach((m) => {
+    if (m.startOf) startSent[m.startOf] = now;
+    if (m.voteAnnounce) { const v = m.voteAnnounce; (voteSent[v.pollId] = voteSent[v.pollId] || {})[v.voter] = v.a; }
+  });
+  const messages = all.filter((m) => !m.voteAnnounce);
   let sent = 0, failed = 0;
   const dead = {}; // uid -> [bad tokens]
 
@@ -60,7 +69,9 @@ async function main() {
     const res = await admin.messaging().sendEachForMulticast({
       tokens: list,
       notification: { title: m.title, body: m.body },
-      webpush: { fcmOptions: { link: m.link }, notification: { tag: m.link } }
+      // Same tag = the new banner replaces the previous one for that poll
+      data: { tag: m.tag || m.link },
+      webpush: { fcmOptions: { link: m.link }, notification: { tag: m.tag || m.link } }
     });
     res.responses.forEach((r, i) => {
       if (r.success) sent++;
@@ -86,7 +97,7 @@ async function main() {
   for (const d of old.docs) await d.ref.delete();
   if (old.size) console.log(`trash: removed ${old.size} item(s) older than ${TRASH_DAYS} days`);
 
-  await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null), startSent }, { merge: true });
+  await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null), startSent, voteSent }, { merge: true });
   console.log(`events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", daily payment reminder sent" : ""}`);
 }
 

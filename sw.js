@@ -8,7 +8,7 @@ self.addEventListener('push', function (e) {
   var link = (msg.fcmOptions && msg.fcmOptions.link) || (msg.data && msg.data.link) || './';
   e.waitUntil(self.registration.showNotification(n.title || 'Godsmash', {
     body: n.body || '',
-    tag: link,
+    tag: (msg.data && msg.data.tag) || link, // same tag replaces the previous banner
     renotify: true,
     data: { link: link }
   }));
@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v37';
+var CACHE_NAME = 'godsmash-v38';
 var ASSETS = [
   './',
   './index.html',
