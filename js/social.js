@@ -335,6 +335,65 @@ function answerDinner(sid, yes) {
 
 /* ---------- Gear board (group) ---------- */
 
+/* ---------- Reports inbox ----------
+   A report made inside a group goes to that group's admins; one made in the
+   public zone goes to the app owner. They read it here and mark it handled
+   (which deletes it). The person reported is never told who reported them. */
+var _reports = null;
+
+function reportsCount() { return _reports ? _reports.length : 0; }
+
+function loadReports(then) {
+  if (!GROUPS_ON || !currentGroupId || !isGroupAdminMe()) { _reports = []; if (then) then(); return; }
+  var qs = [fsdb.collection("reports").where("groupId", "==", currentGroupId).get()];
+  if (isSuperAdmin()) qs.push(fsdb.collection("reports").where("zone", "==", "public").get());
+  Promise.all(qs).then(function (snaps) {
+    var seen = {}, list = [];
+    snaps.forEach(function (snap) { snap.forEach(function (d) { if (!seen[d.id]) { seen[d.id] = true; list.push(Object.assign({ id: d.id }, d.data())); } }); });
+    list.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    var before = _reports ? _reports.length : -1;
+    _reports = list;
+    if (then) then();
+    else if (before !== list.length && currentPage === "settings" && typeof renderSettings === "function") renderSettings();
+  }).catch(function () { _reports = []; if (then) then(); });
+}
+
+function loadReportsPage() {
+  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("reportsTitle") }]);
+  var box = document.getElementById("reportsContent");
+  if (!box) return;
+  if (!isGroupAdminMe()) { box.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; return; }
+  box.innerHTML = '<div class="loading">' + t("loading") + '</div>';
+  loadReports(_renderReports);
+}
+
+function _renderReports() {
+  var box = document.getElementById("reportsContent");
+  if (!box) return;
+  var html = '<div class="form-hint" style="margin:0 2px 12px">' + t("reportsPageHint") + '</div>';
+  if (!_reports.length) { box.innerHTML = html + '<div class="empty-state">' + icon("check", 40) + '<div>' + t("reportsEmpty") + '</div></div>'; return; }
+  _reports.forEach(function (r) {
+    html += '<div class="card report-card"><div class="report-head">' +
+      '<span class="report-who" onclick="showUserProfile(\'' + r.about + '\',event)">' + avatarHtml(r.about, 32) + '<span><b>' + escapeHtml(getUserName(r.about)) + '</b>' +
+      '<small>' + t("reason_" + (r.reason || "other")) + ' · ' + (r.zone === "public" ? t("reportZonePublic") : t("reportZoneGroup")) + '</small></span></span>' +
+      '<span class="report-when">' + (r.createdAt && typeof _whenShort === "function" ? _whenShort(r.createdAt) : '') + '</span></div>' +
+      (r.details ? '<div class="report-details">\u201C' + escapeHtml(r.details) + '\u201D</div>' : '') +
+      '<div class="form-hint" style="margin:6px 0 10px">' + t("reportedBy").replace("{name}", escapeHtml(getUserName(r.from))) + '</div>' +
+      '<div class="game-actions"><button class="btn-secondary" onclick="showUserProfile(\'' + r.about + '\',event)">' + t("viewProfile") + '</button>' +
+      '<button class="btn-primary" onclick="resolveReport(\'' + r.id + '\')">' + icon("check", 14) + ' ' + t("markHandled") + '</button></div></div>';
+  });
+  box.innerHTML = html;
+}
+
+function resolveReport(id) {
+  if (!confirm(t("markHandledQ"))) return;
+  fsdb.collection("reports").doc(id).delete().then(function () {
+    _reports = (_reports || []).filter(function (r) { return r.id !== id; });
+    showToast(t("markHandled") + " \u2714");
+    _renderReports();
+  }).catch(function (e) { showToast(_permError(e)); });
+}
+
 /* ---------- Market (Public): gear for sale to everyone ----------
    gear/{id}.forSale + saleScope "public" (default "groups" = only on the
    Home board of the seller's groups), saleCity, salePrice, saleCurrency. */

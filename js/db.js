@@ -215,7 +215,7 @@ function dbSetQrCodes(data) {
 // ── Shared cache (one listener per collection for the whole app) ──
 
 // users / courts = the current group's roster and courts; allUsers / allCourts = everyone / the directory
-var DB_CACHE = { users: [], allUsers: [], courts: [], allCourts: [], shuttlecocks: [], qrCodes: null, app: {} };
+var DB_CACHE = { users: [], allUsers: [], courts: [], allCourts: [], groupCourts: null, shuttlecocks: [], qrCodes: null, app: {} };
 var _dbCacheUnsubs = [];
 
 /**
@@ -225,7 +225,7 @@ var _dbCacheUnsubs = [];
 function dbStartCache(onChange) {
   dbStopCache();
   _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.allUsers = u; rebuildGroupCache(); onChange("users"); }));
-  _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.allCourts = c; rebuildGroupCache(); onChange("courts"); }));
+  _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.allCourts = c; rebuildGroupCache(); if (typeof ensureGroupCourts === "function") ensureGroupCourts(); onChange("courts"); }));
   if (GROUPS_ON && !currentGroupId) return; // no group yet: nothing group-specific to load
   _dbCacheUnsubs.push(dbGetShuttlecocks(function (b) { DB_CACHE.shuttlecocks = b; onChange("shuttlecocks"); }));
   if (!GROUPS_ON) {
@@ -249,9 +249,15 @@ function findUser(uid) {
   return dbFindById(DB_CACHE.users, uid) || dbFindById(DB_CACHE.allUsers || [], uid);
 }
 
-/** Any court by id: the group's courts first, then the shared directory */
+/** Any court by id: the group's own courts (also by the directory court they
+    were copied from — old sessions point there), then the public directory */
 function findCourt(id) {
-  return dbFindById(DB_CACHE.courts, id) || dbFindById(DB_CACHE.allCourts || [], id);
+  if (!id) return null;
+  var c = dbFindById(DB_CACHE.courts, id);
+  if (c) return c;
+  var gc = DB_CACHE.groupCourts || [];
+  for (var i = 0; i < gc.length; i++) if (gc[i].sourceId === id) return gc[i];
+  return dbFindById(DB_CACHE.allCourts || [], id);
 }
 
 function dbFindById(list, id) {

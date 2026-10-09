@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record)$/;
+var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 /** Header button with my picture (opens My profile) */
@@ -60,7 +60,7 @@ function showPage(page, pushHistory) {
   // My profile: my own picture, right next to the bell
   updateMeBtn();
   var meBtn = document.getElementById("meBtn");
-  if (meBtn) meBtn.classList.toggle("on", page === "profile");
+  if (meBtn) meBtn.classList.toggle("on", /^(profile|settings|config|trash|group-settings|group-members|groups|reports)$/.test(page));
   // Public zone: its own header colour and a reminder that everyone can see it
   document.body.classList.toggle("zone-public", PUBLIC_PAGES.test(page));
 
@@ -92,6 +92,8 @@ function showPage(page, pushHistory) {
     loadSettings();
   } else if (page === "config" && typeof loadConfig === "function") {
     loadConfig();
+  } else if (page === "reports" && typeof loadReportsPage === "function") {
+    loadReportsPage();
   } else if (page === "trash" && typeof loadTrash === "function") {
     loadTrash();
   } else if (page === "user" && typeof loadUserProfile === "function") {

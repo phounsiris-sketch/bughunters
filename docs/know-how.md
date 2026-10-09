@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v52**.
+run it. App version at the time of writing: **v53**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -51,11 +51,17 @@ The app has two zones, kept visually apart so nobody confuses them:
 Stats and Public only show once groups are turned on (see section 15).
 
 **Header:** the group name with ▾ (tap it to switch group), the 🔔
-notifications button, **your picture** (opens My profile) and the ⚙ Settings button.
+notifications button and **your picture**. Your picture opens your page, which has
+two tabs:
 
-**Settings (⚙):** profile, appearance (dark/light, 5 colours each), language
-(English / Lao), group settings, members, courts, shuttlecocks, players,
-recently deleted, and admin tools.
+- **My profile:** photo, story, personal info, gear, payment QR.
+- **Settings**, in this order:
+  - **Group:** switch group, group settings, members, courts & prices, cocks,
+    players without the app, players' QR, general (minimum players, default
+    payers), reports.
+  - **App:** language, then appearance (dark/light, 5 colours each).
+  - **Notifications & data:** push notifications, recently deleted, admin tools.
+  - **Sign out.**
 
 ---
 
@@ -135,7 +141,7 @@ group**, then type the group's name to confirm.
   stats, cock brands, manual players, every membership and the invite code.
 - The members keep their accounts and any other groups.
 - It can't be undone. Weekly backups (section 14) are the only way back.
-- It needs the **v52 security rules**: publish the current `firestore.rules`
+- It needs the **v52 (or newer) security rules**: publish the current `firestore.rules`
   in the Firebase console first.
 
 ---
@@ -207,15 +213,32 @@ it can be restored for **30 days**.
 
 ## 6. Courts and map pins
 
-All groups share **one court directory**: name, address, phone, number of courts,
-and a map pin. **Prices are not shared.** Each group sets its own price per hour.
+There are two kinds of court records, and they never change each other:
 
-- **Add a court to your group:** Settings → Courts → *Add* → choose one from the
-  directory, or create a new one. The form asks for just two things: the **name**
-  and your group's **price per hour**.
-- Everything else is in the folded **Map & details (optional)** section: the map
-  pin, address, phone to book, opening hours (from–to), number of courts and air
-  conditioning. If you save without opening it, the court keeps its existing pin.
+| | Public court directory | A group's own courts |
+|---|---|---|
+| Where | Public → Courts (`courts/{id}`) | Settings → Courts & prices (`groupCourts/{id}`) |
+| Who edits | Anyone signed in (to fix a map or name) | The group's admins / *editConfig* |
+| Price | None | The group's price per hour |
+| Used by | Open games, finding courts | The group's polls, sessions and bills |
+
+- **Group courts start as a copy.** The first time an admin opens the app after
+  v53, the courts the group had priced are **copied** from the directory into the
+  group, with their price. From then on, changing the group's copy (name, pin,
+  price, number of courts…) never changes the directory, and the other way round.
+  Old sessions and polls still find their court: they're matched to the copy.
+- **Add a court:** Settings → Courts & prices.
+  - **Add court** makes a new court for the group only. Tick *Also add it to the
+    public court directory* to share it; other groups don't see your price.
+  - **Add from the court directory** copies a public court into the group.
+- The form shows the **name**, the **price per hour** and **how many courts** the
+  hall has, named **1, 2, 3…** or **A, B, C…**.
+- Everything else is in the folded **Map & details (optional)** section: map pin,
+  address, phone to book, opening hours (from–to) and air conditioning. If you
+  save without opening it, the court keeps its existing pin.
+- **Booked courts:** in a session's bill form, tap the courts you booked (e.g.
+  **C** and **D**). The session shows "Courts C, D" under the date, along with who
+  created it and when.
 - **Pin the location:** open *Map & details*, then do one of these:
   - tap the map;
   - tap **Use my location**;
@@ -304,8 +327,17 @@ How the numbers are worked out:
     version used A–D, so old values are read as A→P, B→S, C→N, D→BG.
 - **Badges:** first match, 50 and 100 matches, 5 and 10 wins in a row, 5 courts,
   1,000 minutes, and pair of the month.
-- **Monthly recap:** the button makes a shareable PNG of your month. On phones it
-  opens the share sheet; on computers it downloads.
+- **Monthly recap:** the button makes a shareable picture of your month:
+  - your win-rate ring, W–L and your last 5 results;
+  - three tiles: rating change, best win streak and points per game;
+  - your best partner (and your record together) and the rival pair you met most.
+
+  On phones it opens the share sheet; on computers it downloads.
+- **Your first box** (Ranking tab) shows your level and rating, a **form strip**
+  of your last 5 results, and your **last 5 games** ("You & Bee vs Cee & Dee",
+  W/L, score, date).
+- Tap **?** in that box for **How is this counted?**: the game rule, how the Elo
+  rating works, and why it isn't BWF World Tour points.
 
 ---
 
@@ -325,8 +357,11 @@ Up to **5 photos** under your profile picture: your game, your team, your court.
 
 Everything about you is in **one card with one Save button**:
 
-- **Who I am:** display name, phone, email (read-only), gender, date of birth and
-  relationship status.
+- **Who I am:**
+  - name and surname (with who can see them), nickname, and display name;
+  - phone, email (read-only), gender, date of birth and relationship status.
+  - The display name is what everyone sees in the app. It follows your nickname
+    (or first name) until you type your own.
   - The date of birth uses three lists (**day / month / year**, starting from this year), so the year is
     one tap away.
 - **How I play:** your level (6 buttons, see section 7), hand, position (front, back or both), home
@@ -434,10 +469,19 @@ game. It is opt-in and has safety built in.
   - The sender is **never told** about Ignore.
 - **Blocking:** open someone's profile → ⋯ → **Block**. You stop seeing each
   other in buddies, open games and invites, and they can't invite you.
-- **Reporting:** ⋯ → **Report**, with a reason and details.
-  - A report made inside a group goes to that group's admins.
-  - A report made from the public zone goes to the app owner.
-  - Details are limited to 300 characters.
+- **Reporting:** ⋯ → **Report**, with a reason and details (up to 300 characters).
+
+**Where it all goes:**
+
+| Action | Stored in | Who sees it | What happens |
+|---|---|---|---|
+| Block | the blocker's own profile (`users/{uid}.blocked`) | Only the blocker (the other person isn't told) | You stop seeing each other in buddies, open games, invites and their pushes |
+| Unblock | same list | — | Everything shows again |
+| Report in a group | `reports/{id}` with the group | The group's **admins**: Settings → **Reports** (with a count) | They read it, open the person's profile (and can remove them in Members), then **Mark handled**, which deletes the report |
+| Report in the public zone | `reports/{id}` (zone: public) | The **app owner** (same Reports page) | Same as above |
+| Ignore an invite | the invite (status "ignored") | Only you | The sender is never told |
+
+The person reported is never told who reported them.
 
 There is **no in-app chat**. Once an invite is accepted, people talk on WhatsApp.
 
@@ -482,7 +526,8 @@ Firestore collections. Every private item carries a `groupId`.
 | `polls/{id}` | groupId, date, time, courtId, duration, options, votes, mode, gameType, status, closesAt, confirmedOption | |
 | `sessions/{id}` | groupId, date, time, duration, courtId, players, costs, payers, dinner, settled, calculated, mode, gameType, dinnerPoll, tournament | |
 | `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]` (one game per record), minutes, createdBy | Firestore has no nested arrays, so games are `{a,b}` objects |
-| `courts/{id}` | name, address, phone, courts, lat, lng, createdBy | Shared; **no price** |
+| `courts/{id}` | name, address, phone, courtsCount, courtLabels, lat, lng, createdBy | Public directory; **no price** |
+| `groupCourts/{id}` | groupId, sourceId (directory court it was copied from), name, address, phone, courtsCount, courtLabels (number/letter), lat, lng, hours, price | The group's own courts; members read, *editConfig* writes |
 | `shuttlecocks/{id}` | groupId, brand, price, cocksPerTube | |
 | `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice, saleCurrency, saleScope (groups/public), saleCity, sellerName | Any signed-in user can read gear (the Market) |
 | `openGames/{id}` | hostId, city, date, time, courtId, slots, level, price, players, waitlist, log, status | Public |

@@ -4482,3 +4482,55 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .danger-title { color: #f87171 !important; } .danger-card { border-color: rgba(248,113,113,.45) !important; }
 [data-theme="light"] .rank-row.me .rank-text b, [data-theme="light"] .rank-row.me b { color: var(--primary); }
 [data-theme="light"] .score-ok, [data-theme="light"] .ms-side.win .ms-pts, [data-theme="light"] .sg-row .win, [data-theme="light"] .market-price, [data-theme="light"] .sale-line { color: var(--primary) !important; }
+.court-nos-line { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 4px; }
+.court-nos .chip { min-width: 40px; justify-content: center; font-weight: 700; }
+.name-row { gap: 8px; } .name-row .form-input { min-width: 0; }
+.session-made { margin-top: 4px; font-size: 11px; color: var(--text-muted); }
+
+/* My stats: last games */
+.how-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--chip-bg); color: var(--text-secondary); font-weight: 800; cursor: pointer; flex-shrink: 0; }
+.form-strip { display: flex; align-items: center; gap: 4px; margin-top: 12px; }
+.form-strip .form-hint { flex: 1; }
+.form-strip .wl { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fff; }
+.form-strip .wl.w, .recent-game.won .rg-res { background: #16a34a; }
+.form-strip .wl.l, .recent-game.lost .rg-res { background: #dc2626; }
+.recent-games { margin-top: 8px; border-top: 1px solid var(--border); }
+.recent-game { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.rg-res { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 12px; }
+.rg-teams { min-width: 0; display: flex; flex-direction: column; }
+.rg-teams b { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rg-teams small { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rg-score { display: flex; flex-direction: column; align-items: flex-end; }
+.rg-score b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.rg-score small { font-size: 11px; color: var(--text-muted); }
+.my-stats-more { display: inline-flex; align-items: center; gap: 2px; margin: 10px 0 0; font-size: 12px; }
+.help-body p { font-size: 13px; line-height: 1.55; color: var(--text-secondary); margin: 0 0 10px; }
+.help-body b { color: var(--text); }
+
+/* Per-person spending: stacked bars (validated categorical slots 1–4, dark/light) */
+:root { --viz-court: #3987e5; --viz-shuttle: #d95926; --viz-other: #199e70; --viz-dinner: #c98500; }
+[data-theme="light"] { --viz-court: #2a78d6; --viz-shuttle: #eb6834; --viz-other: #1baf7a; --viz-dinner: #eda100; }
+.sw-court { background: var(--viz-court); } .sw-shuttle { background: var(--viz-shuttle); }
+.sw-other { background: var(--viz-other); } .sw-dinner { background: var(--viz-dinner); }
+.pp-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 12px; font-size: 12px; color: var(--text-secondary); }
+.pp-key { display: inline-flex; align-items: center; gap: 6px; }
+.pp-key b { color: var(--text); font-weight: 700; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.pp-row { padding: 10px 0; border-top: 1px solid var(--border); }
+.pp-head { display: flex; align-items: center; gap: 10px; }
+.pp-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-total { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.pp-track { display: flex; gap: 2px; height: 10px; margin: 8px 0 6px 38px; max-width: calc(100% - 38px); }
+.pp-track .pp-seg { min-width: 3px; height: 100%; }
+.pp-track .pp-seg:first-child { border-radius: 4px 0 0 4px; }
+.pp-track .pp-seg:last-child { border-radius: 0 4px 4px 0; }
+.pp-track .pp-seg:only-child { border-radius: 4px; }
+.pp-amounts { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-left: 38px; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pp-amounts span { display: inline-flex; align-items: center; gap: 4px; }
+.pp-amounts .sw { width: 8px; height: 8px; }
+.report-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.report-who { display: flex; gap: 10px; align-items: center; cursor: pointer; min-width: 0; }
+.report-who span { display: flex; flex-direction: column; }
+.report-who small { font-size: 12px; color: var(--text-muted); }
+.report-when { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.report-details { margin-top: 10px; font-size: 14px; color: var(--text); }

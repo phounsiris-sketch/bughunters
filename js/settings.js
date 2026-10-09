@@ -49,13 +49,13 @@ function renderSettings() {
     if (!pc) return;
     // Don't wipe the profile form while the user is typing in it
     if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
-    setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("myProfile") }]);
-    pc.innerHTML = _renderProfileTab();
+    setBreadcrumb(null);
+    pc.innerHTML = _meTabsHtml("profile") + _renderProfileTab();
     _fillQrCard();
     return;
   }
   var container = document.getElementById("settingsContent");
-  if (container) container.innerHTML = _renderSettingsPage();
+  if (container) { setBreadcrumb(null); container.innerHTML = _meTabsHtml("settings") + _renderSettingsPage(); }
 }
 
 function _renderConfigPage() {
@@ -139,22 +139,50 @@ function _navCard(onclick, iconName, title, hint) {
 }
 
 /* Settings (header gear): who I am first, then app, then group tools */
+/** Me: two tabs — My profile (who I am) and Settings (group, app, data) */
+function _meTabsHtml(active) {
+  return '<div class="session-tabs me-tabs" role="tablist">' +
+    '<button role="tab" class="session-tab' + (active === "profile" ? ' active' : '') + '" onclick="showPage(\'profile\')">' + icon("user", 15) + ' ' + t("myProfile") + '</button>' +
+    '<button role="tab" class="session-tab' + (active === "settings" ? ' active' : '') + '" onclick="showPage(\'settings\')">' + icon("settings", 15) + ' ' + t("navSettings") + '</button></div>';
+}
+
+/** Open the Configuration page on one tab */
+function showConfigTab(tab) {
+  settingsTab = tab;
+  try { localStorage.setItem('settingsTab', tab); } catch (e) {}
+  showPage('config');
+}
+
 function _renderSettingsPage() {
-  var prof = currentUserProfile || {};
-  var uid = currentUser ? currentUser.uid : '';
   var html = '';
+  // How many reports wait for the admins (counted in the background)
+  if (GROUPS_ON && currentGroup && isGroupAdminMe() && typeof loadReports === "function") loadReports();
+  var cfg = typeof can === "function" && can("editConfig");
 
-  // 1. Me — tap to edit photo, details and payment QR
-  html += '<button class="card nav-card me-card" onclick="showPage(\'profile\')">' +
-    '<span class="me-avatar">' + avatarHtml(uid, 56) + '</span>' +
-    '<span class="nav-card-text"><b class="me-name">' + escapeHtml(prof.displayName || '') + '</b>' +
-    '<small>' + t("myProfileHint") + '</small>' +
-    '<span class="me-badges">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</span></span>' +
-    icon("chevron", 16) + '</button>';
+  // 1. Group — everything about the group in one place
+  html += _settingsSection("secGroup");
+  if (GROUPS_ON && currentGroup) {
+    var admin = isGroupAdminMe();
+    var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
+    html += _navCard("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint"));
+    if (admin) html += _navCard("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint"));
+    html += _navCard("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint"));
+    html += _navCard("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint"));
+    html += _navCard("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint"));
+    html += _navCard("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint"));
+    if (cfg) html += _navCard("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint"));
+    html += _navCard("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint"));
+    if (admin && typeof reportsCount === "function") html += _navCard("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint"));
+  } else {
+    if (GROUPS_ON) html += _navCard("showPage('groups')", "users", t("yourGroups"), t("createGroupHint"));
+    html += _navCard("showPage('config')", "settings", t("configuration"), t("configurationHint"));
+  }
 
-  // 2. App
+  // 2. App — language first, then how it looks
   html += _settingsSection("secApp");
-  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
+  html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
+  html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
+  html += '</div>';
   html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
   html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
   html += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
@@ -170,22 +198,9 @@ function _renderSettingsPage() {
   });
   html += '</div></div>';
 
-  // Language
-  html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
-  html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
-  html += '</div>';
-
-  // 3. Group
-  html += _settingsSection("secGroup");
-  if (GROUPS_ON && currentGroup) {
-    var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
-    html += _navCard("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint"));
-    if (isGroupAdminMe()) html += _navCard("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint"));
-    html += _navCard("showPage('group-members')", "key", t("members") + (pending && isGroupAdminMe() ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint"));
-  } else if (GROUPS_ON) {
-    html += _navCard("showPage('groups')", "users", t("yourGroups"), t("createGroupHint"));
-  }
-  html += _navCard("showPage('config')", "settings", t("configuration"), t("configurationHint"));
+  // 3. Notifications & data — notifications sit next to Recently deleted
+  html += _settingsSection("secNotifData");
+  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
   html += _navCard("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint"));
   html += _renderMergeCard();
 
@@ -356,19 +371,22 @@ function copyInviteLink() {
 }
 
 /* ---------- Courts ----------
-   With groups: courts are one shared directory (name, address, pin, phone…)
-   and each group keeps its own price in groups/{gid}.courtPrices. */
+   With groups: each group keeps its OWN court records (groupCourts/{id}:
+   name, address, pin, phone, hours, number of courts, price). They start as
+   a copy of the public directory court; changing them never touches the
+   public directory (Public → Courts), and the other way round. */
 function _renderCourtsTab() {
   var courts = DB_CACHE.courts;
   var html = '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("courts") + '</div>';
-  if (GROUPS_ON) html += '<div class="form-hint" style="margin-bottom:8px">' + t("courtsGroupHint") + '</div>';
+  if (GROUPS_ON) html += '<div class="form-hint" style="margin-bottom:8px">' + t("courtsGroupOwnHint") + '</div>';
   if (!courts.length) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noCourtsYet") + '</div>';
   for (var i = 0; i < courts.length; i++) {
-    var c = courts[i];
+    var c = courts[i], nums = courtNumbers(c);
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
     html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
-      (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') + '</div></div>';
+      (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') +
+      (nums.length ? ' · ' + t("courtsN").replace("{n}", nums.length) + ' (' + nums[0] + '–' + nums[nums.length - 1] + ')' : '') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(courtPrice(c)) + '/h</div>';
     if (can("editConfig")) {
@@ -385,14 +403,15 @@ function _renderCourtsTab() {
   return html;
 }
 
-/** Courts in the shared directory that this group doesn't use yet (nearest first when we know where you are) */
+/** Directory courts this group hasn't copied yet (nearest first when we know where you are) */
 function showCourtDirectoryPicker() {
   var mine = {};
-  DB_CACHE.courts.forEach(function (c) { mine[c.id] = true; });
+  DB_CACHE.courts.forEach(function (c) { mine[c.sourceId || c.id] = true; });
   var list = (DB_CACHE.allCourts || []).filter(function (c) { return !mine[c.id]; });
   var draw = function (here) {
     if (here) list.sort(function (a, b) { return (hasPin(a) ? distanceKm(here, a) : 1e9) - (hasPin(b) ? distanceKm(here, b) : 1e9); });
-    var html = list.length ? '' : '<div class="empty-state" style="padding:12px">' + t("directoryEmpty") + '</div>';
+    var html = '<div class="form-hint" style="margin-bottom:8px">' + t("copyFromDirectoryHint") + '</div>';
+    if (!list.length) html += '<div class="empty-state" style="padding:12px">' + t("directoryEmpty") + '</div>';
     list.forEach(function (c) {
       html += '<button class="group-row" onclick="showCourtModal(\'' + c.id + '\')">' +
         '<span class="nav-card-icon">' + icon("court", 18) + '</span>' +
@@ -409,26 +428,33 @@ function showCourtDirectoryPicker() {
 }
 
 /**
- * Add / edit a court. Shared details go to courts/{id}; the price goes to
- * this group (groups/{gid}.courtPrices) — or onto the court before groups.
- * opts.directoryOnly: from the Public tab, no group price.
+ * Add / edit a court.
+ *  In a group: the group's own record in groupCourts (a directory court is
+ *  copied in first). opts.directoryOnly (Public tab) or before groups: the
+ *  public directory court in courts/{id}.
  */
 function showCourtModal(courtId, onSaved, opts) {
   opts = opts || {};
-  var c = courtId ? findCourt(courtId) : null;
-  var withPrice = !opts.directoryOnly && (!GROUPS_ON || !!currentGroupId);
-  var inGroup = c && GROUPS_ON && currentGroup && currentGroup.courtPrices && currentGroup.courtPrices[c.id] != null;
-  document.getElementById("modalTitle").textContent = c ? (GROUPS_ON && !inGroup && withPrice ? t("addToGroup") : t("editCourt")) : t("addCourt");
+  var c = courtId ? (opts.directoryOnly ? dbFindById(DB_CACHE.allCourts || [], courtId) : findCourt(courtId)) : null;
+  var groupMode = GROUPS_ON && !!currentGroupId && !opts.directoryOnly;
+  var copying = groupMode && c && !c.groupId;           // a directory court becomes the group's own
+  var withPrice = groupMode || !GROUPS_ON;
+  document.getElementById("modalTitle").textContent = copying ? t("addToGroup") : c ? t("editCourt") : t("addCourt");
   closeMapPicker("courtPin");
   var hrs = String(c && c.hours || "").split(/\s*[\u2013-]\s*/);
   var pinned = c && hasPin(c);
+  var labels = (c && c.courtLabels) || "number";
   document.getElementById("modalBody").innerHTML =
+    (groupMode ? '<div class="form-hint" style="margin-bottom:10px">' + icon("lock", 12) + ' ' + t("courtGroupOnlyNote").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>' : '') +
     '<div class="form-group"><label class="form-label">' + t("courtName") + ' *</label>' +
       '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
-    (withPrice ? '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (' + curSymbol() + ')' +
-      (GROUPS_ON ? ' — ' + escapeHtml(currentGroup ? currentGroup.name : '') : '') + ' *</label>' +
-      moneyInput('mCourtPrice', c ? courtPrice(c) : 0, '') +
-      (GROUPS_ON ? '<div class="form-hint">' + t("priceGroupOnly") + '</div>' : '') + '</div>' : '') +
+    (withPrice ? '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (' + curSymbol() + ') *</label>' +
+      moneyInput('mCourtPrice', c ? courtPrice(c) : 0, '') + '</div>' : '') +
+    // How many courts, and are they numbered 1, 2, 3… or A, B, C…
+    '<div class="form-row"><div class="form-group"><label class="form-label">' + t("numCourts") + '</label><input type="number" class="form-input" id="mCourtCount" min="1" max="30" inputmode="numeric" value="' + (c && c.courtsCount || '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("courtLabelsLabel") + '</label><div class="seg" id="mCourtLabels">' +
+        [["number", "1, 2, 3"], ["letter", "A, B, C"]].map(function (o) { return '<button type="button" class="seg-btn' + (labels === o[0] ? ' active' : '') + '" data-l="' + o[0] + '" onclick="this.parentNode.querySelectorAll(\'.seg-btn\').forEach(function(b){b.classList.toggle(\'active\',b===this)},this)">' + o[1] + '</button>'; }).join('') +
+      '</div></div></div>' +
     // Everything else is optional — folded away
     '<details class="more-details court-more" id="courtMore"><summary>' + icon("pin", 14) + ' ' + t("mapAndDetails") +
       ' <span class="form-hint">(' + t("optional") + ')</span>' + (pinned ? ' <span class="tag">' + t("pinned") + '</span>' : '') + '</summary>' +
@@ -438,37 +464,54 @@ function showCourtModal(courtId, onSaved, opts) {
       '<div class="form-group"><label class="form-label">' + t("phoneToBook") + '</label>' + phoneInputHtml("mCourtPhone", c && c.phone) + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("openingHours") + '</label>' +
         timeRangeHtml(hrs[0] && /^\d\d:\d\d$/.test(hrs[0]) ? hrs[0] : "", hrs[1] && /^\d\d:\d\d$/.test(hrs[1]) ? hrs[1] : "", "", "").replace('<input type="time"', '<input type="time" id="mCourtOpen"').replace(/(<span class="time-range-dash">.*?<\/span>)<input type="time"/, '$1<input type="time" id="mCourtClose"') + '</div>' +
-      '<div class="form-group"><label class="form-label">' + t("numCourts") + '</label><input type="number" class="form-input" id="mCourtCount" min="1" max="30" value="' + (c && c.courtsCount || '') + '"></div>' +
       '<label class="perm-row"><input type="checkbox" id="mCourtAc"' + (c && c.aircon ? ' checked' : '') + '><div>' + t("aircon") + '</div></label>' +
-    '</details>';
+    '</details>' +
+    (groupMode && !c ? '<label class="perm-row"><input type="checkbox" id="mCourtShare"><div><b>' + t("alsoPublicDirectory") + '</b><div class="form-hint">' + t("alsoPublicDirectoryHint") + '</div></div></label>' : '');
 
   modalCallback = function () {
     var ph = readPhone("mCourtPhone");
     if (!ph.ok) { showToast(t("phoneInvalid")); return; }
     // Map never opened → keep the pin the court already has
     var pin = mapPickerActive("courtPin") ? getMapPick("courtPin") : { lat: c ? c.lat || null : null, lng: c ? c.lng || null : null };
+    var lb = document.querySelector("#mCourtLabels .seg-btn.active");
     var data = {
       name: document.getElementById("mCourtName").value.trim(),
       location: document.getElementById("mCourtLoc").value.trim(),
       lat: pin.lat, lng: pin.lng, phone: ph.value,
       courtsCount: parseInt(document.getElementById("mCourtCount").value, 10) || null,
+      courtLabels: lb ? lb.getAttribute("data-l") : "number",
       hours: fmtTimeRange(document.getElementById("mCourtOpen").value, document.getElementById("mCourtClose").value) || null,
       aircon: document.getElementById("mCourtAc").checked
     };
     var price = withPrice ? parseMoney(document.getElementById("mCourtPrice").value) : 0;
     if (!data.name) { showToast(t("courtName")); return; }
     if (withPrice && price <= 0) { showToast(t("pricePerHour")); return; }
+    if (data.courtsCount && (data.courtsCount < 1 || data.courtsCount > 30)) { showToast(t("numCourts") + " 1–30"); return; }
     if (!timeRangeOk(document.getElementById("mCourtOpen").value, document.getElementById("mCourtClose").value)) { showToast(t("timeRangeInvalid")); return; }
-    if (!GROUPS_ON) data.pricePerHour = price;
     var op;
-    if (c) op = dbUpdateCourt(c.id, data).then(function () { return { id: c.id }; });
-    else op = dbAddCourt(Object.assign(data, { createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
-    op.then(function (ref) {
-      if (!GROUPS_ON || !withPrice) return ref;
-      var upd = {};
-      upd["courtPrices." + ref.id] = price;
-      return fsdb.collection("groups").doc(currentGroupId).update(upd).then(function () { return ref; });
-    }).then(function (ref) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(ref.id); })
+    if (groupMode) {
+      Object.assign(data, { price: price });
+      var share = document.getElementById("mCourtShare");
+      if (c && c.groupId) op = fsdb.collection("groupCourts").doc(c.id).update(data).then(function () { return c.id; });
+      else if (c) {
+        var cid = currentGroupId + "_" + c.id;
+        op = fsdb.collection("groupCourts").doc(cid).set(Object.assign(data, { groupId: currentGroupId, sourceId: c.id, createdBy: currentUser.uid, createdAt: Date.now() })).then(function () { return cid; });
+      } else {
+        var shared = share && share.checked
+          ? dbAddCourt({ name: data.name, location: data.location, lat: data.lat, lng: data.lng, phone: data.phone, courtsCount: data.courtsCount, courtLabels: data.courtLabels,
+              hours: data.hours, aircon: data.aircon, createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+          : Promise.resolve(null);
+        op = shared.then(function (pub) {
+          var ref = fsdb.collection("groupCourts").doc();
+          return ref.set(Object.assign(data, { groupId: currentGroupId, sourceId: pub ? pub.id : null, createdBy: currentUser.uid, createdAt: Date.now() })).then(function () { return ref.id; });
+        });
+      }
+    } else {
+      if (!GROUPS_ON) data.pricePerHour = price;
+      if (c) op = dbUpdateCourt(c.id, data).then(function () { return c.id; });
+      else op = dbAddCourt(Object.assign(data, { createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() })).then(function (r) { return r.id; });
+    }
+    op.then(function (id) { closeMapPicker("courtPin"); closeModal(); showToast(t("save") + " ✔"); if (onSaved) onSaved(id); })
       .catch(function (error) { showToast(_permError(error)); });
   };
   openModal();
@@ -485,12 +528,11 @@ function showCourtModal(courtId, onSaved, opts) {
 function deleteSettingsCourt(id) {
   var c = findCourt(id);
   if (GROUPS_ON) {
-    // Only take it out of this group; the court stays in the shared directory
     if (!confirm(t("removeFromGroupConfirm").replace("{name}", c ? c.name : ""))) return;
-    var upd = {};
-    upd["courtPrices." + id] = firebase.firestore.FieldValue.delete();
-    fsdb.collection("groups").doc(currentGroupId).update(upd).then(function () { showToast(t("removeFromGroup") + " ✔"); })
-      .catch(function (error) { showToast(_permError(error)); });
+    var op;
+    if (c && c.groupId) op = fsdb.collection("groupCourts").doc(c.id).delete();
+    else { var upd = {}; upd["courtPrices." + id] = firebase.firestore.FieldValue.delete(); op = fsdb.collection("groups").doc(currentGroupId).update(upd); }
+    op.then(function () { showToast(t("removeFromGroup") + " ✔"); }).catch(function (error) { showToast(_permError(error)); });
     return;
   }
   if (!confirm(t("delete") + (c ? " " + c.name : "") + "?")) return;

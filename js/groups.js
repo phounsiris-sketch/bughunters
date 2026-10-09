@@ -125,6 +125,7 @@ function groupCurrency() {
 /** The group's own price for a court (shared directory courts have no price) */
 function courtPrice(court) {
   if (!court) return 0;
+  if (court.groupId) return court.price || 0;   // the group's own court
   if (GROUPS_ON && currentGroup && currentGroup.courtPrices && currentGroup.courtPrices[court.id] != null) {
     return currentGroup.courtPrices[court.id];
   }
@@ -208,9 +209,21 @@ function startGroupListeners() {
     myGroupsInfo[currentGroupId] = currentGroup;
     _applyGroupMoney();
     rebuildGroupCache();
+    ensureGroupCourts();
     updateHeaderGroup();
     refreshCurrentPage("app");
   }, dbOnError));
+  // The group's own courts (a copy of the directory's, with the group's price)
+  DB_CACHE.groupCourts = null;
+  _groupUnsubs.push(groupScoped(fsdb.collection("groupCourts")).onSnapshot(function (snap) {
+    var list = [];
+    snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
+    list.sort(function (a, b) { return String(a.name || "").localeCompare(String(b.name || "")); });
+    DB_CACHE.groupCourts = list;
+    rebuildGroupCache();
+    ensureGroupCourts();
+    refreshCurrentPage("courts");
+  }, function () { DB_CACHE.groupCourts = []; rebuildGroupCache(); }));
   _groupUnsubs.push(fsdb.collection("members").where("gid", "==", currentGroupId).onSnapshot(function (snap) {
     var list = [];
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
@@ -237,8 +250,43 @@ function rebuildGroupCache() {
   var active = {};
   groupMembers.forEach(function (m) { if (m.status === "active") active[m.uid] = true; });
   DB_CACHE.users = all.filter(function (u) { return u.manual ? u.groupId === currentGroupId : !!active[u.id]; });
+  // The group's own courts once it has them; before that, the directory courts it priced
+  if (DB_CACHE.groupCourts && DB_CACHE.groupCourts.length) { DB_CACHE.courts = DB_CACHE.groupCourts; return; }
   var prices = (currentGroup && currentGroup.courtPrices) || {};
   DB_CACHE.courts = (DB_CACHE.allCourts || []).filter(function (c) { return prices[c.id] != null; });
+}
+
+/** Does this group keep its own court records yet? */
+function hasGroupCourts() { return !!(GROUPS_ON && DB_CACHE.groupCourts && DB_CACHE.groupCourts.length); }
+
+/** One-time copy: the directory courts this group priced become the group's
+    own courts (id "<gid>_<courtId>", so it is safe to repeat). Done by an
+    admin's app; until then everyone keeps seeing the directory courts. */
+var _groupCourtsCopied = {};
+function ensureGroupCourts() {
+  if (!GROUPS_ON || !currentGroup || !currentGroupId || DB_CACHE.groupCourts === null || DB_CACHE.groupCourts.length) return;
+  if (_groupCourtsCopied[currentGroupId] || typeof can !== "function" || !can("editConfig")) return;
+  var prices = currentGroup.courtPrices || {}, ids = Object.keys(prices);
+  if (!ids.length || !(DB_CACHE.allCourts || []).length) return;
+  _groupCourtsCopied[currentGroupId] = true;
+  var gid = currentGroupId, batch = fsdb.batch(), n = 0;
+  ids.forEach(function (cid) {
+    var c = dbFindById(DB_CACHE.allCourts, cid);
+    if (!c) return;
+    var copy = { groupId: gid, sourceId: cid, name: c.name || "", location: c.location || "", lat: c.lat != null ? c.lat : null, lng: c.lng != null ? c.lng : null,
+      phone: c.phone || null, hours: c.hours || null, courtsCount: c.courtsCount || null, courtLabels: c.courtLabels || "number", aircon: !!c.aircon,
+      price: prices[cid] || 0, createdBy: currentUser.uid, createdAt: Date.now() };
+    batch.set(fsdb.collection("groupCourts").doc(gid + "_" + cid), copy);
+    n++;
+  });
+  if (n) batch.commit().catch(function () { _groupCourtsCopied[gid] = false; });
+}
+
+/** "Court 3" / "Court C" labels for a court with n courts */
+function courtNumbers(c) {
+  var n = Math.min(30, (c && c.courtsCount) || 0), out = [];
+  for (var i = 0; i < n; i++) out.push(c.courtLabels === "letter" ? String.fromCharCode(65 + i) : String(i + 1));
+  return out;
 }
 
 /** Currency symbol + rounding of the current group */
@@ -540,7 +588,7 @@ function deleteGroup() {
   if (typed.trim().toLowerCase() !== String(g.name || "").trim().toLowerCase()) { showToast(t("deleteGroupMismatch")); return; }
   showToast(t("deletingGroup"));
   var byGroup = function (col) { return fsdb.collection(col).where("groupId", "==", gid).get().then(function (s) { return s.docs.map(function (d) { return d.ref; }); }); };
-  Promise.all([byGroup("polls"), byGroup("sessions"), byGroup("matches"), byGroup("shuttlecocks"),
+  Promise.all([byGroup("polls"), byGroup("sessions"), byGroup("matches"), byGroup("shuttlecocks").then(function (a) { return byGroup("groupCourts").then(function (b) { return a.concat(b); }); }),
     fsdb.collection("users").where("groupId", "==", gid).get().then(function (s) { return s.docs.filter(function (d) { return d.data().manual; }).map(function (d) { return d.ref; }); }),
     fsdb.collection("members").where("gid", "==", gid).get()
   ]).then(function (r) {

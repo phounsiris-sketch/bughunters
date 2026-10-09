@@ -10,7 +10,7 @@
    ============================================================ */
 
 var VIS_DEFAULT = { gender: "groups", age: "groups", relationship: "me", selfLevel: "everyone", hand: "everyone",
-  position: "everyone", homeCourtId: "groups", daysFree: "groups", phone: "groups", story: "groups" };
+  position: "everyone", homeCourtId: "groups", daysFree: "groups", phone: "groups", story: "groups", fullName: "groups" };
 var _myPrivate = null;
 var _gearCache = {};   // uid -> [gear]
 var _gearLoadedAt = {}; // uid -> when it was last read
@@ -48,6 +48,7 @@ function aboutCardHtml() {
   if (!aboutForm) {
     aboutForm = {
       name: prof.displayName || me.displayName || "", phone: phoneDigits(prof.phone || me.phone),
+      firstName: prof.firstName || me.firstName || "", lastName: prof.lastName || me.lastName || "", nickname: prof.nickname || me.nickname || "",
       gender: about.gender || "", selfLevel: normLevel(about.selfLevel || me.selfLevel), hand: about.hand || "", position: about.position || "",
       homeCourtId: about.homeCourtId || "", daysFree: (about.daysFree || []).slice(), relationship: about.relationship || "",
       timeFrom: about.timeFrom || "", timeTo: about.timeTo || "",
@@ -80,7 +81,13 @@ function aboutCardHtml() {
   var html = '<div class="card" id="aboutCard"><div class="card-title">' + icon("user", 14) + ' ' + t("personalInfo") + '</div>' +
     '<div class="form-hint" style="margin-bottom:10px">' + t("aboutHint") + '</div>';
   // Who I am
-  html += row(t("displayName") + ' *', "name", '<input class="form-input" id="pfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="aboutForm.name=this.value">', false);
+  // Name: first name + surname (who can see them), nickname, and the name shown in the app
+  html += row(t("fullName"), "fullName", '<div class="form-row name-row">' +
+    '<input class="form-input" id="pfFirst" maxlength="30" placeholder="' + t("firstName") + '" aria-label="' + t("firstName") + '" value="' + escapeHtml(f.firstName) + '" oninput="aboutForm.firstName=this.value;_suggestDisplayName()">' +
+    '<input class="form-input" id="pfLast" maxlength="30" placeholder="' + t("lastName") + '" aria-label="' + t("lastName") + '" value="' + escapeHtml(f.lastName) + '" oninput="aboutForm.lastName=this.value"></div>');
+  html += row(t("nickname"), "nickname", '<input class="form-input" id="pfNick" maxlength="20" placeholder="' + t("nicknameHint") + '" value="' + escapeHtml(f.nickname) + '" oninput="aboutForm.nickname=this.value;_suggestDisplayName()">', false);
+  html += row(t("displayName") + ' *', "name", '<input class="form-input" id="pfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="aboutForm.name=this.value;aboutForm._nameTouched=true">' +
+    '<div class="form-hint">' + t("displayNameHint") + '</div>', false);
   html += row(t("phone"), "phone", phoneInputHtml("pfPhone", f.phone).replace('oninput="', 'oninput="aboutForm.phone=this.value.replace(/\\D/g,\'\').slice(0,8);'));
   html += row(t("emailLabel"), "email", '<input class="form-input" value="' + escapeHtml(email) + '" disabled>', false);
   html += row(t("gender"), "gender", seg("gender", ["male", "female", "na"], "gender_"));
@@ -136,6 +143,16 @@ function dobSet(part, v) {
   _rerenderAbout();
 }
 
+/** While the display name hasn't been typed by hand, follow nickname or first name */
+function _suggestDisplayName() {
+  var f = aboutForm;
+  if (f._nameTouched && f.name) return;
+  var v = (f.nickname || f.firstName || "").trim();
+  if (!v) return;
+  f.name = v;
+  var el = document.getElementById("pfName"); if (el) el.value = v;
+}
+
 function aboutSet(key, v) { aboutForm[key] = aboutForm[key] === v ? "" : v; _rerenderAbout(); }
 function aboutDay(d) { var l = aboutForm.daysFree, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else l.push(d); _rerenderAbout(); }
 function _rerenderAbout() { var box = document.getElementById("aboutCard"); if (box) box.outerHTML = aboutCardHtml(); }
@@ -158,11 +175,13 @@ function saveAbout() {
   var vis = {};
   Object.keys(VIS_DEFAULT).forEach(function (k) { vis[k] = f.vis[k] || VIS_DEFAULT[k]; });
   Promise.all([
-    dbUpdateUser(uid, { displayName: name, phone: ph.value || null, about: about, vis: vis, selfLevel: f.selfLevel || null }),
+    dbUpdateUser(uid, { displayName: name, firstName: (f.firstName || "").trim() || null, lastName: (f.lastName || "").trim() || null,
+      nickname: (f.nickname || "").trim() || null, phone: ph.value || null, about: about, vis: vis, selfLevel: f.selfLevel || null }),
     fsdb.collection("userPrivate").doc(uid).set({ dob: f.dob || null, relationship: f.relationship || null }, { merge: true })
   ]).then(function () {
     if (currentUserProfile) {
       currentUserProfile.displayName = name; currentUserProfile.phone = ph.value || null;
+      currentUserProfile.firstName = (f.firstName || "").trim() || null; currentUserProfile.lastName = (f.lastName || "").trim() || null; currentUserProfile.nickname = (f.nickname || "").trim() || null;
       currentUserProfile.about = about; currentUserProfile.vis = vis; currentUserProfile.selfLevel = f.selfLevel || null;
     }
     if (_myPrivate) _myPrivate.dob = f.dob || null;
@@ -417,6 +436,9 @@ function aboutViewHtml(u) {
     var lv = playerLevel(u.id), r = computeStats().players[u.id];
     if (lv || (r && r.comp)) facts.push('<span class="about-fact"><small>' + t("groupLevel") + '</small><b>' + levelBadgeHtml(lv, true) + (lv ? ' ' + escapeHtml(levelName(lv)) : '') + (r && r.comp ? ' · ' + Math.round(r.rating) : '') + '</b></span>');
   }
+  var full = [u.firstName, u.lastName].filter(Boolean).join(" ");
+  push("fullName", t("fullName"), full ? escapeHtml(full) : "");
+  if (u.nickname) facts.push('<span class="about-fact"><small>' + t("nickname") + '</small><b>' + escapeHtml(u.nickname) + '</b></span>');
   var sl = normLevel(a.selfLevel || u.selfLevel);
   push("selfLevel", t("selfLevel"), sl ? levelBadgeHtml(sl, true) + ' ' + escapeHtml(levelName(sl)) : "");
   push("gender", t("gender"), a.gender ? t("gender_" + a.gender) : "");

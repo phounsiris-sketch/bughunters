@@ -135,7 +135,7 @@ service cloud.firestore {
 
     // ── Sessions ──────────────────────────────────────────────
     function sessionDetailKeys() {
-      return ['date', 'time', 'duration', 'courtId', 'courtName', 'courtLocation', 'pricePerHour', 'players'];
+      return ['date', 'time', 'duration', 'courtId', 'courtNos', 'courtName', 'courtLocation', 'pricePerHour', 'players'];
     }
     function billKeys() {
       return ['courtCost', 'courtPayer', 'shuttlecocks', 'shuttleTotal', 'shuttlePayer', 'otherCosts',
@@ -203,6 +203,14 @@ service cloud.firestore {
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
       allow update: if isAuth() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
       allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+    }
+
+    // ── A group's own courts (copied from the directory, then its own) ──
+    match /groupCourts/{id} {
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      allow create: if request.resource.data.get('groupId', '') != '' && canIn('editConfig', request.resource.data.groupId);
+      allow update: if sameGroup() && canIn('editConfig', gidOf(resource.data));
+      allow delete: if canIn('editConfig', gidOf(resource.data));
     }
 
     // ── Courts: one shared directory (prices live on each group) ──

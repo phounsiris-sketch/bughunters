@@ -203,16 +203,46 @@ function _wl(w, l) { return w + t("winShort") + ' \u2013 ' + l + t("lossShort");
 function _myStatsCard() {
   var me = currentUser.uid, st = computeStats(), p = st.players[me];
   var lvl = playerLevel(me);
-  var html = '<div class="card my-stats" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">';
-  html += '<div class="my-stats-head">' + (lvl ? levelBadgeHtml(lvl) : '<span class="level-badge lv-none" onclick="event.stopPropagation();showLevelGuide()">?</span>') + '<div><div class="my-stats-title">' + t("myLevel") + '</div>' +
-    '<div class="my-stats-rating">' + (p && p.comp ? Math.round(p.rating) + ' ' + _trend(p.rating, p.monthStart) + _provTag(p.comp, RANK_MIN_MATCHES) : t("notRankedYet").replace("{n}", 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div></div>';
+  var html = '<div class="card my-stats">';
+  html += '<div class="my-stats-head">' + (lvl ? levelBadgeHtml(lvl) : '<span class="level-badge lv-none" onclick="showLevelGuide()">?</span>') +
+    '<div style="flex:1;min-width:0"><div class="my-stats-title">' + t("myLevel") + '</div>' +
+    '<div class="my-stats-rating">' + (p && p.comp ? Math.round(p.rating) + ' ' + _trend(p.rating, p.monthStart) + _provTag(p.comp, RANK_MIN_MATCHES) : t("notRankedYet").replace("{n}", 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div>' +
+    '<button class="how-btn" aria-label="' + t("howRankingWorks") + '" onclick="showRankingHelp()">?</button></div>';
   if (p) {
     var wr = p.wins + p.losses ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
     var best = _bestPartner(p);
     html += '<div class="my-stats-facts"><span><b>' + wr + '%</b> ' + t("winRate") + '</span><span><b>' + p.monthPlayed + '</b> ' + t("matchesThisMonth") + '</span>' +
       (best ? '<span>' + t("bestPartner") + ' <b>' + getUserName(best) + '</b></span>' : '') + '</div>';
   }
+  // My last 5 games: me (and my partner) vs the rivals, won or lost
+  var last = _myGames(me).slice(-5).reverse();
+  if (last.length) {
+    html += '<div class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
+      last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') + '</div>';
+    html += '<div class="recent-games">' + last.map(function (x) {
+      var g = (x.m.games || [])[0] || {}, mineA = x.m.teamA.indexOf(me) >= 0;
+      var myPts = mineA ? g.a : g.b, theirPts = mineA ? g.b : g.a;
+      var partner = x.mine.filter(function (u) { return u !== me; });
+      return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
+        '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
+        '<span class="rg-teams"><b>' + t("youCap") + (partner.length ? ' &amp; ' + escapeHtml(getUserName(partner[0])) : '') + '</b>' +
+          '<small>' + t("vsWord") + ' ' + x.them.map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span>' +
+        '<span class="rg-score"><b>' + (myPts != null ? myPts : '–') + '–' + (theirPts != null ? theirPts : '–') + '</b><small>' + (x.m.date ? fmtDate(x.m.date) : '') + '</small></span></div>';
+    }).join('') + '</div>';
+  }
+  html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';
   return html + '</div>';
+}
+
+/** How ratings and rankings are counted — with the systems it follows */
+function showRankingHelp() {
+  var el = document.createElement("div");
+  el.className = "image-viewer level-guide";
+  el.onclick = function (e) { if (e.target === el || e.target.closest(".lg-close")) el.remove(); };
+  var cap = typeof maxPoints === "function" ? maxPoints() : 31;
+  el.innerHTML = '<div class="lg-sheet"><div class="lg-head"><b>' + t("howRankingWorks") + '</b><button class="lg-close" aria-label="' + t("close") + '">' + icon("close", 18) + '</button></div>' +
+    '<div class="help-body">' + t("rankHelpHtml").replace(/\{start\}/g, RATING_START).replace(/\{k\}/g, RATING_K).replace(/\{min\}/g, RANK_MIN_MATCHES).replace(/\{pmin\}/g, PAIR_MIN_MATCHES).replace(/\{cap\}/g, cap) + '</div></div>';
+  document.body.appendChild(el);
 }
 
 function _bestPartner(p) {
@@ -701,34 +731,88 @@ function badgesHtml(uid, showLocked) {
 function makeRecap() {
   var me = currentUser.uid, st = computeStats(), p = st.players[me];
   var now = new Date(), mk = _todayIso().slice(0, 7);
-  var bm = p && p.byMonth[mk] ? p.byMonth[mk] : { played: 0, wins: 0, losses: 0, minutes: 0 };
-  var wr = bm.wins + bm.losses ? Math.round(bm.wins / (bm.wins + bm.losses) * 100) + "%" : "\u2013";
+  // This month's games (any mode, with a winner)
+  var games = _myGames(me, mk + "-01");
+  var w = games.filter(function (x) { return x.won; }).length, l = games.length - w;
+  var wr = games.length ? Math.round(w / games.length * 100) : 0;
   var change = p && p.monthStart !== null ? Math.round(p.rating - p.monthStart) : 0;
-  var best = p ? _bestPartner(p) : null;
-  var earned = badgesFor(me).filter(function (b) { return b.earned; }).length;
+  var pts = games.reduce(function (sum, x) { return sum + x.pts; }, 0);
+  var streak = 0, run = 0;
+  games.forEach(function (x) { run = x.won ? run + 1 : 0; streak = Math.max(streak, run); });
+  // Best partner (most wins together) and the rival pair met most
+  var partners = {}, rivals = {};
+  games.forEach(function (x) {
+    var mate = x.mine.filter(function (u) { return u !== me; })[0];
+    if (mate) { var q = partners[mate] || (partners[mate] = { n: 0, w: 0 }); q.n++; if (x.won) q.w++; }
+    var rk = x.them.slice().sort().join("+"), r = rivals[rk] || (rivals[rk] = { n: 0, w: 0 }); r.n++; if (x.won) r.w++;
+  });
+  var bestMate = Object.keys(partners).sort(function (a, b) { return partners[b].w - partners[a].w || partners[b].n - partners[a].n; })[0];
+  var rival = Object.keys(rivals).sort(function (a, b) { return rivals[b].n - rivals[a].n; })[0];
+  var name = function (u) { return plainUserName(findUser(u)); };
+  var earned = badgesFor(me).filter(function (x) { return x.earned; }).length;
+  var lvl = playerLevel(me);
+
   var c = document.createElement("canvas");
   c.width = 1080; c.height = 1350;
   var g = c.getContext("2d");
   var grad = g.createLinearGradient(0, 0, 1080, 1350);
-  grad.addColorStop(0, "#0d9488"); grad.addColorStop(1, "#1d4ed8");
+  grad.addColorStop(0, "#0f766e"); grad.addColorStop(0.55, "#1e40af"); grad.addColorStop(1, "#6d28d9");
   g.fillStyle = grad; g.fillRect(0, 0, 1080, 1350);
-  g.fillStyle = "rgba(255,255,255,0.10)"; g.beginPath(); g.arc(900, 200, 300, 0, Math.PI * 2); g.fill();
-  var font = function (w, px) { g.font = w + " " + px + "px Montserrat, 'Noto Sans Lao', sans-serif"; };
-  g.fillStyle = "#fff"; g.textAlign = "left";
-  font("700", 44); g.fillText("\uD83C\uDFF8 Godsmash \u00B7 " + (currentGroup ? currentGroup.name : ""), 80, 130);
-  font("600", 40); g.globalAlpha = 0.85; g.fillText(monthYear(now.getFullYear(), now.getMonth()), 80, 200); g.globalAlpha = 1;
-  font("800", 96); g.fillText(plainUserName(findUser(me)), 80, 340);
-  var tiles = [[String(bm.played), t("matchesWord")], [wr, t("winRate")], [String(bm.minutes), t("minShort")], [(change > 0 ? "+" : "") + change, t("ratingWord")]];
-  tiles.forEach(function (x, i) {
-    var col = i % 2, row = Math.floor(i / 2), x0 = 80 + col * 470, y0 = 430 + row * 290;
-    g.fillStyle = "rgba(255,255,255,0.14)"; _roundRect(g, x0, y0, 440, 250, 36); g.fill();
-    g.fillStyle = "#fff"; font("800", 110); g.fillText(x[0], x0 + 40, y0 + 145);
-    font("600", 40); g.globalAlpha = 0.85; g.fillText(x[1], x0 + 40, y0 + 210); g.globalAlpha = 1;
+  g.fillStyle = "rgba(255,255,255,0.07)"; g.beginPath(); g.arc(980, 120, 320, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(60, 1300, 260, 0, Math.PI * 2); g.fill();
+  var font = function (wt, px) { g.font = wt + " " + px + "px Montserrat, 'Noto Sans Lao', sans-serif"; };
+  var text = function (str, x, y, wt, px, alpha, align) { font(wt, px); g.globalAlpha = alpha == null ? 1 : alpha; g.textAlign = align || "left"; g.fillStyle = "#fff"; g.fillText(str, x, y); g.globalAlpha = 1; };
+  var card = function (x, y, wd, ht) { g.fillStyle = "rgba(255,255,255,0.13)"; _roundRect(g, x, y, wd, ht, 32); g.fill(); };
+
+  // Header
+  text("🏸 GODSMASH", 80, 110, "800", 36, 0.9);
+  text((currentGroup ? currentGroup.name + " · " : "") + monthYear(now.getFullYear(), now.getMonth()), 80, 160, "600", 34, 0.8);
+  text(name(me), 80, 268, "800", 84);
+  if (lvl) {
+    var lc = { BG: "#64748b", N: "#0d9488", S: "#2563eb", P: "#7c3aed", CL: "#d97706", BA: "#dc2626" }[lvl] || "#64748b";
+    g.fillStyle = lc; _roundRect(g, 80, 300, 300, 64, 18); g.fill();
+    text(levelShort(lvl) + " · " + levelName(lvl), 230, 344, "700", 28, 1, "center");
+  }
+
+  // Win rate ring
+  var cx = 270, cy = 590, R = 170;
+  g.lineWidth = 34; g.lineCap = "round";
+  g.strokeStyle = "rgba(255,255,255,0.18)"; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+  if (games.length) { g.strokeStyle = "#4ade80"; g.beginPath(); g.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * wr / 100); g.stroke(); }
+  text(wr + "%", cx, cy + 22, "800", 92, 1, "center");
+  text(t("winRate"), cx, cy + 74, "600", 30, 0.85, "center");
+
+  // W – L and the last five
+  text(w + t("winShort") + " – " + l + t("lossShort"), 520, 520, "800", 96);
+  text(t("recapGamesN").replace("{n}", games.length), 520, 575, "600", 32, 0.85);
+  games.slice(-5).forEach(function (x, i) {
+    g.fillStyle = x.won ? "#16a34a" : "#dc2626";
+    _roundRect(g, 520 + i * 92, 620, 76, 76, 18); g.fill();
+    text(x.won ? t("winShort") : t("lossShort"), 558 + i * 92, 672, "800", 36, 1, "center");
   });
-  font("600", 44);
-  if (best) g.fillText(t("bestPartner") + ": " + plainUserName(findUser(best)), 80, 1080);
-  g.fillText(t("badges") + ": " + earned, 80, 1150);
-  font("600", 34); g.globalAlpha = 0.75; g.fillText(playerLevel(me) ? t("level") + " " + levelShort(playerLevel(me)) + " · " + levelName(playerLevel(me)) : "", 80, 1260); g.globalAlpha = 1;
+  if (games.length) text(t("lastNGames").replace("{n}", Math.min(5, games.length)), 520, 740, "600", 26, 0.75);
+
+  // Three tiles: rating change, best streak, points per game
+  var tiles = [[(change > 0 ? "+" : "") + change, t("recapRating")], [String(streak), t("recapStreak")],
+    [(games.length ? (pts / games.length >= 0 ? "+" : "") + (pts / games.length).toFixed(1) : "0"), t("ptsPerGame")]];
+  tiles.forEach(function (x, i) {
+    var x0 = 80 + i * 313;
+    card(x0, 830, 290, 200);
+    text(x[0], x0 + 145, 940, "800", 76, 1, "center");
+    text(x[1], x0 + 145, 990, "600", 26, 0.85, "center");
+  });
+
+  // Partner and rival
+  card(80, 1060, 920, 170);
+  text(t("bestPartner"), 120, 1112, "600", 28, 0.8);
+  text(bestMate ? name(bestMate) + "  " + partners[bestMate].w + t("winShort") + "–" + (partners[bestMate].n - partners[bestMate].w) + t("lossShort") : "–", 120, 1160, "800", 38);
+  text(t("recapRival"), 560, 1112, "600", 28, 0.8);
+  text(rival ? rival.split("+").map(name).join(" & ") : "–", 560, 1160, "800", 34);
+  if (rival) text(rivals[rival].w + t("winShort") + "–" + (rivals[rival].n - rivals[rival].w) + t("lossShort"), 560, 1204, "600", 28, 0.85);
+
+  // Footer
+  text(t("badges") + " " + earned + "/" + BADGES.length + "  ·  godsmash", 540, 1300, "600", 28, 0.7, "center");
+
   c.toBlob(function (blob) {
     var file = typeof File !== "undefined" ? new File([blob], "godsmash-" + mk + ".png", { type: "image/png" }) : null;
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {

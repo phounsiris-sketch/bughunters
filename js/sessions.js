@@ -558,6 +558,16 @@ function renderSessionDetail() {
   _fillQrSlots(container);
 }
 
+/** Milliseconds from a Firestore Timestamp, {seconds}, or a number */
+function _tsMs(v) {
+  if (!v) return 0;
+  if (typeof v === "number") return v;
+  if (typeof v.toMillis === "function") return v.toMillis();
+  if (v.seconds) return v.seconds * 1000;
+  if (v.__ts) return v.__ts;
+  return 0;
+}
+
 /* ---------- Where the session is: open / share the pinned court ---------- */
 function _sessionLocationHtml(court) {
   if (!court) return "";
@@ -630,6 +640,12 @@ function _renderSessionHeader(s) {
   html += '<div style="font-size:16px;font-weight:700">' + fmtDate(s.date) + '</div>';
   html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
     ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
+  // Who made this session, and when
+  var src = s.createdBy ? s : (currentSession || {});
+  var made = _tsMs(src.createdAt);
+  if (src.createdBy || made) html += '<div class="session-made">' + t("createdByAt").replace("{name}", escapeHtml(src.createdBy ? getUserName(src.createdBy) : "?"))
+    .replace("{when}", made && typeof _whenShort === "function" ? _whenShort(made) : "") + '</div>';
+  if (s.courtNos && s.courtNos.length) html += '<div class="court-nos-line">' + icon("court", 13) + ' ' + t(s.courtNos.length > 1 ? "courtsWord" : "courtWord") + ' ' + s.courtNos.map(escapeHtml).join(", ") + '</div>';
   var court = s.courtId ? findCourt(s.courtId) : null;
   html += _sessionLocationHtml(court);
   html += '</div>';
@@ -867,7 +883,9 @@ function startEditSession() {
     date: s.date || _todayIso(),
     time: s.time || "18:00",
     duration: s.duration || 2,
-    courtId: s.courtId || (DB_CACHE.courts[0] ? DB_CACHE.courts[0].id : ""),
+    // An old session may point at the directory court: use the group's own copy
+    courtId: (court && court.id) || s.courtId || (DB_CACHE.courts[0] ? DB_CACHE.courts[0].id : ""),
+    courtNos: (s.courtNos || []).slice(),
     pricePerHour: court ? courtPrice(court) : (s.pricePerHour || 0),
     players: (s.players || []).slice(),
     courtPayer: s.courtPayer || _defaultPayer("defaultCourtPayer", s.players),
@@ -950,6 +968,13 @@ function renderEditForm() {
   html += '</select></div>';
   html += '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" min="0.5" max="12" step="0.5" value="' + edit.duration + '" oninput="edit.duration=parseFloat(this.value)||0;_updateEditTotals()"></div>';
   html += '</div>';
+  // Which courts were booked (Court 3, 4 / Court A, B)
+  var nums = courtNumbers(findCourt(edit.courtId));
+  if (nums.length) {
+    html += '<div class="form-group"><label class="form-label">' + t("bookedCourts") + '</label><div class="chips court-nos">' + nums.map(function (n) {
+      return '<div class="chip' + (edit.courtNos.indexOf(n) >= 0 ? ' active' : '') + '" onclick="editToggleCourtNo(\'' + n + '\')">' + n + '</div>';
+    }).join('') + '</div></div>';
+  }
   html += '<div class="cost-display" id="courtCostDisplay"></div>';
   html += '</fieldset>' + lockBill;
   html += '<div class="form-group" style="margin-top:8px"><label class="form-label">' + icon("card", 12) + ' ' + t("courtPayer") + '</label>';
@@ -1038,7 +1063,7 @@ function renderEditForm() {
   }
 
   container.innerHTML = _renderSessionHeader({
-    date: edit.date, time: edit.time, duration: edit.duration, courtId: edit.courtId,
+    date: edit.date, time: edit.time, duration: edit.duration, courtId: edit.courtId, courtNos: edit.courtNos,
     courtName: (dbFindById(courts, edit.courtId) || {}).name || (currentSession && currentSession.courtName),
     courtLocation: (dbFindById(courts, edit.courtId) || {}).location
   }) + _sessionTabsHtml(currentSession) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(currentSession) : "") + html;
@@ -1079,6 +1104,7 @@ function _editToSessionData() {
     time: edit.time,
     duration: edit.duration,
     courtId: edit.courtId || null,
+    courtNos: (edit.courtNos || []).slice(),
     courtName: court ? court.name : (currentSession ? currentSession.courtName : null),
     courtLocation: court ? (court.location || null) : (currentSession ? currentSession.courtLocation || null : null),
     pricePerHour: pricePerHour,
@@ -1131,8 +1157,17 @@ function editPickCourtPayer(uid) { _editAddAndPick(uid); edit.courtPayer = uid; 
 function editPickShuttlePayer(uid) { _editAddAndPick(uid); edit.shuttlePayer = uid; renderEditForm(); }
 function editPickDinnerPayer(uid) { if (edit.dinner) edit.dinner.paidBy = uid; renderEditForm(); }
 
+function editToggleCourtNo(n) {
+  var l = edit.courtNos, i = l.indexOf(n);
+  if (i >= 0) l.splice(i, 1); else l.push(n);
+  var order = courtNumbers(findCourt(edit.courtId));
+  l.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+  renderEditForm();
+}
+
 function editSetCourt(courtId) {
   if (!edit) return;
+  if (edit.courtId !== courtId) edit.courtNos = [];
   edit.courtId = courtId;
   var court = findCourt(courtId);
   if (court) edit.pricePerHour = courtPrice(court);

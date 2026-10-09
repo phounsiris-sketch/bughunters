@@ -245,19 +245,27 @@ function _renderSpendingTab(sessions, allSessions) {
     return html + '<div class="empty-state"><div class="empty-icon">' + icon("chart", 44) + '</div><div>' + t("noData") + '</div></div>';
   }
 
-  html += '<div class="card"><div class="card-title">' + t("perPerson") + '</div>';
-  html += '<div style="position:relative;height:' + Math.max(160, _playerSpend(sessions).uids.length * 34 + 60) + 'px"><canvas id="spendingChart"></canvas></div>';
+  // Who paid for what: one stacked bar per person (court · shuttles · other · dinner),
+  // all on the same scale; amounts written under each bar
   var ps = _playerSpend(sessions);
-  for (var ui = 0; ui < ps.uids.length; ui++) {
-    var u = ps.uids[ui];
+  var cats = [["court", "courtCost", "court"], ["shuttle", "shuttleCost", "shuttle"], ["other", "otherCosts", "other"], ["dinner", "dinnerCost", "dinner"]];
+  var max = 0, catTot = { court: 0, shuttle: 0, other: 0, dinner: 0 };
+  ps.uids.forEach(function (u) { var r = ps.data[u]; max = Math.max(max, r.total); cats.forEach(function (c) { catTot[c[0]] += r[c[0]] || 0; }); });
+  html += '<div class="card pp-card"><div class="card-title">' + icon("chart", 14) + ' ' + t("perPerson") + '</div>';
+  html += '<div class="pp-legend">' + cats.map(function (c) {
+    return '<span class="pp-key"><i class="sw sw-' + c[0] + '"></i>' + t(c[1]) + ' <b>' + fmtShort(catTot[c[0]]) + '</b></span>';
+  }).join('') + '</div>';
+  ps.uids.forEach(function (u) {
     var row = ps.data[u];
-    html += '<div class="person-row">';
-    html += avatarHtml(u, 28);
-    html += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">' + getUserName(u) + '</div>';
-    html += '<div style="font-size:10px;color:var(--text-muted)">' + icon('court', 11) + fmtLAK(row.court) + ' ' + icon('shuttle', 11) + fmtLAK(row.shuttle) + ' ' + icon('other', 11) + fmtLAK(row.other) + ' ' + icon('dinner', 11) + fmtLAK(row.dinner) + '</div></div>';
-    html += '<div class="person-amount">' + fmtLAK(row.total) + '</div>';
-    html += '</div>';
-  }
+    html += '<div class="pp-row"><div class="pp-head">' + avatarHtml(u, 28) + '<span class="pp-name">' + escapeHtml(getUserName(u)) + '</span>' +
+      '<span class="pp-total">' + fmtLAK(row.total) + '</span></div>';
+    html += '<div class="pp-track" style="width:' + (max ? Math.max(4, row.total / max * 100) : 0) + '%">' + cats.filter(function (c) { return (row[c[0]] || 0) > 0; }).map(function (c) {
+      return '<span class="pp-seg sw-' + c[0] + '" style="flex:' + row[c[0]] + '" title="' + escapeHtml(t(c[1]) + ' ' + fmtLAK(row[c[0]])) + '"></span>';
+    }).join('') + '</div>';
+    html += '<div class="pp-amounts">' + cats.filter(function (c) { return (row[c[0]] || 0) > 0; }).map(function (c) {
+      return '<span><i class="sw sw-' + c[0] + '"></i>' + fmtShort(row[c[0]]) + '</span>';
+    }).join('') + '</div></div>';
+  });
   html += '</div>';
   return html;
 }
