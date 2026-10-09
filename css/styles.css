@@ -4534,3 +4534,9 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .report-who small { font-size: 12px; color: var(--text-muted); }
 .report-when { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .report-details { margin-top: 10px; font-size: 14px; color: var(--text); }
+.recent-game { grid-template-columns: 28px 1fr auto; }
+.rg-me { color: var(--accent); }
+[data-theme="light"] .rg-me { color: var(--primary); }
+.rg-word { font-size: 12px; font-weight: 700; }
+.recent-game.won .rg-word { color: #16a34a; }
+.recent-game.lost .rg-word { color: #dc2626; }

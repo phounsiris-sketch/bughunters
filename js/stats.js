@@ -219,15 +219,15 @@ function _myStatsCard() {
   if (last.length) {
     html += '<div class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
       last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') + '</div>';
+    // Each game: won or lost, my team (my name highlighted) vs the rivals
+    var nm = function (u) { return '<span class="' + (u === me ? 'rg-me' : '') + '">' + escapeHtml(getUserName(u)) + '</span>'; };
     html += '<div class="recent-games">' + last.map(function (x) {
-      var g = (x.m.games || [])[0] || {}, mineA = x.m.teamA.indexOf(me) >= 0;
-      var myPts = mineA ? g.a : g.b, theirPts = mineA ? g.b : g.a;
-      var partner = x.mine.filter(function (u) { return u !== me; });
+      var mine = x.mine.slice().sort(function (a, b) { return a === me ? -1 : b === me ? 1 : 0; });
       return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
         '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
-        '<span class="rg-teams"><b>' + t("youCap") + (partner.length ? ' &amp; ' + escapeHtml(getUserName(partner[0])) : '') + '</b>' +
+        '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
           '<small>' + t("vsWord") + ' ' + x.them.map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span>' +
-        '<span class="rg-score"><b>' + (myPts != null ? myPts : '–') + '–' + (theirPts != null ? theirPts : '–') + '</b><small>' + (x.m.date ? fmtDate(x.m.date) : '') + '</small></span></div>';
+        '<span class="rg-word">' + t(x.won ? "wonWord" : "lostWord") + '</span></div>';
     }).join('') + '</div>';
   }
   html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';

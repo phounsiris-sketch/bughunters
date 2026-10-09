@@ -83,10 +83,10 @@ function aboutCardHtml() {
   // Who I am
   // Name: first name + surname (who can see them), nickname, and the name shown in the app
   html += row(t("fullName"), "fullName", '<div class="form-row name-row">' +
-    '<input class="form-input" id="pfFirst" maxlength="30" placeholder="' + t("firstName") + '" aria-label="' + t("firstName") + '" value="' + escapeHtml(f.firstName) + '" oninput="aboutForm.firstName=this.value;_suggestDisplayName()">' +
+    '<input class="form-input" id="pfFirst" maxlength="30" placeholder="' + t("firstName") + '" aria-label="' + t("firstName") + '" value="' + escapeHtml(f.firstName) + '" oninput="aboutForm.firstName=this.value">' +
     '<input class="form-input" id="pfLast" maxlength="30" placeholder="' + t("lastName") + '" aria-label="' + t("lastName") + '" value="' + escapeHtml(f.lastName) + '" oninput="aboutForm.lastName=this.value"></div>');
-  html += row(t("nickname"), "nickname", '<input class="form-input" id="pfNick" maxlength="20" placeholder="' + t("nicknameHint") + '" value="' + escapeHtml(f.nickname) + '" oninput="aboutForm.nickname=this.value;_suggestDisplayName()">', false);
-  html += row(t("displayName") + ' *', "name", '<input class="form-input" id="pfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="aboutForm.name=this.value;aboutForm._nameTouched=true">' +
+  html += row(t("nickname"), "nickname", '<input class="form-input" id="pfNick" maxlength="20" placeholder="' + t("nicknameHint") + '" value="' + escapeHtml(f.nickname) + '" oninput="aboutForm.nickname=this.value">', false);
+  html += row(t("displayName") + ' *', "name", '<input class="form-input" id="pfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="aboutForm.name=this.value">' +
     '<div class="form-hint">' + t("displayNameHint") + '</div>', false);
   html += row(t("phone"), "phone", phoneInputHtml("pfPhone", f.phone).replace('oninput="', 'oninput="aboutForm.phone=this.value.replace(/\\D/g,\'\').slice(0,8);'));
   html += row(t("emailLabel"), "email", '<input class="form-input" value="' + escapeHtml(email) + '" disabled>', false);
@@ -141,16 +141,6 @@ function dobSet(part, v) {
     f.dob = f.dobY + "-" + ("0" + f.dobM).slice(-2) + "-" + ("0" + f.dobD).slice(-2);
   } else f.dob = "";
   _rerenderAbout();
-}
-
-/** While the display name hasn't been typed by hand, follow nickname or first name */
-function _suggestDisplayName() {
-  var f = aboutForm;
-  if (f._nameTouched && f.name) return;
-  var v = (f.nickname || f.firstName || "").trim();
-  if (!v) return;
-  f.name = v;
-  var el = document.getElementById("pfName"); if (el) el.value = v;
 }
 
 function aboutSet(key, v) { aboutForm[key] = aboutForm[key] === v ? "" : v; _rerenderAbout(); }

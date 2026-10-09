@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v53**.
+run it. App version at the time of writing: **v54**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -333,9 +333,9 @@ How the numbers are worked out:
   - your best partner (and your record together) and the rival pair you met most.
 
   On phones it opens the share sheet; on computers it downloads.
-- **Your first box** (Ranking tab) shows your level and rating, a **form strip**
-  of your last 5 results, and your **last 5 games** ("You & Bee vs Cee & Dee",
-  W/L, score, date).
+- **Your first box** (Ranking tab, also on Home) shows your level and rating, a
+  **form strip** of your last 5 results, and your **last 5 games**: won or lost,
+  your team with **your name highlighted**, and the rivals (no score or date).
 - Tap **?** in that box for **How is this counted?**: the game rule, how the Elo
   rating works, and why it isn't BWF World Tour points.
 
@@ -360,8 +360,8 @@ Everything about you is in **one card with one Save button**:
 - **Who I am:**
   - name and surname (with who can see them), nickname, and display name;
   - phone, email (read-only), gender, date of birth and relationship status.
-  - The display name is what everyone sees in the app. It follows your nickname
-    (or first name) until you type your own.
+  - The **display name** is what everyone sees in the app. The nickname is
+    separate and only shows on your profile.
   - The date of birth uses three lists (**day / month / year**, starting from this year), so the year is
     one tap away.
 - **How I play:** your level (6 buttons, see section 7), hand, position (front, back or both), home
