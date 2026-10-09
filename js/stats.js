@@ -217,18 +217,18 @@ function _myStatsCard() {
   // My last 5 games: me (and my partner) vs the rivals, won or lost
   var last = _myGames(me).slice(-5).reverse();
   if (last.length) {
-    html += '<div class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
-      last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') + '</div>';
-    // Each game: won or lost, my team (my name highlighted) vs the rivals
+    // Folded by default: the W/L strip; tap it to see the games
     var nm = function (u) { return '<span class="' + (u === me ? 'rg-me' : '') + '">' + escapeHtml(getUserName(u)) + '</span>'; };
+    html += '<details class="recent-wrap"><summary class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
+      last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
+      '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
       var mine = x.mine.slice().sort(function (a, b) { return a === me ? -1 : b === me ? 1 : 0; });
       return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
         '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
         '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
-          '<small>' + t("vsWord") + ' ' + x.them.map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span>' +
-        '<span class="rg-word">' + t(x.won ? "wonWord" : "lostWord") + '</span></div>';
-    }).join('') + '</div>';
+          '<small>' + t("vsWord") + ' ' + x.them.map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span></div>';
+    }).join('') + '</div></details>';
   }
   html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';
   return html + '</div>';

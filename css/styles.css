@@ -4540,3 +4540,8 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .rg-word { font-size: 12px; font-weight: 700; }
 .recent-game.won .rg-word { color: #16a34a; }
 .recent-game.lost .rg-word { color: #dc2626; }
+.recent-game { grid-template-columns: 28px 1fr; }
+.recent-wrap > summary { list-style: none; cursor: pointer; }
+.recent-wrap > summary::-webkit-details-marker { display: none; }
+.recent-chev { display: inline-flex; margin-left: 4px; color: var(--text-muted); transform: rotate(90deg); transition: transform .2s; }
+.recent-wrap[open] .recent-chev { transform: rotate(-90deg); }

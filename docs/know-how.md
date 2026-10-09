@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v54**.
+run it. App version at the time of writing: **v55**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -334,8 +334,9 @@ How the numbers are worked out:
 
   On phones it opens the share sheet; on computers it downloads.
 - **Your first box** (Ranking tab, also on Home) shows your level and rating, a
-  **form strip** of your last 5 results, and your **last 5 games**: won or lost,
-  your team with **your name highlighted**, and the rivals (no score or date).
+  **form strip** of your last 5 results (W/L). Tap the strip to unfold your
+  **last 5 games**: won or lost, your team with **your name highlighted**, and the
+  rivals. It starts folded.
 - Tap **?** in that box for **How is this counted?**: the game rule, how the Elo
   rating works, and why it isn't BWF World Tour points.
 
