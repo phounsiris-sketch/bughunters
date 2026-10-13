@@ -4073,8 +4073,6 @@ body[data-theme="light"][data-lpalette="sunrise"] {
 .user-qr-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
 .user-qr-item img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; background: #fff; cursor: zoom-in; }
 
-.poll-author, .session-by { cursor: pointer; }
-
 .avatar-zoom { display: inline-block; cursor: zoom-in; border-radius: 50%; }
 
 /* One main payment QR, optional extras */

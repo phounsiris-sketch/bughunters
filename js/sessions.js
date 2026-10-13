@@ -303,7 +303,7 @@ function renderSessionsList(sessions) {
     if (players.length > 7) html += '<span class="avatar-more">+' + (players.length - 7) + '</span>';
     html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("joinedPlayers").toLowerCase() + '</span></div>';
     if (s.createdBy) {
-      html += '<div class="session-by" role="button" onclick="showUserProfile(\'' + s.createdBy + '\',event)">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
+      html += '<div class="session-by">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
     }
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0">' +
