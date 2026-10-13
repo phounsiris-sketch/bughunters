@@ -92,16 +92,26 @@ function _homeBadgeCard(me) {
 function _homeRatingCard(me) {
   var p = computeStats().players[me];
   var vals = p && p.history ? p.history.slice(-12).map(function (h) { return h.r; }) : [];
-  var line = "";
+  var chart = "";
   if (vals.length > 1) {
-    var w = 220, h = 60, lo = Math.min.apply(null, vals) - 8, hi = Math.max.apply(null, vals) + 8;
-    var pts = vals.map(function (v, i) { return (i * w / (vals.length - 1)).toFixed(1) + "," + (h - (v - lo) / (hi - lo) * h).toFixed(1); }).join(" ");
-    line = '<svg class="hs-spark" viewBox="-4 -4 ' + (w + 8) + ' ' + (h + 8) + '" preserveAspectRatio="none"><polyline points="' + pts + '"/></svg>';
+    // Area under the line, a dot per game, the last one ringed, and a dashed line at the starting rating
+    var w = 220, h = 64, lo = Math.min.apply(null, vals.concat([RATING_START])) - 6, hi = Math.max.apply(null, vals.concat([RATING_START])) + 6;
+    var X = function (i) { return (i * w / (vals.length - 1)); }, Y = function (v) { return h - (v - lo) / (hi - lo) * h; };
+    var pts = vals.map(function (v, i) { return X(i).toFixed(1) + "," + Y(v).toFixed(1); });
+    var last = vals.length - 1;
+    chart = '<svg class="hs-spark" viewBox="-6 -6 ' + (w + 12) + ' ' + (h + 12) + '" aria-hidden="true">' +
+      '<line class="base" x1="0" x2="' + w + '" y1="' + Y(RATING_START).toFixed(1) + '" y2="' + Y(RATING_START).toFixed(1) + '"/>' +
+      '<polygon class="area" points="0,' + h + ' ' + pts.join(" ") + ' ' + w + ',' + h + '"/>' +
+      '<polyline points="' + pts.join(" ") + '"/>' +
+      vals.map(function (v, i) { return i === last ? '' : '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(v).toFixed(1) + '" r="2.4"/>'; }).join("") +
+      '<circle class="ring" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="6"/><circle class="now" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="3.4"/></svg>';
   }
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
+  var best = vals.length ? Math.max.apply(null, vals) : ratingOf(me);
   return _hsCard("hs-rating", "ranking", t("homeRating"), "showPage('stats')",
-    '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '+' : '') + delta + '</small>' : '') + '</div>' + line +
-    '<div class="hs-row"><span>' + t("homeStartR") + ' ' + RATING_START + '</span><span>' + (p ? p.played : 0) + ' ' + t("gamesWord") + '</span></div>');
+    '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
+    '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + (p ? p.played : 0) + ' ' + t("gamesWord") + '</span>' +
+    '<span>' + t("homeStartR") + ' ' + RATING_START + '</span></div>');
 }
 
 function _homeShortcut(iconName, label, sub, onclick, cls) {

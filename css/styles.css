@@ -5055,3 +5055,56 @@ body.live-on { overflow: hidden; }
 .sub-method .si { color: var(--accent); }
 .sub-demo { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); text-align: center; }
 .sub-demo .si { color: var(--orange); flex: none; }
+
+/* ========== Batch 4: Home compact, strip edges, calendar week, group logo, rating chart ========== */
+/* the greeting is small and on the right, the cards are smaller, so the Next game card shows in full */
+.home-hi { font-size: 12px; font-weight: 600; text-align: right; color: var(--text-muted); margin: 0 4px 6px; }
+.hs-strip { scroll-padding: 0 16px; padding-right: 0; gap: 10px; }
+.hs-strip::after { content: ""; flex: none; width: 6px; }   /* room after the last card so it does not touch the edge */
+.hs-card { min-height: 150px; padding: 14px; width: min(240px, 76vw); }
+.hs-title { margin-bottom: 8px; }
+.hs-big { font-size: 24px; }
+.hs-dots { margin: 8px 0 0; }
+.hs-row { margin-top: 8px; }
+.hs-spark { height: auto; max-height: 76px; margin: 6px 0 0; }
+.hs-bar-plot { height: 44px; }
+.hs-badge { width: 34px; height: 34px; }
+.hs-badge-row { margin: 8px 0; }
+.hs-dots-nav { margin: 0 0 10px; }
+.home-scs { gap: 8px; margin-bottom: 10px; }
+.home-sc { min-height: 82px; padding: 8px 4px; gap: 4px; }
+.home-sc-ico { width: 40px; height: 40px; border-radius: 12px; }
+.home-sc small { display: none; }
+.home-create { padding: 10px 12px; margin-bottom: 10px; }
+.home-next { padding: 12px 14px; margin-bottom: 8px; }
+.home-next-top { margin-bottom: 8px; }
+.home-next-date { width: 48px; padding: 4px 0; }
+.home-next-date b { font-size: 22px; }
+.home-next-vote { margin-top: 8px; }
+.home-next-people { margin: 8px 0 10px; }
+.btn-next { min-height: 44px; }
+/* rating chart: area, a dot per game, the last one ringed, a dashed line at the starting rating */
+.hs-spark .area { fill: rgba(255, 255, 255, .22); stroke: none; }
+.hs-spark .base { stroke: rgba(255, 255, 255, .55); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.hs-spark circle { fill: rgba(255, 255, 255, .85); stroke: none; }
+.hs-spark .ring { fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.hs-spark .now { fill: #fff; }
+.hs-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.hs-pills span { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .2); font-size: 11px; font-weight: 700; }
+.hs-big small .si { vertical-align: -2px; }
+/* calendar: a week by default */
+.cal-toggle { width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 36px; margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--accent); }
+.cal-chev { transition: transform .2s; transform: rotate(90deg); }
+.cal-chev.up { transform: rotate(-90deg); }
+.cal { padding-bottom: 4px; }
+/* group logo */
+.group-logo { border-radius: 10px; object-fit: cover; flex: none; background: var(--surface); border: 1px solid var(--border); }
+.group-switch { gap: 8px; }
+.group-switch-name { overflow: hidden; text-overflow: ellipsis; }
+.group-switch .group-badge, .group-switch .group-logo { width: 26px; height: 26px; border-radius: 8px; font-size: 12px; }
+.group-logo-card { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.group-logo-card .group-logo, .group-logo-card .group-badge { width: 64px; height: 64px; border-radius: 16px; }
+.gl-text { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 2px; }
+.gl-text small { color: var(--text-muted); font-size: 12px; }
+.gl-actions { width: 100%; display: flex; align-items: center; gap: 10px; }
+.gl-actions .btn-secondary { width: auto; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; }

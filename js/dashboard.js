@@ -67,8 +67,9 @@ function _renderDashboard() {
   if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb([{ label: t("navHome"), action: "showPage('home')" }, { label: t("navDashboard") }]);
 
-  var html = typeof homeLevelCardHtml === "function" ? homeLevelCardHtml() : '';
-  if (typeof gearBoardCardHtml === "function") html += gearBoardCardHtml();
+  // My rating card lives on Rankings and Home; gear for sale lives on the Market. Only the leaderboard keeps the gear board.
+  var html = '';
+  if (dashTab === "leaders" && typeof gearBoardCardHtml === "function") html += gearBoardCardHtml();
   html += '<div class="dashboard-tabs">';
   var tabs = [["leaders", t("leaderboard")], ["activity", t("activity")], ["spending", t("spending")]];
   for (var ti = 0; ti < tabs.length; ti++) {

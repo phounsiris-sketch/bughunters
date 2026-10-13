@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v80**.
+run it. App version at the time of writing: **v81**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -304,6 +304,22 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Home, calendar and group logo (v81)
+
+- **Group logo:** Settings > Group settings > *Group logo* (admins; saved at once, 256 px).
+  It shows in the header next to the group name, in the group list and in the switcher;
+  without a logo the group's first letter is shown as before.
+- **Home** is tighter so the Next game card shows in full: the greeting is small and on the
+  right, the stat cards, shortcuts and Create block are smaller, and the last stat card no
+  longer touches the screen edge.
+- **Rating card** on Home: area under the line, a dot per game, the latest one ringed, a
+  dashed line at the starting rating, and pills (best, games, start).
+- **Calendars** (Open games, Play buddies) show **this week**; *Show the month* opens the
+  full month, *Show this week* closes it; the arrows move a week (or a month when open).
+- The **Dashboard** page no longer repeats your rating card (it is on Rankings and Home) and
+  shows the gear-for-sale card only on the Leaderboard tab. The **Monthly recap** buttons
+  are removed from Profile and from the badges card.
 
 ### Recurring (v80)
 
