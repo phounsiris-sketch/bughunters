@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v68**.
+run it. App version at the time of writing: **v69**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -70,6 +70,13 @@ there is nothing to do.
 (play mode, note, answers) for a vote, or *Who plays* (tap people, photo + name)
 for a game. A small row with date, time and court stays on step 2. Dinner as its own
 thing is not built yet.
+
+**Bill safety (v69).** When you save a bill, a *Check before publishing* window shows
+the total and **who pays whom** (photo + name) with the rounding note; *Publish bill*
+saves it. If you edit a bill that people have already paid, payments whose amount did
+not change **stay marked paid**; the others are cleared, and you are told how many
+before anything is saved. *Mark as not paid* asks first. Marking paid now writes only
+that payment, so two people marking at the same time no longer overwrite each other.
 
 **Home** is where the app opens. Top to bottom:
 

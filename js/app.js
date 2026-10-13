@@ -109,7 +109,7 @@ function openModal() {
 function closeModal() {
   var overlay = document.getElementById("modal");
   if (overlay) overlay.classList.remove("active");
-  var ok = document.getElementById("modalConfirmBtn"); if (ok) ok.style.display = "";
+  var ok = document.getElementById("modalConfirmBtn"); if (ok) { ok.style.display = ""; ok.textContent = t("save"); }
   modalCallback = null;
 }
 
@@ -385,7 +385,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v68"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v69"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

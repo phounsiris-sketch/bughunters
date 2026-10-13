@@ -1361,26 +1361,65 @@ function saveSessionCosts() {
 
   data.calculated = true;
   data.billAt = Date.now(); // for "bill ready" notifications
-  data.settled = {}; // amounts changed, so earlier "paid" marks no longer apply
-  data.settledAt = {};
-  data.status = computeLedger(data).transfers.length ? "active" : "completed";
 
-  // A new receipt photo is stored on its own (images/), the session keeps a reference
-  var receipt = data.dinner && data.dinner.receiptUrl;
-  var saveReceipt = receipt && receipt.indexOf("data:") === 0
-    ? dbSaveImage(receipt, "receipt").then(function (ref) { data.dinner.receiptUrl = ref; if (edit && edit.dinner) edit.dinner.receiptUrl = ref; })
-    : Promise.resolve();
+  // Paid marks stay for payments whose amount did not change; the rest start again
+  var keep = _keepPaidMarks(currentSession, data);
+  data.settled = keep.settled;
+  data.settledAt = keep.settledAt;
+  data.status = computeLedger(data).transfers.filter(function (tr) { return !data.settled[tr.key]; }).length ? "active" : "completed";
+  if (keep.dropped > 0 && !confirm(t("billDropMarks").replace("{n}", keep.dropped))) return;
 
-  saveReceipt.then(function () { return dbUpdateSession(currentSessionId, data); })
-    .then(function () {
-      // Show the result straight away, even if the snapshot hasn't arrived yet
-      if (currentSession) Object.assign(currentSession, data);
-      sessionEditing = false;
-      edit = null;
-      showToast(t("calculateSplit") + " \u2714");
-      renderSessionDetail();
-    })
-    .catch(function (error) { showToast(_permError(error)); });
+  var doSave = function () {
+    // A new receipt photo is stored on its own (images/), the session keeps a reference
+    var receipt = data.dinner && data.dinner.receiptUrl;
+    var saveReceipt = receipt && receipt.indexOf("data:") === 0
+      ? dbSaveImage(receipt, "receipt").then(function (ref) { data.dinner.receiptUrl = ref; if (edit && edit.dinner) edit.dinner.receiptUrl = ref; })
+      : Promise.resolve();
+
+    saveReceipt.then(function () { return dbUpdateSession(currentSessionId, data); })
+      .then(function () {
+        // Show the result straight away, even if the snapshot hasn't arrived yet
+        if (currentSession) Object.assign(currentSession, data);
+        sessionEditing = false;
+        edit = null;
+        showToast(t("calculateSplit") + " \u2714");
+        renderSessionDetail();
+      })
+      .catch(function (error) { showToast(_permError(error)); });
+  };
+  _billPreview(data, doSave);
+}
+
+/** Paid marks that are still true after an edit: same payment (from + to) and same amount */
+function _keepPaidMarks(old, data) {
+  var out = { settled: {}, settledAt: {}, dropped: 0 };
+  if (!old || !old.calculated) return out;
+  var oldAmt = {};
+  computeLedger(old).transfers.forEach(function (tr) { oldAmt[tr.key] = tr.amount; });
+  var now = {};
+  computeLedger(data).transfers.forEach(function (tr) { now[tr.key] = tr.amount; });
+  Object.keys(old.settled || {}).forEach(function (k) {
+    if (!old.settled[k]) return;
+    if (now[k] != null && oldAmt[k] === now[k]) { out.settled[k] = true; if ((old.settledAt || {})[k]) out.settledAt[k] = old.settledAt[k]; }
+    else out.dropped++;
+  });
+  return out;
+}
+
+/** Last look before the bill goes out: who pays whom, one total */
+function _billPreview(data, onOk) {
+  var L = computeLedger(data), rows = "";
+  L.transfers.forEach(function (tr) {
+    rows += '<div class="bp-row"><span class="bp-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</span><b>' + fmtLAK(tr.amount) + '</b></div>';
+  });
+  var html = '<div class="bp-total">' + icon("bill", 20) + '<span>' + fmtLAK(L.totals.grand) + '</span></div>' +
+    (rows || '<div class="form-hint">' + t("billNoTransfers") + '</div>') +
+    '<div class="form-hint" style="margin-top:10px">' + icon("calc", 12) + ' ' + t("billRounded").replace("{n}", fmtLAK(ROUND_TO)) + '</div>';
+  document.getElementById("modalTitle").textContent = t("billPreviewTitle");
+  document.getElementById("modalBody").innerHTML = html;
+  var ok = document.getElementById("modalConfirmBtn"); if (ok) ok.textContent = t("publishBill");
+  modalCallback = function () { closeModal(); onOk(); };
+  openModal();
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -1390,6 +1429,7 @@ function saveSessionCosts() {
 function setTransferSettled(sessionId, key, value) {
   var s = currentSession && currentSession.id === sessionId ? currentSession : _findSession(sessionId);
   if (!s) return Promise.resolve();
+  if (!value && !confirm(t("confirmUnmark"))) return Promise.resolve();
   return settleTransfers(s, [key], value)
     .then(function () { showToast(value ? t("paid") + " \u2714" : t("unpaid")); })
     .catch(function (error) { showToast(_permError(error)); });
@@ -1400,16 +1440,19 @@ function _findSession(id) {
   return null;
 }
 
-/** Mark several transfers of one session paid / unpaid; records when */
+/** Mark several transfers of one session paid / unpaid; records when.
+ *  Writes only the changed keys (settled.<key>), so two people marking at the
+ *  same time do not overwrite each other. */
 function settleTransfers(s, keys, value) {
   var settled = Object.assign({}, s.settled || {});
-  var settledAt = Object.assign({}, s.settledAt || {});
+  var FV = firebase.firestore.FieldValue, upd = {};
   keys.forEach(function (key) {
-    if (value) { settled[key] = true; settledAt[key] = Date.now(); }
-    else { delete settled[key]; delete settledAt[key]; }
+    if (value) { settled[key] = true; upd["settled." + key] = true; upd["settledAt." + key] = Date.now(); }
+    else { delete settled[key]; upd["settled." + key] = FV.delete(); upd["settledAt." + key] = FV.delete(); }
   });
   var remaining = computeLedger(s).transfers.filter(function (tr) { return !settled[tr.key]; });
-  return dbUpdateSession(s.id, { settled: settled, settledAt: settledAt, status: remaining.length ? "active" : "completed" });
+  upd.status = remaining.length ? "active" : "completed";
+  return dbUpdateSession(s.id, upd);
 }
 
 /* ──────────────────────────────────────────────────────────
