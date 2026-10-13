@@ -4073,8 +4073,6 @@ body[data-theme="light"][data-lpalette="sunrise"] {
 .user-qr-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); }
 .user-qr-item img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; background: #fff; cursor: zoom-in; }
 
-.poll-author, .session-by { cursor: pointer; }
-
 .avatar-zoom { display: inline-block; cursor: zoom-in; border-radius: 50%; }
 
 /* One main payment QR, optional extras */
@@ -4563,7 +4561,15 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .vbar-col.sel { background: rgba(37, 99, 235, .12); }
 .vbar-val { font-size: 10px; font-weight: 700; color: var(--text); min-height: 14px; white-space: nowrap; }
 .vbar-plot { width: 100%; height: 130px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--border); }
-.vbar-plot i { display: block; width: 60%; max-width: 28px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #2563eb, #00897b); }
+.vbar-stack { display: flex; flex-direction: column-reverse; width: 60%; max-width: 28px; border-radius: 6px 6px 0 0; overflow: hidden; }
+.vbar-stack i { display: block; width: 100%; }
+.t-court { background: #2563eb; }
+.t-shuttle { background: #f59e0b; }
+.t-other { background: #8b5cf6; }
+.t-dinner { background: #10b981; }
+.vbar-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.vbar-dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: baseline; }
+.vbar-part { display: inline-block; margin: 0 6px; white-space: nowrap; }
 .vbar-col.empty .vbar-lbl { opacity: .5; }
 .vbar-lbl { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
 .vbar-detail { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 32px; text-align: center; }
