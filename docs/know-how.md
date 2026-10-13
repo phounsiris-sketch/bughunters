@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v72**.
+run it. App version at the time of writing: **v73**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -300,7 +300,9 @@ plus**. The team that scores serves (shuttle icon). A game ends at 21 with a
 stores the game exactly like *Add game score* and starts the next one with the
 same teams. The score stays on your phone if you leave or refresh; Home shows
 *Live score in progress*. Menu: Exit, Reset, Settings (current game, teams, theme
-colour). Code: `js/livescore.js`.
+colour). **Live score always starts by asking which game (session) the score is for**
+(today's or the latest one is first and marked); you can change it later from the
+setup screen. An **Exit** button is at the top left of the counter. Code: `js/livescore.js`.
 
 ### Spending tab (Dashboard)
 
@@ -765,6 +767,10 @@ that group. With several groups and no `target_group`, it refuses and lists them
 ---
 
 ## 16. Releasing a new version
+
+**Before every release commit run `sh tools/release-guard.sh`.** It stops an emptied file (a bad
+script once emptied `sw.js` and `app.js`), app and service-worker versions out of step,
+and a JavaScript syntax error.
 
 1. Change the code.
 2. Bump **both** version strings together:

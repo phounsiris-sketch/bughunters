@@ -249,7 +249,7 @@ function _myStatsCard() {
     // Folded by default: the W/L strip; tap it to see the games
     var nm = function (u) { return '<span class="' + (u === me ? 'rg-me' : '') + '">' + escapeHtml(getUserName(u)) + '</span>'; };
     html += '<details class="recent-wrap"><summary class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
-      last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
+      last.map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
       var mine = x.mine.slice().sort(function (p, q) { return (q === me) - (p === me); });  // personal view: me first
