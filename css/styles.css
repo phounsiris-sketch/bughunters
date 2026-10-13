@@ -4951,10 +4951,10 @@ body.live-on { overflow: hidden; }
 .poll-card .poll-plan { background: none; border: 0; padding: 0; margin-top: 8px; }
 
 /* ========== Switch (settings rows) ========== */
-.sw { width: 50px; height: 30px; border-radius: 15px; background: var(--border); position: relative; flex: none; transition: background .2s; }
-.sw i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
-.sw.on { background: var(--primary); }
-.sw.on i { left: 23px; }
+.tgl { width: 50px; height: 30px; border-radius: 15px; background: var(--border); position: relative; flex: none; transition: background .2s; }
+.tgl i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+.tgl.on { background: var(--primary); }
+.tgl.on i { left: 23px; }
 
 /* ========== Rankings: my card ========== */
 .my-hero { padding: 16px; }
@@ -5108,3 +5108,16 @@ body.live-on { overflow: hidden; }
 .gl-text small { color: var(--text-muted); font-size: 12px; }
 .gl-actions { width: 100%; display: flex; align-items: center; gap: 10px; }
 .gl-actions .btn-secondary { width: auto; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Batch 5 */
+.home-live-wrap { position: relative; margin-bottom: 12px; }
+.home-live-wrap .home-live { margin-bottom: 0; padding-right: 52px; }
+.home-live-x { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: var(--surface); }
+.home-live-x .si { color: var(--text-muted); }
+/* live score: the player names sit in a centred column, narrow enough to stay clear of the screen edges and the middle line */
+.ls-info { width: 100%; }
+.ls-half .ls-chips { flex-direction: column; align-items: center; gap: 6px; max-width: 70%; margin-left: auto; margin-right: auto; }
+.ls-half .ls-chip { max-width: 100%; justify-content: center; }
+.ls-half .ls-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-team { justify-content: center; text-align: center; }
+.ls-score { text-align: center; width: 100%; }

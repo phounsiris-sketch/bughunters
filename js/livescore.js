@@ -336,5 +336,12 @@ function lsSaveGame(next) {
     }).catch(function (e) { showToast(_permError(e)); });
 }
 
+/** Drop a half-counted game from the Home banner (asks first) */
+function lsCancelSaved() {
+  if (!confirm(t("lsExitConfirm"))) return;
+  live = null; lsSave();
+  if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+}
+
 /** A game is still being counted on this phone (for the Home banner) */
 function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb > 0) && _lsSession(s.sid) ? s : null; }

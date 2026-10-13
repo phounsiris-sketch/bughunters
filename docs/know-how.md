@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v81**.
+run it. App version at the time of writing: **v82**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -317,6 +317,11 @@ it can be restored for **30 days**.
   dashed line at the starting rating, and pills (best, games, start).
 - **Calendars** (Open games, Play buddies) show **this week**; *Show the month* opens the
   full month, *Show this week* closes it; the arrows move a week (or a month when open).
+- **Home cards open the right page:** *Badges* opens your Profile (where the badges are),
+  *Rating* opens Rankings > Progress. A **Live score in progress** banner on Home has a
+  Continue button and a **cancel (x)** that asks first and drops the half-counted game.
+- On the Live score counter the player names are a **centred column**, narrow enough to
+  stay clear of the screen edges and the middle line.
 - The **Dashboard** page no longer repeats your rating card (it is on Rankings and Home) and
   shows the gear-for-sale card only on the Leaderboard tab. The **Monthly recap** buttons
   are removed from Profile and from the badges card.
