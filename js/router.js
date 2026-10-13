@@ -51,7 +51,7 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "home": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "profile": "me", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
+  var navOf = { "home": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
@@ -60,7 +60,7 @@ function showPage(page, pushHistory) {
   // My profile: my own picture, right next to the bell
   updateMeBtn();
   var meBtn = document.getElementById("meBtn");
-  if (meBtn) meBtn.classList.toggle("on", /^(profile|settings|config|trash|group-settings|group-members|groups|reports)$/.test(page));
+  if (meBtn) meBtn.classList.toggle("on", page === "profile");
   // Public zone: its own header colour and a reminder that everyone can see it
   document.body.classList.toggle("zone-public", PUBLIC_PAGES.test(page));
 

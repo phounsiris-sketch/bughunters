@@ -50,12 +50,12 @@ function renderSettings() {
     // Don't wipe the profile form while the user is typing in it
     if (document.activeElement && /^pf/.test(document.activeElement.id || '')) return;
     setBreadcrumb(null);
-    pc.innerHTML = _meTabsHtml("profile") + _renderProfileTab();
+    pc.innerHTML = _meTitleHtml("user", "myProfile") + _renderProfileTab();
     _fillQrCard();
     return;
   }
   var container = document.getElementById("settingsContent");
-  if (container) { setBreadcrumb(null); container.innerHTML = _meTabsHtml("settings") + _renderSettingsPage(); }
+  if (container) { setBreadcrumb(null); container.innerHTML = _meTitleHtml("settings", "navSettings") + _renderSettingsPage(); }
 }
 
 function _renderConfigPage() {
@@ -106,6 +106,15 @@ function _renderProfileTab() {
     (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div>';
   html += '</div>';
 
+  // My numbers and badges (groups only)
+  if (GROUPS_ON && typeof computeStats === "function" && currentUser) {
+    var me = currentUser.uid, st = computeStats().players[me];
+    var wr = st && st.wins + st.losses ? Math.round(st.wins / (st.wins + st.losses) * 100) + '%' : '–';
+    var tile = function (ic, val, label) { return '<div class="pf-tile"><span>' + icon(ic, 20) + '</span><b>' + val + '</b><small>' + label + '</small></div>'; };
+    html += '<div class="pf-tiles">' + tile("chart", ratingOf(me), t("homeRating")) + tile("court", st ? st.played : 0, t("gamesWord")) + tile("medal", wr, t("homeWinRate")) + '</div>';
+    if (typeof badgesHtml === "function") html += badgesHtml(me, true);
+  }
+
   // Story photos, right under the profile picture
   if (typeof storyCardHtml === "function") html += storyCardHtml(currentUser.uid, true);
   // Personal info (each field with who can see it) and my gear
@@ -131,6 +140,13 @@ function _settingsSection(key) {
   return '<div class="settings-section">' + t(key) + '</div>';
 }
 
+/** One row of a grouped list: icon tile, title, hint, chevron */
+function _navRow(onclick, iconName, title, hint) {
+  return '<button type="button" class="nav-row" onclick="' + onclick + '">' +
+    '<span class="nav-row-ico">' + icon(iconName, 20) + '</span>' +
+    '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16) + '</button>';
+}
+
 function _navCard(onclick, iconName, title, hint) {
   return '<button class="card nav-card" onclick="' + onclick + '">' +
     '<span class="nav-card-icon">' + icon(iconName, 22) + '</span>' +
@@ -138,12 +154,9 @@ function _navCard(onclick, iconName, title, hint) {
     icon("chevron", 16) + '</button>';
 }
 
-/* Settings (header gear): who I am first, then app, then group tools */
-/** Me: two tabs — My profile (who I am) and Settings (group, app, data) */
-function _meTabsHtml(active) {
-  return '<div class="session-tabs me-tabs" role="tablist">' +
-    '<button role="tab" class="session-tab' + (active === "profile" ? ' active' : '') + '" onclick="showPage(\'profile\')">' + icon("user", 15) + ' ' + t("myProfile") + '</button>' +
-    '<button role="tab" class="session-tab' + (active === "settings" ? ' active' : '') + '" onclick="showPage(\'settings\')">' + icon("settings", 15) + ' ' + t("navSettings") + '</button></div>';
+/** Page title for Profile and Settings (they are separate pages) */
+function _meTitleHtml(iconName, key) {
+  return '<div class="me-title">' + icon(iconName, 22) + ' ' + t(key) + '</div>';
 }
 
 /** Open the Configuration page on one tab */
@@ -161,22 +174,25 @@ function _renderSettingsPage() {
 
   // 1. Group — everything about the group in one place
   html += _settingsSection("secGroup");
+  var rows = [];
   if (GROUPS_ON && currentGroup) {
     var admin = isGroupAdminMe();
     var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
-    html += _navCard("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint"));
-    if (admin) html += _navCard("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint"));
-    html += _navCard("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint"));
-    html += _navCard("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint"));
-    html += _navCard("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint"));
-    html += _navCard("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint"));
-    if (cfg) html += _navCard("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint"));
-    html += _navCard("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint"));
-    if (admin && typeof reportsCount === "function") html += _navCard("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint"));
+    rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
+    if (admin) rows.push(_navRow("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint")));
+    rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
+    rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
+    rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
+    rows.push(_navRow("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint")));
+    if (cfg) rows.push(_navRow("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint")));
+    rows.push(_navRow("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint")));
+    if (admin && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));
   } else {
-    if (GROUPS_ON) html += _navCard("showPage('groups')", "users", t("yourGroups"), t("createGroupHint"));
-    html += _navCard("showPage('config')", "settings", t("configuration"), t("configurationHint"));
+    if (GROUPS_ON) rows.push(_navRow("showPage('groups')", "users", t("yourGroups"), t("createGroupHint")));
+    rows.push(_navRow("showPage('config')", "settings", t("configuration"), t("configurationHint")));
   }
+
+  html += '<div class="card nav-rows">' + rows.join('') + '</div>';
 
   // 2. App — language first, then how it looks
   html += _settingsSection("secApp");
@@ -200,8 +216,10 @@ function _renderSettingsPage() {
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
+  rows = [];
   if (typeof pushSettingsCard === "function") html += pushSettingsCard();
-  html += _navCard("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint"));
+  rows.push(_navRow("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint")));
+  html += '<div class="card nav-rows">' + rows.join('') + '</div>';
   html += _renderMergeCard();
 
   // 4. Sign out

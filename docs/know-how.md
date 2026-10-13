@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v70**.
+run it. App version at the time of writing: **v71**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -47,7 +47,7 @@ The app has two zones, kept visually apart so nobody confuses them:
 | **Private (my group)** | Your theme colour | Only members of the group | Polls, sessions, bills, matches, stats, members |
 | **Public** | Pink/purple with a "Public — everyone can see this" banner | Every signed-in user | Open games, play buddies, the gear Market, public groups, the court directory |
 
-**Bottom bar:** **Games** · Rankings · **Home** (middle) · Community · Me.
+**Bottom bar:** **Games** · Rankings · **Home** (middle) · Community · **Settings**.
 Rankings and Community show once groups are on. The floating **+** on Games opens
 *Create*: Vote, Game, Live score, Add score.
 
@@ -103,17 +103,17 @@ Spending card, or open it from Stats. The code is `js/home.js`.
 Stats and Public only show once groups are turned on (see section 15).
 
 **Header:** the group name with ▾ (tap it to switch group), the 🔔
-notifications button and **your picture**. Your picture opens your page, which has
-two tabs:
+notifications button and **your picture**. They are two separate pages:
 
-- **My profile:** photo, story, personal info, gear, payment QR.
-- **Settings**, in this order:
+- **My profile** (your picture in the header): photo and name, three number tiles
+  (rating, games, win rate), badges, story, personal info, gear, payment QR.
+- **Settings** (the last button of the bottom bar), grouped like a list of icon rows:
   - **Group:** switch group, group settings, members, courts & prices, cocks,
     players without the app, players' QR, general (minimum players, default
     payers), reports.
   - **App:** language, then appearance (dark/light, 5 colours each).
   - **Notifications & data:** push notifications, recently deleted, admin tools.
-  - **Sign out.**
+  - **Sign out** (asks first).
 
 ---
 
