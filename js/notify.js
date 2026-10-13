@@ -199,6 +199,7 @@ function updateNotifications() {
   });
   _setBadge("navBadge-polls", toAnswer);
   _setBadge("navBadge-sessions", toPay);
+  _setBadge("navBadge-games", toAnswer + toPay);
 
   var panel = document.getElementById("notifPanel");
   if (panel && panel.classList.contains("open")) _renderNotifPanel(events, seen);
