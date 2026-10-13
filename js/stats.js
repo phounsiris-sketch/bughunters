@@ -826,9 +826,9 @@ function matchRowHtml(m, no) {
     '<span class="match-meta">' + t("gameType_" + (m.type || "md")) + (m.minutes ? ' · ' + m.minutes + ' ' + t("minShort") : '') + '</span>' +
     (canEdit ? '<span class="match-actions"><button class="edit-btn" aria-label="' + t("edit") + '" onclick="editGame(\'' + m.id + '\')">' + icon("pen", 14) + '</button>' +
       '<button class="delete-btn" aria-label="' + t("delete") + '" onclick="deleteMatch(\'' + m.id + '\')">' + icon("trash", 14) + '</button></span>' : '') + '</div>';
-  html += '<div class="match-score-row"><div class="ms-side' + (w === "A" ? ' win' : '') + '"><div class="ms-names">' + _teamName(m.teamA || [], "A") + '</div><div class="ms-pts">' + (g.a != null ? g.a : '–') + '</div></div>' +
+  html += '<div class="match-score-row"><div class="ms-side' + (w === "A" ? ' win' : '') + '"><div class="ms-names">' + (m.teamA && m.teamA.length ? teamHtml(m.teamA, 24) : _teamName([], "A")) + '</div><div class="ms-pts">' + (g.a != null ? g.a : '–') + '</div></div>' +
     '<div class="ms-vs">–</div>' +
-    '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + _teamName(m.teamB || [], "B") + '</div><div class="ms-pts">' + (g.b != null ? g.b : '–') + '</div></div></div>';
+    '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + (m.teamB && m.teamB.length ? teamHtml(m.teamB, 24) : _teamName([], "B")) + '</div><div class="ms-pts">' + (g.b != null ? g.b : '–') + '</div></div></div>';
   if (more) html += '<div class="form-hint" style="text-align:center">' + more + '</div>';
   // Who saved it, and who changed it last
   html += '<div class="match-by">' + t("addedBy").replace("{name}", escapeHtml(getUserName(m.createdBy))) + (m.createdAt ? ' ' + _whenShort(m.createdAt) : '') +

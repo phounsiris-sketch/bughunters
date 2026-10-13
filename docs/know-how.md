@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v63**.
+run it. App version at the time of writing: **v64**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -63,6 +63,11 @@ The app has two zones, kept visually apart so nobody confuses them:
   Games tab of your latest running session) and *Pay* (My payments).
 - **Next game:** the soonest open vote or upcoming session, with the vote bar for
   a poll. With nothing planned it offers *Vote*.
+
+**Rule used everywhere:** a person always shows a round photo and a name together
+(session cards, who-pays-whom rows, poll voters, game rows, Home). A group shows
+three people and "+N". The small shared pieces (person chip, status pill, vote bar,
+Plan/Play/Pay/Done tracker, date block) live in `js/ui.js`.
 
 The old Dashboard (Activity, Spending, Leaderboard) is still there: tap the
 Spending card, or open it from Stats. The code is `js/home.js`.

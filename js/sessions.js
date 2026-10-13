@@ -298,10 +298,7 @@ function renderSessionsList(sessions) {
     html += '<div class="session-court">' + icon("pin", 12) + ' ' + escapeHtml(s.courtName || "") + ' • ' + escapeHtml(s.time || "") + (s.duration ? ' (' + fmtHours(s.duration) + ')' : '') +
       (cocks ? ' • ' + icon("shuttle", 12) + ' ' + cocks + ' ' + t("cocks") : '') +
       (function () { var c = s.courtId ? findCourt(s.courtId) : null; return c && hasPin(c) ? ' ' + courtMapLink(c, t("mapShort")) : ''; })() + '</div>';
-    html += '<div class="avatar-stack">';
-    players.slice(0, 7).forEach(function (u) { html += avatarHtml(u, 24); });
-    if (players.length > 7) html += '<span class="avatar-more">+' + (players.length - 7) + '</span>';
-    html += '<span class="session-players" style="margin-left:6px">' + players.length + ' ' + t("joinedPlayers").toLowerCase() + '</span></div>';
+    html += '<div class="session-people">' + iconStatHtml("users", players.length) + peopleHtml(players, 22, 3) + '</div>';
     if (s.createdBy) {
       html += '<div class="session-by">' + avatarHtml(s.createdBy, 18) + '<span class="poll-author-by">' + t("createdBy") + '</span> <b>' + getUserName(s.createdBy) + '</b></div>';
     }
@@ -720,7 +717,7 @@ function _renderSplitResult(s) {
       var isDone = !!settled[tr.key];
       var canMark = _canMarkTransfer(s, tr);
       html += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
-      html += '<div class="settle-head"><div style="font-size:14px"><b>' + getUserName(tr.from) + '</b> → <b>' + getUserName(tr.to) + '</b></div><div>';
+      html += '<div class="settle-head"><div class="settle-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</div><div>';
       if (isDone) {
         html += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
                         : '<span class="person-status status-payer">' + t("paid") + '</span>';
