@@ -91,38 +91,51 @@ function _renderConfigPage() {
 }
 
 /* ---------- Profile: who you are, your QR codes ---------- */
+var pfOpen = ""; // which profile section is open: "", "personal", "gear" or "qr"
+function togglePfRow(id) { pfOpen = pfOpen === id ? "" : id; renderSettings(); }
+
+/** One row of the profile list (tap to open its section) */
+function _pfRow(id, iconName, title, hint) {
+  var on = pfOpen === id;
+  return '<button type="button" class="nav-row pf-row' + (on ? ' open' : '') + '" onclick="togglePfRow(\'' + id + '\')" aria-expanded="' + on + '">' +
+    '<span class="nav-row-ico">' + icon(iconName, 20) + '</span>' +
+    '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16, on ? "pf-chev open" : "pf-chev") + '</button>';
+}
+
 function _renderProfileTab() {
   var prof = currentUserProfile || {};
+  var me = currentUser ? currentUser.uid : '';
   var email = prof.email || (currentUser && currentUser.email) || '';
-  var html = '<div class="card profile-head">';
-  html += '<div class="avatar-edit">' + avatarZoomHtml(currentUser ? currentUser.uid : '', 84) +
+
+  // Hero: photo, name, level, permissions and my three numbers
+  var lvl = typeof playerLevel === "function" && me ? playerLevel(me) : "";
+  var html = '<div class="card profile-hero2"><div class="pf-top">';
+  html += '<div class="avatar-edit">' + avatarZoomHtml(me, 72) +
     '<button class="avatar-edit-btn" onclick="document.getElementById(\'avatarFile\').click()" aria-label="' + t("changePhoto") + '">' + icon("camera", 16) + '</button></div>';
   html += '<input type="file" id="avatarFile" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">';
-  html += '<div class="profile-name">' + escapeHtml(prof.displayName || '') + '</div>';
-  html += '<div class="profile-email">' + escapeHtml(email) + '</div>';
-  html += '<div style="margin-top:8px">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div>';
-  html += '<div style="margin-top:6px">' +
-    '<button class="link-btn" style="display:inline;margin:0" onclick="document.getElementById(\'avatarFile\').click()">' + t("changePhoto") + '</button>' +
-    (prof.avatarUrl ? ' \u2022 <button class="link-btn" style="display:inline;margin:0;color:var(--red)" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div>';
+  html += '<div class="pf-id"><div class="pf-name">' + escapeHtml(prof.displayName || '') + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
+    '<div class="profile-email">' + escapeHtml(email) + '</div><div class="pf-perms">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div>' +
+    (prof.avatarUrl ? '<button class="link-btn pf-rm" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div></div>';
+  if (GROUPS_ON && typeof computeStats === "function" && me) {
+    var st = computeStats().players[me];
+    var wr = st && st.wins + st.losses ? Math.round(st.wins / (st.wins + st.losses) * 100) + '%' : '\u2013';
+    var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
+    html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st ? st.played : 0, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
+  }
   html += '</div>';
 
-  // My numbers and badges (groups only)
-  if (GROUPS_ON && typeof computeStats === "function" && currentUser) {
-    var me = currentUser.uid, st = computeStats().players[me];
-    var wr = st && st.wins + st.losses ? Math.round(st.wins / (st.wins + st.losses) * 100) + '%' : '–';
-    var tile = function (ic, val, label) { return '<div class="pf-tile"><span>' + icon(ic, 20) + '</span><b>' + val + '</b><small>' + label + '</small></div>'; };
-    html += '<div class="pf-tiles">' + tile("chart", ratingOf(me), t("homeRating")) + tile("court", st ? st.played : 0, t("gamesWord")) + tile("medal", wr, t("homeWinRate")) + '</div>';
-    if (typeof badgesHtml === "function") html += badgesHtml(me, true);
-  }
+  // Badges
+  if (GROUPS_ON && typeof badgesHtml === "function" && me) html += badgesHtml(me, true);
 
-  // Story photos, right under the profile picture
-  if (typeof storyCardHtml === "function") html += storyCardHtml(currentUser.uid, true);
-  // Personal info (each field with who can see it) and my gear
-  if (typeof aboutCardHtml === "function") html += aboutCardHtml() + gearCardHtml(currentUser.uid, true);
-
-  // My payment QR codes — everyone manages their own
-  qrOwner = currentUser ? currentUser.uid : null;
-  html += _qrCardHtml(t("myQrCodes"), t("myQrHint"), null);
+  // My details, one row each; tap a row to open it
+  var open = '';
+  if (pfOpen === "personal") open = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : '') + (typeof aboutCardHtml === "function" ? aboutCardHtml() : '');
+  else if (pfOpen === "gear") open = typeof gearCardHtml === "function" ? gearCardHtml(me, true) : '';
+  else if (pfOpen === "qr") { qrOwner = me; open = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
+  var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
+  html += '<div class="card nav-rows">' + rows.map(function (r) { return _pfRow(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
+  if (open) html += '<div class="pf-open">' + open + '</div>';
+  if (GROUPS_ON && typeof makeRecap === "function") html += '<button class="btn-secondary" onclick="makeRecap()">' + icon("share", 16) + ' ' + t("monthlyRecap") + '</button>';
   return html;
 }
 
