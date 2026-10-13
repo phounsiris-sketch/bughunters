@@ -65,7 +65,7 @@ function _renderDashboard() {
   if (!container) return;
 
   if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
-  if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb(null);
+  if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb([{ label: t("navHome"), action: "showPage('home')" }, { label: t("navDashboard") }]);
 
   var html = typeof homeLevelCardHtml === "function" ? homeLevelCardHtml() : '';
   if (typeof gearBoardCardHtml === "function") html += gearBoardCardHtml();
@@ -448,13 +448,14 @@ function _renderActivityTab() {
 
   if (dashActivityUser) {
     setBreadcrumb([
+      { label: t("navHome"), action: "showPage('home')" },
       { label: t("navDashboard"), action: "dashTab='leaders';dashActivityUser='';_renderDashboard()" },
       { label: t("activity"), action: "setActivityUser('')" },
       { label: getUserName(dashActivityUser) }
     ]);
     return html + _renderPlayerActivity(dashActivityUser, sessions, polls);
   }
-  setBreadcrumb(null);
+  setBreadcrumb([{ label: t("navHome"), action: "showPage('home')" }, { label: t("navDashboard") }]);
 
   // Per player: polls created, Join votes, games played, dinners — compared
   // with the totals of the period

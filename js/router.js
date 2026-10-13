@@ -2,7 +2,7 @@
    router.js — Page navigation system
    ============================================================ */
 
-var currentPage = "dashboard";
+var currentPage = "";  // set by the first showPage()
 var pageHistory = [];
 
 /**
@@ -30,6 +30,8 @@ function showPage(page, pushHistory) {
   // Push current page to history before switching
   if (pushHistory && currentPage && currentPage !== page) {
     pageHistory.push(currentPage);
+    // One browser history entry per step, so the browser's back button goes back one step
+    try { history.pushState({ n: pageHistory.length }, ""); } catch (e) {}
   }
 
   currentPage = page;
@@ -78,7 +80,7 @@ function showPage(page, pushHistory) {
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level
-  setBreadcrumb(null);
+  setBreadcrumb(_defaultCrumbs(page));
 
   // Trigger page-specific load callbacks (guard with typeof)
   if (page === "polls" && typeof loadPolls === "function") {
@@ -128,12 +130,45 @@ function showPage(page, pushHistory) {
  * Navigate back one step in history
  */
 function goBack() {
-  if (pageHistory.length > 0) {
-    var prev = pageHistory.pop();
-    showPage(prev, false);
-  } else {
-    showPage("dashboard", false);
+  // Through the browser history, so the back button and the in-app back stay in step
+  if (pageHistory.length > 0 && history.state && history.state.n > 0) { history.back(); return; }
+  if (pageHistory.length > 0) showPage(pageHistory.pop(), false);
+  else showPage("home", false);
+}
+
+/** The browser's back button: one step back, like the arrow in the header */
+try { history.replaceState({ n: 0 }, ""); } catch (e) {}
+window.addEventListener("popstate", function (e) {
+  if (typeof currentUser === "undefined" || !currentUser) return;
+  // An open window or the live score screen takes the back press first
+  var modal = document.getElementById("modal");
+  if (modal && modal.classList.contains("active")) { closeModal(); history.forward(); return; }
+  var live = document.getElementById("liveScreen");
+  if (live && live.classList.contains("on")) { history.forward(); if (typeof lsExit === "function") lsExit(); return; }
+  var n = e.state && typeof e.state.n === "number" ? e.state.n : 0;
+  if (n >= pageHistory.length) {
+    if (n > pageHistory.length) { try { history.replaceState({ n: pageHistory.length }, ""); } catch (x) {} }
+    return;
   }
+  var prev = null;
+  while (pageHistory.length > n) prev = pageHistory.pop();
+  showPage(prev || "home", false);
+});
+
+/** Where a page sits, for pages that do not set their own breadcrumb */
+function _defaultCrumbs(page) {
+  var games = { label: t("navGames"), action: "showPage('games')" };
+  var home = { label: t("navHome"), action: "showPage('home')" };
+  var map = {
+    polls: [games, { label: t("navPolls") }],
+    sessions: [games, { label: t("navSessions") }],
+    payments: [games, { label: t("myPayments") }],
+    matches: [games, { label: t("sessionTabGames") }],
+    "match-record": [games, { label: t("sessionTabGames") }],
+    dashboard: [home, { label: t("navDashboard") }],
+    "game-detail": [{ label: t("navCommunity"), action: "showPage('public')" }, { label: t("homeGame") }]
+  };
+  return map[page] || null;
 }
 
 /**

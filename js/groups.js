@@ -572,7 +572,7 @@ function joinFromHash() {
   var inv = parseInviteText(location.hash) || parseInviteText(saved);
   if (!inv) return false;
   try { localStorage.removeItem("pendingJoin"); } catch (e) {}
-  if (location.hash) history.replaceState(null, "", location.pathname);
+  if (location.hash) history.replaceState(history.state, "", location.pathname);
   joinGroup(inv.gid, inv.code);
   return true;
 }

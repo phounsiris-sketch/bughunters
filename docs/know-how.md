@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v74**.
+run it. App version at the time of writing: **v75**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -58,6 +58,13 @@ orange, Done green), a Plan-Play-Pay-Done bar, a vote bar (for votes) and the
 people with photo and name. A confirmed vote shows as its session, not twice. The
 old Polls and Sessions pages are still there (links at the bottom of Games). Code:
 `js/games.js`.
+
+**Back and breadcrumbs (v75).** Every step you open (a poll, a session, a bill, Settings, a
+sub-page) is one browser-history step, so the **browser's back button goes back one
+step**, the same as the arrow in the header. A window that is open (or the Live score
+screen) takes the back press first. Pages you drill into show a **breadcrumb** under the
+header (Games > Votes, Games > a session, Home > Dashboard, Settings > Members ...).
+On Games the *All votes* and *All sessions* links now sit **above** the first card.
 
 **Inside a game** (the session page) a **Plan · Play · Pay · Done** tracker sits at
 the top. A bar fixed above the bottom bar shows the next thing to do: while playing,

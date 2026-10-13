@@ -230,7 +230,7 @@ function _renderSettingsPage() {
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
   rows = [];
-  if (typeof pushSettingsCard === "function") html += pushSettingsCard();
+  if (typeof pushSettingsRows === "function") rows.push(pushSettingsRows());
   rows.push(_navRow("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint")));
   html += '<div class="card nav-rows">' + rows.join('') + '</div>';
   html += _renderMergeCard();

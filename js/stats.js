@@ -201,8 +201,9 @@ function setStatsPeriod(p) { statsPeriod = p; renderStats(); }
 function renderStats() {
   var box = document.getElementById("statsContent");
   if (!box) return;
-  var tabs = '<div class="session-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"]].map(function (x) {
-    return '<button role="tab" class="session-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 15) + ' ' + t(x[1]) + '</button>';
+  var tabs = '<div class="me-title">' + icon("ranking", 22) + ' ' + t("navRankings") + '</div>' +
+    '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"]].map(function (x) {
+    return '<button role="tab" class="dash-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 14) + ' ' + t(x[1]) + '</button>';
   }).join('') + '</div>';
   var note = '<div class="private-note">' + icon("lock", 12) + ' ' + t("statsPrivate").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>';
   var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : _renderRanking();
@@ -231,32 +232,32 @@ function _wl(w, l) { return w + t("winShort") + ' \u2013 ' + l + t("lossShort");
 
 function _myStatsCard() {
   var me = currentUser.uid, st = computeStats(), p = st.players[me];
+  var idx = p ? st.ranked.indexOf(p) : -1;
   var lvl = playerLevel(me);
-  var html = '<div class="card my-stats">';
-  html += '<div class="my-stats-head">' + (lvl ? levelBadgeHtml(lvl) : '<span class="level-badge lv-none" onclick="showLevelGuide()">?</span>') +
-    '<div style="flex:1;min-width:0"><div class="my-stats-title">' + t("myLevel") + '</div>' +
-    '<div class="my-stats-rating">' + (p && p.comp ? Math.round(p.rating) + ' ' + _trend(p.rating, p.monthStart) + _provTag(p.comp, RANK_MIN_MATCHES) : t("notRankedYet").replace("{n}", 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div>' +
+  var html = '<div class="card my-hero">';
+  // Who I am, my place and my rating (the one big number)
+  html += '<div class="mh-top">' + avatarHtml(me, 56) + '<div class="mh-id"><div class="mh-name">' + getUserName(me) + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
+    '<div class="mh-sub">' + (idx >= 0 ? '<b>#' + (idx + 1) + '</b> ' + _rankTrend(st.rankChange.players[me], p.rating, p.monthStart) : t("notRankedYet").replace("{n}", 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div>' +
+    '<div class="mh-rate"><small>' + t("homeRating") + '</small><b>' + (p && p.comp ? Math.round(p.rating) : '\u2013') + '</b>' + (p && p.comp ? _provTag(p.comp, RANK_MIN_MATCHES) : '') + '</div>' +
     '<button class="how-btn" aria-label="' + t("howRankingWorks") + '" onclick="showRankingHelp()">?</button></div>';
+  html += '<div class="mh-explain">' + t("rankExplain").replace("{start}", RATING_START) + '</div>';
   if (p) {
     var wr = p.wins + p.losses ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
     var best = _bestPartner(p);
-    html += '<div class="my-stats-facts"><span><b>' + wr + '%</b> ' + t("winRate") + '</span><span><b>' + p.monthPlayed + '</b> ' + t("matchesThisMonth") + '</span>' +
-      (best ? '<span>' + t("bestPartner") + ' <b>' + getUserName(best) + '</b></span>' : '') + '</div>';
+    html += '<div class="mh-facts">' + iconStatHtml("medal", wr + '% ' + t("winRate")) + iconStatHtml("court", p.monthPlayed + ' ' + t("matchesThisMonth")) + '</div>';
+    if (best) html += '<div class="mh-best">' + icon("users", 16) + ' ' + t("bestPartner") + ' ' + personHtml(best, 22) + '</div>';
   }
-  // My last 5 games: me (and my partner) vs the rivals, won or lost
+  // My last 5 games, newest first: the strip and the list run the same way
   var last = _myGames(me).slice(-5).reverse();
   if (last.length) {
-    // Folded by default: the W/L strip; tap it to see the games
-    var nm = function (u) { return '<span class="' + (u === me ? 'rg-me' : '') + '">' + escapeHtml(getUserName(u)) + '</span>'; };
     html += '<details class="recent-wrap"><summary class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
       last.map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
-      var mine = x.mine.slice().sort(function (p, q) { return (q === me) - (p === me); });  // personal view: me first
-      return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
-        '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
-        '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
-          '<small>' + t("vsWord") + ' ' + byNameAZ(x.them).map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span></div>';
+      var mine = x.mine.slice().sort(function (a, b) { return (b === me) - (a === me); });  // personal view: me first
+      return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '"><span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
+        '<div class="rg-body"><div class="rg-line">' + mine.map(function (u) { return personHtml(u, 24); }).join('') + '</div>' +
+        '<div class="rg-line vs"><span class="rg-vs">' + t("vsWord") + '</span>' + byNameAZ(x.them).map(function (u) { return personHtml(u, 20); }).join('') + '</div></div></div>';
     }).join('') + '</div></details>';
   }
   html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';

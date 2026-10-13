@@ -156,11 +156,11 @@ function _homeNextCard() {
     var inN = _pollAnswerUids(g.np, 0).length, all = Object.keys(g.np.responses).length;
     var inUids = _pollAnswerUids(g.np, 0), maybe = 0, out = all - inN;
     inner += '<div class="home-next-vote">' + voteBarHtml(inN, maybe, out, 0) + '</div>' +
-      '<div class="home-next-people">' + peopleHtml(inUids, 24, 3) + '</div>' +
+      '<div class="home-next-people">' + peopleHtml(inUids, 24, 6) + '</div>' +
       '<button class="btn-next" onclick="showPage(\'polls\')">' + t("homeVoteNow") + '</button>';
   } else {
     var pl = g.s.players || [];
-    inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 3) + '</div>' +
+    inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 6) + '</div>' +
       '<button class="btn-next" onclick="showSessionDetail(\'' + g.id + '\')">' + t("homeOpen") + '</button>';
   }
   return '<div class="home-next">' + inner + '</div>';

@@ -4948,3 +4948,28 @@ body.live-on { overflow: hidden; }
 .poll-trk { margin: 12px 0 4px; }
 .poll-vote { margin: 12px 0 4px; }
 .poll-card .poll-plan { background: none; border: 0; padding: 0; margin-top: 8px; }
+
+/* ========== Switch (settings rows) ========== */
+.sw { width: 50px; height: 30px; border-radius: 15px; background: var(--border); position: relative; flex: none; transition: background .2s; }
+.sw i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+.sw.on { background: var(--primary); }
+.sw.on i { left: 23px; }
+
+/* ========== Rankings: my card ========== */
+.my-hero { padding: 16px; }
+.mh-top { display: flex; align-items: center; gap: 12px; }
+.mh-id { flex: 1; min-width: 0; }
+.mh-name { font-size: 17px; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+.mh-sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 14px; }
+.mh-rate { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+.mh-rate small { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+.mh-rate b { font-size: 30px; line-height: 1; color: var(--accent); }
+.mh-explain { margin-top: 12px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+.mh-facts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; }
+.mh-best { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--text-muted); }
+.mh-best .si { color: var(--accent); }
+.rg-body { flex: 1; min-width: 0; }
+.rg-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.rg-line.vs { margin-top: 4px; color: var(--text-muted); }
+.rg-line.vs .person-n { font-size: 12px; font-weight: 500; }
+.rg-vs { font-size: 11px; font-weight: 700; text-transform: uppercase; }

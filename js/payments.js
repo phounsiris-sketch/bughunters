@@ -41,7 +41,7 @@ function _groupsSorted(map) {
 function renderPayments() {
   var el = document.getElementById("paymentsContent");
   if (!el) return;
-  setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: t("myPayments") }]);
+  setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: t("myPayments") }]);
   var sum = myPaymentSummary();
 
   var html = '<div class="cost-breakdown">';

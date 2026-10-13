@@ -62,14 +62,14 @@ function _gameCard(it) {
     var inUids = _pollAnswerUids(it.np, 0), all = Object.keys(it.np.responses).length;
     var mine = it.np.responses.hasOwnProperty(me);
     stats = iconStatHtml("vote", inUids.length + "/" + (it.poll.minPlayers || "–")) + iconStatHtml("clock", escapeHtml(it.time || "–"));
-    people = voteBarHtml(inUids.length, 0, Math.max(0, all - inUids.length), it.poll.minPlayers || 0) + '<div class="gc-people">' + peopleHtml(inUids, 22, 3) + '</div>';
+    people = voteBarHtml(inUids.length, 0, Math.max(0, all - inUids.length), it.poll.minPlayers || 0) + '<div class="gc-people">' + peopleHtml(inUids, 22, 6) + '</div>';
     cta = mine ? t("gcOpen") : t("homeVoteNow");
     onclick = "showPage('polls')";
   } else {
     var pl = it.s.players || [], owe = step === 2 ? myOweOn(it.s) : 0;
     stats = iconStatHtml("users", pl.length) + iconStatHtml("clock", escapeHtml(it.time || "–")) +
       (owe ? '<span class="icon-stat owe">' + icon("wallet", 16) + ' ' + fmtShort(owe) + '</span>' : '');
-    people = '<div class="gc-people">' + peopleHtml(pl, 22, 3) + '</div>';
+    people = '<div class="gc-people">' + peopleHtml(pl, 22, 6) + '</div>';
     cta = step === 1 ? t("homeAddScore") : step === 2 && owe ? t("homePay") : t("gcOpen");
     onclick = "showSessionDetail('" + it.id + "')";
   }
@@ -91,15 +91,15 @@ function renderGames() {
   var html = '<div class="dashboard-tabs">' + tabs.map(function (x) {
     return '<button class="dash-tab' + (gamesFilter === x[0] ? ' active' : '') + '" onclick="setGamesFilter(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
   }).join("") + '</div>';
-  if (!shown.length) {
+  html += '<div class="games-links"><button class="link-btn" onclick="showPage(\'polls\')">' + icon("vote", 14) + ' ' + t("gamesAllVotes") + '</button>' +
+    '<button class="link-btn" onclick="showPage(\'sessions\')">' + icon("sessions", 14) + ' ' + t("gamesAllSessions") + '</button></div>';
+    if (!shown.length) {
     html += '<div class="card"><div class="empty-state" style="padding:16px"><div class="empty-icon">' + icon("sessions", 40) + '</div><div>' + t("gamesNone") + '</div></div>' +
       '<button class="btn-primary" onclick="showCreateSheet()">' + icon("add", 16) + ' ' + t("homeCreate") + '</button></div>';
   } else {
     shown.forEach(function (it) { html += _gameCard(it); });
   }
-  html += '<div class="games-links"><button class="link-btn" onclick="showPage(\'polls\')">' + icon("vote", 14) + ' ' + t("gamesAllVotes") + '</button>' +
-    '<button class="link-btn" onclick="showPage(\'sessions\')">' + icon("sessions", 14) + ' ' + t("gamesAllSessions") + '</button></div>';
-  el.innerHTML = html;
+el.innerHTML = html;
 }
 
 /** The + sheet: what do you want to start? */

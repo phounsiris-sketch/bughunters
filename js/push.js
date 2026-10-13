@@ -78,23 +78,28 @@ function disablePush() {
 }
 
 /** Settings → Notifications card */
-function pushSettingsCard() {
+/** Notification rows for Settings (icon, title, one short line, a switch) */
+function pushSettingsRows() {
   if (!PUSH_VAPID_KEY) return "";
-  var st = pushState();
-  var html = '<div class="card"><div class="card-title">' + icon("bell", 14) + ' ' + t("pushTitle") + '</div>';
-  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">' + t("pushHint") + '</div>';
-  if (st === "on") {
-    html += '<div class="settings-item"><div class="settings-label" style="color:var(--accent)">' + icon("check", 14) + ' ' + t("pushOn") + '</div>' +
-      '<button class="edit-btn" onclick="disablePush()">' + t("pushTurnOff") + '</button></div>';
-    html += '<button class="btn-secondary" style="margin-top:10px" onclick="localTestPush()">' + icon("bell", 16) + ' ' + t("pushLocalTest") + '</button>';
-    html += '<div id="pushLocalResult" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>';
-  } else if (st === "off") {
-    html += '<button class="btn-primary" onclick="enablePush()">' + icon("bell", 16) + ' ' + t("pushTurnOn") + '</button>';
-    html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
+  var st = pushState(), html = "";
+  if (st === "on" || st === "off") {
+    var on = st === "on";
+    html += '<div class="nav-row"><span class="nav-row-ico">' + icon("bell", 20) + '</span>' +
+      '<span class="nav-row-text"><b>' + t("pushTitle") + '</b><small>' + t(on ? "pushOn" : "pushHintShort") + '</small></span>' +
+      '<button type="button" class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + t("pushTitle") + '" onclick="' + (on ? 'disablePush()' : 'enablePush()') + '"><i></i></button></div>';
+    if (on) html += '<button type="button" class="nav-row" onclick="localTestPush()"><span class="nav-row-ico">' + icon("check", 20) + '</span>' +
+      '<span class="nav-row-text"><b>' + t("pushLocalTest") + '</b><small id="pushLocalResult">' + t("pushHintShort") + '</small></span>' + icon("chevron", 16) + '</button>';
+    else html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
   } else {
-    html += '<div class="perm-note">' + t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</div>';
+    html += '<div class="nav-row"><span class="nav-row-ico">' + icon("warning", 20) + '</span><span class="nav-row-text"><b>' + t("pushTitle") + '</b><small>' +
+      t(st === "blocked" ? "pushBlocked" : st === "needsHomeScreen" ? "pushIos" : "pushUnsupported") + '</small></span></div>';
   }
-  return html + '</div>';
+  return html;
+}
+
+function pushSettingsCard() {
+  var rows = pushSettingsRows();
+  return rows ? '<div class="card nav-rows">' + rows + '</div>' : "";
 }
 
 /** Shows a notification straight from this phone (no server) to test banners. */
@@ -111,7 +116,7 @@ function openFromHash() {
   var h = location.hash || "";
   if (!h || !currentUser) return;
   if (/^#join=/.test(h)) return; // invite links: groups.js
-  history.replaceState(null, "", location.pathname);
+  history.replaceState(history.state, "", location.pathname);
   var m = h.match(/^#session=([\w-]+)/);
   var g = h.match(/^#group=([\w-]+)/);
   if (m) showSessionDetail(m[1]);
