@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v58**.
+run it. App version at the time of writing: **v59**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -337,7 +337,7 @@ it last** and when (stored as `createdBy` / `updatedBy`, `updatedAt`).
 
 | Tab | Shows |
 |---|---|
-| **Ranking** | A **highlights card** (**Best pair** = highest pair rating; **Best score** = the game with the biggest winning margin), then the **pair ranking**, then the individual ranking. This month or all time. Each row ends with a **rank arrow** (▲ up / ▼ down / – same, with how many places since the start of this month; **NEW** if it had no game before this month) and under it the **rating change** since the start of the month. Pair and team names are always shown **A→Z** everywhere (pair lists and dropdowns, game rows, last games; so "Nith & JusT John" is never also "JusT John & Nith"). Pairs are ordered by **rating**; a pair or player with too few games carries an `x/5` (pairs) or `x/10` (players) tag. Players still settling are listed after the others, pairs are not pushed down |
+| **Ranking** | A **highlights card** (**Best pair** = highest pair rating; **Best score** = the game with the biggest winning margin), then the **pair ranking**, then the individual ranking. This month or all time. Each row ends with a **rank arrow** (▲ up / ▼ down / – same, with how many places since the start of this month; **NEW** if it had no game before this month) and under it the **rating change** since the start of the month. Pair and team names are shown **A→Z** in every shared view (pair lists and dropdowns, game rows; personal views — My last games and the Progress best/worst partner card — put the player first; so "Nith & JusT John" is never also "JusT John & Nith"). Pairs are ordered by **rating**; a pair or player with too few games carries an `x/5` (pairs) or `x/10` (players) tag. Players still settling are listed after the others, pairs are not pushed down |
 | **Head to head** | One player's summary (you by default; pick anyone from the list): total W–L, then the record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game, in any mode |
 | **Head to head → Pair vs pair** | At the bottom of the tab: pick **two pairs** (the first defaults to the chosen player's most-played pair, the second to the pair it has met most; the second list only offers pairs with different players). It shows the **score between the two pairs** (wins each), the points difference and every game they played against each other, newest first. Pair names are A→Z |
 | **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line (the **hollow dot is the Start** rating when the period began; every filled dot is one game, so 7 games = 8 dots), W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |

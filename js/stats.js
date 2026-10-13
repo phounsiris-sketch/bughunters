@@ -252,7 +252,7 @@ function _myStatsCard() {
       last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
-      var mine = byNameAZ(x.mine);
+      var mine = x.mine.slice().sort(function (p, q) { return (q === me) - (p === me); });  // personal view: me first
       return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
         '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
         '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
