@@ -1,7 +1,7 @@
 /* ============================================================
    restaurants.js — Optional restaurant for a session's dinner.
    A shared master list (restaurants/{id}: name, location, lat, lng,
-   createdBy, createdAt) with search, a map pin, validation of new
+   photo (optional "img:<id>"), createdBy, createdAt) with search, a map pin, validation of new
    items (name, place, no duplicates) and 5-star reviews written by the
    people in that dinner (restaurantReviews/{restaurantId_uid}:
    restaurantId, uid, stars 1-5, comment, sessionId, gid, updatedAt).
@@ -41,6 +41,14 @@ function ratingHtml(id) {
     : '<span class="rest-rating none">' + t("restNoReviews") + '</span>';
 }
 
+/** Small round photo of a restaurant (or a plate icon when it has none) */
+function restThumbHtml(r, size) {
+  size = size || 44;
+  return r && r.photo
+    ? '<img class="rest-thumb" style="width:' + size + 'px;height:' + size + 'px" ' + imgSrcAttrs(r.photo) + ' alt="">'
+    : '<span class="rest-thumb ph" style="width:' + size + 'px;height:' + size + 'px">' + icon("dinner", Math.round(size / 2)) + '</span>';
+}
+
 /* ---------- Validation of a new / edited item ---------- */
 
 /** Returns { error: i18n key | null, dup: existing restaurant | null } */
@@ -67,7 +75,7 @@ function dinnerRestaurantFieldHtml(d) {
   var name = r ? r.name : d.restaurantName || "";
   var html = '<div class="form-group"><label class="form-label">' + icon("dinner", 12) + ' ' + t("restaurant") + ' <span class="form-hint">(' + t("optional") + ')</span></label>';
   if (d.restaurantId) {
-    html += '<div class="rest-picked"><div style="min-width:0"><b>' + escapeHtml(name) + '</b>' +
+    html += '<div class="rest-picked">' + restThumbHtml(r, 40) + '<div style="min-width:0"><b>' + escapeHtml(name) + '</b>' +
       (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
       '<button type="button" class="btn-secondary" onclick="editChooseRestaurant()">' + t("change") + '</button>' +
       '<button type="button" class="btn-secondary" onclick="editClearRestaurant()" aria-label="' + t("removePin") + '">✕</button></div>';
@@ -122,7 +130,7 @@ function _restFilter(q) {
     return;
   }
   el.innerHTML = list.map(function (r) {
-    return '<div class="rest-item" onclick="_restPick(\'' + r.id + '\')"><div style="min-width:0"><b>' + escapeHtml(r.name) + '</b>' +
+    return '<div class="rest-item" onclick="_restPick(\'' + r.id + '\')">' + restThumbHtml(r, 44) + '<div style="min-width:0;flex:1"><b>' + escapeHtml(r.name) + '</b>' +
       (r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
       '<div class="rest-item-side">' + ratingHtml(r.id) + (hasPin(r) ? ' <span class="tag">' + icon("pin", 11) + '</span>' : '') + '</div></div>';
   }).join('');
@@ -146,10 +154,27 @@ function showRestaurantForm(prefillName) {
       '<input class="form-input" id="mRestLoc" maxlength="' + REST_LOC_MAX + '" placeholder="' + escapeHtml(t("addressHint")) + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("restPin") + '</div>' +
     '<div class="form-hint">' + t("restNeedPlaceHint") + '</div>' +
+    '<div class="form-group" style="margin-top:12px"><label class="form-label">' + icon("camera", 12) + ' ' + t("restPhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
+      '<div id="restPhotoPreview"></div>' +
+      '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="_restPhotoChosen(this)"></div>' +
     '<div id="restDup"></div>';
+  _restPhoto = null;
   modalCallback = _restSave;
   openModal();
   initMapPicker("restPin", null, null);
+}
+
+var _restPhoto = null;   // data URL of the photo picked in the form
+
+function _restPhotoChosen(input) {
+  var file = input.files && input.files[0];
+  var box = document.getElementById("restPhotoPreview");
+  if (!file) { _restPhoto = null; if (box) box.innerHTML = ""; return; }
+  resizeImageToDataUrl(file, 800, function (err, dataUrl) {
+    if (err) { showToast(err.message); input.value = ""; return; }
+    _restPhoto = dataUrl;
+    if (box) box.innerHTML = '<img class="rest-photo" src="' + dataUrl + '" alt="">';
+  });
 }
 
 function _restSave() {
@@ -169,7 +194,11 @@ function _restSave() {
   }
   if (v.error) { showToast(t(v.error)); return; }
   var doc = { name: data.name, location: data.location, lat: data.lat, lng: data.lng, createdBy: currentUser.uid, createdAt: Date.now() };
-  fsdb.collection("restaurants").add(doc).then(function (ref) {
+  // The photo (optional) is stored as images/{id}; the restaurant keeps "img:<id>"
+  (_restPhoto ? dbSaveImage(_restPhoto, "restaurant") : Promise.resolve(null)).then(function (ref) {
+    if (ref) doc.photo = ref;
+    return fsdb.collection("restaurants").add(doc);
+  }).then(function (ref) {
     closeMapPicker("restPin");
     var cb = _restPickCb;
     closeModal();
@@ -194,7 +223,8 @@ function dinnerRestaurantViewHtml(s) {
   if (!d || !d.restaurantId) return "";
   var r = restaurantById(d.restaurantId);
   var name = r ? r.name : d.restaurantName || "";
-  var html = '<div class="rest-view"><div class="rest-view-head"><div style="min-width:0"><b>' + icon("dinner", 14) + ' ' + escapeHtml(name) + '</b>' +
+  var html = '<div class="rest-view">' + (r && r.photo ? '<img class="rest-photo" ' + imgSrcAttrs(r.photo) + ' alt="' + escapeHtml(name) + '" onclick="openImage(this.src)">' : '') +
+    '<div class="rest-view-head"><div style="min-width:0"><b>' + icon("dinner", 14) + ' ' + escapeHtml(name) + '</b>' +
     (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
     '<div>' + ratingHtml(d.restaurantId) + '</div></div>';
   if (r && hasPin(r)) html += '<div style="margin-top:6px">' + courtMapLink(r, t("openMap")) + '</div>';

@@ -4569,18 +4569,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .vbar-detail { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 32px; text-align: center; }
 .vbar-detail b { color: var(--text); }
 
-/* Spending tab: top-3 podium */
-.podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-top: 4px; }
-.pod-col { flex: 1 1 0; max-width: 120px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.pod-who { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-bottom: 6px; max-width: 100%; }
-.pod-name { font-size: 12px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pod-amt { font-size: 12px; font-weight: 700; color: var(--text-muted); }
-.pod-step { width: 100%; border-radius: 10px 10px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 6px; gap: 2px; color: #fff; }
-.pod-step span { font-size: 20px; line-height: 1; }
-.pod-step b { font-size: 16px; }
-.pod-1 .pod-step { background: linear-gradient(180deg, #f5b301, #d99a00); }
-.pod-2 .pod-step { background: linear-gradient(180deg, #a9b4c2, #8593a5); }
-.pod-3 .pod-step { background: linear-gradient(180deg, #d08a4e, #b06f36); }
 
 /* Ranking tab: highlights (best pair, best score) */
 .hl-card { padding: 10px 14px; margin-bottom: 12px; }
@@ -4646,3 +4634,8 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 
 /* Session tab: shortcut to add a game score */
 .quick-game-btn { width: 100%; margin: 10px 0 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* Restaurant photo */
+.rest-thumb { flex: none; border-radius: 12px; object-fit: cover; background: var(--surface); }
+.rest-thumb.ph { display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.rest-photo { width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 8px; display: block; cursor: pointer; }
