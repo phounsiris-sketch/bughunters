@@ -107,12 +107,19 @@ function loadBuddies() {
   }).catch(function () { _buddies = []; });
 }
 
-var buddyCal = { month: "", sel: "" };
-function setBuddyDay(iso) { buddyCal.sel = buddyCal.sel === iso ? "" : iso; renderPublic(); }
-function buddyMonth(delta) {
-  var p = (buddyCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
-  buddyCal.month = d.toISOString().slice(0, 7); renderPublic();
+var buddyCal = { month: "", anchor: "", sel: "", exp: false };
+function setBuddyDay(iso) { buddyCal.sel = buddyCal.sel === iso ? "" : iso; if (buddyCal.sel) { buddyCal.anchor = iso; buddyCal.month = iso.slice(0, 7); } renderPublic(); }
+function buddyNav(delta) {
+  if (buddyCal.exp) {
+    var p = (buddyCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
+    buddyCal.month = d.toISOString().slice(0, 7);
+  } else {
+    buddyCal.anchor = _addDays(buddyCal.anchor || _todayIso(), 7 * delta);
+    buddyCal.month = buddyCal.anchor.slice(0, 7);
+  }
+  renderPublic();
 }
+function buddyToggleCal() { buddyCal.exp = !buddyCal.exp; buddyCal.month = (buddyCal.anchor || _todayIso()).slice(0, 7); renderPublic(); }
 
 function _renderBuddies() {
   var me = findUser(currentUser.uid) || currentUserProfile || {};
@@ -124,8 +131,9 @@ function _renderBuddies() {
   var counts = {};
   dated.forEach(function (i) { inviteDates(i).forEach(function (d) { counts[d] = (counts[d] || 0) + 1; }); });
   if (dated.length) {
-    if (!buddyCal.month) buddyCal.month = dated.map(function (i) { return nextInviteDate(i); }).sort()[0].slice(0, 7);
-    html += calendarHtml({ month: buddyCal.month, counts: counts, selected: buddyCal.sel, pick: "setBuddyDay", nav: "buddyMonth" });
+    if (!buddyCal.anchor) buddyCal.anchor = _todayIso();
+    if (!buddyCal.month) buddyCal.month = buddyCal.anchor.slice(0, 7);
+    html += calendarHtml({ month: buddyCal.month, anchor: buddyCal.anchor, expanded: buddyCal.exp, counts: counts, selected: buddyCal.sel, pick: "setBuddyDay", nav: "buddyNav", toggle: "buddyToggleCal" });
     if (buddyCal.sel) html += '<div class="cal-sel"><b>' + fmtDate(buddyCal.sel) + '</b><button type="button" class="link-btn" onclick="setBuddyDay(\'' + buddyCal.sel + '\')">' + t("clear") + '</button></div>';
   }
   var onDay = function (i) { return !buddyCal.sel || inviteDates(i).indexOf(buddyCal.sel) >= 0; };

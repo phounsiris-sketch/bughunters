@@ -912,7 +912,7 @@ function badgesHtml(uid, showLocked) {
   var got = list.filter(function (b) { return b.earned; }).length;
   var html = '<div class="card badges-card"><div class="badges-head"><div class="card-title" style="margin:0">' + icon("medal", 14) + ' ' + t("badges") +
     ' <span class="badges-count">' + got + '/' + list.length + '</span></div>' +
-    (uid === currentUser.uid ? '<button class="btn-secondary recap-btn" onclick="makeRecap()">' + icon("camera", 14) + ' ' + t("monthlyRecap") + '</button>' : '') + '</div><div class="badge-grid">';
+'' + '</div><div class="badge-grid">';
   list.forEach(function (b) {
     var pct = b.earned ? 100 : Math.min(100, Math.round((b.value || 0) / b.need * 100));
     html += '<div class="badge-item' + (b.earned ? ' earned' : '') + '" title="' + escapeHtml(t("badgeDesc_" + b.key)) + '">' +

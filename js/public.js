@@ -11,7 +11,7 @@ var publicTab = "games";
 var _publicGames = [];
 var PUBLIC_GAME_TTL_H = 24;                 // a game not confirmed 24 h after posting is removed
 var PUBLIC_GAME_MIN_PLAYERS = 4;            // confirmed = at least this many players
-var pubCal = { month: "", sel: "" };        // calendar month and the picked day
+var pubCal = { month: "", anchor: "", sel: "", exp: false };   // week shown (or the month when expanded) and the picked day
 
 var _publicGroups = null;
 var _publicUnsub = null;
@@ -117,11 +117,18 @@ function _addDays(iso, n) {
   var p = iso.split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n));
   return d.toISOString().slice(0, 10);
 }
-function setPubDay(iso) { pubCal.sel = pubCal.sel === iso ? "" : iso; renderPublic(); }
-function pubMonth(delta) {
-  var p = (pubCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
-  pubCal.month = d.toISOString().slice(0, 7); renderPublic();
+function setPubDay(iso) { pubCal.sel = pubCal.sel === iso ? "" : iso; if (pubCal.sel) { pubCal.anchor = iso; pubCal.month = iso.slice(0, 7); } renderPublic(); }
+function pubNav(delta) {
+  if (pubCal.exp) {
+    var p = (pubCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
+    pubCal.month = d.toISOString().slice(0, 7);
+  } else {
+    pubCal.anchor = _addDays(pubCal.anchor || _todayIso(), 7 * delta);
+    pubCal.month = pubCal.anchor.slice(0, 7);
+  }
+  renderPublic();
 }
+function pubToggleCal() { pubCal.exp = !pubCal.exp; pubCal.month = (pubCal.anchor || _todayIso()).slice(0, 7); renderPublic(); }
 
 function gameStartMs(g) {
   if (!g.date || !g.time) return 0;
@@ -150,8 +157,9 @@ function _renderGames() {
   var games = _visibleGames();
   var counts = {};
   games.forEach(function (g) { counts[g.date] = (counts[g.date] || 0) + 1; });
-  if (!pubCal.month) pubCal.month = (games[0] ? games[0].date : _todayIso()).slice(0, 7);
-  var html = calendarHtml({ month: pubCal.month, counts: counts, selected: pubCal.sel, pick: "setPubDay", nav: "pubMonth" });
+  if (!pubCal.anchor) pubCal.anchor = _todayIso();
+  if (!pubCal.month) pubCal.month = pubCal.anchor.slice(0, 7);
+  var html = calendarHtml({ month: pubCal.month, anchor: pubCal.anchor, expanded: pubCal.exp, counts: counts, selected: pubCal.sel, pick: "setPubDay", nav: "pubNav", toggle: "pubToggleCal" });
   var shown = pubCal.sel ? games.filter(function (g) { return g.date === pubCal.sel; }) : games;
   if (pubCal.sel) html += '<div class="cal-sel"><b>' + fmtDate(pubCal.sel) + '</b><button type="button" class="link-btn" onclick="setPubDay(\'' + pubCal.sel + '\')">' + t("clear") + '</button></div>';
   if (!shown.length) {

@@ -150,7 +150,6 @@ function _renderProfileTab() {
   // My details: one row each, each opens its own page
   var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
   html += '<div class="card nav-rows">' + rows.map(function (r) { return _pfRow(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
-  if (GROUPS_ON && typeof makeRecap === "function") html += '<button class="btn-secondary" onclick="makeRecap()">' + icon("share", 16) + ' ' + t("monthlyRecap") + '</button>';
   return html;
 }
 

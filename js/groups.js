@@ -211,6 +211,7 @@ function startGroupListeners() {
     rebuildGroupCache();
     ensureGroupCourts();
     updateHeaderGroup();
+    if (currentPage === "group-settings" && typeof _renderLogoBox === "function") _renderLogoBox();   // new logo
     refreshCurrentPage("app");
   }, dbOnError));
   // The group's own courts (a copy of the directory's, with the group's price)
@@ -316,13 +317,21 @@ function switchGroup(gid) {
   showPage("home");
 }
 
+/** A group's logo (round picture), or its first letter on the app colours */
+function groupLogoHtml(grp, size) {
+  size = size || 36;
+  var st = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * .45) + 'px';
+  if (grp && grp.logo) return '<img class="group-logo" ' + imgSrcAttrs(grp.logo) + ' alt="" style="' + st + '">';
+  return '<span class="group-badge" style="' + st + '">' + escapeHtml(((grp && grp.name) || "?").charAt(0).toUpperCase()) + '</span>';
+}
+
 /* ---------- Header: group name + switcher ---------- */
 
 function updateHeaderGroup() {
   var el = document.getElementById("headerTitle");
   if (!el) return;
   if (GROUPS_ON && currentGroup) {
-    el.innerHTML = '<button class="group-switch" onclick="showGroupSwitcher()">' + escapeHtml(currentGroup.name || "Godsmash") +
+    el.innerHTML = '<button class="group-switch" onclick="showGroupSwitcher()">' + groupLogoHtml(currentGroup, 26) + '<span class="group-switch-name">' + escapeHtml(currentGroup.name || "Godsmash") + '</span>' +
       ' <span class="group-caret">▾</span></button>';
   } else {
     el.textContent = t("headerTitle");
@@ -342,7 +351,7 @@ function showGroupSwitcher() {
     var m = myMemberships[gid];
     var pending = m.status !== "active";
     html += '<button class="group-row' + (gid === currentGroupId ? ' active' : '') + '"' + (pending ? ' disabled' : ' onclick="switchGroup(\'' + gid + '\')"') + '>' +
-      '<span class="group-badge">' + escapeHtml((g.name || "?").charAt(0).toUpperCase()) + '</span>' +
+      groupLogoHtml(g, 36) +
       '<span class="group-row-text"><b>' + escapeHtml(g.name || gid) + '</b><small>' +
       (pending ? t("requestPending") : t(g.type === "public" ? "groupPublic" : "groupPrivate") + ' · ' + t("role_" + m.role)) + '</small></span>' +
       (gid === currentGroupId ? icon("check", 18) : '') + '</button>';
@@ -372,7 +381,7 @@ function loadGroupsPage() {
     html += '<div class="settings-section">' + t("yourGroups") + '</div><div class="card">';
     ids.forEach(function (gid) {
       var g = myGroupsInfo[gid] || { name: gid }, m = myMemberships[gid];
-      html += '<div class="settings-item"><div class="settings-left"><span class="group-badge">' + escapeHtml((g.name || "?").charAt(0).toUpperCase()) + '</span>' +
+      html += '<div class="settings-item"><div class="settings-left">' + groupLogoHtml(g, 36) +
         '<div><div class="settings-label">' + escapeHtml(g.name || gid) + '</div><div style="font-size:11px;color:var(--text-muted)">' +
         (m.status === "active" ? t("role_" + m.role) : t("requestPending")) + '</div></div></div>' +
         (m.status === "active" && gid !== currentGroupId ? '<button class="edit-btn" onclick="switchGroup(\'' + gid + '\')">' + t("open") + '</button>' : '') +
@@ -649,10 +658,11 @@ function loadGroupSettings() {
     return;
   }
   var owner = isSuperAdmin() || (currentGroup.ownerId === currentUser.uid);
-  box.innerHTML = '<div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>' +
+  box.innerHTML = '<div id="groupLogoBox"></div><div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>' +
     (owner ? '<div class="settings-section danger-title">' + t("dangerZone") + '</div><div class="card danger-card"><div class="form-hint" style="margin-bottom:10px">' +
       t("deleteGroupHint") + '</div><button class="btn-danger" onclick="deleteGroup()">' + icon("trash", 15) + ' ' + t("deleteGroup") + '</button></div>' : '');
   renderGroupForm("groupFormBox", groupEditForm, true);
+  _renderLogoBox();
   _renderInviteBox();
   fsdb.collection("groupSecrets").doc(currentGroupId).get().then(function (doc) {
     _groupSecret = doc.exists ? doc.data() : null;
@@ -691,6 +701,35 @@ function resetInviteCode() {
     _renderInviteBox();
     showToast(t("resetCode") + " ✔");
   }).catch(function (e) { showToast(_permError(e)); });
+}
+
+/** The group logo: shown in the header and in the group list; admins change it here (saved at once) */
+function _renderLogoBox() {
+  var box = document.getElementById("groupLogoBox");
+  if (!box || !currentGroup) return;
+  box.innerHTML = '<div class="card group-logo-card">' + groupLogoHtml(currentGroup, 64) +
+    '<div class="gl-text"><b>' + t("groupLogo") + '</b><small>' + t("groupLogoHint") + '</small></div>' +
+    '<div class="gl-actions"><button type="button" class="btn-secondary" onclick="document.getElementById(\'groupLogoFile\').click()">' + icon("camera", 16) + ' ' + t("changePhoto") + '</button>' +
+    (currentGroup.logo ? '<button type="button" class="link-btn" style="color:var(--red)" onclick="removeGroupLogo()">' + t("removePhoto") + '</button>' : '') + '</div>' +
+    '<input type="file" id="groupLogoFile" accept="image/*" style="display:none" onchange="groupLogoChosen(this)"></div>';
+}
+
+function groupLogoChosen(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  resizeImageToDataUrl(file, 256, function (err, dataUrl) {
+    if (err) { showToast(err.message); input.value = ""; return; }
+    dbSaveImage(dataUrl, "group").then(function (ref) {
+      return fsdb.collection("groups").doc(currentGroupId).update({ logo: ref });
+    }).then(function () {
+      showToast(t("save") + " \u2714");
+    }).catch(function (e) { showToast(_permError(e)); });
+  });
+}
+
+function removeGroupLogo() {
+  fsdb.collection("groups").doc(currentGroupId).update({ logo: null }).then(function () { showToast(t("removePhoto") + " \u2714"); })
+    .catch(function (e) { showToast(_permError(e)); });
 }
 
 function saveGroupSettings() {
