@@ -4866,3 +4866,10 @@ body.live-on { overflow: hidden; }
 .home-new.big .home-new-ico { width: 52px; height: 52px; }
 .home-new.row { flex-direction: row; justify-content: flex-start; padding: 8px 14px; min-height: 52px; gap: 10px; }
 .home-new.row .home-new-ico { width: 36px; height: 36px; }
+
+/* ========== Game page: tracker and action bar ========== */
+.game-trk { padding: 12px 10px 10px; }
+.action-spacer { height: 76px; }
+.session-actionbar { position: fixed; left: 0; right: 0; bottom: calc(62px + env(safe-area-inset-bottom, 0px)); z-index: 90; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 16px; }
+.session-actionbar > div { max-width: 480px; margin: 0 auto; display: flex; gap: 10px; }
+.session-actionbar button { flex: 1; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; }
