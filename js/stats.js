@@ -464,6 +464,7 @@ function _renderProgress() {
     '<span><b>' + all.length + '</b> ' + t("gamesWord") + '</span><span><b>' + mins + '</b> ' + t("minShort") + '</span>' +
     '<span><b>' + (games.length ? (pts / games.length >= 0 ? '+' : '') + (pts / games.length).toFixed(1) : '0') + '</b> ' + t("ptsPerGame") + '</span>' +
     '<span>' + t("streak") + ' <b>' + (p.streak > 0 ? p.streak + t("winShort") : p.streak < 0 ? (-p.streak) + t("lossShort") : '\u2013') + '</b></span></div></div>';
+  html += _pairInsightsHtml(uid, games);
   // Breakdown: by week for one month, by month otherwise
   var byWeek = months === 1, buckets = {};
   all.forEach(function (m) {
@@ -483,6 +484,49 @@ function _renderProgress() {
       '<span class="rank-rating">' + Math.round(r) + ' ' + _trend(r, prev) + '</span></div>';
   });
   html += '</div>';
+  return html;
+}
+
+/** Best / worst pair (partners) of a player in the period, and gentle tips from the numbers */
+var INSIGHT_MIN_GAMES = 2;
+function _pairInsightsHtml(uid, games) {
+  if (!games.length) return '';
+  var partner = {}, rival = {};
+  games.forEach(function (g) {
+    g.mine.forEach(function (u) { if (u !== uid) { var x = partner[u] || (partner[u] = { uid: u, n: 0, w: 0 }); x.n++; if (g.won) x.w++; } });
+    g.them.forEach(function (u) { var x = rival[u] || (rival[u] = { uid: u, n: 0, w: 0 }); x.n++; if (g.won) x.w++; });
+  });
+  var rate = function (x) { return x.w / x.n; };
+  var list = function (o) { return Object.keys(o).map(function (k) { return o[k]; }).filter(function (x) { return x.n >= INSIGHT_MIN_GAMES; }); };
+  var ps = list(partner).sort(function (a, b) { return rate(b) - rate(a) || b.n - a.n; });
+  var best = ps[0], worst = ps.length > 1 ? ps[ps.length - 1] : null;
+  if (worst && rate(worst) >= rate(best)) worst = null;  // everyone equal: nothing to call "worst"
+  var hard = list(rival).sort(function (a, b) { return rate(a) - rate(b) || b.n - a.n; })[0];
+  if (hard && rate(hard) >= 0.5) hard = null;
+  var fill = function (str, x) { return str.replace("{name}", escapeHtml(getUserName(x.uid))).replace("{w}", x.w).replace("{l}", x.n - x.w).replace("{pct}", Math.round(rate(x) * 100)); };
+  var row = function (x, cls, label) {
+    return '<div class="ins-row ' + cls + '"><span class="rank-avatars">' + avatarHtml(uid, 28) + avatarHtml(x.uid, 28) + '</span>' +
+      '<span class="rank-text"><small>' + label + '</small><b>' + escapeHtml(getUserName(uid)) + ' &amp; ' + escapeHtml(getUserName(x.uid)) + '</b>' +
+      '<small>' + _wl(x.w, x.n - x.w) + ' · ' + Math.round(rate(x) * 100) + '%</small></span></div>';
+  };
+  var html = '<div class="card ins-card"><div class="card-title">' + icon("users", 14) + ' ' + t("bestWorstPair") + '</div>';
+  if (!best) html += '<div class="form-hint">' + t("insNeedMore").replace("{n}", INSIGHT_MIN_GAMES) + '</div>';
+  else html += row(best, "good", t("bestPair")) + (worst ? row(worst, "low", t("worstPair")) : '');
+
+  // Gentle tips, at most 4
+  var tips = [];
+  var w = games.filter(function (x) { return x.won; }).length, l = games.length - w;
+  var avg = games.reduce(function (s, x) { return s + x.pts; }, 0) / games.length;
+  var streak = 0; for (var i = games.length - 1; i >= 0 && !games[i].won; i--) streak++;
+  if (best) tips.push(fill(t("tipBest"), best));
+  if (worst) tips.push(fill(t("tipWorst"), worst));
+  if (hard) tips.push(fill(t("tipRival"), hard));
+  if (games.length >= 3 && avg < 0) tips.push(t("tipClose"));
+  if (streak >= 2) tips.push(t("tipRest"));
+  if (games.length >= 5 && w / games.length >= 0.7) tips.push(t("tipGreat"));
+  if (!best) tips.push(t("tipMix"));
+  html += '<div class="ins-tips-title">' + icon("chart", 13) + ' ' + t("insTipsTitle") + '</div><ul class="ins-tips">' +
+    tips.slice(0, 4).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
   return html;
 }
 

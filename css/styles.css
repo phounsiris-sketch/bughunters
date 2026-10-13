@@ -4603,3 +4603,13 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .spark-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .sk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
 .sk-dot.start { background: transparent; border: 2px solid var(--accent); box-sizing: border-box; }
+
+/* Progress tab: best / toughest pair + tips */
+.ins-card { padding: 14px; }
+.ins-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px; border-radius: 12px; border-left: 4px solid transparent; background: var(--surface); }
+.ins-row.good { border-left-color: #16a34a; } .ins-row.low { border-left-color: #f59e0b; }
+.ins-row .rank-text { display: flex; flex-direction: column; min-width: 0; }
+.ins-row .rank-text small { color: var(--text-muted); font-size: 11px; }
+.ins-tips-title { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.ins-tips { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.ins-tips li { margin-bottom: 6px; }
