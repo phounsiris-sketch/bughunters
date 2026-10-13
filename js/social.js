@@ -107,23 +107,40 @@ function loadBuddies() {
   }).catch(function () { _buddies = []; });
 }
 
+var buddyCal = { month: "", sel: "" };
+function setBuddyDay(iso) { buddyCal.sel = buddyCal.sel === iso ? "" : iso; renderPublic(); }
+function buddyMonth(delta) {
+  var p = (buddyCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
+  buddyCal.month = d.toISOString().slice(0, 7); renderPublic();
+}
+
 function _renderBuddies() {
   var me = findUser(currentUser.uid) || currentUserProfile || {};
   var b = me.buddy || {};
   var html = '';
   var age = _myAge();
+  // A month calendar of my invites (tap a day to see only that day)
+  var dated = _invIn.concat(_invOut).filter(function (i) { return i.date && _inviteUpcoming(i) && !(i.status === "pending" && isBlockedPair(i.from)); });
+  var counts = {};
+  dated.forEach(function (i) { counts[i.date] = (counts[i.date] || 0) + 1; });
+  if (dated.length) {
+    if (!buddyCal.month) buddyCal.month = dated.map(function (i) { return i.date; }).sort()[0].slice(0, 7);
+    html += calendarHtml({ month: buddyCal.month, counts: counts, selected: buddyCal.sel, pick: "setBuddyDay", nav: "buddyMonth" });
+    if (buddyCal.sel) html += '<div class="cal-sel"><b>' + fmtDate(buddyCal.sel) + '</b><button type="button" class="link-btn" onclick="setBuddyDay(\'' + buddyCal.sel + '\')">' + t("clear") + '</button></div>';
+  }
+  var onDay = function (i) { return !buddyCal.sel || i.date === buddyCal.sel; };
   // Invites for me
-  var pendingIn = _invIn.filter(function (i) { return i.status === "pending" && !isBlockedPair(i.from); });
+  var pendingIn = _invIn.filter(function (i) { return i.status === "pending" && !isBlockedPair(i.from) && onDay(i); });
   if (pendingIn.length) {
     html += '<div class="settings-section">' + t("invitesForYou") + ' (' + pendingIn.length + ')</div>';
     pendingIn.forEach(function (i) { html += _inviteCard(i, true); });
   }
-  var accepted = _invIn.concat(_invOut).filter(function (i) { return i.status === "accepted" && _inviteUpcoming(i); });
+  var accepted = _invIn.concat(_invOut).filter(function (i) { return i.status === "accepted" && _inviteUpcoming(i) && onDay(i); });
   if (accepted.length) {
     html += '<div class="settings-section">' + t("acceptedInvites") + '</div>';
     accepted.forEach(function (i) { html += _inviteCard(i, i.to === currentUser.uid); });
   }
-  var sent = _invOut.filter(function (i) { return i.status !== "accepted" && _inviteUpcoming(i); });
+  var sent = _invOut.filter(function (i) { return i.status !== "accepted" && _inviteUpcoming(i) && onDay(i); });
   if (sent.length) {
     html += '<div class="settings-section">' + t("sentInvites") + '</div>';
     sent.forEach(function (i) { html += _inviteCard(i, false); });

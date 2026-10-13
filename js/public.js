@@ -9,6 +9,9 @@
 
 var publicTab = "games";
 var _publicGames = [];
+var PUBLIC_GAME_TTL_H = 24;                 // a game that is not full (confirmed) 24 h after posting is cancelled
+var pubCal = { month: "", sel: "" };        // calendar month and the picked day
+
 var _publicGroups = null;
 var _publicUnsub = null;
 var _here = null; // { lat, lng } once the browser tells us
@@ -51,7 +54,7 @@ function loadPublic() {
     _publicUnsub = fsdb.collection("openGames").where("status", "in", ["open", "full"]).onSnapshot(function (snap) {
       var list = [];
       snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
-      _publicGames = list;
+      _publicGames = list.filter(_keepGame);
       if (currentPage === "public") renderPublic();
       updatePublicBadge();
     }, dbOnError);
@@ -94,6 +97,29 @@ function renderPublic() {
 
 /* ---------- Open games ---------- */
 
+/** A game that did not fill up (confirm) within a day is dropped; its host's phone cancels it */
+function _gameExpired(g) {
+  return g.status === "open" && g.createdAt && Date.now() > g.createdAt + PUBLIC_GAME_TTL_H * 3600e3;
+}
+function _keepGame(g) {
+  if (!_gameExpired(g)) return true;
+  if (currentUser && g.hostId === currentUser.uid) {
+    fsdb.collection("openGames").doc(g.id).update({ status: "cancelled", cancelledAt: Date.now(), cancelReason: "unconfirmed" })
+      .then(function () { showToast(t("gameExpiredToast").replace("{game}", g.title || g.courtName || "")); }).catch(function () {});
+  }
+  return false;
+}
+
+function _addDays(iso, n) {
+  var p = iso.split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n));
+  return d.toISOString().slice(0, 10);
+}
+function setPubDay(iso) { pubCal.sel = pubCal.sel === iso ? "" : iso; renderPublic(); }
+function pubMonth(delta) {
+  var p = (pubCal.month || _todayIso().slice(0, 7)).split("-").map(Number), d = new Date(Date.UTC(p[0], p[1] - 1 + delta, 1));
+  pubCal.month = d.toISOString().slice(0, 7); renderPublic();
+}
+
 function gameStartMs(g) {
   if (!g.date || !g.time) return 0;
   var p = g.date.split("-").map(Number), h = g.time.split(":").map(Number);
@@ -119,13 +145,18 @@ function updatePublicBadge() {
 
 function _renderGames() {
   var games = _visibleGames();
-  var html = '';
-  if (!games.length) {
+  var counts = {};
+  games.forEach(function (g) { counts[g.date] = (counts[g.date] || 0) + 1; });
+  if (!pubCal.month) pubCal.month = (games[0] ? games[0].date : _todayIso()).slice(0, 7);
+  var html = calendarHtml({ month: pubCal.month, counts: counts, selected: pubCal.sel, pick: "setPubDay", nav: "pubMonth" });
+  var shown = pubCal.sel ? games.filter(function (g) { return g.date === pubCal.sel; }) : games;
+  if (pubCal.sel) html += '<div class="cal-sel"><b>' + fmtDate(pubCal.sel) + '</b><button type="button" class="link-btn" onclick="setPubDay(\'' + pubCal.sel + '\')">' + t("clear") + '</button></div>';
+  if (!shown.length) {
     html += '<div class="empty-state"><div class="empty-icon">' + icon("globe", 44) + '</div><div>' + t("noOpenGames") + '</div>' +
       '<button class="btn-primary" style="margin-top:14px" onclick="showPage(\'game-create\')">+ ' + t("newPublicGame") + '</button></div>';
     return html;
   }
-  games.forEach(function (g) { html += gameCardHtml(g); });
+  shown.forEach(function (g) { html += gameCardHtml(g); });
   return html;
 }
 
@@ -137,20 +168,20 @@ function gameCardHtml(g) {
   var court = findCourt(g.courtId);
   var dist = _here && court && hasPin(court) ? fmtKm(distanceKm(_here, court)) : "";
   var closed = g.closesAt && Date.now() >= g.closesAt;
-  var chip = inGame ? '<span class="status-chip st-settled">' + t("youreIn") + '</span>'
-    : left ? '<span class="status-chip st-upcoming">' + t("slotsLeft").replace("{n}", left) + '</span>'
-    : '<span class="status-chip st-costs">' + t("gameFull") + (wait.length ? ' · ' + t("waitlistN").replace("{n}", wait.length) : '') + '</span>';
-  var levels = g.levelMin || g.levelMax ? levelShort(g.levelMin || "BG") + (g.levelMax && normLevel(g.levelMax) !== normLevel(g.levelMin) ? "–" + levelShort(g.levelMax || "BA") : "") : "";
-  var html = '<div class="card game-card">';
-  html += '<div class="game-head"><div class="game-when">' + weekdayShort(new Date(g.date + "T00:00:00").getDay()) + ' ' + fmtDate(g.date) + ' · ' + escapeHtml(g.time || "") + '</div>' + chip + '</div>';
-  html += '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' · ' + dist : '') +
-    ' · ' + escapeHtml(_moneyIn(g.price, g.currency)) + ' ' + t("each") + (levels ? ' · ' + t("levelShort") + ' ' + levels : '') + '</div>';
+  var chip = inGame ? pillHtml("green", t("youreIn"))
+    : left ? pillHtml("blue", t("slotsLeft").replace("{n}", left))
+    : pillHtml("orange", t("gameFull") + (wait.length ? ' \u00B7 ' + t("waitlistN").replace("{n}", wait.length) : ''));
+  var levels = g.levelMin || g.levelMax ? levelShort(g.levelMin || "BG") + (g.levelMax && normLevel(g.levelMax) !== normLevel(g.levelMin) ? "\u2013" + levelShort(g.levelMax || "BA") : "") : "";
+  var html = '<div class="card game-card compact">';
+  html += '<div class="gc2-row">' + (g.photo ? '<img class="gc2-thumb" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="openImage(this.src)">' : '') +
+    '<div class="gc2-main"><div class="game-when">' + weekdayShort(new Date(g.date + "T00:00:00").getDay()) + ' ' + fmtDate(g.date) + ' \u00B7 ' + escapeHtml(g.time || "") + '</div>' +
+    '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' \u00B7 ' + dist : '') +
+    ' \u00B7 ' + escapeHtml(_moneyIn(g.price, g.currency)) + ' ' + t("each") + (levels ? ' \u00B7 ' + t("levelShort") + ' ' + levels : '') + '</div></div>' + chip + '</div>';
   html += '<div class="game-tags"><span class="tag">' + t("gameType_" + (g.gameType || "any")) + '</span><span class="tag mode-' + (g.mode || "fun") + '">' + t("mode_" + (g.mode || "fun")) + '</span>' +
-    (g.dinner ? '<span class="tag">' + icon("dinner", 12) + ' ' + t("dinnerAfterTag") + '</span>' : '') +
-    '<span class="tag">' + t("hostedBy").replace("{name}", getUserName(g.hostId)) + '</span></div>';
+    (g.dinner ? '<span class="tag">' + icon("dinner", 12) + ' ' + t("dinnerAfterTag") + '</span>' : '') + (g.seriesId ? '<span class="tag">' + icon("history", 12) + ' ' + t("repeatWeekly") + '</span>' : '') + '</div>';
   if (g.note) html += '<div class="game-note">' + escapeHtml(g.note) + '</div>';
-  html += '<div class="game-players">' + players.map(function (u) { return '<span title="' + escapeHtml(plainUserName(findUser(u))) + '" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 26) + '</span>'; }).join('') +
-    Array(left + 1).join('<span class="slot-empty"></span>') + '</div>';
+  html += '<div class="gc2-people">' + personHtml(g.hostId, 22, t("hostWord")) + (players.length ? peopleHtml(players.filter(function (u) { return u !== g.hostId; }), 22, 4) : '') +
+    (left ? '<span class="slot-row">' + Array(Math.min(left, 6) + 1).join('<span class="slot-empty"></span>') + (left > 6 ? '<small>+' + (left - 6) + '</small>' : '') + '</span>' : '') + '</div>';
   html += '<div class="game-actions">';
   if (host) {
     html += '<button class="btn-secondary" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>';
@@ -228,7 +259,7 @@ function loadGameCreate() {
   if (!newGame) {
     var d = new Date(Date.now() + 86400e3);
     newGame = { date: d.toISOString().slice(0, 10), time: (currentGroup && currentGroup.usualTime) || "18:00", duration: 2, courtId: "",
-      slots: 4, hostPlays: true, gameType: "md", mode: "fun", levelMin: "", levelMax: "", price: 0, dinner: false, note: "", title: "" };
+      slots: 4, hostPlays: true, gameType: "md", mode: "fun", levelMin: "", levelMax: "", price: 0, dinner: false, note: "", title: "", repeat: "none", repeatN: 4, photoData: null };
   }
   _locateMe();
   renderGameForm();
@@ -277,6 +308,14 @@ function renderGameForm() {
     '<select class="form-select" onchange="newGame.levelMin=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option value="' + l + '"' + (normLevel(g.levelMin) === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select>' +
     '<select class="form-select" onchange="newGame.levelMax=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option value="' + l + '"' + (normLevel(g.levelMax) === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-hint">' + t("levelSelfHint") + '</div></div>';
+  html += '<div class="form-group"><label class="form-label">' + icon("camera", 12) + ' ' + t("gamePhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
+    (g.photoData ? '<img class="rest-photo" src="' + g.photoData + '" alt="">' : '') +
+    '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="gamePhotoChosen(this)"></div>';
+  html += '<div class="form-group"><label class="form-label">' + icon("history", 12) + ' ' + t("repeatLabel") + '</label>' +
+    '<div class="seg seg-wrap"><button type="button" class="seg-btn' + (g.repeat !== "weekly" ? ' active' : '') + '" onclick="gameSet(\'repeat\',\'none\')">' + t("repeatNone") + '</button>' +
+    '<button type="button" class="seg-btn' + (g.repeat === "weekly" ? ' active' : '') + '" onclick="gameSet(\'repeat\',\'weekly\')">' + t("repeatWeekly") + '</button></div>' +
+    (g.repeat === "weekly" ? '<div class="stepper" style="margin-top:8px"><button type="button" onclick="gameSet(\'repeatN\',Math.max(2,newGame.repeatN-1))">\u2212</button><b>' + t("repeatTimes").replace("{n}", g.repeatN) + '</b>' +
+      '<button type="button" onclick="gameSet(\'repeatN\',Math.min(12,newGame.repeatN+1))">+</button></div>' : '') + '</div>';
   html += '<details class="more-details"' + (g._more ? ' open' : '') + ' ontoggle="newGame._more=this.open"><summary>' + t("moreDetails") + '</summary>' +
     '<div class="form-group"><label class="form-label">' + t("gameTitle") + '</label><input class="form-input" maxlength="60" placeholder="' + t("gameTitleAuto") + '" value="' + escapeHtml(g.title) + '" oninput="newGame.title=this.value"></div>' +
     '<label class="perm-row"><input type="checkbox"' + (g.dinner ? ' checked' : '') + ' onchange="newGame.dinner=this.checked"><div>' + t("dinnerAfterTag") + '</div></label>' +
@@ -287,6 +326,16 @@ function renderGameForm() {
   html += '<div class="form-hint" style="text-align:center;margin-top:8px">' + t("publicSafety") + '</div>';
   html += '</div>';
   box.innerHTML = html;
+}
+
+function gamePhotoChosen(input) {
+  var file = input.files && input.files[0];
+  if (!file) { newGame.photoData = null; renderGameForm(); return; }
+  resizeImageToDataUrl(file, 800, function (err, dataUrl) {
+    if (err) { showToast(err.message); input.value = ""; return; }
+    newGame.photoData = dataUrl;
+    renderGameForm();
+  });
 }
 
 function _gameSummary() {
@@ -321,10 +370,22 @@ function submitGame() {
     dinner: !!g.dinner, note: (g.note || "").trim(), status: "open", log: {},
     closesAt: defaultCloseAt(g.date, g.time, Date.now()), createdAt: Date.now()
   };
-  fsdb.collection("openGames").add(data).then(function () {
+  var weeks = g.repeat === "weekly" ? Math.max(2, Math.min(12, g.repeatN || 2)) : 1;
+  var series = weeks > 1 ? "s" + Date.now().toString(36) : null;
+  var photoSaved = g.photoData ? dbSaveImage(g.photoData, "game") : Promise.resolve(null);
+  photoSaved.then(function (ref) {
+    if (ref) data.photo = ref;
+    var jobs = [];
+    for (var k = 0; k < weeks; k++) {
+      var one = Object.assign({}, data, { date: _addDays(g.date, 7 * k), closesAt: defaultCloseAt(_addDays(g.date, 7 * k), g.time, Date.now()) });
+      if (series) one.seriesId = series;
+      jobs.push(fsdb.collection("openGames").add(one));
+    }
+    return Promise.all(jobs);
+  }).then(function () {
     newGame = null;
     publicTab = "games";
-    showToast(t("gamePosted") + " ✔");
+    showToast(t("gamePosted") + (weeks > 1 ? " \u00D7" + weeks : "") + " \u2714");
     showPage("public");
   }).catch(function (e) { showToast(_permError(e)); });
 }

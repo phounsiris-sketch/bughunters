@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v77**.
+run it. App version at the time of writing: **v78**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -304,6 +304,18 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Public games: calendar, photo, repeat, auto-cancel (v78)
+
+*Community > Open games* starts with a **month calendar**: days with games show dots,
+tap a day to see only that day (tap again to clear), arrows change the month. Tap *Join*
+to reserve a place. The **Play buddies** tab has the same calendar for your invites. A
+game has an optional **photo** (a thumbnail on the card, good for an ad or the venue) and
+can **repeat weekly** (2 to 12 weeks; one game is posted for each week, tagged "Repeats
+weekly"). **A game that is not full (confirmed) 24 hours after it was posted is cancelled**
+(`PUBLIC_GAME_TTL_H` in `js/public.js`): everyone stops seeing it and its host's phone
+marks it cancelled and says so. The card is compact: host and players (photo + name), tags
+and one button.
 
 ### Live score
 

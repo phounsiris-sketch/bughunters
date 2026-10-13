@@ -86,3 +86,20 @@ function dayStripHtml(selected, pick) {
   }
   return html + '</div>' + (selected && !seen ? '<div class="form-hint" style="margin-top:6px">' + icon("calendar", 12) + ' ' + fmtDate(selected) + '</div>' : '');
 }
+
+/** Month calendar. opts: { month: "YYYY-MM", counts: { "YYYY-MM-DD": n }, selected: "YYYY-MM-DD"|"", pick: "fnName" (called with the date; the same date again clears it), nav: "fnName" (called with -1 / +1) } */
+function calendarHtml(opts) {
+  var p = opts.month.split("-").map(Number), y = p[0], m = p[1] - 1;
+  var first = new Date(Date.UTC(y, m, 1)), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), lead = first.getUTCDay();
+  var today = _todayIso(), counts = opts.counts || {};
+  var html = '<div class="cal"><div class="cal-head"><button type="button" class="cal-nav" aria-label="' + t("prev") + '" onclick="' + opts.nav + '(-1)">' + icon("back", 18) + '</button>' +
+    '<b>' + monthShort(m) + ' ' + y + '</b><button type="button" class="cal-nav" aria-label="' + t("next") + '" onclick="' + opts.nav + '(1)">' + icon("chevron", 18) + '</button></div><div class="cal-grid">';
+  for (var w = 0; w < 7; w++) html += '<span class="cal-dow">' + weekdayNarrow(w) + '</span>';
+  for (var i = 0; i < lead; i++) html += '<span></span>';
+  for (var d = 1; d <= days; d++) {
+    var iso = opts.month + "-" + (d < 10 ? "0" : "") + d, n = counts[iso] || 0;
+    var cls = "cal-day" + (iso === today ? " today" : "") + (iso === opts.selected ? " sel" : "") + (n ? " has" : "");
+    html += '<button type="button" class="' + cls + '" onclick="' + opts.pick + '(\'' + iso + '\')"><b>' + d + '</b>' + (n ? '<i>' + (n > 3 ? "3+" : Array(n + 1).join("\u2022")) + '</i>' : '') + '</button>';
+  }
+  return html + '</div></div>';
+}

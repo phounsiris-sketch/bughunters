@@ -11,4 +11,10 @@
 - Profile rows (Personal info, My gear, Payment QR) open their own pages (`profile-sub`) with a breadcrumb; no drop-down.
 - **Sold = gone**: *Mark sold* deletes the gear item (off the market and off My gear); items already flagged sold in old data are hidden everywhere.
 - **Market**: each card shows when it was posted (date and time); search (name, brand, note), type chips (racket, shoes, other) and a price range (from / to); the list updates as you type.
-(v78-v79 are added below as they are built.)
+
+## v78 Public games
+- Month calendar (dots per day, tap to filter, month arrows) above Open games and above the invites on Play buddies (`calendarHtml` in `js/ui.js`).
+- Optional photo (thumbnail on the card), stored like restaurant photos. Weekly repeat: N games, one per week, same `seriesId`.
+- Unconfirmed games (not full) are dropped 24 h after posting; the host's phone sets `status: cancelled, cancelReason: unconfirmed`. No rules change (the host may already update their own game). This is client-side, so a game also disappears for others only while at least their own phones apply the same rule; a host who never opens the app leaves a cancelled-in-view but still "open" record until they do.
+- Compact card (host and players as photo + name, one button).
+(v79 is added below as it is built.)
