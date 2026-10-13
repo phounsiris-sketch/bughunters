@@ -154,12 +154,13 @@ function _homeNextCard() {
     '<div class="home-next-info"><div>' + icon("clock", 18) + ' ' + escapeHtml(g.time || "–") + '</div><div>' + icon("pin", 18) + ' ' + escapeHtml(g.court || "–") + '</div></div></div>';
   if (g.kind === "poll") {
     var inN = _pollAnswerUids(g.np, 0).length, all = Object.keys(g.np.responses).length;
-    inner += '<div class="home-next-bar"><i style="width:' + (all ? Math.round(inN / all * 100) : 0) + '%"></i></div>' +
-      '<div class="home-next-meta"><span>' + icon("check", 16) + ' ' + inN + '</span><span>' + icon("users", 16) + ' ' + all + '</span></div>' +
+    var inUids = _pollAnswerUids(g.np, 0), maybe = 0, out = all - inN;
+    inner += '<div class="home-next-vote">' + voteBarHtml(inN, maybe, out, 0) + '</div>' +
+      '<div class="home-next-people">' + peopleHtml(inUids, 24, 3) + '</div>' +
       '<button class="btn-next" onclick="showPage(\'polls\')">' + t("homeVoteNow") + '</button>';
   } else {
-    var n = (g.s.players || []).length;
-    inner += '<div class="home-next-meta"><span>' + icon("users", 16) + ' ' + n + '</span></div>' +
+    var pl = g.s.players || [];
+    inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 3) + '</div>' +
       '<button class="btn-next" onclick="showSessionDetail(\'' + g.id + '\')">' + t("homeOpen") + '</button>';
   }
   return '<div class="home-next">' + inner + '</div>';
