@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v56**.
+run it. App version at the time of writing: **v57**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -208,6 +208,21 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Spending tab (Dashboard)
+
+Pick a period (month, quarter, year, all time). The tab shows, top to bottom:
+
+- **Totals** for the period: grand total, your share, and court / shuttles /
+  other / dinner.
+- **Top spenders**: a podium of the **3 players with the biggest share** of the
+  period's spending (2nd · 1st · 3rd, gold / silver / bronze). With fewer than
+  3 players it shows only those.
+- **By month** (or **by year** in *All time*): a **vertical bar chart**, one
+  column per month, amount above the bar. Months run left to right up to the
+  current one; scroll sideways on a small screen. **Tap a column** to see that
+  month's sessions and your share.
+- **Per person**: stacked bars by cost type.
 
 ---
 
