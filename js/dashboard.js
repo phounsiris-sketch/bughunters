@@ -311,12 +311,21 @@ function _renderPeriodTable(allSessions) {
   if (byYear) cols.reverse(); // oldest on the left
   var html = '<div class="card"><div class="card-title">' + (byYear ? t("byYear") : t("byMonth") + ' ' + now.getFullYear()) + '</div>';
   if (!cols.length) return html + '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div></div>';
+  // Stacked by cost type, bottom to top (same order as the totals card)
+  var types = _spendTypes();
+  html += '<div class="vbar-legend">' + types.map(function (ty) {
+    return '<span><i class="vbar-dot ' + ty.cls + '"></i>' + ty.label + '</span>';
+  }).join('') + '</div>';
   html += '<div class="vbar-scroll" id="vbarScroll"><div class="vbar-chart">';
   cols.forEach(function (c, i) {
     var h = max ? Math.round(c.sum.grand / max * 100) : 0;
+    var segs = types.map(function (ty) {
+      var v = c.sum[ty.key] || 0;
+      return v > 0 ? '<i class="' + ty.cls + '" style="height:' + (v / c.sum.grand * 100) + '%"></i>' : '';
+    }).join('');
     html += '<button type="button" class="vbar-col' + (c.sum.grand ? '' : ' empty') + '" onclick="showVbarDetail(' + i + ')" aria-label="' + escapeHtml(c.full) + '" title="' + escapeHtml(c.full + ' · ' + fmtLAK(c.sum.grand)) + '">' +
       '<span class="vbar-val">' + (c.sum.grand ? fmtShort(c.sum.grand) : '') + '</span>' +
-      '<span class="vbar-plot"><i style="height:' + (c.sum.grand ? Math.max(3, h) : 0) + '%"></i></span>' +
+      '<span class="vbar-plot"><span class="vbar-stack" style="height:' + (c.sum.grand ? Math.max(3, h) : 0) + '%">' + segs + '</span></span>' +
       '<span class="vbar-lbl">' + escapeHtml(c.label) + '</span></button>';
   });
   html += '</div></div><div class="vbar-detail" id="vbarDetail"></div></div>';
@@ -324,11 +333,24 @@ function _renderPeriodTable(allSessions) {
   return html;
 }
 
+/** The cost types stacked in the month chart, bottom to top */
+function _spendTypes() {
+  return [
+    { key: "court", cls: "t-court", label: t("courtCost") },
+    { key: "shuttle", cls: "t-shuttle", label: t("shuttleCost") },
+    { key: "other", cls: "t-other", label: t("otherCosts") },
+    { key: "dinner", cls: "t-dinner", label: t("dinnerCost") }
+  ];
+}
+
 /** Tap a column: show that month's sessions and your share */
 function showVbarDetail(i) {
   var c = (window._vbarCols || [])[i], el = document.getElementById("vbarDetail");
   if (!c || !el) return;
   el.innerHTML = '<b>' + escapeHtml(c.full) + '</b> · ' + fmtShort(c.sum.grand) + '<br>' +
+    _spendTypes().filter(function (ty) { return c.sum[ty.key] > 0; }).map(function (ty) {
+      return '<span class="vbar-part"><i class="vbar-dot ' + ty.cls + '"></i>' + ty.label + ' ' + fmtShort(c.sum[ty.key]) + '</span>';
+    }).join('') + '<br>' +
     c.sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(c.sum.mine);
   var cols = document.querySelectorAll("#vbarScroll .vbar-col");
   for (var k = 0; k < cols.length; k++) cols[k].classList.toggle("sel", k === i);

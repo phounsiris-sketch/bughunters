@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v60**.
+run it. App version at the time of writing: **v61**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -244,8 +244,10 @@ Pick a period (month, quarter, year, all time). The tab shows, top to bottom:
   player to open their activity). With fewer than 3 players it shows only those.
 - **By month** (or **by year** in *All time*): a **vertical bar chart**, one
   column per month, amount above the bar. Months run left to right up to the
-  current one; scroll sideways on a small screen. **Tap a column** to see that
-  month's sessions and your share.
+  current one; scroll sideways on a small screen. Each bar is **stacked by cost
+  type** (bottom to top: court, shuttles, other, dinner) with a colour legend
+  above it. **Tap a column** to see that month's amount per type, its sessions
+  and your share.
 - **Per person**: stacked bars by cost type.
 
 ---
