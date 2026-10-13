@@ -397,7 +397,7 @@ var newSes = null;
 /** "+ New session": opens the form page — nothing is saved until "Create session" */
 function createAdHocSession() {
   var court = DB_CACHE.courts[0];
-  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [], mode: "competition", gameType: "md", step: 1 };
+  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [], mode: "competition", gameType: "md", step: 1, repeat: "none", repeatN: 4 };
   showPage("session-create");
   renderSessionCreateForm();
 }
@@ -449,6 +449,7 @@ function renderSessionCreateForm() {
   html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
   html += '<div class="chips" id="newSesPlayers">' + _newSesChips() + '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
+  html += repeatFieldHtml("newSes", newSes, "renderSessionCreateForm");
   html += '<div class="wiz-actions"><button class="btn-secondary" onclick="sesStep(1)">' + icon("back", 16) + ' ' + t("wzBack") + '</button>' +
     '<button class="btn-primary" id="newSesSubmit" onclick="submitNewSession()">' + t("createSession") + '</button></div>';
   container.innerHTML = html;
@@ -482,25 +483,33 @@ function submitNewSession() {
   if (!newSes.players.length) { showToast(t("pickPlayersFirst")); return; }
   var btn = document.getElementById("newSesSubmit");
   if (btn) btn.disabled = true;
-  dbCreateSession({
-    pollId: null,
-    date: newSes.date,
-    time: newSes.time,
-    duration: newSes.duration,
-    courtId: court.id,
-    courtName: court.name,
-    courtLocation: court.location || null,
-    pricePerHour: courtPrice(court),
-    status: "active",
-    players: newSes.players.slice(),
-    mode: newSes.mode || "competition",
-    gameType: newSes.gameType || "md",
-    calculated: false,
-    createdBy: currentUser ? currentUser.uid : null
-  }).then(function (ref) {
+  var weeks = newSes.repeat === "weekly" ? Math.max(2, Math.min(12, newSes.repeatN || 2)) : 1;
+  var series = weeks > 1 ? "s" + Date.now().toString(36) : null;
+  var jobs = [];
+  for (var k = 0; k < weeks; k++) {
+    var one = {
+      pollId: null,
+      date: _addDays(newSes.date, 7 * k),
+      time: newSes.time,
+      duration: newSes.duration,
+      courtId: court.id,
+      courtName: court.name,
+      courtLocation: court.location || null,
+      pricePerHour: courtPrice(court),
+      status: "active",
+      players: newSes.players.slice(),
+      mode: newSes.mode || "competition",
+      gameType: newSes.gameType || "md",
+      calculated: false,
+      createdBy: currentUser ? currentUser.uid : null
+    };
+    if (series) one.seriesId = series;
+    jobs.push(dbCreateSession(one));
+  }
+  Promise.all(jobs).then(function (refs) {
     newSes = null;
-    showToast(t("sessionCreated") + " ✔");
-    showSessionDetail(ref.id);
+    showToast(t("sessionCreated") + (weeks > 1 ? " \u00D7" + weeks : "") + " \u2714");
+    if (weeks > 1) showPage("games"); else showSessionDetail(refs[0].id);
   }).catch(function (error) {
     if (btn) btn.disabled = false;
     showToast(_permError(error));

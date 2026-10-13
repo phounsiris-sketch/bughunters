@@ -509,7 +509,9 @@ function showCreatePoll() {
     answers: [t('answerJoin'), t('answerSkip')],
     mode: 'competition',
     gameType: 'md',
-    step: 1
+    step: 1,
+    repeat: 'none',
+    repeatN: 4
   };
   showPage('poll-create');
   renderPollCreateForm();
@@ -579,6 +581,8 @@ function renderPollCreateForm() {
   }
   html += '</div>';
 
+    html += repeatFieldHtml("newPoll", newPoll, "renderPollCreateForm");
+
   html += '<div class="wiz-actions"><button class="btn-secondary" onclick="pollStep(1)">' + icon("back", 16) + ' ' + t('wzBack') + '</button>' +
     '<button class="btn-primary" onclick="submitPoll()">' + t('createPoll') + '</button></div>';
   container.innerHTML = html;
@@ -598,25 +602,34 @@ function submitPoll() {
   if (answers.length < 2 || answers.some(function (a) { return !a; })) { showToast(t('fillAllFields')); return; }
   var court = findCourt(newPoll.courtId);
 
-  dbCreatePoll({
-    createdBy: currentUser.uid,
-    status: 'draft',
-    note: newPoll.note.trim() || null,
-    date: newPoll.date,
-    time: newPoll.time,
-    duration: newPoll.duration || 2,
-    courtId: newPoll.courtId,
-    courtName: court ? court.name : '',
-    answers: answers,
-    responses: {},
-    mode: newPoll.mode || 'competition',
-    gameType: newPoll.gameType || 'md',
-    minPlayers: minPlayersSetting(),
-    closesAt: defaultCloseAt(newPoll.date, newPoll.time, Date.now()),   // voting deadline
-    sessionId: null
-  })
+  var weeks = newPoll.repeat === "weekly" ? Math.max(2, Math.min(12, newPoll.repeatN || 2)) : 1;
+  var series = weeks > 1 ? "s" + Date.now().toString(36) : null;
+  var jobs = [];
+  for (var k = 0; k < weeks; k++) {
+    var day = _addDays(newPoll.date, 7 * k);
+    var one = {
+      createdBy: currentUser.uid,
+      status: 'draft',
+      note: newPoll.note.trim() || null,
+      date: day,
+      time: newPoll.time,
+      duration: newPoll.duration || 2,
+      courtId: newPoll.courtId,
+      courtName: court ? court.name : '',
+      answers: answers.slice(),
+      responses: {},
+      mode: newPoll.mode || 'competition',
+      gameType: newPoll.gameType || 'md',
+      minPlayers: minPlayersSetting(),
+      closesAt: defaultCloseAt(day, newPoll.time, Date.now()),   // voting deadline
+      sessionId: null
+    };
+    if (series) one.seriesId = series;
+    jobs.push(dbCreatePoll(one));
+  }
+  Promise.all(jobs)
     .then(function () {
-      showToast(t("draftCreated"));
+      showToast(t("draftCreated") + (weeks > 1 ? " \u00D7" + weeks : ""));
       newPoll = null;
       showPage('polls', false);
       pageHistory = [];

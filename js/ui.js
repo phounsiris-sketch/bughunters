@@ -103,3 +103,13 @@ function calendarHtml(opts) {
   }
   return html + '</div></div>';
 }
+
+/** "Repeat" control for create forms. obj = name of the state object (it has .repeat and .repeatN), rerender = name of its render function. */
+function repeatFieldHtml(obj, st, rerender) {
+  var on = st.repeat === "weekly", n = st.repeatN || 4;
+  return '<div class="card repeat-field"><div class="card-title">' + icon("history", 14) + ' ' + t("repeatLabel") + '</div>' +
+    '<div class="seg seg-wrap"><button type="button" class="seg-btn' + (!on ? ' active' : '') + '" onclick="' + obj + '.repeat=\'none\';' + rerender + '()">' + t("repeatNone") + '</button>' +
+    '<button type="button" class="seg-btn' + (on ? ' active' : '') + '" onclick="' + obj + '.repeat=\'weekly\';' + obj + '.repeatN=' + obj + '.repeatN||4;' + rerender + '()">' + t("repeatWeekly") + '</button></div>' +
+    (on ? '<div class="stepper" style="margin-top:8px"><button type="button" onclick="' + obj + '.repeatN=Math.max(2,' + n + '-1);' + rerender + '()">\u2212</button><b>' + t("repeatTimes").replace("{n}", n) + '</b>' +
+      '<button type="button" onclick="' + obj + '.repeatN=Math.min(12,' + n + '+1);' + rerender + '()">+</button></div>' : '') + '</div>';
+}
