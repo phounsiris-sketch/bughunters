@@ -4873,3 +4873,21 @@ body.live-on { overflow: hidden; }
 .session-actionbar { position: fixed; left: 0; right: 0; bottom: calc(62px + env(safe-area-inset-bottom, 0px)); z-index: 90; background: var(--surface); border-top: 1px solid var(--border); padding: 10px 16px; }
 .session-actionbar > div { max-width: 480px; margin: 0 auto; display: flex; gap: 10px; }
 .session-actionbar button { flex: 1; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ========== Create flows: steps, day strip ========== */
+.wiz { margin-bottom: 14px; }
+.wiz-bars { display: flex; gap: 6px; }
+.wiz-bars i { flex: 1; height: 5px; border-radius: 3px; background: var(--border); }
+.wiz-bars i.on { background: var(--primary); }
+.wiz-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.wiz-labels span.on { color: var(--accent); }
+.day-strip { display: flex; gap: 6px; }
+.day-chip { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.day-chip small { font-size: 11px; color: var(--text-muted); }
+.day-chip b { font-size: 16px; }
+.day-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.day-chip.on small { color: rgba(255, 255, 255, .85); }
+.wiz-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 12px 14px; }
+.wiz-actions { display: flex; gap: 10px; }
+.wiz-actions .btn-secondary { width: auto; padding: 12px 18px; display: inline-flex; align-items: center; gap: 6px; }
+.wiz-actions .btn-primary { flex: 1; }

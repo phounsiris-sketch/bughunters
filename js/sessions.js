@@ -397,7 +397,7 @@ var newSes = null;
 /** "+ New session": opens the form page — nothing is saved until "Create session" */
 function createAdHocSession() {
   var court = DB_CACHE.courts[0];
-  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [], mode: "competition", gameType: "md" };
+  newSes = { date: _todayIso(), time: "18:00", duration: 2, courtId: court ? court.id : null, players: [], mode: "competition", gameType: "md", step: 1 };
   showPage("session-create");
   renderSessionCreateForm();
 }
@@ -416,35 +416,46 @@ function renderSessionCreateForm() {
   }
   if (!newSes.courtId || !dbFindById(courts, newSes.courtId)) newSes.courtId = courts[0].id;
 
-  // Plan
-  var html = '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t("plan") + '</div>';
-  html += '<div class="form-row">';
-  html += '<div class="form-group"><label class="form-label">' + t("date") + '</label>';
-  html += '<input type="date" class="form-input" value="' + newSes.date + '" onchange="newSes.date=this.value"></div>';
-  html += '<div class="form-group"><label class="form-label">' + t("startTime") + '</label>';
-  html += '<input type="time" class="form-input" value="' + newSes.time + '" onchange="newSes.time=this.value"></div>';
-  html += '</div><div class="form-row">';
-  html += '<div class="form-group" style="flex:2;margin-bottom:0"><label class="form-label">' + t("court") + '</label>';
-  html += '<select class="form-select" data-cs-type="court" data-cs-onpick="sesPickCourt" onchange="newSes.courtId=this.value">';
-  courts.forEach(function (c) {
-    html += '<option value="' + c.id + '"' + (c.id === newSes.courtId ? ' selected' : '') + '>' +
-      escapeHtml(c.name) + (c.location ? ' — ' + escapeHtml(c.location) : '') + '</option>';
-  });
-  html += '</select></div>';
-  html += '<div class="form-group" style="flex:1;margin-bottom:0"><label class="form-label">' + t("duration") + ' (h)</label>';
-  html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newSes.duration + '" onchange="newSes.duration=parseFloat(this.value)||2"></div>';
-  html += '</div></div>';
+  var step = newSes.step === 2 ? 2 : 1;
+  var html = wizBarHtml(step - 1, [t("wzWhenWhere"), t("wzWhoPlays")]);
+  if (step === 1) {
+    html += '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t("plan") + '</div>';
+    html += dayStripHtml(newSes.date, "sesPickDay");
+    html += '<div class="form-row" style="margin-top:12px">';
+    html += '<div class="form-group"><label class="form-label">' + t("date") + '</label>';
+    html += '<input type="date" class="form-input" value="' + newSes.date + '" onchange="newSes.date=this.value;renderSessionCreateForm()"></div>';
+    html += '<div class="form-group"><label class="form-label">' + t("startTime") + '</label>';
+    html += '<input type="time" class="form-input" value="' + newSes.time + '" onchange="newSes.time=this.value"></div>';
+    html += '</div><div class="form-row">';
+    html += '<div class="form-group" style="flex:2;margin-bottom:0"><label class="form-label">' + t("court") + '</label>';
+    html += '<select class="form-select" data-cs-type="court" data-cs-onpick="sesPickCourt" onchange="newSes.courtId=this.value">';
+    courts.forEach(function (c) {
+      html += '<option value="' + c.id + '"' + (c.id === newSes.courtId ? ' selected' : '') + '>' +
+        escapeHtml(c.name) + (c.location ? ' — ' + escapeHtml(c.location) : '') + '</option>';
+    });
+    html += '</select></div>';
+    html += '<div class="form-group" style="flex:1;margin-bottom:0"><label class="form-label">' + t("duration") + ' (h)</label>';
+    html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newSes.duration + '" onchange="newSes.duration=parseFloat(this.value)||2"></div>';
+    html += '</div></div>';
+    if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += playModeFieldsHtml(newSes, "newSes", "renderSessionCreateForm");
+    html += '<button class="btn-primary" onclick="sesStep(2)">' + t("wzNext") + ' ' + icon("chevron", 16) + '</button>';
+    container.innerHTML = html;
+    return;
+  }
 
-  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += playModeFieldsHtml(newSes, "newSes", "renderSessionCreateForm");
-
-  // Players
+  // Step 2: who plays (photo + name; tap to pick)
+  var court = findCourt(newSes.courtId);
+  html += '<div class="card wiz-summary">' + iconStatHtml("calendar", fmtDate(newSes.date)) + iconStatHtml("clock", escapeHtml(newSes.time)) + iconStatHtml("pin", escapeHtml(court ? court.name : "")) + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
   html += '<div class="chips" id="newSesPlayers">' + _newSesChips() + '</div>';
   html += '<div style="font-size:11px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
-
-  html += '<button class="btn-primary" id="newSesSubmit" onclick="submitNewSession()">' + t("createSession") + '</button>';
+  html += '<div class="wiz-actions"><button class="btn-secondary" onclick="sesStep(1)">' + icon("back", 16) + ' ' + t("wzBack") + '</button>' +
+    '<button class="btn-primary" id="newSesSubmit" onclick="submitNewSession()">' + t("createSession") + '</button></div>';
   container.innerHTML = html;
 }
+
+function sesStep(n) { if (newSes) { newSes.step = n; renderSessionCreateForm(); window.scrollTo(0, 0); } }
+function sesPickDay(d) { if (newSes) { newSes.date = d; renderSessionCreateForm(); } }
 
 function sesPickCourt(id) {
   if (newSes) newSes.courtId = id;
