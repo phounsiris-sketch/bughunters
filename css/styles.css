@@ -4589,3 +4589,10 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .hl-ico { color: #f5b301; display: inline-flex; }
 .hl-row .rank-text { display: flex; flex-direction: column; min-width: 0; }
 .hl-row .rank-text small { color: var(--text-muted); font-size: 11px; }
+
+/* Ranking rows: rank arrow + score change */
+.rk-side { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; min-width: 44px; }
+.rk-chg { font-size: 12px; font-weight: 700; }
+.rk-chg.up { color: #16a34a; } .rk-chg.down { color: #ef4444; }
+.rk-chg.same { color: var(--text-muted); } .rk-chg.new { color: #2563eb; font-size: 10px; letter-spacing: .5px; }
+.rk-side .trend { font-size: 11px; font-weight: 600; }

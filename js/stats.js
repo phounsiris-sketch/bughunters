@@ -117,7 +117,7 @@ function computeStats() {
     var apply = function (team, d, won, ptsForTeam, other) {
       team.forEach(function (u) {
         var p = P(u);
-        if (inMonth && p.monthStart === null) p.monthStart = p.rating;
+        if (inMonth && p.monthStart === null) { p.monthStart = p.rating; p.compAtStart = p.comp; }
         p.rating += d;
         p.comp++;
         p.games += sc.games;
@@ -141,7 +141,7 @@ function computeStats() {
       var dp = RATING_K * margin * (sa - ep);
       [[pa, dp, sa === 1], [pb, -dp, sa === 0]].forEach(function (x) {
         var pr = x[0];
-        if (inMonth && pr.monthStart === null) pr.monthStart = pr.rating;
+        if (inMonth && pr.monthStart === null) { pr.monthStart = pr.rating; pr.compAtStart = pr.comp; }
         pr.rating += x[1];
         pr.comp++;
         if (x[2]) pr.wins++; else pr.losses++;
@@ -155,7 +155,23 @@ function computeStats() {
   var ranked = Object.keys(players).map(function (u) { return players[u]; })
     .filter(function (p) { return p.comp > 0; })
     .sort(function (a, b) { return ((b.comp >= RANK_MIN_MATCHES) - (a.comp >= RANK_MIN_MATCHES)) || (b.rating - a.rating); });
-  _statsCache = { players: players, pairs: pairs, h2h: h2h, ranked: ranked, month: month };
+  // Rank change since the start of the month: position now vs position then
+  // (same ordering rules; players or pairs with no game before this month are NEW)
+  var rankMaps = function (list, startComp, settledMin) {
+    var before = list.filter(function (x) { return (x.monthStart === null ? x.comp : x.compAtStart) > 0; });
+    var r0 = function (x) { return x.monthStart === null ? x.rating : x.monthStart; };
+    var c0 = function (x) { return x.monthStart === null ? x.comp : x.compAtStart; };
+    before.sort(function (a, b) { return (settledMin ? ((c0(b) >= settledMin) - (c0(a) >= settledMin)) : 0) || (r0(b) - r0(a)); });
+    var then = {}; before.forEach(function (x, i) { then[x.uid || x.key] = i + 1; });
+    var now = list.slice().sort(function (a, b) { return (settledMin ? ((b.comp >= settledMin) - (a.comp >= settledMin)) : 0) || (b.rating - a.rating); });
+    var change = {}; now.forEach(function (x, i) { var k = x.uid || x.key; change[k] = then[k] ? then[k] - (i + 1) : null; });
+    return change;
+  };
+  var rankChange = {
+    players: rankMaps(ranked, 0, RANK_MIN_MATCHES),
+    pairs: rankMaps(Object.keys(pairs).map(function (k) { return pairs[k]; }).filter(function (x) { return x.comp > 0; }), 0, 0)
+  };
+  _statsCache = { players: players, pairs: pairs, h2h: h2h, ranked: ranked, month: month, rankChange: rankChange };
   return _statsCache;
 }
 
@@ -198,6 +214,14 @@ function _trend(now, start) {
   var d = Math.round(now - start);
   if (!d) return '<span class="trend">\u2013</span>';
   return '<span class="trend ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(d) + '</span>';
+}
+
+/** Rank movement since the start of the month + the score change under it */
+function _rankTrend(change, now, start) {
+  var rk = change === null || change === undefined ? '<span class="rk-chg new">' + t("newTag") + '</span>'
+    : !change ? '<span class="rk-chg same">\u2013</span>'
+    : '<span class="rk-chg ' + (change > 0 ? 'up' : 'down') + '">' + (change > 0 ? '\u25B2' : '\u25BC') + Math.abs(change) + '</span>';
+  return '<span class="rk-side" title="' + escapeHtml(t("rankChangeHint")) + '">' + rk + _trend(now, start) + '</span>';
 }
 
 /** "3/10 games" while a rating is still settling */
@@ -309,7 +333,7 @@ function _renderRanking() {
     html += '<div class="rank-row' + (us.indexOf(currentUser.uid) >= 0 ? ' me' : '') + '" onclick="setStatsTab(\'h2h\')">' +
       '<span class="rank-no">' + (i + 1) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 30) + avatarHtml(us[1], 30) + '</span>' +
       '<span class="rank-text"><b>' + pairName(p.key) + _provTag(p.comp, PAIR_MIN_MATCHES) + '</b><small>' + Math.round(p.rating) + ' \u00B7 ' +
-      (month ? _wl(p.monthWins, p.monthLosses) : _wl(p.wins, p.losses)) + '</small></span>' + _trend(p.rating, p.monthStart) + '</div>';
+      (month ? _wl(p.monthWins, p.monthLosses) : _wl(p.wins, p.losses)) + '</small></span>' + _rankTrend(st.rankChange.pairs[p.key], p.rating, p.monthStart) + '</div>';
   });
   html += '</div>';
 
@@ -323,7 +347,7 @@ function _renderRanking() {
     html += '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + '" onclick="progressUser=\'' + p.uid + '\';setStatsTab(\'progress\')">' +
       '<span class="rank-no">' + (i + 1) + '</span>' + avatarHtml(p.uid, 32) +
       '<span class="rank-text"><b>' + getUserName(p.uid) + ' ' + levelBadgeHtml(playerLevel(p.uid), true) + _provTag(p.comp, RANK_MIN_MATCHES) + '</b>' +
-      '<small>' + Math.round(p.rating) + ' \u00B7 ' + wr + '% \u00B7 ' + _wl(w, l) + '</small></span>' + _trend(p.rating, p.monthStart) + '</div>';
+      '<small>' + Math.round(p.rating) + ' \u00B7 ' + wr + '% \u00B7 ' + _wl(w, l) + '</small></span>' + _rankTrend(st.rankChange.players[p.uid], p.rating, p.monthStart) + '</div>';
   });
   html += '</div>';
   return html;

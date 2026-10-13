@@ -21,6 +21,14 @@ others. That looked wrong.
 - Player list ordering is **unchanged** (settled players first, `RANK_MIN_MATCHES` = 10).
 - Help text (`rankHelpHtml`, en + la) updated.
 
+## Rank arrows
+Each pair and player row shows how many places it moved since the start of the
+current month (▲ n green, ▼ n red, – same, NEW if no game before this month),
+with the rating change (▲/▼ points) underneath. Positions are compared on the
+full ranking (not the month-filtered list), same ordering rules as the lists
+(pairs by rating; players settled-first). Start-of-month state is rebuilt from
+`monthStart` / `compAtStart` recorded in `computeStats()` (`rankChange`).
+
 ## Pair names in A→Z order
 A pair always reads the same way: the two names are ordered alphabetically
 (case-insensitive) wherever a pair is shown (pair ranking, best pair, Head to head
