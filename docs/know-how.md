@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v56**.
+run it. App version at the time of writing: **v57**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -149,7 +149,7 @@ group**, then type the group's name to confirm.
 ## 4. Polls: planning a game
 
 1. Polls → **+**. Fill in the date, time, court and duration. Optionally:
-   - set the **mode**: *Fun*, *Exercise* or *Competition*. Only Competition matches count for rankings.
+   - set the **mode**: *Fun*, *Exercise* or *Competition*. The mode is only a label to tell players how the game was meant; every game counts for ratings and rankings.
    - set the **game type**: men's doubles, women's doubles, mixed or singles.
    - change the answers. The default is **Join / Skip**.
 2. Everyone picks one answer, like a radio button. Any answer other than "Skip"
@@ -184,7 +184,7 @@ see the **bill form**; others see "waiting for the bill".
 | Court | Who paid the court |
 | Shuttlecocks | Brand, quantity and price (saved brands prefill this), and who paid |
 | Other costs | A description, an amount, who paid, and optionally *only for* one person |
-| Dinner | Total bill, who paid, who ate, and an optional photo of the receipt |
+| Dinner | Total bill, who paid, who ate, an optional photo of the receipt, and an optional restaurant (see below) |
 
 Tap **Calculate split** to save it. The app then shows:
 
@@ -201,6 +201,28 @@ From 30 minutes before the game ends until 12 hours after, players see a
 **"Dinner after?"** card with **Join** and **Skip**. When someone adds the dinner
 bill, the people who answered Join are already ticked as diners.
 
+### Restaurant and reviews (optional)
+
+When you add the dinner bill you can pick a **Restaurant** (optional) from a
+shared **master list**:
+
+- **Search** by name or place while choosing; no match → add it as new.
+- **New restaurant**: a name (2–60 characters) and **a location text or a map pin**
+  (at least one; both is best). It is **checked before saving**: the same name
+  (ignoring case, spaces and punctuation) with no pin, or a pin within 300 m, is
+  refused as a duplicate with a button to **use the existing one**. The same
+  name far away (a chain) is allowed.
+- The list is shared by all groups, like the courts directory. Anyone signed in
+  can add one; its creator or the app owner can delete it.
+- The bill card then shows the name, the location, **Open in Google Maps**, and
+  the **average stars**. People in that dinner's diner list can leave **one
+  review** each (1–5 stars + an optional comment up to 200 characters) and change
+  it later. The latest 5 reviews are listed.
+
+New collections `restaurants` and `restaurantReviews` need the updated
+`firestore.rules` published first (section 13); until then the app works as
+before and the restaurant list stays empty.
+
 ### Matches button
 
 In a session (groups only), the **Matches** button shows the mode badge and
@@ -208,6 +230,21 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Spending tab (Dashboard)
+
+Pick a period (month, quarter, year, all time). The tab shows, top to bottom:
+
+- **Totals** for the period: grand total, your share, and court / shuttles /
+  other / dinner.
+- **Top spenders**: a podium of the **3 players with the biggest share** of the
+  period's spending (2nd · 1st · 3rd, gold / silver / bronze). With fewer than
+  3 players it shows only those.
+- **By month** (or **by year** in *All time*): a **vertical bar chart**, one
+  column per month, amount above the bar. Months run left to right up to the
+  current one; scroll sideways on a small screen. **Tap a column** to see that
+  month's sessions and your share.
+- **Per person**: stacked bars by cost type.
 
 ---
 
@@ -264,7 +301,7 @@ compared across groups.
 
 ### Recording games (the session's Games tab)
 
-A session has two tabs: **Session** (players, bill, who pays) and **Games** (scores).
+A session has two tabs: **Session** (players, bill, who pays) and **Games** (scores). On the Session tab, players (and admins) also see an **Add game score** shortcut button under the tabs; it opens the Games tab and scrolls to the add-game form.
 They're kept separate, and switching tabs keeps whatever you were typing in the bill.
 
 On the **Games** tab, **every player of the session** (and any group admin) gets
@@ -298,18 +335,20 @@ it last** and when (stored as `createdBy` / `updatedBy`, `updatedAt`).
 
 | Tab | Shows |
 |---|---|
-| **Ranking** | **Pair ranking first**, then the individual ranking. This month or all time |
+| **Ranking** | A **highlights card** (**Best pair** = highest pair rating; **Best score** = the game with the biggest winning margin), then the **pair ranking**, then the individual ranking. This month or all time. Each row ends with a **rank arrow** (▲ up / ▼ down / – same, with how many places since the start of this month; **NEW** if it had no game before this month) and under it the **rating change** since the start of the month. Pair names are always shown **A→Z** (so "Nith & JusT John" is never also "JusT John & Nith"). Pairs are ordered by **rating**; a pair or player with too few games carries an `x/5` (pairs) or `x/10` (players) tag. Players still settling are listed after the others, pairs are not pushed down |
 | **Head to head** | One player's summary (you by default; pick anyone from the list): total W–L, then the record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game, in any mode |
-| **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line, W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |
+| **Head to head → Pair vs pair** | At the bottom of the tab: pick **two pairs** (the first defaults to the chosen player's most-played pair, the second to the pair it has met most; the second list only offers pairs with different players). It shows the **score between the two pairs** (wins each), the points difference and every game they played against each other, newest first. Pair names are A→Z |
+| **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line (the **hollow dot is the Start** rating when the period began; every filled dot is one game, so 7 games = 8 dots), W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |
+| **Progress → Best and toughest pair** | For the chosen player and period: the **best pair** (partner with the highest win rate) and the **toughest pair** (lowest win rate). A partner needs at least **2 games** together to count; the toughest pair is hidden if everyone is equal. Under it, up to 4 **gentle tips** worked out from the numbers (keep the best pair for big games, a relaxed practice with the toughest one, a tough opponent, close games, a short losing run, great form, or "try other partners"). They are simple rules on your results, not AI, and always worded kindly |
 
 How the numbers are worked out:
 
 - **Ratings** are Elo-style. Everyone starts at 1500 (K = 32). Beating stronger
   players earns more, and a bigger point difference earns a little more. Pairs
   have their own rating.
-- Only **Competition** games change ratings, from the moment they're saved. Fun
-  and Exercise games still count toward games and minutes played.
-- Everyone with a Competition game appears in the rankings straight away. Until
+- **Every saved game with a score** changes ratings, from the moment it's saved.
+  The mode (Fun / Exercise / Competition) is only a label for the players.
+- Everyone with a game appears in the rankings straight away. Until
   a player has **10** games (a pair **5**), their rating is still settling: they
   show a small "3/10 games" tag and are listed after the settled players.
 - **Levels** are the scale used in Lao badminton. They are set by people, not
@@ -533,6 +572,8 @@ Firestore collections. Every private item carries a `groupId`.
 | `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]` (one game per record), minutes, createdBy | Firestore has no nested arrays, so games are `{a,b}` objects |
 | `courts/{id}` | name, address, phone, courtsCount, courtLabels, lat, lng, createdBy | Public directory; **no price** |
 | `groupCourts/{id}` | groupId, sourceId (directory court it was copied from), name, address, phone, courtsCount, courtLabels (number/letter), lat, lng, hours, price | The group's own courts; members read, *editConfig* writes |
+| `restaurants/{id}` | name, location, lat, lng, createdBy, createdAt | Shared master list for dinner bills |
+| `restaurantReviews/{restaurantId}_{uid}` | restaurantId, uid, stars 1–5, comment, sessionId, gid, updatedAt | One per person per restaurant; only people in that dinner |
 | `shuttlecocks/{id}` | groupId, brand, price, cocksPerTube | |
 | `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice, saleCurrency, saleScope (groups/public), saleCity, sellerName | Any signed-in user can read gear (the Market) |
 | `openGames/{id}` | hostId, city, date, time, courtId, slots, level, price, players, waitlist, log, status | Public |
@@ -567,6 +608,7 @@ console (Firestore → Rules). Main ideas:
 - **Open games.** People can only add or remove **themselves** from players or the
   waitlist. Only the host can cancel.
 - **Invites.** Only the sender creates an invite, and only the receiver answers it.
+- **Restaurants.** Any signed-in user can add or correct one (name 2–60 characters, a location text or a pin); only the creator or the Super Admin deletes it. A **review** is one per person per restaurant, 1–5 stars, comment ≤ 200, and only if you are in the diner list of a session that used that restaurant.
 - **Courts.** Any signed-in user can correct a court's shared details, like a map.
   Only its creator or the Super Admin can delete it. Prices live in each group's doc.
 
@@ -709,7 +751,7 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 | Old version still showing | Close the app fully and reopen it. Settings shows the version number |
 | Weekly backup failed | The `BACKUP_PASSWORD` secret is missing |
 | Two accounts for one person | Run *Merge players* (dry run first) |
-| Not in the ranking | Only Competition games change ratings. Check the session's mode (Fun / Exercise games count as played only) |
+| Not in the ranking | Every saved game with a score changes ratings; the mode doesn't matter. Check the game has a winner (both scores filled) and that the player is in the game's teams |
 | A score is refused | First to 21; after 20-all the winner leads by 2; the group's top score (31 or 30) is the most |
 | Map doesn't load | It needs internet for the map tiles. You can still paste coordinates |
 

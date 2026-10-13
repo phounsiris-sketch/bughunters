@@ -5,8 +5,8 @@
                   court, shuttles, mode fun|exercise|competition,
                   createdBy, createdAt, confirmed, confirmedBy, confirmedAt }
    A match counts once someone on the other team confirms it, or 24 h
-   after it was recorded. Only confirmed Competition matches with a score
-   change ratings; every match counts for matches / minutes played.
+   after it was recorded. Every saved game with a score changes ratings,
+   whatever its mode (fun / exercise / competition is only a label).
    Ratings are Elo-style (start 1500): beating stronger players earns more,
    a bigger point difference a little more. Pairs get their own rating.
    Nothing here is ever shown outside the group.
@@ -67,7 +67,12 @@ function matchWinner(m) {
 
 
 function pairKey(team) { return team.slice().sort().join("+"); }
-function pairName(key) { return key.split("+").map(function (u) { return getUserName(u); }).join(" &amp; "); }
+/** The two uids of a pair key, ordered by display name (A→Z) so a pair always reads the same way */
+function pairUids(key) {
+  var nm = function (u) { return String(getUserName(u)).toLowerCase(); };
+  return key.split("+").sort(function (a, b) { return nm(a).localeCompare(nm(b)) || (a < b ? -1 : 1); });
+}
+function pairName(key) { return pairUids(key).map(function (u) { return getUserName(u); }).join(" &amp; "); }
 function _monthKey(date) { return (date || "").slice(0, 7); }
 
 /* ---------- Ratings & stats (memoised per data change) ---------- */
@@ -100,7 +105,7 @@ function computeStats() {
       if (inMonth) { p.monthPlayed++; p.monthMinutes += m.minutes || 0; }
     });
     var w = matchWinner(m);
-    if (m.mode && m.mode !== "competition") return;
+    // Every game with a score changes ratings: mode (fun | exercise | competition) is only a label for the players
     if (!w) return;
     var sc = matchScore(m);
     var A = m.teamA, B = m.teamB;
@@ -112,7 +117,7 @@ function computeStats() {
     var apply = function (team, d, won, ptsForTeam, other) {
       team.forEach(function (u) {
         var p = P(u);
-        if (inMonth && p.monthStart === null) p.monthStart = p.rating;
+        if (inMonth && p.monthStart === null) { p.monthStart = p.rating; p.compAtStart = p.comp; }
         p.rating += d;
         p.comp++;
         p.games += sc.games;
@@ -136,7 +141,7 @@ function computeStats() {
       var dp = RATING_K * margin * (sa - ep);
       [[pa, dp, sa === 1], [pb, -dp, sa === 0]].forEach(function (x) {
         var pr = x[0];
-        if (inMonth && pr.monthStart === null) pr.monthStart = pr.rating;
+        if (inMonth && pr.monthStart === null) { pr.monthStart = pr.rating; pr.compAtStart = pr.comp; }
         pr.rating += x[1];
         pr.comp++;
         if (x[2]) pr.wins++; else pr.losses++;
@@ -150,7 +155,23 @@ function computeStats() {
   var ranked = Object.keys(players).map(function (u) { return players[u]; })
     .filter(function (p) { return p.comp > 0; })
     .sort(function (a, b) { return ((b.comp >= RANK_MIN_MATCHES) - (a.comp >= RANK_MIN_MATCHES)) || (b.rating - a.rating); });
-  _statsCache = { players: players, pairs: pairs, h2h: h2h, ranked: ranked, month: month };
+  // Rank change since the start of the month: position now vs position then
+  // (same ordering rules; players or pairs with no game before this month are NEW)
+  var rankMaps = function (list, startComp, settledMin) {
+    var before = list.filter(function (x) { return (x.monthStart === null ? x.comp : x.compAtStart) > 0; });
+    var r0 = function (x) { return x.monthStart === null ? x.rating : x.monthStart; };
+    var c0 = function (x) { return x.monthStart === null ? x.comp : x.compAtStart; };
+    before.sort(function (a, b) { return (settledMin ? ((c0(b) >= settledMin) - (c0(a) >= settledMin)) : 0) || (r0(b) - r0(a)); });
+    var then = {}; before.forEach(function (x, i) { then[x.uid || x.key] = i + 1; });
+    var now = list.slice().sort(function (a, b) { return (settledMin ? ((b.comp >= settledMin) - (a.comp >= settledMin)) : 0) || (b.rating - a.rating); });
+    var change = {}; now.forEach(function (x, i) { var k = x.uid || x.key; change[k] = then[k] ? then[k] - (i + 1) : null; });
+    return change;
+  };
+  var rankChange = {
+    players: rankMaps(ranked, 0, RANK_MIN_MATCHES),
+    pairs: rankMaps(Object.keys(pairs).map(function (k) { return pairs[k]; }).filter(function (x) { return x.comp > 0; }), 0, 0)
+  };
+  _statsCache = { players: players, pairs: pairs, h2h: h2h, ranked: ranked, month: month, rankChange: rankChange };
   return _statsCache;
 }
 
@@ -193,6 +214,14 @@ function _trend(now, start) {
   var d = Math.round(now - start);
   if (!d) return '<span class="trend">\u2013</span>';
   return '<span class="trend ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(d) + '</span>';
+}
+
+/** Rank movement since the start of the month + the score change under it */
+function _rankTrend(change, now, start) {
+  var rk = change === null || change === undefined ? '<span class="rk-chg new">' + t("newTag") + '</span>'
+    : !change ? '<span class="rk-chg same">\u2013</span>'
+    : '<span class="rk-chg ' + (change > 0 ? 'up' : 'down') + '">' + (change > 0 ? '\u25B2' : '\u25BC') + Math.abs(change) + '</span>';
+  return '<span class="rk-side" title="' + escapeHtml(t("rankChangeHint")) + '">' + rk + _trend(now, start) + '</span>';
 }
 
 /** "3/10 games" while a rating is still settling */
@@ -256,6 +285,34 @@ function _bestPartner(p) {
   return best;
 }
 
+/** Best pair (highest pair rating) and best score (biggest win margin) for the period */
+function _highlightsHtml(st, pairs, month) {
+  var html = '', bp = pairs[0], bs = null;
+  st.h2h.forEach(function (x) {
+    if (month && _monthKey(x.m.date) !== st.month) return;
+    var margin = Math.abs(x.pts);
+    if (!bs || margin > bs.margin || (margin === bs.margin && (x.m.date || "") > (bs.x.m.date || ""))) bs = { x: x, margin: margin };
+  });
+  if (!bp && !bs) return '';
+  html += '<div class="card hl-card">';
+  if (bp) {
+    var us = pairUids(bp.key);
+    html += '<div class="hl-row"><span class="hl-ico">' + icon("ranking", 16) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 28) + (us[1] ? avatarHtml(us[1], 28) : '') + '</span>' +
+      '<span class="rank-text"><small>' + t("bestPair") + '</small><b>' + pairName(bp.key) + '</b>' +
+      '<small>' + Math.round(bp.rating) + ' · ' + (month ? _wl(bp.monthWins, bp.monthLosses) : _wl(bp.wins, bp.losses)) + '</small></span></div>';
+  }
+  if (bs) {
+    var m = bs.x.m, g = (m.games || [])[0] || {}, aWon = bs.x.w === "A";
+    var win = aWon ? m.teamA : m.teamB, lose = aWon ? m.teamB : m.teamA;
+    var hi = Math.max(g.a || 0, g.b || 0), lo = Math.min(g.a || 0, g.b || 0);
+    var names = function (team) { return team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; "); };
+    html += '<div class="hl-row"><span class="hl-ico">' + icon("chart", 16) + '</span>' +
+      '<span class="rank-text"><small>' + t("bestScore") + (m.date ? ' · ' + fmtDate(m.date) : '') + '</small><b>' + names(win) + ' ' + hi + '–' + lo + '</b>' +
+      '<small>' + t("vsWord") + ' ' + names(lose) + ' · +' + bs.margin + '</small></span></div>';
+  }
+  return html + '</div>';
+}
+
 function _renderRanking() {
   var st = computeStats();
   var month = statsPeriod === "month";
@@ -267,15 +324,16 @@ function _renderRanking() {
   // 1. Pair rank (men's doubles is how most of us play)
   var pairs = Object.keys(st.pairs).map(function (k) { return st.pairs[k]; })
     .filter(function (p) { return p.comp > 0 && (!month || p.monthWins + p.monthLosses > 0); })
-    .sort(function (a, b) { return ((b.comp >= PAIR_MIN_MATCHES) - (a.comp >= PAIR_MIN_MATCHES)) || (b.rating - a.rating); });
+    .sort(function (a, b) { return (b.rating - a.rating) || (b.comp - a.comp); });
+  html += _highlightsHtml(st, pairs, month);
   html += '<div class="settings-section">1. ' + t("pairRank") + '</div><div class="card rank-list">';
   if (!pairs.length) html += '<div class="empty-state" style="padding:12px">' + t("noPairsYet").replace("{n}", PAIR_MIN_MATCHES) + '</div>';
   pairs.forEach(function (p, i) {
-    var us = p.key.split("+");
+    var us = pairUids(p.key);
     html += '<div class="rank-row' + (us.indexOf(currentUser.uid) >= 0 ? ' me' : '') + '" onclick="setStatsTab(\'h2h\')">' +
       '<span class="rank-no">' + (i + 1) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 30) + avatarHtml(us[1], 30) + '</span>' +
       '<span class="rank-text"><b>' + pairName(p.key) + _provTag(p.comp, PAIR_MIN_MATCHES) + '</b><small>' + Math.round(p.rating) + ' \u00B7 ' +
-      (month ? _wl(p.monthWins, p.monthLosses) : _wl(p.wins, p.losses)) + '</small></span>' + _trend(p.rating, p.monthStart) + '</div>';
+      (month ? _wl(p.monthWins, p.monthLosses) : _wl(p.wins, p.losses)) + '</small></span>' + _rankTrend(st.rankChange.pairs[p.key], p.rating, p.monthStart) + '</div>';
   });
   html += '</div>';
 
@@ -289,7 +347,7 @@ function _renderRanking() {
     html += '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + '" onclick="progressUser=\'' + p.uid + '\';setStatsTab(\'progress\')">' +
       '<span class="rank-no">' + (i + 1) + '</span>' + avatarHtml(p.uid, 32) +
       '<span class="rank-text"><b>' + getUserName(p.uid) + ' ' + levelBadgeHtml(playerLevel(p.uid), true) + _provTag(p.comp, RANK_MIN_MATCHES) + '</b>' +
-      '<small>' + Math.round(p.rating) + ' \u00B7 ' + wr + '% \u00B7 ' + _wl(w, l) + '</small></span>' + _trend(p.rating, p.monthStart) + '</div>';
+      '<small>' + Math.round(p.rating) + ' \u00B7 ' + wr + '% \u00B7 ' + _wl(w, l) + '</small></span>' + _rankTrend(st.rankChange.players[p.uid], p.rating, p.monthStart) + '</div>';
   });
   html += '</div>';
   return html;
@@ -342,7 +400,7 @@ function _renderH2H() {
       add(withPartner, x.mine.filter(function (u) { return u !== me; })[0], x);
     } else if (x.mine.length === 1 && x.them.length === 1) add(vsSingles, x.them[0], x);
   });
-  var pairAv = function (k) { return k.split("+").map(function (u) { return avatarHtml(u, 26); }).join(''); };
+  var pairAv = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
   var oneAv = function (u) { return avatarHtml(u, 30); };
   var oneName = function (u) { return escapeHtml(getUserName(u)); };
   var html = picker + '<div class="card h2h-total"><div class="h2h-total-who">' + avatarHtml(me, 30) + '<b>' + escapeHtml(getUserName(me)) + '</b></div><div class="h2h-score">' + tot.w + ' \u2013 ' + (tot.n - tot.w) + '</div>' +
@@ -350,6 +408,63 @@ function _renderH2H() {
   html += '<div class="settings-section">' + t("h2hVsPairs") + '</div><div class="card rank-list">' + _h2hRows(vsPairs, pairAv, pairName) + '</div>';
   html += '<div class="settings-section">' + t(me === currentUser.uid ? "h2hWithPartner" : "h2hWithPartners") + '</div><div class="card rank-list">' + _h2hRows(withPartner, oneAv, oneName) + '</div>';
   html += '<div class="settings-section">' + t("h2hVsSingles") + '</div><div class="card rank-list">' + _h2hRows(vsSingles, oneAv, oneName) + '</div>';
+  html += _pairVsPairHtml(me);
+  return html;
+}
+
+/* ---------- Pair vs pair: pick two pairs, see their record against each other ---------- */
+
+var h2hPairA = null, h2hPairB = null;
+
+function _plainPair(key) { return pairUids(key).map(function (u) { return plainUserName(findUser(u)); }).join(" & "); }
+function _disjoint(ka, kb) { var a = ka.split("+"); return kb.split("+").every(function (u) { return a.indexOf(u) < 0; }); }
+
+function _pairVsPairHtml(me) {
+  var ms = lastMatches.filter(function (m) { return m.teamA && m.teamB && m.teamA.length === 2 && m.teamB.length === 2 && matchWinner(m); });
+  if (!ms.length) return '';
+  var pairsSet = {}, meet = {};   // meet[ka][kb] = games
+  ms.forEach(function (m) {
+    var ka = pairKey(m.teamA), kb = pairKey(m.teamB);
+    pairsSet[ka] = pairsSet[kb] = true;
+    (meet[ka] = meet[ka] || {})[kb] = (meet[ka][kb] || 0) + 1;
+    (meet[kb] = meet[kb] || {})[ka] = (meet[kb][ka] || 0) + 1;
+  });
+  var keys = Object.keys(pairsSet).sort(function (a, b) { return _plainPair(a).localeCompare(_plainPair(b)); });
+  var games = function (k) { var n = 0; Object.keys(meet[k] || {}).forEach(function (o) { n += meet[k][o]; }); return n; };
+  // Defaults: my most-played pair, then the pair it has met most
+  if (!h2hPairA || !pairsSet[h2hPairA]) {
+    var mine = keys.filter(function (k) { return k.split("+").indexOf(me) >= 0; });
+    h2hPairA = (mine.length ? mine : keys).slice().sort(function (a, b) { return games(b) - games(a); })[0];
+    h2hPairB = null;
+  }
+  var others = keys.filter(function (k) { return _disjoint(h2hPairA, k); });
+  if (!h2hPairB || others.indexOf(h2hPairB) < 0) {
+    h2hPairB = others.slice().sort(function (a, b) { return ((meet[h2hPairA] || {})[b] || 0) - ((meet[h2hPairA] || {})[a] || 0); })[0] || null;
+  }
+  var opts = function (list, sel) { return list.map(function (k) { return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + escapeHtml(_plainPair(k)) + '</option>'; }).join(''); };
+  var html = '<div class="settings-section">' + t("h2hPairVsPair") + '</div><div class="card pvp-card">' +
+    '<select class="form-select" onchange="h2hPairA=this.value;h2hPairB=null;renderStats()">' + opts(keys, h2hPairA) + '</select>' +
+    '<div class="pvp-vs">' + t("vsWord") + '</div>' +
+    '<select class="form-select" onchange="h2hPairB=this.value;renderStats()">' + opts(others, h2hPairB) + '</select>';
+  if (!h2hPairB) return html + '<div class="form-hint" style="margin-top:10px">' + t("pvpNoOpponent") + '</div></div>';
+  var rows = [], wa = 0, wb = 0, pts = 0;
+  ms.forEach(function (m) {
+    var ka = pairKey(m.teamA), kb = pairKey(m.teamB), aIsA = ka === h2hPairA;
+    if (!((ka === h2hPairA && kb === h2hPairB) || (ka === h2hPairB && kb === h2hPairA))) return;
+    var sc = matchScore(m), g = (m.games || [])[0] || {}, aWon = (matchWinner(m) === "A") === aIsA;
+    if (aWon) wa++; else wb++;
+    pts += aIsA ? sc.pts : -sc.pts;
+    rows.push({ date: m.date || "", a: aIsA ? g.a : g.b, b: aIsA ? g.b : g.a, aWon: aWon });
+  });
+  var av = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
+  html += '<div class="pvp-score"><span class="pvp-side">' + av(h2hPairA) + '</span><b>' + wa + ' \u2013 ' + wb + '</b><span class="pvp-side">' + av(h2hPairB) + '</span></div>';
+  if (!rows.length) return html + '<div class="form-hint" style="text-align:center">' + t("pvpNeverMet") + '</div></div>';
+  html += '<div class="h2h-facts" style="text-align:center">' + rows.length + ' ' + t("gamesWord") + ' \u00B7 ' + (pts >= 0 ? '+' : '') + pts + ' ' + t("ptsShort") + '</div>';
+  rows.sort(function (x, y) { return y.date.localeCompare(x.date); });
+  html += '<div class="pvp-list">' + rows.map(function (r) {
+    return '<div class="pvp-game"><span class="pvp-date">' + (r.date ? fmtDate(r.date) : '') + '</span>' +
+      '<span class="pvp-pts ' + (r.aWon ? 'won' : 'lost') + '">' + (r.a != null ? r.a : '\u2013') + ' \u2013 ' + (r.b != null ? r.b : '\u2013') + '</span></div>';
+  }).join('') + '</div></div>';
   return html;
 }
 
@@ -401,11 +516,12 @@ function _renderProgress() {
   var pts = games.reduce(function (s, x) { return s + x.pts; }, 0);
   html += '<div class="card"><div class="progress-head"><div><div class="form-hint" style="margin:0">' + t("ratingWord") + '</div><b class="progress-rating">' + Math.round(endR) + '</b> ' + _trend(endR, startR) + '</div>' +
     '<div class="progress-wl"><b>' + w + '\u2013' + l + '</b><small>' + (games.length ? Math.round(w / games.length * 100) : 0) + '% ' + t("winRate") + '</small></div></div>' +
-    _sparkline([startR].concat(inP.map(function (h) { return h.r; }))) + '</div>';
+    _sparkline([startR].concat(inP.map(function (h) { return h.r; })), { start: t("startWord") + ' ' + Math.round(startR), games: inP.length }) + '</div>';
   html += '<div class="card"><div class="my-stats-facts">' +
     '<span><b>' + all.length + '</b> ' + t("gamesWord") + '</span><span><b>' + mins + '</b> ' + t("minShort") + '</span>' +
     '<span><b>' + (games.length ? (pts / games.length >= 0 ? '+' : '') + (pts / games.length).toFixed(1) : '0') + '</b> ' + t("ptsPerGame") + '</span>' +
     '<span>' + t("streak") + ' <b>' + (p.streak > 0 ? p.streak + t("winShort") : p.streak < 0 ? (-p.streak) + t("lossShort") : '\u2013') + '</b></span></div></div>';
+  html += _pairInsightsHtml(uid, games);
   // Breakdown: by week for one month, by month otherwise
   var byWeek = months === 1, buckets = {};
   all.forEach(function (m) {
@@ -428,13 +544,58 @@ function _renderProgress() {
   return html;
 }
 
-/** Small line chart (SVG) of numbers */
-function _sparkline(vals) {
+/** Best / worst pair (partners) of a player in the period, and gentle tips from the numbers */
+var INSIGHT_MIN_GAMES = 2;
+function _pairInsightsHtml(uid, games) {
+  if (!games.length) return '';
+  var partner = {}, rival = {};
+  games.forEach(function (g) {
+    g.mine.forEach(function (u) { if (u !== uid) { var x = partner[u] || (partner[u] = { uid: u, n: 0, w: 0 }); x.n++; if (g.won) x.w++; } });
+    g.them.forEach(function (u) { var x = rival[u] || (rival[u] = { uid: u, n: 0, w: 0 }); x.n++; if (g.won) x.w++; });
+  });
+  var rate = function (x) { return x.w / x.n; };
+  var list = function (o) { return Object.keys(o).map(function (k) { return o[k]; }).filter(function (x) { return x.n >= INSIGHT_MIN_GAMES; }); };
+  var ps = list(partner).sort(function (a, b) { return rate(b) - rate(a) || b.n - a.n; });
+  var best = ps[0], worst = ps.length > 1 ? ps[ps.length - 1] : null;
+  if (worst && rate(worst) >= rate(best)) worst = null;  // everyone equal: nothing to call "worst"
+  var hard = list(rival).sort(function (a, b) { return rate(a) - rate(b) || b.n - a.n; })[0];
+  if (hard && rate(hard) >= 0.5) hard = null;
+  var fill = function (str, x) { return str.replace("{name}", escapeHtml(getUserName(x.uid))).replace("{w}", x.w).replace("{l}", x.n - x.w).replace("{pct}", Math.round(rate(x) * 100)); };
+  var row = function (x, cls, label) {
+    return '<div class="ins-row ' + cls + '"><span class="rank-avatars">' + avatarHtml(uid, 28) + avatarHtml(x.uid, 28) + '</span>' +
+      '<span class="rank-text"><small>' + label + '</small><b>' + escapeHtml(getUserName(uid)) + ' &amp; ' + escapeHtml(getUserName(x.uid)) + '</b>' +
+      '<small>' + _wl(x.w, x.n - x.w) + ' · ' + Math.round(rate(x) * 100) + '%</small></span></div>';
+  };
+  var html = '<div class="card ins-card"><div class="card-title">' + icon("users", 14) + ' ' + t("bestWorstPair") + '</div>';
+  if (!best) html += '<div class="form-hint">' + t("insNeedMore").replace("{n}", INSIGHT_MIN_GAMES) + '</div>';
+  else html += row(best, "good", t("bestPair")) + (worst ? row(worst, "low", t("worstPair")) : '');
+
+  // Gentle tips, at most 4
+  var tips = [];
+  var w = games.filter(function (x) { return x.won; }).length, l = games.length - w;
+  var avg = games.reduce(function (s, x) { return s + x.pts; }, 0) / games.length;
+  var streak = 0; for (var i = games.length - 1; i >= 0 && !games[i].won; i--) streak++;
+  if (best) tips.push(fill(t("tipBest"), best));
+  if (worst) tips.push(fill(t("tipWorst"), worst));
+  if (hard) tips.push(fill(t("tipRival"), hard));
+  if (games.length >= 3 && avg < 0) tips.push(t("tipClose"));
+  if (streak >= 2) tips.push(t("tipRest"));
+  if (games.length >= 5 && w / games.length >= 0.7) tips.push(t("tipGreat"));
+  if (!best) tips.push(t("tipMix"));
+  html += '<div class="ins-tips-title">' + icon("chart", 13) + ' ' + t("insTipsTitle") + '</div><ul class="ins-tips">' +
+    tips.slice(0, 4).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
+  return html;
+}
+
+/** Small line chart (SVG) of numbers. With opts, the first value is the hollow "Start" dot and the rest are games */
+function _sparkline(vals, opts) {
   if (vals.length < 2) return '<div class="form-hint">' + t("needMoreMonths") + '</div>';
   var w = 300, h = 70, lo = Math.min.apply(null, vals) - 10, hi = Math.max.apply(null, vals) + 10;
   var pts = vals.map(function (v, i) { return (i * w / (vals.length - 1)).toFixed(1) + "," + (h - (v - lo) / (hi - lo) * h).toFixed(1); });
   return '<svg class="sparkline" viewBox="-6 -6 ' + (w + 12) + ' ' + (h + 12) + '" preserveAspectRatio="none"><polyline points="' + pts.join(" ") + '"/>' +
-    pts.map(function (p) { var xy = p.split(","); return '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3"/>'; }).join('') + '</svg>';
+    pts.map(function (p, i) { var xy = p.split(","); return '<circle' + (opts && i === 0 ? ' class="start"' : '') + ' cx="' + xy[0] + '" cy="' + xy[1] + '" r="3"/>'; }).join('') + '</svg>' +
+    (opts ? '<div class="spark-legend"><span><i class="sk-dot start"></i>' + escapeHtml(opts.start) + '</span>' +
+      '<span><i class="sk-dot"></i>' + t("gamesDots").replace("{n}", opts.games) + '</span></div>' : '');
 }
 
 /* ---------- Games of a session (the session's "Games" tab) ----------
@@ -481,6 +642,16 @@ function _blankGameForm(s) {
 
 function _teamName(team, side) {
   return team.length ? team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; ") : t("team") + " " + side;
+}
+
+/** Shortcut button (Session tab): open the Games tab at the add-game form */
+function quickAddGame() {
+  if (currentSession && !_canAddGames(currentSession)) return;
+  setSessionTab("games");
+  setTimeout(function () {
+    var box = document.getElementById("gameFormBox");
+    if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 60);
 }
 
 /** The whole Games tab: add-game form + the list */
@@ -826,7 +997,7 @@ function makeRecap() {
   text(t("bestPartner"), 120, 1112, "600", 28, 0.8);
   text(bestMate ? name(bestMate) + "  " + partners[bestMate].w + t("winShort") + "–" + (partners[bestMate].n - partners[bestMate].w) + t("lossShort") : "–", 120, 1160, "800", 38);
   text(t("recapRival"), 560, 1112, "600", 28, 0.8);
-  text(rival ? rival.split("+").map(name).join(" & ") : "–", 560, 1160, "800", 34);
+  text(rival ? pairUids(rival).map(name).join(" & ") : "–", 560, 1160, "800", 34);
   if (rival) text(rivals[rival].w + t("winShort") + "–" + (rivals[rival].n - rivals[rival].w) + t("lossShort"), 560, 1204, "600", 28, 0.85);
 
   // Footer

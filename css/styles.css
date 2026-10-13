@@ -4555,3 +4555,94 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .games-summary .gs-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--border, rgba(128,128,128,.2)); overflow: hidden; }
 .games-summary .gs-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #00897b, #2563eb); }
 .games-summary .gs-n { flex: 0 0 24px; text-align: right; font-weight: 700; font-size: 13px; }
+
+/* Spending tab: vertical month/year chart */
+.vbar-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.vbar-chart { display: flex; align-items: flex-end; gap: 6px; min-width: 100%; width: max-content; }
+.vbar-col { flex: 1 0 46px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; padding: 4px 2px; border-radius: 8px; cursor: pointer; color: inherit; font: inherit; }
+.vbar-col.sel { background: rgba(37, 99, 235, .12); }
+.vbar-val { font-size: 10px; font-weight: 700; color: var(--text); min-height: 14px; white-space: nowrap; }
+.vbar-plot { width: 100%; height: 130px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--border); }
+.vbar-plot i { display: block; width: 60%; max-width: 28px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #2563eb, #00897b); }
+.vbar-col.empty .vbar-lbl { opacity: .5; }
+.vbar-lbl { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.vbar-detail { margin-top: 8px; font-size: 12px; color: var(--text-muted); min-height: 32px; text-align: center; }
+.vbar-detail b { color: var(--text); }
+
+/* Spending tab: top-3 podium */
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-top: 4px; }
+.pod-col { flex: 1 1 0; max-width: 120px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.pod-who { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-bottom: 6px; max-width: 100%; }
+.pod-name { font-size: 12px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-amt { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.pod-step { width: 100%; border-radius: 10px 10px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 6px; gap: 2px; color: #fff; }
+.pod-step span { font-size: 20px; line-height: 1; }
+.pod-step b { font-size: 16px; }
+.pod-1 .pod-step { background: linear-gradient(180deg, #f5b301, #d99a00); }
+.pod-2 .pod-step { background: linear-gradient(180deg, #a9b4c2, #8593a5); }
+.pod-3 .pod-step { background: linear-gradient(180deg, #d08a4e, #b06f36); }
+
+/* Ranking tab: highlights (best pair, best score) */
+.hl-card { padding: 10px 14px; margin-bottom: 12px; }
+.hl-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.hl-row + .hl-row { border-top: 1px solid var(--border); }
+.hl-ico { color: #f5b301; display: inline-flex; }
+.hl-row .rank-text { display: flex; flex-direction: column; min-width: 0; }
+.hl-row .rank-text small { color: var(--text-muted); font-size: 11px; }
+
+/* Ranking rows: rank arrow + score change */
+.rk-side { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; min-width: 44px; }
+.rk-chg { font-size: 12px; font-weight: 700; }
+.rk-chg.up { color: #16a34a; } .rk-chg.down { color: #ef4444; }
+.rk-chg.same { color: var(--text-muted); } .rk-chg.new { color: #2563eb; font-size: 10px; letter-spacing: .5px; }
+.rk-side .trend { font-size: 11px; font-weight: 600; }
+
+/* Progress line: hollow Start dot + legend */
+.sparkline circle.start { fill: var(--card); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.spark-legend { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+.spark-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sk-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.sk-dot.start { background: transparent; border: 2px solid var(--accent); box-sizing: border-box; }
+
+/* Progress tab: best / toughest pair + tips */
+.ins-card { padding: 14px; }
+.ins-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px; border-radius: 12px; border-left: 4px solid transparent; background: var(--surface); }
+.ins-row.good { border-left-color: #16a34a; } .ins-row.low { border-left-color: #f59e0b; }
+.ins-row .rank-text { display: flex; flex-direction: column; min-width: 0; }
+.ins-row .rank-text small { color: var(--text-muted); font-size: 11px; }
+.ins-tips-title { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.ins-tips { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.ins-tips li { margin-bottom: 6px; }
+
+/* Head to head: pair vs pair */
+.pvp-card { padding: 14px; }
+.pvp-vs { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+.pvp-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 4px; }
+.pvp-score b { font-size: 30px; }
+.pvp-side { display: inline-flex; }
+.pvp-list { margin-top: 10px; border-top: 1px solid var(--border); }
+.pvp-game { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.pvp-date { color: var(--text-muted); }
+.pvp-pts { font-weight: 700; } .pvp-pts.won { color: #16a34a; } .pvp-pts.lost { color: #ef4444; }
+
+/* Restaurants: picker, form, bill view, reviews */
+.rest-picked { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--surface); }
+.rest-picked > div:first-child { flex: 1; }
+.rest-list { max-height: 45vh; overflow-y: auto; margin-top: 10px; }
+.rest-item { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 10px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.rest-item:active { background: var(--surface); }
+.rest-item-side { flex: none; text-align: right; font-size: 12px; }
+.rest-rating b { font-size: 13px; } .rest-rating.none { color: var(--text-muted); font-size: 12px; }
+.rest-stars { color: #f5b301; letter-spacing: 1px; }
+.rest-dup { margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(245, 158, 11, .15); font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+.rest-view { padding: 10px 12px; border-radius: 12px; background: var(--surface); margin-bottom: 10px; }
+.rest-view-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.rev-box { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.rev-stars { display: flex; gap: 4px; }
+.rev-star { background: none; border: 0; padding: 0 2px; font-size: 30px; line-height: 1; color: var(--border); cursor: pointer; }
+.rev-star.on { color: #f5b301; }
+.rev-actions { display: flex; gap: 8px; }
+.rev-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+
+/* Session tab: shortcut to add a game score */
+.quick-game-btn { width: 100%; margin: 10px 0 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }

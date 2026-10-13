@@ -215,7 +215,7 @@ function dbSetQrCodes(data) {
 // ── Shared cache (one listener per collection for the whole app) ──
 
 // users / courts = the current group's roster and courts; allUsers / allCourts = everyone / the directory
-var DB_CACHE = { users: [], allUsers: [], courts: [], allCourts: [], groupCourts: null, shuttlecocks: [], qrCodes: null, app: {} };
+var DB_CACHE = { users: [], allUsers: [], courts: [], allCourts: [], groupCourts: null, shuttlecocks: [], qrCodes: null, app: {}, restaurants: [], reviews: [] };
 var _dbCacheUnsubs = [];
 
 /**
@@ -226,6 +226,16 @@ function dbStartCache(onChange) {
   dbStopCache();
   _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.allUsers = u; rebuildGroupCache(); onChange("users"); }));
   _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.allCourts = c; rebuildGroupCache(); if (typeof ensureGroupCourts === "function") ensureGroupCourts(); onChange("courts"); }));
+  // Restaurants + reviews: a quiet error handler, so an app opened before the rules are published does not show the red bar
+  var restErr = function (e) { console.warn("restaurants:", e && e.code); };
+  _dbCacheUnsubs.push(fsdb.collection("restaurants").onSnapshot(function (snap) {
+    DB_CACHE.restaurants = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    onChange("restaurants");
+  }, restErr));
+  _dbCacheUnsubs.push(fsdb.collection("restaurantReviews").onSnapshot(function (snap) {
+    DB_CACHE.reviews = snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; });
+    onChange("reviews");
+  }, restErr));
   if (GROUPS_ON && !currentGroupId) return; // no group yet: nothing group-specific to load
   _dbCacheUnsubs.push(dbGetShuttlecocks(function (b) { DB_CACHE.shuttlecocks = b; onChange("shuttlecocks"); }));
   if (!GROUPS_ON) {

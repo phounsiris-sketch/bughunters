@@ -350,7 +350,7 @@ function refreshCurrentPage(reason) {
     renderMatchesPage();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
     // New / edited courts, brands or players show up in an open cost form too
-    if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users)$/.test(reason)) {
+    if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users|restaurants|reviews)$/.test(reason)) {
       var court = findCourt(edit.courtId);
       if (court) edit.pricePerHour = courtPrice(court);
       renderEditForm();
@@ -380,7 +380,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v56"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v57"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

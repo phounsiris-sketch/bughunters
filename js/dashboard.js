@@ -94,7 +94,7 @@ function _renderDashboard() {
     var filtered = calculated.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
     html += _renderSpendingTab(filtered, calculated);
     container.innerHTML = html;
-    setTimeout(function () { _createSpendingChart(filtered); }, 0);
+    setTimeout(function () { _createSpendingChart(filtered); var vs = document.getElementById("vbarScroll"); if (vs) vs.scrollLeft = vs.scrollWidth; }, 0);
   } else {
     html += _renderActivityTab();
     container.innerHTML = html;
@@ -238,6 +238,9 @@ function _renderSpendingTab(sessions, allSessions) {
   html += '<div class="item-row" style="border-bottom:none"><div class="item-name">' + icon("dinner", 16) + ' ' + t("dinnerCost") + '</div><div class="item-price">' + fmtShort(sum.dinner) + '</div></div>';
   html += '</div>';
 
+  // Top 3 spenders of the period
+  html += _podiumHtml(_playerSpend(sessions));
+
   // By month (this year) or by year (all time)
   html += _renderPeriodTable(allSessions);
 
@@ -296,22 +299,56 @@ function _renderPeriodTable(allSessions) {
   }
   if (byYear) order.sort().reverse();
 
-  var html = '<div class="card"><div class="card-title">' + (byYear ? t("byYear") : t("byMonth") + ' ' + now.getFullYear()) + '</div>';
-  var any = false;
+  var cols = [], max = 0;
   for (var o = 0; o < order.length; o++) {
     var b = buckets[order[o]];
-    if (!b.list.length && !byYear) {
-      // only show empty months up to the current one
-      if (parseInt(order[o].split("-")[1], 10) > now.getMonth()) continue;
-    }
-    any = true;
+    // only show empty months up to the current one
+    if (!b.list.length && !byYear && parseInt(order[o].split("-")[1], 10) > now.getMonth()) continue;
     var sum = _sumSessions(b.list);
-    html += '<div class="item-row"><div class="item-name">' + b.label +
-      '<div style="font-size:10px;color:var(--text-muted)">' + sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(sum.mine) + '</div></div>' +
-      '<div class="item-price">' + fmtShort(sum.grand) + '</div></div>';
+    max = Math.max(max, sum.grand);
+    cols.push({ label: byYear ? b.label : monthShort(parseInt(order[o].split("-")[1], 10)), full: b.label, sum: sum });
   }
-  if (!any) html += '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div>';
-  return html + '</div>';
+  if (byYear) cols.reverse(); // oldest on the left
+  var html = '<div class="card"><div class="card-title">' + (byYear ? t("byYear") : t("byMonth") + ' ' + now.getFullYear()) + '</div>';
+  if (!cols.length) return html + '<div style="font-size:13px;color:var(--text-muted)">' + t("noData") + '</div></div>';
+  html += '<div class="vbar-scroll" id="vbarScroll"><div class="vbar-chart">';
+  cols.forEach(function (c, i) {
+    var h = max ? Math.round(c.sum.grand / max * 100) : 0;
+    html += '<button type="button" class="vbar-col' + (c.sum.grand ? '' : ' empty') + '" onclick="showVbarDetail(' + i + ')" aria-label="' + escapeHtml(c.full) + '" title="' + escapeHtml(c.full + ' · ' + fmtLAK(c.sum.grand)) + '">' +
+      '<span class="vbar-val">' + (c.sum.grand ? fmtShort(c.sum.grand) : '') + '</span>' +
+      '<span class="vbar-plot"><i style="height:' + (c.sum.grand ? Math.max(3, h) : 0) + '%"></i></span>' +
+      '<span class="vbar-lbl">' + escapeHtml(c.label) + '</span></button>';
+  });
+  html += '</div></div><div class="vbar-detail" id="vbarDetail"></div></div>';
+  window._vbarCols = cols;
+  return html;
+}
+
+/** Tap a column: show that month's sessions and your share */
+function showVbarDetail(i) {
+  var c = (window._vbarCols || [])[i], el = document.getElementById("vbarDetail");
+  if (!c || !el) return;
+  el.innerHTML = '<b>' + escapeHtml(c.full) + '</b> · ' + fmtShort(c.sum.grand) + '<br>' +
+    c.sum.sessions + ' ' + t("sessionsWord") + ' • ' + t("yourShare") + ' ' + fmtShort(c.sum.mine);
+  var cols = document.querySelectorAll("#vbarScroll .vbar-col");
+  for (var k = 0; k < cols.length; k++) cols[k].classList.toggle("sel", k === i);
+}
+
+/** Podium: the 3 players with the biggest share of the period's spending (2nd · 1st · 3rd) */
+function _podiumHtml(ps) {
+  var top = ps.uids.slice(0, 3);
+  if (!top.length) return '';
+  var order = top.length === 1 ? [0] : top.length === 2 ? [1, 0] : [1, 0, 2];
+  var heights = [100, 78, 62], medals = ["🥇", "🥈", "🥉"];
+  var html = '<div class="card"><div class="card-title">' + icon("ranking", 14) + ' ' + t("topSpenders") + '</div><div class="podium">';
+  order.forEach(function (r) {
+    var u = top[r];
+    html += '<div class="pod-col pod-' + (r + 1) + '"><div class="pod-who">' + avatarHtml(u, r === 0 ? 48 : 40) +
+      '<span class="pod-name">' + escapeHtml(getUserName(u)) + '</span>' +
+      '<span class="pod-amt" title="' + fmtLAK(ps.data[u].total) + '">' + fmtShort(ps.data[u].total) + '</span></div>' +
+      '<div class="pod-step" style="height:' + heights[r] + 'px"><span>' + medals[r] + '</span><b>' + (r + 1) + '</b></div></div>';
+  });
+  return html + '</div></div>';
 }
 
 function _playerSpend(sessions) {
