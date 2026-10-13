@@ -4928,3 +4928,13 @@ body.live-on { overflow: hidden; }
 .pf-chev.open { transform: rotate(90deg); }
 .pf-row.open { background: transparent; }
 .pf-open { margin-bottom: 12px; }
+.ls-exit { position: absolute; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 4; min-height: 44px; padding: 0 14px 0 10px; border-radius: 22px; background: rgba(15, 27, 45, .55); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.ls-exit .si { color: #fff; }
+.ls-current { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); color: var(--text); text-align: left; min-height: 60px; }
+.ls-current span { flex: 1; } .ls-current b { display: block; } .ls-current small { color: var(--text-muted); font-size: 12px; }
+.ls-current i { font-style: normal; font-size: 13px; font-weight: 700; color: var(--accent); }
+.ls-game-row { gap: 12px; }
+.ls-game-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ls-game-main small { display: flex; gap: 12px; flex-wrap: wrap; }
+.ls-game-people { display: block; }
+.ls-game-row > .si:last-child { color: var(--text-dim); flex: none; }

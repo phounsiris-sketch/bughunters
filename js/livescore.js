@@ -95,16 +95,19 @@ function _lsBlank(sid, type) {
 
 /* ---------- Open / close ---------- */
 
-/** Open live score for a session (default: my latest running session) */
+/** Open live score. With a session id: go straight to it. Without: resume a game
+ *  being counted, or ask which session this game belongs to. */
 function showLiveScore(sid) {
-  var s = sid ? _lsSession(sid) : null;
   var saved = lsLoad();
-  if (!sid && saved && _lsSession(saved.sid)) { s = _lsSession(saved.sid); }
-  if (!s) { var list = _lsSessions(); s = list[0]; }
-  if (!s) { showToast(t("homeNoSession")); return; }
-  if (saved && saved.sid === s.id) live = saved;
-  else live = _lsBlank(s.id, s.gameType && s.gameType !== "any" ? s.gameType : "md");
-  liveMode = _lsReady(live) ? "count" : "setup";
+  if (!sid && saved && _lsSession(saved.sid) && (saved.sa + saved.sb > 0 || _lsReady(saved))) sid = saved.sid;
+  if (sid && _lsSession(sid)) {
+    var s = _lsSession(sid);
+    live = saved && saved.sid === sid ? saved : _lsBlank(sid, s.gameType && s.gameType !== "any" ? s.gameType : "md");
+    liveMode = _lsReady(live) ? "count" : "setup";
+  } else {
+    live = null;
+    liveMode = "pick";
+  }
   _lsShow();
 }
 
@@ -138,7 +141,9 @@ function _lsWake(on) {
 
 function lsRender() {
   var el = document.getElementById("liveScreen");
-  if (!el || !live) return;
+  if (!el) return;
+  if (liveMode === "pick") { el.innerHTML = _lsPickHtml(); return; }
+  if (!live) return;
   if (liveMode === "setup") el.innerHTML = _lsSetupHtml();
   else if (liveMode === "settings") el.innerHTML = _lsSettingsHtml();
   else el.innerHTML = _lsCountHtml();
@@ -161,6 +166,7 @@ function _lsCountHtml() {
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div></div></div>';
   };
   var html = half("A") + half("B");
+  html += '<button type="button" class="ls-exit" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
     '<span class="ls-pill">' + t("lsGameN").replace("{n}", live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) + '</span>' +
     '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
@@ -185,6 +191,37 @@ function _lsOverHtml() {
     '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
 }
 
+/** Step 1: which game (session) is this score for? */
+function _lsPickHtml() {
+  var list = _lsSessions(), today = _todayIso();
+  var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("lsExit") + '" onclick="lsClose()">' + icon("back", 22) + '</button><div><b>' + t("lsPickGame") + '</b><small>' + t("lsPickGameHint") + '</small></div></div><div class="ls-body">';
+  if (!list.length) {
+    html += '<div class="card"><div class="empty-state" style="padding:16px"><div class="empty-icon">' + icon("sessions", 40) + '</div><div>' + t("homeNoSession") + '</div></div></div>';
+  }
+  list.forEach(function (s, i) {
+    var pl = s.players || [];
+    html += '<button type="button" class="ls-game-row" onclick="lsChoose(\'' + s.id + '\')">' + dateBlockHtml(s.date) +
+      '<span class="ls-game-main"><b>' + escapeHtml(s.courtName || "–") + '</b><small>' + iconStatHtml("users", pl.length) + ' ' + iconStatHtml("clock", escapeHtml(s.time || "–")) + '</small>' +
+      '<span class="ls-game-people">' + peopleHtml(pl, 20, 3) + '</span></span>' +
+      (i === 0 ? pillHtml("teal", s.date === today ? t("lsToday") : t("lsCurrent")) : '') + icon("chevron", 16) + '</button>';
+  });
+  html += '<button type="button" class="btn-secondary" onclick="lsNewGame()">' + icon("add", 16) + ' ' + t("lsNewGame") + '</button></div>';
+  return html;
+}
+
+function lsChoose(sid) {
+  var s = _lsSession(sid);
+  if (!s) return;
+  live = _lsBlank(sid, s.gameType && s.gameType !== "any" ? s.gameType : "md");
+  lsSave();
+  liveMode = "setup";
+  lsRender();
+}
+
+/** No game yet: close this screen and create one */
+function lsNewGame() { lsClose(); createAdHocSession(); }
+function lsChangeGame() { liveMode = "pick"; lsRender(); }
+
 function _lsSetupHtml() {
   var s = _lsSession(live.sid) || {}, size = live.type === "singles" ? 1 : 2, th = _lsTheme();
   var team = function (side, ids, from, to) {
@@ -196,7 +233,8 @@ function _lsSetupHtml() {
   var taken = live.a.concat(live.b);
   var pool = (s.players || []).filter(function (u) { return taken.indexOf(u) < 0; });
   pool = byNameAZ(pool);
-  var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="lsClose()">' + icon("back", 22) + '</button><div><b>' + t("lsTitle") + '</b><small>' + fmtDate(s.date) + ' · ' + escapeHtml(s.courtName || "") + '</small></div></div><div class="ls-body">' +
+  var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="lsChangeGame()">' + icon("back", 22) + '</button><div><b>' + t("lsTitle") + '</b><small>' + fmtDate(s.date) + ' · ' + escapeHtml(s.courtName || "") + '</small></div></div><div class="ls-body">' +
+    '<button type="button" class="ls-current" onclick="lsChangeGame()">' + dateBlockHtml(s.date) + '<span><b>' + escapeHtml(s.courtName || "–") + '</b><small>' + t("lsCurrentGame") + '</small></span><i>' + t("lsChange") + '</i></button>' +
     '<div class="seg seg-wrap">' + ["md", "wd", "xd", "singles"].map(function (x) { return '<button type="button" class="seg-btn' + (live.type === x ? ' active' : '') + '" onclick="lsType(\'' + x + '\')">' + t("gameType_" + x) + '</button>'; }).join("") + '</div>' +
     team("A", live.a, th[1], th[2]) + team("B", live.b, th[3], th[4]) +
     '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsPickPlayers") + '</div><div class="ls-pool">' +
