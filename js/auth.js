@@ -181,6 +181,7 @@ function saveProfile() {
         phone: phone || null,
         avatarUrl: null
       };
+      if (typeof subMarkNeeded === "function") subMarkNeeded(currentUser.uid);   // new account: subscription step first
       _enterApp();
     })
     .catch(function (error) {
@@ -201,6 +202,7 @@ function _createProfileFromPending(user, saveOnly) {
     .then(function () {
       try { localStorage.removeItem("pendingProfile"); } catch (e) {}
       currentUserProfile = profile;
+      if (typeof subMarkNeeded === "function") subMarkNeeded(user.uid);   // new account: subscription step first
       if (!saveOnly) _enterApp();
     })
     .catch(function (error) { showToast(error.message); });
@@ -209,6 +211,8 @@ function _createProfileFromPending(user, saveOnly) {
 
 /* ---------- Enter the app once the profile exists ---------- */
 function _enterApp() {
+  // A new account pays (demo) before the app opens
+  if (typeof subGate === "function" && subGate()) return;
   // Find my groups first (before the migration the app runs as one group)
   loadGroupContext().then(function () {
     if (!GROUPS_ON) seedFirestoreData();
@@ -229,6 +233,8 @@ function _resetAuthScreens() {
   var login = document.getElementById("login-page");
   var profile = document.getElementById("profile-page");
   var verify = document.getElementById("verify-page");
+  var sub = document.getElementById("sub-page");
+  if (sub) sub.style.display = "none";
   if (login) login.style.display = "";
   if (profile) profile.style.display = "none";
   if (verify) verify.style.display = "none";

@@ -224,6 +224,7 @@ function _renderSettingsPage() {
 
   // 2. App — language first, then how it looks
   html += _settingsSection("secApp");
+  html += '<div class="card nav-rows">' + _navRow("showToast(subStatusText())", "medal", t("subTitleShort"), subStatusText()) + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
   html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';

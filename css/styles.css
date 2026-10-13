@@ -5029,3 +5029,29 @@ body.live-on { overflow: hidden; }
 .slot-row small { color: var(--text-muted); font-size: 11px; }
 .game-card.compact .game-actions { margin-top: 10px; }
 .game-card.compact .game-actions .btn-primary, .game-card.compact .game-actions .btn-secondary { padding: 8px 14px; font-size: 14px; min-height: 40px; }
+
+/* ========== Subscription (demo) ========== */
+.sub-page { max-width: 480px; margin: 0 auto; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+.sub-hero { text-align: center; }
+.sub-logo { width: 72px; height: 72px; margin: 0 auto 10px; border-radius: 22px; background: linear-gradient(135deg, var(--primary), var(--blue)); color: #fff; display: flex; align-items: center; justify-content: center; }
+.sub-logo .si { color: #fff; }
+.sub-hero h2 { font-size: 22px; margin: 0 0 6px; }
+.sub-hero p { font-size: 13px; color: var(--text-muted); margin: 0; }
+.sub-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sub-plan { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 16px 12px 12px; border-radius: 16px; background: var(--card); border: 2px solid var(--border); color: var(--text); text-align: left; min-height: 120px; }
+.sub-plan.on { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(13, 148, 136, .2); }
+.sub-plan b { font-size: 14px; } .sub-plan small { color: var(--text-muted); font-size: 12px; }
+.sub-price { font-size: 22px; font-weight: 800; color: var(--accent); }
+.sub-best { position: absolute; top: -10px; right: 10px; background: #f59e0b; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; }
+.sub-radio { position: absolute; right: 10px; bottom: 10px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; }
+.sub-radio.on { background: var(--primary); border-color: var(--primary); }
+.sub-radio .si { color: #fff; }
+.sub-feats { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.sub-feats > div { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.sub-feats .si { color: var(--accent); flex: none; }
+.sub-methods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sub-method { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; min-height: 64px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--border); color: var(--text); font-size: 12px; font-weight: 600; }
+.sub-method.on { border-color: var(--primary); background: rgba(13, 148, 136, .12); }
+.sub-method .si { color: var(--accent); }
+.sub-demo { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); text-align: center; }
+.sub-demo .si { color: var(--orange); flex: none; }

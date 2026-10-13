@@ -17,4 +17,11 @@
 - Optional photo (thumbnail on the card), stored like restaurant photos. Weekly repeat: N games, one per week, same `seriesId`.
 - Unconfirmed games (not full) are dropped 24 h after posting; the host's phone sets `status: cancelled, cancelReason: unconfirmed`. No rules change (the host may already update their own game). This is client-side, so a game also disappears for others only while at least their own phones apply the same rule; a host who never opens the app leaves a cancelled-in-view but still "open" record until they do.
 - Compact card (host and players as photo + name, one button).
-(v79 is added below as it is built.)
+
+## v79 Subscription (mock)
+New accounts see a paywall after registration (plan, features, method, Pay). Pay is a mock: it writes `godsmash_sub_<uid>` and clears `godsmash_needsub_<uid>` in `localStorage`, then opens the app. Existing accounts are not asked. Settings > App shows the plan. Not secure and not shared across devices by design (demo). Real billing needs a server-side subscription record and a payment provider.
+
+## Notes on how requests were read
+- "Make this design more compact": applied to the Home Create block and the public game card.
+- "Kill the session in 1 day if not confirmed": read as a public (open) game that is not full 24 h after posting.
+- "Public game and friend as a calendar for reserve or recurring": a month calendar on both tabs; "reserve" is the existing Join; recurring = weekly repeat when posting a game (friends: the calendar shows invites; there is no recurring invite).

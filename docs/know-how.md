@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v78**.
+run it. App version at the time of writing: **v79**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -304,6 +304,16 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Subscription step (demo, v79)
+
+A **new account** (just finished registering) sees *Start with Godsmash* before the app
+opens: Monthly 30,000 ₭ or Yearly 300,000 ₭, what is included, a payment method
+(OnePay, card, bank transfer) and **Pay**. **This is a mock: nothing is charged.** *Pay*
+marks the account as subscribed on this phone (`localStorage`) and opens Home. Accounts
+that already existed are not asked. Settings > App shows *Subscription* with the plan.
+The code is `js/subscription.js`; replace `subPayMock()` with a real payment provider
+(and store the subscription on the server, not on the phone) before charging anyone.
 
 ### Public games: calendar, photo, repeat, auto-cancel (v78)
 
