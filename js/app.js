@@ -350,7 +350,7 @@ function refreshCurrentPage(reason) {
     renderMatchesPage();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
     // New / edited courts, brands or players show up in an open cost form too
-    if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users)$/.test(reason)) {
+    if (typeof sessionEditing !== "undefined" && sessionEditing && edit && /^(courts|shuttlecocks|users|restaurants|reviews)$/.test(reason)) {
       var court = findCourt(edit.courtId);
       if (court) edit.pricePerHour = courtPrice(court);
       renderEditForm();

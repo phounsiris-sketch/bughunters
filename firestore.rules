@@ -223,6 +223,40 @@ service cloud.firestore {
       allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
 
+    // ── Restaurants: a shared master list for dinner bills ───
+    // Anyone signed in adds a restaurant and corrects its details (like the
+    // courts directory); the creator or the app owner deletes it.
+    function restaurantOk(d) {
+      return d.name is string && d.name.size() >= 2 && d.name.size() <= 60
+        && d.get('location', '') is string && d.get('location', '').size() <= 120
+        && (d.get('location', '') != '' || (d.get('lat', null) is number && d.get('lng', null) is number));
+    }
+    match /restaurants/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid && restaurantOk(request.resource.data);
+      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && restaurantOk(request.resource.data);
+      allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
+    }
+
+    // 5-star reviews: one per person per restaurant (doc id restaurantId_uid),
+    // only by someone in the diner list of a session that used that restaurant.
+    function dinedAt(sid, rid) {
+      let dn = get(/databases/$(database)/documents/sessions/$(sid)).data.get('dinner', {});
+      return request.auth.uid in dn.get('diners', []) && dn.get('restaurantId', '') == rid;
+    }
+    function reviewOk(d, id) {
+      return d.uid == request.auth.uid && id == d.restaurantId + '_' + request.auth.uid
+        && d.stars is int && d.stars >= 1 && d.stars <= 5
+        && d.get('comment', '') is string && d.get('comment', '').size() <= 200
+        && dinedAt(d.sessionId, d.restaurantId);
+    }
+    match /restaurantReviews/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && reviewOk(request.resource.data, id);
+      allow update: if isAuth() && resource.data.uid == request.auth.uid && reviewOk(request.resource.data, id);
+      allow delete: if isSuper() || (isAuth() && resource.data.uid == request.auth.uid);
+    }
+
     match /shuttlecocks/{id} {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       allow create: if canIn('editConfig', request.resource.data.get('groupId', ''));

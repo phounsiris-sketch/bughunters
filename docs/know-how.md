@@ -184,7 +184,7 @@ see the **bill form**; others see "waiting for the bill".
 | Court | Who paid the court |
 | Shuttlecocks | Brand, quantity and price (saved brands prefill this), and who paid |
 | Other costs | A description, an amount, who paid, and optionally *only for* one person |
-| Dinner | Total bill, who paid, who ate, and an optional photo of the receipt |
+| Dinner | Total bill, who paid, who ate, an optional photo of the receipt, and an optional restaurant (see below) |
 
 Tap **Calculate split** to save it. The app then shows:
 
@@ -200,6 +200,28 @@ reminder push each morning until they are marked paid.
 From 30 minutes before the game ends until 12 hours after, players see a
 **"Dinner after?"** card with **Join** and **Skip**. When someone adds the dinner
 bill, the people who answered Join are already ticked as diners.
+
+### Restaurant and reviews (optional)
+
+When you add the dinner bill you can pick a **Restaurant** (optional) from a
+shared **master list**:
+
+- **Search** by name or place while choosing; no match → add it as new.
+- **New restaurant**: a name (2–60 characters) and **a location text or a map pin**
+  (at least one; both is best). It is **checked before saving**: the same name
+  (ignoring case, spaces and punctuation) with no pin, or a pin within 300 m, is
+  refused as a duplicate with a button to **use the existing one**. The same
+  name far away (a chain) is allowed.
+- The list is shared by all groups, like the courts directory. Anyone signed in
+  can add one; its creator or the app owner can delete it.
+- The bill card then shows the name, the location, **Open in Google Maps**, and
+  the **average stars**. People in that dinner's diner list can leave **one
+  review** each (1–5 stars + an optional comment up to 200 characters) and change
+  it later. The latest 5 reviews are listed.
+
+New collections `restaurants` and `restaurantReviews` need the updated
+`firestore.rules` published first (section 13); until then the app works as
+before and the restaurant list stays empty.
 
 ### Matches button
 
@@ -550,6 +572,8 @@ Firestore collections. Every private item carries a `groupId`.
 | `matches/{id}` | groupId, sessionId, date, type, mode, teamA, teamB, games `[{a,b}]` (one game per record), minutes, createdBy | Firestore has no nested arrays, so games are `{a,b}` objects |
 | `courts/{id}` | name, address, phone, courtsCount, courtLabels, lat, lng, createdBy | Public directory; **no price** |
 | `groupCourts/{id}` | groupId, sourceId (directory court it was copied from), name, address, phone, courtsCount, courtLabels (number/letter), lat, lng, hours, price | The group's own courts; members read, *editConfig* writes |
+| `restaurants/{id}` | name, location, lat, lng, createdBy, createdAt | Shared master list for dinner bills |
+| `restaurantReviews/{restaurantId}_{uid}` | restaurantId, uid, stars 1–5, comment, sessionId, gid, updatedAt | One per person per restaurant; only people in that dinner |
 | `shuttlecocks/{id}` | groupId, brand, price, cocksPerTube | |
 | `gear/{id}` | uid, kind, name, brand, photo, main, forSale, salePrice, saleCurrency, saleScope (groups/public), saleCity, sellerName | Any signed-in user can read gear (the Market) |
 | `openGames/{id}` | hostId, city, date, time, courtId, slots, level, price, players, waitlist, log, status | Public |
@@ -584,6 +608,7 @@ console (Firestore → Rules). Main ideas:
 - **Open games.** People can only add or remove **themselves** from players or the
   waitlist. Only the host can cancel.
 - **Invites.** Only the sender creates an invite, and only the receiver answers it.
+- **Restaurants.** Any signed-in user can add or correct one (name 2–60 characters, a location text or a pin); only the creator or the Super Admin deletes it. A **review** is one per person per restaurant, 1–5 stars, comment ≤ 200, and only if you are in the diner list of a session that used that restaurant.
 - **Courts.** Any signed-in user can correct a court's shared details, like a map.
   Only its creator or the Super Admin can delete it. Prices live in each group's doc.
 

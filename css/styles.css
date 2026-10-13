@@ -4624,3 +4624,22 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .pvp-game { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .pvp-date { color: var(--text-muted); }
 .pvp-pts { font-weight: 700; } .pvp-pts.won { color: #16a34a; } .pvp-pts.lost { color: #ef4444; }
+
+/* Restaurants: picker, form, bill view, reviews */
+.rest-picked { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--surface); }
+.rest-picked > div:first-child { flex: 1; }
+.rest-list { max-height: 45vh; overflow-y: auto; margin-top: 10px; }
+.rest-item { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 10px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.rest-item:active { background: var(--surface); }
+.rest-item-side { flex: none; text-align: right; font-size: 12px; }
+.rest-rating b { font-size: 13px; } .rest-rating.none { color: var(--text-muted); font-size: 12px; }
+.rest-stars { color: #f5b301; letter-spacing: 1px; }
+.rest-dup { margin-top: 10px; padding: 10px; border-radius: 12px; background: rgba(245, 158, 11, .15); font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+.rest-view { padding: 10px 12px; border-radius: 12px; background: var(--surface); margin-bottom: 10px; }
+.rest-view-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.rev-box { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.rev-stars { display: flex; gap: 4px; }
+.rev-star { background: none; border: 0; padding: 0 2px; font-size: 30px; line-height: 1; color: var(--border); cursor: pointer; }
+.rev-star.on { color: #f5b301; }
+.rev-actions { display: flex; gap: 8px; }
+.rev-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }

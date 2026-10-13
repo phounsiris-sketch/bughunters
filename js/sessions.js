@@ -700,7 +700,8 @@ function _renderSplitResult(s) {
         '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
       : '';
     html += _payTypeCard(s, icon("dinner", 18), t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
-      L.totals.dinner, s.dinner.paidBy, "dinner", _even(s.dinner.diners, L.totals.dinner), receipt);
+      L.totals.dinner, s.dinner.paidBy, "dinner", _even(s.dinner.diners, L.totals.dinner),
+      (typeof dinnerRestaurantViewHtml === "function" ? dinnerRestaurantViewHtml(s) : '') + receipt);
   }
 
   // 2) Settlement after deduction: one row per pair of people
@@ -900,7 +901,9 @@ function startEditSession() {
       totalBill: s.dinner.totalBill || 0,
       paidBy: s.dinner.paidBy || "",
       diners: (s.dinner.diners || []).slice(),
-      receiptUrl: s.dinner.receiptUrl || null
+      receiptUrl: s.dinner.receiptUrl || null,
+      restaurantId: s.dinner.restaurantId || "",
+      restaurantName: s.dinner.restaurantName || ""
     } : null
   };
   renderEditForm();
@@ -1039,6 +1042,7 @@ function renderEditForm() {
     html += '<div class="form-group"><label class="form-label">' + t("totalBill") + ' (' + curSymbol() + ')</label>' + moneyInput('', d.totalBill, 'edit.dinner.totalBill=parseMoney(this.value);_updateEditTotals()') + '</div>';
     html += '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("dinnerPayer") + '</label><select class="form-select" data-cs-type="player" data-cs-onpick="editPickDinnerPayer" onchange="edit.dinner.paidBy=this.value">' + _payerOptions(d.paidBy, pickable) + '</select></div>';
     html += '</div>';
+    if (typeof dinnerRestaurantFieldHtml === "function") html += dinnerRestaurantFieldHtml(d);
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
     for (var di = 0; di < pickable.length; di++) {
       var dOn = d.diners.indexOf(pickable[di]) >= 0;
@@ -1097,6 +1101,8 @@ function _editToSessionData() {
       diners: edit.dinner.diners.slice(),
       receiptUrl: edit.dinner.receiptUrl || null
     };
+    // Optional restaurant (only stored when chosen)
+    if (edit.dinner.restaurantId) { dinner.restaurantId = edit.dinner.restaurantId; dinner.restaurantName = edit.dinner.restaurantName || ""; }
   }
 
   return {
