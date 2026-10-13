@@ -604,9 +604,28 @@ function editGame(id) {
 
 function cancelGameEdit() { gameForm = _blankGameForm(currentSession); _rerenderGameForm(); }
 
+/** Summary card: total games in this session + how many games each player played */
+function _gamesSummaryHtml(list) {
+  if (!list.length) return '';
+  var count = {}, max = 0;
+  list.forEach(function (m) {
+    (m.teamA || []).concat(m.teamB || []).forEach(function (u) { count[u] = (count[u] || 0) + 1; });
+  });
+  var rows = Object.keys(count).map(function (u) { if (count[u] > max) max = count[u]; return { uid: u, n: count[u], name: getUserName(u) }; });
+  rows.sort(function (a, b) { return b.n - a.n || String(a.name).localeCompare(String(b.name)); });
+  var html = '<div class="card games-summary"><div class="card-title">' + icon("ranking", 14) + ' ' + t("gamesSummary") + '</div>' +
+    '<div class="gs-total"><b>' + list.length + '</b> ' + t("gamesWord") + ' \u00B7 ' + rows.length + ' ' + t("playersWord") + '</div>';
+  rows.forEach(function (r) {
+    html += '<div class="gs-row"><span class="gs-name">' + escapeHtml(r.name) + '</span>' +
+      '<span class="gs-bar"><i style="width:' + Math.round(r.n / max * 100) + '%"></i></span>' +
+      '<span class="gs-n">' + r.n + '</span></div>';
+  });
+  return html + '</div>';
+}
+
 function _gamesListHtml(s) {
   var list = sessionMatches(s.id);
-  var html = '<div class="settings-section">' + t("gamesTitle") + ' (' + list.length + ')</div>';
+  var html = _gamesSummaryHtml(list) + '<div class="settings-section">' + t("gamesTitle") + ' (' + list.length + ')</div>';
   if (!list.length) return html + '<div class="empty-state" style="padding:14px">' + t(_canAddGames(s) ? "gamesEmptyPlayer" : "gamesEmpty") + '</div>';
   list.slice().reverse().forEach(function (m, i) { html += matchRowHtml(m, list.length - i); });
   return html;
