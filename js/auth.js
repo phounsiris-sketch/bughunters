@@ -13,6 +13,15 @@ var actionCodeSettings = {
   handleCodeInApp: true
 };
 
+/** Show / hide the password while typing it */
+function togglePw() {
+  var i = document.getElementById("loginPassword"), b = document.getElementById("pwToggle");
+  if (!i) return;
+  var show = i.type === "password";
+  i.type = show ? "text" : "password";
+  if (b) { b.setAttribute("data-i18n", show ? "hidePw" : "showPw"); b.textContent = t(show ? "hidePw" : "showPw"); }
+}
+
 /* ---------- Login / Register mode ---------- */
 var authMode = "login";
 
@@ -226,7 +235,7 @@ function _resetAuthScreens() {
   // Back to a clean "Sign in" form
   ["loginPassword", "regPasswordConfirm"].forEach(function (id) {
     var el = document.getElementById(id);
-    if (el) el.value = "";
+    if (el) { el.value = ""; if (id === "loginPassword") el.type = "password"; }
   });
   setAuthMode("login");
 }

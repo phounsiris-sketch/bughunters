@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d9488">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -56,7 +56,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="password">Password</label>
-          <input type="password" class="form-input" id="loginPassword" autocomplete="current-password" minlength="6">
+          <div class="pw-wrap"><input type="password" class="form-input" id="loginPassword" autocomplete="current-password" minlength="6"><button type="button" class="pw-toggle" id="pwToggle" onclick="togglePw()" data-i18n="showPw">Show</button></div>
         </div>
         <div class="form-group" id="regPasswordConfirmGroup" style="display:none">
           <label class="form-label" data-i18n="confirmPassword">Confirm password</label>
@@ -65,6 +65,7 @@
         <button type="submit" class="btn-primary" id="authSubmitBtn" data-i18n="signIn">Sign in</button>
       </form>
       <button class="link-btn" id="forgotPwLink" onclick="sendPasswordReset()" data-i18n="forgotPassword">Forgot password?</button>
+      <div class="login-invite">&#128279; <span data-i18n="loginInviteHint">Have an invite link? Open it after you sign in and it takes you straight to the group.</span></div>
     </div>
   </div>
   <div id="verify-page" class="login-page" style="display:none">
@@ -143,8 +144,13 @@
       <div id="sessionDetailContent"></div>
     </div>
 
+    <!-- PAGE: Home (stats, shortcuts, create, next game) -->
+    <div class="page active" id="page-home">
+      <div id="homeContent"></div>
+    </div>
+
     <!-- PAGE: Dashboard -->
-    <div class="page active" id="page-dashboard">
+    <div class="page" id="page-dashboard">
       <div id="dashboardContent"></div>
     </div>
 
@@ -244,9 +250,9 @@
       <span class="nav-icon" data-icon="sessions" data-size="22"></span><span class="badge nav-badge" id="navBadge-sessions" style="display:none">0</span>
       <span data-i18n="navSessions">Sessions</span>
     </div>
-    <div class="nav-item nav-center active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <div class="nav-item nav-center active" onclick="showPage('home')" id="nav-dashboard">
       <span class="nav-icon" data-icon="dashboard" data-size="24"></span>
-      <span data-i18n="navDashboard">Dashboard</span>
+      <span data-i18n="navHome">Home</span>
     </div>
     <div class="nav-item" onclick="showPage('stats')" id="nav-stats" style="display:none">
       <span class="nav-icon" data-icon="ranking" data-size="22"></span>
@@ -305,6 +311,7 @@
 <script src="js/polls.js"></script>
 <script src="js/sessions.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/home.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/payments.js"></script>
 <script src="js/notify.js"></script>

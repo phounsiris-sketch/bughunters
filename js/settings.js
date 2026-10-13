@@ -205,7 +205,7 @@ function _renderSettingsPage() {
   html += _renderMergeCard();
 
   // 4. Sign out
-  html += '<button class="btn-danger" style="margin-top:8px" onclick="logoutUser()">' + t("logout") + '</button>';
+  html += '<button class="btn-danger" style="margin-top:8px" onclick="if(confirm(t(\'confirmSignOut\')))logoutUser()">' + t("logout") + '</button>';
   html += '<div class="app-version">Godsmash ' + APP_VERSION + '</div>';
   return html;
 }

@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
+var GROUP_PAGES = /^(home|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 /** Header button with my picture (opens My profile) */
@@ -51,7 +51,7 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public", "matches": "sessions", "match-record": "sessions" };
+  var navOf = { "home": "dashboard", "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public", "matches": "sessions", "match-record": "sessions" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
@@ -84,6 +84,8 @@ function showPage(page, pushHistory) {
     loadPolls();
   } else if (page === "sessions" && typeof loadSessions === "function") {
     loadSessions();
+  } else if (page === "home" && typeof loadHome === "function") {
+    loadHome();
   } else if (page === "dashboard" && typeof loadDashboard === "function") {
     loadDashboard();
   } else if (page === "payments" && typeof loadPayments === "function") {
@@ -164,7 +166,7 @@ function showAppPage() {
   if (authC) authC.style.display = "none";
   if (appC) appC.style.display = "";
 
-  showPage("dashboard"); // land on the dashboard after login
+  showPage("home"); // land on Home after login
 }
 
 /* ──────────────────────────────────────────────────────────
