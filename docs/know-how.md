@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v73**.
+run it. App version at the time of writing: **v74**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -211,6 +211,12 @@ group**, then type the group's name to confirm.
    - set the **mode**: *Fun*, *Exercise* or *Competition*. The mode is only a label to tell players how the game was meant; every game counts for ratings and rankings.
    - set the **game type**: men's doubles, women's doubles, mixed or singles.
    - change the answers. The default is **Join / Skip**.
+   **A poll card** (v74) reads top to bottom: a date block, the court (with the map
+   link), the time and how many have joined, a status pill; who made it (photo and
+   name); a Plan-Play-Pay-Done bar; **one bar** showing how many are in, how many are
+   out and how many more are needed; the deadline; the answers with the people who
+   chose each one (photo and name); then the buttons (Confirm, add votes for others,
+   cancel).
 2. Everyone picks one answer, like a radio button. Any answer other than "Skip"
    counts as joining.
 3. Once at least **min players** have joined, the creator (or someone with

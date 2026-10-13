@@ -145,9 +145,9 @@ function renderPolls(polls) {
     ? [{ label: t("navPolls"), action: "setPollView('active')" }, { label: t("history") }]
     : null);
 
-  var html = '<div class="view-switch">';
-  html += '<button class="view-btn' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">' + icon("polls", 16) + ' ' + t("activePolls") + ' (' + active.length + ')</button>';
-  html += '<button class="view-btn' + (pollView === "history" ? ' active' : '') + '" onclick="setPollView(\'history\')">' + icon("history", 16) + ' ' + t("history") + ' (' + archived.length + ')</button>';
+  var html = '<div class="dashboard-tabs">';
+  html += '<button class="dash-tab' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">' + icon("vote", 15) + ' ' + t("activePolls") + ' (' + active.length + ')</button>';
+  html += '<button class="dash-tab' + (pollView === "history" ? ' active' : '') + '" onclick="setPollView(\'history\')">' + icon("history", 15) + ' ' + t("history") + ' (' + archived.length + ')</button>';
   html += '</div>';
   html += filterBarHtml(
     [["", t("allStatuses")], ["draft", t("pollDraft")], ["confirmed", t("confirmed")], ["cancelled", t("cancelled")]],
@@ -210,21 +210,27 @@ function _renderPollCard(poll) {
   var joined = _pollAnswerUids(np, 0);
   var enough = joined.length >= minPlayers;
 
+  var kind = poll.status === 'confirmed' ? 'green' : poll.status === 'cancelled' ? 'red' : 'blue';
+  var inN = joined.length, outN = Math.max(0, Object.keys(np.responses).length - inN);
   var html = '<div class="card poll-card">';
-  html += '<div class="poll-header">';
-  html += '<span class="poll-author">' + avatarHtml(poll.createdBy, 28) + '<span><span class="poll-author-by">' + t('createdBy') + '</span> <b>' + getUserName(poll.createdBy) + '</b></span></span>';
-  html += '<span class="poll-status ' + statusClass + '">' + statusLabel + '</span>';
-  html += '</div>';
+  html += '<div class="poll-top">' + dateBlockHtml(np.date) +
+    '<div class="poll-top-main"><div class="poll-court">' + escapeHtml(np.courtName || '') + (court ? ' ' + courtMapLink(court) : '') + '</div>' +
+    '<div class="poll-stats">' + iconStatHtml("clock", escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '')) +
+    iconStatHtml("users", inN + '/' + minPlayers) + '</div></div>' + pillHtml(kind, statusLabel) + '</div>';
+  html += '<div class="poll-by">' + t('createdBy') + ' ' + personHtml(poll.createdBy, 22) + '</div>';
+  if (poll.status !== 'cancelled') html += '<div class="poll-trk">' + trackerHtml(poll.status === 'confirmed' ? 1 : 0) + '</div>';
 
-  // The plan
-  html += '<div class="poll-plan">';
-  html += '<div style="font-size:15px;font-weight:700">' + icon('calendar', 16) + ' ' + fmtDate(np.date) + ' • ' + escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '') + '</div>';
-  html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:2px">' + icon('court', 14) + ' ' + escapeHtml(np.courtName || '') +
-    (court && court.location ? ' — ' + escapeHtml(court.location) : '') + (court ? ' ' + courtMapLink(court) : '') + '</div>';
-  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) html += '<div class="game-tags"><span class="tag mode-' + poll.mode + '">' + t("mode_" + poll.mode) + '</span>' +
-    (poll.gameType ? '<span class="tag">' + t("gameType_" + poll.gameType) + '</span>' : '') + '</div>';
-  if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
-  html += '</div>';
+  // The plan: mode tags and a note (the date, time and court are above)
+  if ((typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) || poll.note) {
+    html += '<div class="poll-plan">';
+    if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) html += '<div class="game-tags" style="margin-top:0"><span class="tag mode-' + poll.mode + '">' + t("mode_" + poll.mode) + '</span>' +
+      (poll.gameType ? '<span class="tag">' + t("gameType_" + poll.gameType) + '</span>' : '') + '</div>';
+    if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
+    html += '</div>';
+  }
+
+  // Who is coming, as one bar
+  html += '<div class="poll-vote">' + voteBarHtml(inN, 0, outN, enough ? 0 : minPlayers) + '</div>';
 
   // Voting deadline
   if (isOpen && closesAt) {
@@ -255,13 +261,6 @@ function _renderPollCard(poll) {
     html += '</div>';
   }
   html += '</div>';
-
-  // Joined players
-  if (joined.length) {
-    html += '<div class="joined-box"><div class="card-title" style="margin-bottom:6px">' + icon("users", 14) + ' ' + t('joinedPlayers') + ' (' + joined.length + ')</div><div class="chips" style="margin-bottom:0">';
-    joined.forEach(function (uid) { html += '<div class="chip active avatar-chip">' + avatarHtml(uid, 22) + getUserName(uid) + '</div>'; });
-    html += '</div></div>';
-  }
 
   if (isOpen && isCreator) {
     html += '<button class="edit-btn" style="margin-top:10px" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>';

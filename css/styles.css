@@ -4938,3 +4938,13 @@ body.live-on { overflow: hidden; }
 .ls-game-main small { display: flex; gap: 12px; flex-wrap: wrap; }
 .ls-game-people { display: block; }
 .ls-game-row > .si:last-child { color: var(--text-dim); flex: none; }
+
+/* ========== Poll card (new look) ========== */
+.poll-top { display: flex; align-items: flex-start; gap: 12px; }
+.poll-top-main { flex: 1; min-width: 0; }
+.poll-court { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.poll-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.poll-by { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; font-size: 12px; color: var(--text-muted); }
+.poll-trk { margin: 12px 0 4px; }
+.poll-vote { margin: 12px 0 4px; }
+.poll-card .poll-plan { background: none; border: 0; padding: 0; margin-top: 8px; }
