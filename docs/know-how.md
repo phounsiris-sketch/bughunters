@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v66**.
+run it. App version at the time of writing: **v67**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -58,6 +58,12 @@ orange, Done green), a Plan-Play-Pay-Done bar, a vote bar (for votes) and the
 people with photo and name. A confirmed vote shows as its session, not twice. The
 old Polls and Sessions pages are still there (links at the bottom of Games). Code:
 `js/games.js`.
+
+**Inside a game** (the session page) a **Plan · Play · Pay · Done** tracker sits at
+the top. A bar fixed above the bottom bar shows the next thing to do: while playing,
+*Live score* and *Add game score*; when you owe money, *Pay* with the amount. It is
+hidden while you edit the bill, on the Games tab (the form is right there) and when
+there is nothing to do.
 
 **Home** is where the app opens. Top to bottom:
 

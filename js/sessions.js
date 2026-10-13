@@ -545,12 +545,12 @@ function renderSessionDetail() {
 
   if (!s.calculated && !sessionEditing) {
     if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
-    container.innerHTML = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s);
+    container.innerHTML = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s) + _sessionActionBar(s);
     return;
   }
 
   var html = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "");
-  html += _renderSplitResult(s);
+  html += _renderSplitResult(s) + _sessionActionBar(s);
   container.innerHTML = html;
   _fillQrSlots(container);
 }
@@ -600,15 +600,28 @@ function pinSessionCourt(courtId) {
 function _hasGamesTab() { return typeof GROUPS_ON !== "undefined" && GROUPS_ON && typeof sessionGamesTabHtml === "function"; }
 
 function _sessionTabsHtml(s) {
-  if (!_hasGamesTab() || !s) return "";
+  if (!s) return "";
+  // Where is this game? Plan · Play · Pay · Done (shown on every session)
+  var trk = '<div class="card game-trk">' + trackerHtml(sessionStep(s)) + '</div>';
+  if (!_hasGamesTab()) return trk;
   var n = sessionMatches(s.id).length;
-  return '<div class="session-tabs" role="tablist">' +
+  return trk + '<div class="session-tabs" role="tablist">' +
     '<button role="tab" class="session-tab' + (sessionTab !== "games" ? ' active' : '') + '" onclick="setSessionTab(\'bill\')">' + icon("bill", 15) + ' ' + t("sessionTabBill") + '</button>' +
     '<button role="tab" class="session-tab' + (sessionTab === "games" ? ' active' : '') + '" onclick="setSessionTab(\'games\')">' + icon("ranking", 15) + ' ' + t("sessionTabGames") +
-      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>' +
-    // Shortcut on the Session tab: jump straight to the add-game form
-    (sessionTab !== "games" && typeof _canAddGames === "function" && _canAddGames(s)
-      ? '<button type="button" class="btn-primary quick-game-btn" onclick="quickAddGame()">' + icon("ranking", 16) + ' ' + t("addGameScore") + '</button>' : '');
+      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>';
+}
+
+/** One bar at the bottom with the next thing to do for this game */
+function _sessionActionBar(s) {
+  if (!s || typeof sessionStep !== "function" || sessionEditing) return "";
+  var step = sessionStep(s), btns = "";
+  if (step <= 1 && sessionTab !== "games" && _hasGamesTab() && typeof _canAddGames === "function" && _canAddGames(s)) {
+    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + s.id + '\')">' + icon("court", 16) + ' ' + t("lsTitle") + '</button>' +
+      '<button type="button" class="btn-primary" onclick="quickAddGame()">' + icon("add", 16) + ' ' + t("addGameScore") + '</button>';
+  } else if (step === 2 && typeof myOweOn === "function" && myOweOn(s) > 0) {
+    btns = '<button type="button" class="btn-primary" onclick="showMyPayments()">' + icon("wallet", 16) + ' ' + t("homePay") + ' ' + fmtShort(myOweOn(s)) + '</button>';
+  }
+  return btns ? '<div class="action-spacer"></div><div class="session-actionbar"><div>' + btns + '</div></div>' : "";
 }
 
 function setSessionTab(tab) {
