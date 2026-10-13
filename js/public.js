@@ -9,7 +9,8 @@
 
 var publicTab = "games";
 var _publicGames = [];
-var PUBLIC_GAME_TTL_H = 24;                 // a game that is not full (confirmed) 24 h after posting is cancelled
+var PUBLIC_GAME_TTL_H = 24;                 // a game not confirmed 24 h after posting is removed
+var PUBLIC_GAME_MIN_PLAYERS = 4;            // confirmed = at least this many players
 var pubCal = { month: "", sel: "" };        // calendar month and the picked day
 
 var _publicGroups = null;
@@ -97,14 +98,16 @@ function renderPublic() {
 
 /* ---------- Open games ---------- */
 
-/** A game that did not fill up (confirm) within a day is dropped; its host's phone cancels it */
+/** Confirmed = at least 4 players have joined (or all the places when there are fewer than 4) */
+function gameConfirmed(g) { return (g.players || []).length >= Math.min(PUBLIC_GAME_MIN_PLAYERS, g.slots || PUBLIC_GAME_MIN_PLAYERS); }
+/** A game that is not confirmed a day after it was posted is cleared; its host's phone removes it */
 function _gameExpired(g) {
-  return g.status === "open" && g.createdAt && Date.now() > g.createdAt + PUBLIC_GAME_TTL_H * 3600e3;
+  return (g.status === "open" || g.status === "full") && g.createdAt && !gameConfirmed(g) && Date.now() > g.createdAt + PUBLIC_GAME_TTL_H * 3600e3;
 }
 function _keepGame(g) {
   if (!_gameExpired(g)) return true;
   if (currentUser && g.hostId === currentUser.uid) {
-    fsdb.collection("openGames").doc(g.id).update({ status: "cancelled", cancelledAt: Date.now(), cancelReason: "unconfirmed" })
+    fsdb.collection("openGames").doc(g.id).delete()
       .then(function () { showToast(t("gameExpiredToast").replace("{game}", g.title || g.courtName || "")); }).catch(function () {});
   }
   return false;

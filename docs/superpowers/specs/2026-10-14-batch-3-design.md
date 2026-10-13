@@ -25,3 +25,7 @@ New accounts see a paywall after registration (plan, features, method, Pay). Pay
 - "Make this design more compact": applied to the Home Create block and the public game card.
 - "Kill the session in 1 day if not confirmed": read as a public (open) game that is not full 24 h after posting.
 - "Public game and friend as a calendar for reserve or recurring": a month calendar on both tabs; "reserve" is the existing Join; recurring = weekly repeat when posting a game (friends: the calendar shows invites; there is no recurring invite).
+
+## v80 Corrections and recurring
+- **Confirmed = 4 players** (not "full"): a public game with fewer than 4 players (or fewer than its places when it has under 4) 24 h after posting is **deleted** by its host's phone and hidden for everyone else. Replaces the v78 "cancelled when not full" rule.
+- **Recurring** for vote, game (session) and buddy invite (`repeatFieldHtml` in `js/ui.js`): one document per week with a shared `seriesId` for votes, games and public games; buddy invites keep one document with `repeatWeeks` and show every occurrence on the calendar.

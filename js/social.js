@@ -122,13 +122,13 @@ function _renderBuddies() {
   // A month calendar of my invites (tap a day to see only that day)
   var dated = _invIn.concat(_invOut).filter(function (i) { return i.date && _inviteUpcoming(i) && !(i.status === "pending" && isBlockedPair(i.from)); });
   var counts = {};
-  dated.forEach(function (i) { counts[i.date] = (counts[i.date] || 0) + 1; });
+  dated.forEach(function (i) { inviteDates(i).forEach(function (d) { counts[d] = (counts[d] || 0) + 1; }); });
   if (dated.length) {
-    if (!buddyCal.month) buddyCal.month = dated.map(function (i) { return i.date; }).sort()[0].slice(0, 7);
+    if (!buddyCal.month) buddyCal.month = dated.map(function (i) { return nextInviteDate(i); }).sort()[0].slice(0, 7);
     html += calendarHtml({ month: buddyCal.month, counts: counts, selected: buddyCal.sel, pick: "setBuddyDay", nav: "buddyMonth" });
     if (buddyCal.sel) html += '<div class="cal-sel"><b>' + fmtDate(buddyCal.sel) + '</b><button type="button" class="link-btn" onclick="setBuddyDay(\'' + buddyCal.sel + '\')">' + t("clear") + '</button></div>';
   }
-  var onDay = function (i) { return !buddyCal.sel || i.date === buddyCal.sel; };
+  var onDay = function (i) { return !buddyCal.sel || inviteDates(i).indexOf(buddyCal.sel) >= 0; };
   // Invites for me
   var pendingIn = _invIn.filter(function (i) { return i.status === "pending" && !isBlockedPair(i.from) && onDay(i); });
   if (pendingIn.length) {
@@ -172,7 +172,19 @@ function _renderBuddies() {
   return html;
 }
 
-function _inviteUpcoming(i) { return !i.date || i.date >= _todayIso(); }
+/** The dates of an invite: one date, or one per week when it repeats */
+function inviteDates(i) {
+  var out = [], n = Math.max(1, Math.min(12, i.repeatWeeks || 1));
+  if (!i.date) return out;
+  for (var k = 0; k < n; k++) out.push(_addDays(i.date, 7 * k));
+  return out;
+}
+/** The next date of an invite that is still to come (or its first date) */
+function nextInviteDate(i) {
+  var today = _todayIso(), d = inviteDates(i).filter(function (x) { return x >= today; });
+  return d[0] || i.date;
+}
+function _inviteUpcoming(i) { return !i.date || nextInviteDate(i) >= _todayIso(); }
 
 function _buddySetupHtml(me, age) {
   var b = me.buddy || {};
@@ -266,6 +278,8 @@ function showInviteModal(uid) {
       '<div class="form-group"><label class="form-label">' + t("time") + '</label><input type="time" class="form-input" id="invTime" value="18:00"></div></div>' +
       '<div class="form-group"><label class="form-label">' + t("court") + '</label><select class="form-select" id="invCourt">' + _gameCourts().map(function (c) {
         return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join('') + '</select></div></div>' +
+    '<div class="form-group"><label class="form-label">' + icon("history", 12) + ' ' + t("repeatLabel") + '</label><select class="form-select" id="invRepeat"><option value="1">' + t("repeatNone") + '</option>' +
+      [2, 3, 4, 5, 6, 8, 10, 12].map(function (n) { return '<option value="' + n + '">' + t("repeatWeekly") + ' \u00B7 ' + t("repeatTimes").replace("{n}", n) + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-group"><label class="form-label">' + t("message") + '</label><input class="form-input" id="invMsg" maxlength="120" placeholder="' + t("inviteMsgHint") + '"></div>' +
     '<div class="form-hint">' + t("inviteSafety") + '</div>';
   document.getElementById("invGame").onchange = function () { document.getElementById("invCustom").style.display = this.value ? "none" : ""; };
@@ -279,6 +293,8 @@ function showInviteModal(uid) {
       gameId: g ? g.id : null, date: g ? g.date : document.getElementById("invDate").value, time: g ? g.time : document.getElementById("invTime").value,
       courtId: court ? court.id : null, courtName: court ? court.name : "" };
     if (!data.date || !data.courtId) { showToast(t("fillAllFields")); return; }
+    var weeks = parseInt((document.getElementById("invRepeat") || {}).value, 10) || 1;
+    if (weeks > 1) data.repeatWeeks = weeks;   // one invite that repeats every week
     fsdb.collection("invites").add(data).then(function () { closeModal(); showToast(t("inviteSent") + " ✔"); })
       .catch(function (e) { showToast(e && e.code === "permission-denied" ? t("inviteNotAllowed") : _permError(e)); });
   };
@@ -290,7 +306,8 @@ function _inviteCard(i, incoming) {
   var u = findUser(other) || {};
   var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + other + '\',event)">' + avatarHtml(other, 40) +
     '<div><div class="game-when" style="font-size:15px">' + escapeHtml(plainUserName(u)) + '</div>' +
-    '<div class="game-facts" style="margin-top:2px">' + fmtDate(i.date) + ' ' + escapeHtml(i.time || "") + ' · ' + escapeHtml(i.courtName || "") + '</div></div></div>' +
+    '<div class="game-facts" style="margin-top:2px">' + fmtDate(nextInviteDate(i)) + ' ' + escapeHtml(i.time || "") + ' · ' + escapeHtml(i.courtName || "") +
+      (i.repeatWeeks > 1 ? ' · ' + icon("history", 12) + ' ' + t("repeatWeekly") + ' \u00D7' + i.repeatWeeks : '') + '</div></div></div>' +
     (i.message ? '<div class="game-note">“' + escapeHtml(i.message) + '”</div>' : '') + '<div class="game-actions">';
   if (i.status === "accepted") {
     // Contact only after both agreed

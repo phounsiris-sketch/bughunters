@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v79**.
+run it. App version at the time of writing: **v80**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -305,6 +305,14 @@ opens that session's matches (see section 7).
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
 
+### Recurring (v80)
+
+**Repeat weekly** (2 to 12 weeks) is available for: a **public game**, a **vote**, a
+**game** (session; the same players are added every week) and a **buddy invite**. A vote,
+game or public game creates one item per week, all tagged with the same series. A buddy
+invite stays **one invite that repeats**: it shows the next date and "Repeats weekly ×N",
+and every week shows on the Play buddies calendar.
+
 ### Subscription step (demo, v79)
 
 A **new account** (just finished registering) sees *Start with Godsmash* before the app
@@ -322,9 +330,10 @@ tap a day to see only that day (tap again to clear), arrows change the month. Ta
 to reserve a place. The **Play buddies** tab has the same calendar for your invites. A
 game has an optional **photo** (a thumbnail on the card, good for an ad or the venue) and
 can **repeat weekly** (2 to 12 weeks; one game is posted for each week, tagged "Repeats
-weekly"). **A game that is not full (confirmed) 24 hours after it was posted is cancelled**
-(`PUBLIC_GAME_TTL_H` in `js/public.js`): everyone stops seeing it and its host's phone
-marks it cancelled and says so. The card is compact: host and players (photo + name), tags
+weekly"). **A game is confirmed when at least 4 players have joined** (or every place, when it has fewer
+than 4). **A game that is not confirmed 24 hours after it was posted is removed** (cleared):
+everyone stops seeing it, and its host's phone deletes it and says so (`PUBLIC_GAME_TTL_H`,
+`PUBLIC_GAME_MIN_PLAYERS` in `js/public.js`). The card is compact: host and players (photo + name), tags
 and one button.
 
 ### Live score
