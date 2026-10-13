@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v67**.
+run it. App version at the time of writing: **v68**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -64,6 +64,12 @@ the top. A bar fixed above the bottom bar shows the next thing to do: while play
 *Live score* and *Add game score*; when you owe money, *Pay* with the amount. It is
 hidden while you edit the bill, on the Games tab (the form is right there) and when
 there is nothing to do.
+
+**Creating a vote or a game** is two steps with a progress bar: *When and where*
+(a strip of the next 7 days to tap, the date, time, court, hours) then *Vote options*
+(play mode, note, answers) for a vote, or *Who plays* (tap people, photo + name)
+for a game. A small row with date, time and court stays on step 2. Dinner as its own
+thing is not built yet.
 
 **Home** is where the app opens. Top to bottom:
 

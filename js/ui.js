@@ -68,3 +68,21 @@ function dateBlockHtml(iso) {
 function iconStatHtml(iconName, value, cls) {
   return '<span class="icon-stat' + (cls ? ' ' + cls : '') + '">' + icon(iconName, 16) + ' ' + value + '</span>';
 }
+
+/** Step bar for the create flows: steps 0-based, labels as an array */
+function wizBarHtml(step, labels) {
+  return '<div class="wiz"><div class="wiz-bars">' + labels.map(function (l, i) { return '<i' + (i <= step ? ' class="on"' : '') + '></i>'; }).join("") + '</div>' +
+    '<div class="wiz-labels">' + labels.map(function (l, i) { return '<span' + (i === step ? ' class="on"' : '') + '>' + (i + 1) + ' ' + l + '</span>'; }).join("") + '</div></div>';
+}
+
+/** Seven days from today as buttons; the picked day is highlighted. pick = name of a function taking "YYYY-MM-DD". */
+function dayStripHtml(selected, pick) {
+  var base = new Date(); base.setMinutes(base.getMinutes() - base.getTimezoneOffset());
+  var html = '<div class="day-strip">', seen = false;
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(base.getTime() + i * 86400000), iso = d.toISOString().split("T")[0], on = iso === selected;
+    if (on) seen = true;
+    html += '<button type="button" class="day-chip' + (on ? ' on' : '') + '" onclick="' + pick + '(\'' + iso + '\')"><small>' + weekdayShort(d.getUTCDay()) + '</small><b>' + d.getUTCDate() + '</b></button>';
+  }
+  return html + '</div>' + (selected && !seen ? '<div class="form-hint" style="margin-top:6px">' + icon("calendar", 12) + ' ' + fmtDate(selected) + '</div>' : '');
+}

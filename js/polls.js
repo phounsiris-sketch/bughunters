@@ -509,7 +509,8 @@ function showCreatePoll() {
     note: '',
     answers: [t('answerJoin'), t('answerSkip')],
     mode: 'competition',
-    gameType: 'md'
+    gameType: 'md',
+    step: 1
   };
   showPage('poll-create');
   renderPollCreateForm();
@@ -529,28 +530,40 @@ function renderPollCreateForm() {
   if (!newPoll.courtId || !dbFindById(courts, newPoll.courtId)) newPoll.courtId = courts[0].id;
 
   setBreadcrumb([{ label: t("navPolls"), action: "showPage('polls')" }, { label: t("createPoll") }]);
-  var html = '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t('plan') + '</div>';
-  html += '<div class="form-row">';
-  html += '<div class="form-group"><label class="form-label">' + t('date') + '</label>';
-  html += '<input type="date" class="form-input" value="' + newPoll.date + '" onchange="newPoll.date=this.value"></div>';
-  html += '<div class="form-group"><label class="form-label">' + t('startTime') + '</label>';
-  html += '<input type="time" class="form-input" value="' + newPoll.time + '" onchange="newPoll.time=this.value"></div>';
-  html += '</div>';
-  html += '<div class="form-row">';
-  html += '<div class="form-group" style="flex:2"><label class="form-label">' + t('court') + '</label>';
-  html += '<select class="form-select" data-cs-type="court" data-cs-onpick="pollPickCourt" onchange="newPoll.courtId=this.value">';
-  for (var c = 0; c < courts.length; c++) {
-    html += '<option value="' + courts[c].id + '"' + (courts[c].id === newPoll.courtId ? ' selected' : '') + '>' +
-      escapeHtml(courts[c].name) + (courts[c].location ? ' — ' + escapeHtml(courts[c].location) : '') + '</option>';
+  var step = newPoll.step === 2 ? 2 : 1;
+  var html = wizBarHtml(step - 1, [t('wzWhenWhere'), t('wzVoteOptions')]);
+
+  if (step === 1) {
+    html += '<div class="card"><div class="card-title">' + icon("calendar", 14) + ' ' + t('plan') + '</div>';
+    html += dayStripHtml(newPoll.date, 'pollPickDay');
+    html += '<div class="form-row" style="margin-top:12px">';
+    html += '<div class="form-group"><label class="form-label">' + t('date') + '</label>';
+    html += '<input type="date" class="form-input" value="' + newPoll.date + '" onchange="newPoll.date=this.value;renderPollCreateForm()"></div>';
+    html += '<div class="form-group"><label class="form-label">' + t('startTime') + '</label>';
+    html += '<input type="time" class="form-input" value="' + newPoll.time + '" onchange="newPoll.time=this.value"></div>';
+    html += '</div>';
+    html += '<div class="form-row">';
+    html += '<div class="form-group" style="flex:2;margin-bottom:0"><label class="form-label">' + t('court') + '</label>';
+    html += '<select class="form-select" data-cs-type="court" data-cs-onpick="pollPickCourt" onchange="newPoll.courtId=this.value">';
+    for (var c = 0; c < courts.length; c++) {
+      html += '<option value="' + courts[c].id + '"' + (courts[c].id === newPoll.courtId ? ' selected' : '') + '>' +
+        escapeHtml(courts[c].name) + (courts[c].location ? ' — ' + escapeHtml(courts[c].location) : '') + '</option>';
+    }
+    html += '</select></div>';
+    html += '<div class="form-group" style="flex:1;margin-bottom:0"><label class="form-label">' + t('duration') + ' (h)</label>';
+    html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newPoll.duration + '" onchange="newPoll.duration=parseFloat(this.value)||2"></div>';
+    html += '</div></div>';
+    html += '<button class="btn-primary" onclick="pollStep(2)">' + t('wzNext') + ' ' + icon("chevron", 16) + '</button>';
+    container.innerHTML = html;
+    return;
   }
-  html += '</select></div>';
-  html += '<div class="form-group" style="flex:1"><label class="form-label">' + t('duration') + ' (h)</label>';
-  html += '<input type="number" class="form-input" min="0.5" step="0.5" value="' + newPoll.duration + '" onchange="newPoll.duration=parseFloat(this.value)||2"></div>';
-  html += '</div>';
-  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += '</div>' + playModeFieldsHtml(newPoll, "newPoll", "renderPollCreateForm") + '<div class="card">';
-  html += '<div class="form-group" style="margin-bottom:0"><label class="form-label">' + t('pollNote') + '</label>';
-  html += '<input class="form-input" value="' + escapeHtml(newPoll.note) + '" placeholder="' + t('pollNotePlaceholder') + '" oninput="newPoll.note=this.value"></div>';
-  html += '</div>';
+
+  // Step 2: how people answer, the play mode and a note
+  var court = findCourt(newPoll.courtId);
+  html += '<div class="card wiz-summary">' + iconStatHtml("calendar", fmtDate(newPoll.date)) + iconStatHtml("clock", escapeHtml(newPoll.time)) + iconStatHtml("pin", escapeHtml(court ? court.name : "")) + '</div>';
+  if (typeof GROUPS_ON !== "undefined" && GROUPS_ON) html += playModeFieldsHtml(newPoll, "newPoll", "renderPollCreateForm");
+  html += '<div class="card"><div class="form-group" style="margin-bottom:0"><label class="form-label">' + t('pollNote') + '</label>';
+  html += '<input class="form-input" value="' + escapeHtml(newPoll.note) + '" placeholder="' + t('pollNotePlaceholder') + '" oninput="newPoll.note=this.value"></div></div>';
 
   // Answers
   html += '<div class="card"><div class="card-title">' + icon("vote", 14) + ' ' + t('answers') + '</div>';
@@ -567,9 +580,13 @@ function renderPollCreateForm() {
   }
   html += '</div>';
 
-  html += '<button class="btn-primary" onclick="submitPoll()">' + t('createPoll') + '</button>';
+  html += '<div class="wiz-actions"><button class="btn-secondary" onclick="pollStep(1)">' + icon("back", 16) + ' ' + t('wzBack') + '</button>' +
+    '<button class="btn-primary" onclick="submitPoll()">' + t('createPoll') + '</button></div>';
   container.innerHTML = html;
 }
+
+function pollStep(n) { if (newPoll) { newPoll.step = n; renderPollCreateForm(); window.scrollTo(0, 0); } }
+function pollPickDay(d) { if (newPoll) { newPoll.date = d; renderPollCreateForm(); } }
 
 function pollPickCourt(id) {
   if (newPoll) newPoll.courtId = id;
