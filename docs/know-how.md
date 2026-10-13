@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v75**.
+run it. App version at the time of writing: **v76**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -315,7 +315,12 @@ same teams. The score stays on your phone if you leave or refresh; Home shows
 *Live score in progress*. Menu: Exit, Reset, Settings (current game, teams, theme
 colour). **Live score always starts by asking which game (session) the score is for**
 (today's or the latest one is first and marked); you can change it later from the
-setup screen. An **Exit** button is at the top left of the counter. Code: `js/livescore.js`.
+setup screen. An **Exit** button is at the top left of the counter: it
+asks first, then clears the live game (nothing counted is kept). Live score is only offered
+for games that are not completed, and it never creates a game: pick an existing one. In the
+counter the **left half of each team is darker (minus, small button) and the right half is
+plain (plus)**. After *Save and next game* you land on the team setup with the **same
+players marked**: change them or tap Start. The icon is a scoreboard. Code: `js/livescore.js`.
 
 ### Spending tab (Dashboard)
 

@@ -4782,9 +4782,10 @@ body.live-on { overflow: hidden; }
 .ls-zone { position: absolute; top: 0; bottom: 0; width: 50%; display: flex; align-items: center; padding: 0 16px; color: #fff; -webkit-tap-highlight-color: transparent; }
 .ls-zone span { display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-top: 70px; }
 .ls-minus { left: 0; justify-content: flex-start; }
-.ls-minus span { width: 64px; height: 64px; background: rgba(255, 255, 255, .22); }
+.ls-minus { background: rgba(0, 0, 0, .16); }
+.ls-minus span { width: 38px; height: 38px; background: rgba(255, 255, 255, .22); }
 .ls-plus { right: 0; justify-content: flex-end; }
-.ls-plus span { width: 84px; height: 84px; background: rgba(255, 255, 255, .92); }
+.ls-plus span { width: 50px; height: 50px; background: rgba(255, 255, 255, .92); }
 .ls-plus .si { color: #333; }
 .ls-zone .si { color: #fff; }
 .ls-plus .si { color: #444; }
@@ -4973,3 +4974,17 @@ body.live-on { overflow: hidden; }
 .rg-line.vs { margin-top: 4px; color: var(--text-muted); }
 .rg-line.vs .person-n { font-size: 12px; font-weight: 500; }
 .rg-vs { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+.ls-same { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(13, 148, 136, .14); border: 1px solid var(--primary); color: var(--text); }
+.ls-same .si { color: var(--accent); flex: none; }
+.ls-same b { display: block; font-size: 14px; } .ls-same small { font-size: 12px; color: var(--text-muted); }
+.home-news.two-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* compact create block on Home */
+.home-create { padding: 12px; }
+.home-create .card-title { margin-bottom: 8px; }
+.home-create .home-new { flex-direction: row; justify-content: flex-start; min-height: 48px; padding: 6px 8px; gap: 8px; text-align: left; font-size: 13px; }
+.home-create .home-new-ico { width: 34px; height: 34px; border-radius: 10px; }
+.home-create .home-news { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.games-links { display: flex; gap: 10px; margin: 0 0 12px; }
+.games-links .btn-secondary { flex: 1; width: auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--surface); }
+.games-links .btn-secondary .si { color: var(--accent); }

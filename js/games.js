@@ -91,8 +91,8 @@ function renderGames() {
   var html = '<div class="dashboard-tabs">' + tabs.map(function (x) {
     return '<button class="dash-tab' + (gamesFilter === x[0] ? ' active' : '') + '" onclick="setGamesFilter(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
   }).join("") + '</div>';
-  html += '<div class="games-links"><button class="link-btn" onclick="showPage(\'polls\')">' + icon("vote", 14) + ' ' + t("gamesAllVotes") + '</button>' +
-    '<button class="link-btn" onclick="showPage(\'sessions\')">' + icon("sessions", 14) + ' ' + t("gamesAllSessions") + '</button></div>';
+  html += '<div class="games-links"><button class="btn-secondary" onclick="showPage(\'polls\')">' + icon("vote", 16) + ' ' + t("gamesAllVotes") + '</button>' +
+    '<button class="btn-secondary" onclick="showPage(\'sessions\')">' + icon("sessions", 16) + ' ' + t("gamesAllSessions") + '</button></div>';
     if (!shown.length) {
     html += '<div class="card"><div class="empty-state" style="padding:16px"><div class="empty-icon">' + icon("sessions", 40) + '</div><div>' + t("gamesNone") + '</div></div>' +
       '<button class="btn-primary" onclick="showCreateSheet()">' + icon("add", 16) + ' ' + t("homeCreate") + '</button></div>';
@@ -107,11 +107,12 @@ function showCreateSheet() {
   var tile = function (iconName, label, sub, onclick, cls) {
     return '<button type="button" class="home-new big" onclick="closeModal();' + onclick + '"><span class="home-new-ico ' + cls + '">' + icon(iconName, 28) + '</span><b>' + label + '</b><small>' + sub + '</small></button>';
   };
-  var html = '<div class="home-news three">' +
+  var html = '<div class="home-news two-up">' +
     tile("vote", t("homeVote"), t("csVoteSub"), "showCreatePoll()", "n1") +
-    tile("court", t("homeGame"), t("csGameSub"), "createAdHocSession()", "n2") +
-    tile("shuttle", t("lsTitle"), t("csLiveSub"), "showLiveScore()", "n3") + '</div>' +
-    '<div class="home-news two"><button type="button" class="home-new row" onclick="closeModal();homeAddScore()"><span class="home-new-ico n4">' + icon("add", 22) + '</span>' + t("homeAddScore") + '</button></div>';
+    tile("court", t("homeGame"), t("csGameSub"), "createAdHocSession()", "n2") + '</div>' +
+    '<div class="home-news two-up" style="margin-top:10px">' +
+    '<button type="button" class="home-new row" onclick="closeModal();homeAddScore()"><span class="home-new-ico n3">' + icon("add", 22) + '</span>' + t("homeAddScore") + '</button>' +
+    '<button type="button" class="home-new row" onclick="closeModal();showLiveScore()"><span class="home-new-ico n4">' + icon("scoreboard", 22) + '</span>' + t("lsTitle") + '</button></div>';
   document.getElementById("modalTitle").textContent = t("homeCreate");
   document.getElementById("modalBody").innerHTML = html;
   var ok = document.getElementById("modalConfirmBtn"); if (ok) ok.style.display = "none";

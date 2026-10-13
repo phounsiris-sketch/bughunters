@@ -174,7 +174,7 @@ function renderHome() {
 
   // A live score still being counted on this phone
   var running = typeof lsInProgress === "function" ? lsInProgress() : null;
-  if (running) html += '<button type="button" class="home-live" onclick="showLiveScore(\'' + running.sid + '\')">' + icon("court", 22) +
+  if (running) html += '<button type="button" class="home-live" onclick="showLiveScore(\'' + running.sid + '\')">' + icon("scoreboard", 22) +
     '<span><b>' + t("lsResume") + '</b><small>' + running.sa + ' – ' + running.sb + '</small></span><i>' + t("lsContinue") + '</i></button>';
 
   // 1. My stat cards, swipe sideways
@@ -197,8 +197,8 @@ function renderHome() {
   html += '<div class="card home-create"><div class="card-title">' + icon("add", 14) + ' ' + t("homeCreate") + '</div><div class="home-news">' +
     _homeCreateTile("vote", t("homeVote"), "showCreatePoll()", "n1") +
     _homeCreateTile("court", t("homeGame"), "createAdHocSession()", "n2") +
-    _homeCreateTile("court", t("lsTitle"), "showLiveScore()", "n3") +
-    _homeCreateTile("add", t("homeAddScore"), "homeAddScore()", "n4") + '</div></div>';
+    _homeCreateTile("add", t("homeAddScore"), "homeAddScore()", "n3") +
+    _homeCreateTile("scoreboard", t("lsTitle"), "showLiveScore()", "n4") + '</div></div>';
 
   // 4. Next game
   html += _homeNextCard();
