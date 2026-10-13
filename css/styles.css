@@ -4915,3 +4915,16 @@ body.live-on { overflow: hidden; }
 .pf-tile .si { color: var(--accent); }
 .pf-tile b { font-size: 20px; }
 .pf-tile small { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
+.profile-hero2 { padding: 16px; }
+.pf-top { display: flex; align-items: center; gap: 14px; }
+.pf-id { min-width: 0; flex: 1; }
+.pf-name { font-size: 18px; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
+.pf-perms { margin-top: 6px; }
+.pf-rm { color: var(--red); padding: 0; margin: 6px 0 0; min-height: 32px; }
+.profile-hero2 .pf-tiles { margin: 14px 0 0; }
+.profile-hero2 .pf-tile { box-shadow: none; background: var(--surface); }
+.pf-tile b { font-size: 20px; }
+.pf-chev { transition: transform .2s; }
+.pf-chev.open { transform: rotate(90deg); }
+.pf-row.open { background: transparent; }
+.pf-open { margin-bottom: 12px; }
