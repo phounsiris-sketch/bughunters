@@ -67,7 +67,12 @@ function matchWinner(m) {
 
 
 function pairKey(team) { return team.slice().sort().join("+"); }
-function pairName(key) { return key.split("+").map(function (u) { return getUserName(u); }).join(" &amp; "); }
+/** The two uids of a pair key, ordered by display name (A→Z) so a pair always reads the same way */
+function pairUids(key) {
+  var nm = function (u) { return String(getUserName(u)).toLowerCase(); };
+  return key.split("+").sort(function (a, b) { return nm(a).localeCompare(nm(b)) || (a < b ? -1 : 1); });
+}
+function pairName(key) { return pairUids(key).map(function (u) { return getUserName(u); }).join(" &amp; "); }
 function _monthKey(date) { return (date || "").slice(0, 7); }
 
 /* ---------- Ratings & stats (memoised per data change) ---------- */
@@ -267,7 +272,7 @@ function _highlightsHtml(st, pairs, month) {
   if (!bp && !bs) return '';
   html += '<div class="card hl-card">';
   if (bp) {
-    var us = bp.key.split("+");
+    var us = pairUids(bp.key);
     html += '<div class="hl-row"><span class="hl-ico">' + icon("ranking", 16) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 28) + (us[1] ? avatarHtml(us[1], 28) : '') + '</span>' +
       '<span class="rank-text"><small>' + t("bestPair") + '</small><b>' + pairName(bp.key) + '</b>' +
       '<small>' + Math.round(bp.rating) + ' · ' + (month ? _wl(bp.monthWins, bp.monthLosses) : _wl(bp.wins, bp.losses)) + '</small></span></div>';
@@ -300,7 +305,7 @@ function _renderRanking() {
   html += '<div class="settings-section">1. ' + t("pairRank") + '</div><div class="card rank-list">';
   if (!pairs.length) html += '<div class="empty-state" style="padding:12px">' + t("noPairsYet").replace("{n}", PAIR_MIN_MATCHES) + '</div>';
   pairs.forEach(function (p, i) {
-    var us = p.key.split("+");
+    var us = pairUids(p.key);
     html += '<div class="rank-row' + (us.indexOf(currentUser.uid) >= 0 ? ' me' : '') + '" onclick="setStatsTab(\'h2h\')">' +
       '<span class="rank-no">' + (i + 1) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 30) + avatarHtml(us[1], 30) + '</span>' +
       '<span class="rank-text"><b>' + pairName(p.key) + _provTag(p.comp, PAIR_MIN_MATCHES) + '</b><small>' + Math.round(p.rating) + ' \u00B7 ' +
@@ -371,7 +376,7 @@ function _renderH2H() {
       add(withPartner, x.mine.filter(function (u) { return u !== me; })[0], x);
     } else if (x.mine.length === 1 && x.them.length === 1) add(vsSingles, x.them[0], x);
   });
-  var pairAv = function (k) { return k.split("+").map(function (u) { return avatarHtml(u, 26); }).join(''); };
+  var pairAv = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
   var oneAv = function (u) { return avatarHtml(u, 30); };
   var oneName = function (u) { return escapeHtml(getUserName(u)); };
   var html = picker + '<div class="card h2h-total"><div class="h2h-total-who">' + avatarHtml(me, 30) + '<b>' + escapeHtml(getUserName(me)) + '</b></div><div class="h2h-score">' + tot.w + ' \u2013 ' + (tot.n - tot.w) + '</div>' +
@@ -855,7 +860,7 @@ function makeRecap() {
   text(t("bestPartner"), 120, 1112, "600", 28, 0.8);
   text(bestMate ? name(bestMate) + "  " + partners[bestMate].w + t("winShort") + "–" + (partners[bestMate].n - partners[bestMate].w) + t("lossShort") : "–", 120, 1160, "800", 38);
   text(t("recapRival"), 560, 1112, "600", 28, 0.8);
-  text(rival ? rival.split("+").map(name).join(" & ") : "–", 560, 1160, "800", 34);
+  text(rival ? pairUids(rival).map(name).join(" & ") : "–", 560, 1160, "800", 34);
   if (rival) text(rivals[rival].w + t("winShort") + "–" + (rivals[rival].n - rivals[rival].w) + t("lossShort"), 560, 1204, "600", 28, 0.85);
 
   // Footer

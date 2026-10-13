@@ -8,5 +8,6 @@ Spec: `../specs/2026-10-13-ranking-highlights-design.md`
 - [x] CSS `.hl-*`
 - [x] `node --check`; stub test (month filter, all-time, margin, empty)
 - [x] `docs/know-how.md` Ranking row updated
-- [ ] Name-swap issue: needs an example from the owner; check *Merge players* vs `matches`
+- [x] Pair names shown A→Z via `pairUids()` (stub-tested: u1+u2 and u2+u1 read the same)
+- [ ] Two-accounts case: needs an example from the owner; *Merge players* does not rewrite `matches`
 - [ ] Visual check on the live app after merge

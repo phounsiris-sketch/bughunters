@@ -21,11 +21,18 @@ others. That looked wrong.
 - Player list ordering is **unchanged** (settled players first, `RANK_MIN_MATCHES` = 10).
 - Help text (`rankHelpHtml`, en + la) updated.
 
-## Open point
-The name-swap report ("team swaps names, system records different") is not
-reproduced: `pairKey()` sorts the two player IDs, so A&B and B&A are one pair.
-Likely cause: one person with two accounts (the *Merge players* job does not
-rewrite `matches`). Waiting for an example from the owner.
+## Pair names in A→Z order
+A pair always reads the same way: the two names are ordered alphabetically
+(case-insensitive) wherever a pair is shown (pair ranking, best pair, Head to head
+"vs pairs", monthly recap rival), so "Nith & JusT John" and "JusT John & Nith" can
+no longer look like two pairs. `pairKey()` already sorted by player ID, so the
+data was always one pair; only the displayed order changed. New helper
+`pairUids(key)` in `js/stats.js`.
+
+## Still open
+If the same person has two accounts (e.g. a manual player and a joined account),
+their games still count as two players: the *Merge players* job does not rewrite
+`matches`. Waiting for an example from the owner.
 
 ## Files
 `js/stats.js` (`_highlightsHtml`, `_renderRanking`), `js/i18n.js` (`bestPair`,
