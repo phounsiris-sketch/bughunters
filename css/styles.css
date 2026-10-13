@@ -4581,3 +4581,11 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .pod-1 .pod-step { background: linear-gradient(180deg, #f5b301, #d99a00); }
 .pod-2 .pod-step { background: linear-gradient(180deg, #a9b4c2, #8593a5); }
 .pod-3 .pod-step { background: linear-gradient(180deg, #d08a4e, #b06f36); }
+
+/* Ranking tab: highlights (best pair, best score) */
+.hl-card { padding: 10px 14px; margin-bottom: 12px; }
+.hl-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.hl-row + .hl-row { border-top: 1px solid var(--border); }
+.hl-ico { color: #f5b301; display: inline-flex; }
+.hl-row .rank-text { display: flex; flex-direction: column; min-width: 0; }
+.hl-row .rank-text small { color: var(--text-muted); font-size: 11px; }

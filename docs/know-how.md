@@ -313,7 +313,7 @@ it last** and when (stored as `createdBy` / `updatedBy`, `updatedAt`).
 
 | Tab | Shows |
 |---|---|
-| **Ranking** | **Pair ranking first**, then the individual ranking. This month or all time |
+| **Ranking** | A **highlights card** (**Best pair** = highest pair rating; **Best score** = the game with the biggest winning margin), then the **pair ranking**, then the individual ranking. This month or all time. Pairs are ordered by **rating**; a pair or player with too few games carries an `x/5` (pairs) or `x/10` (players) tag. Players still settling are listed after the others, pairs are not pushed down |
 | **Head to head** | One player's summary (you by default; pick anyone from the list): total W–L, then the record **against each pair** (doubles), **with each partner**, and **against each player** (singles). It counts every game, in any mode |
 | **Progress** | Pick a player and a period: **1 month, Quarter (default), 6 months or 1 year**. It shows the rating then and now with its line, W–L and win rate, games, minutes and points per game, and a breakdown **by week** (1 month) or **by month** |
 

@@ -256,6 +256,34 @@ function _bestPartner(p) {
   return best;
 }
 
+/** Best pair (highest pair rating) and best score (biggest win margin) for the period */
+function _highlightsHtml(st, pairs, month) {
+  var html = '', bp = pairs[0], bs = null;
+  st.h2h.forEach(function (x) {
+    if (month && _monthKey(x.m.date) !== st.month) return;
+    var margin = Math.abs(x.pts);
+    if (!bs || margin > bs.margin || (margin === bs.margin && (x.m.date || "") > (bs.x.m.date || ""))) bs = { x: x, margin: margin };
+  });
+  if (!bp && !bs) return '';
+  html += '<div class="card hl-card">';
+  if (bp) {
+    var us = bp.key.split("+");
+    html += '<div class="hl-row"><span class="hl-ico">' + icon("ranking", 16) + '</span><span class="rank-avatars">' + avatarHtml(us[0], 28) + (us[1] ? avatarHtml(us[1], 28) : '') + '</span>' +
+      '<span class="rank-text"><small>' + t("bestPair") + '</small><b>' + pairName(bp.key) + '</b>' +
+      '<small>' + Math.round(bp.rating) + ' · ' + (month ? _wl(bp.monthWins, bp.monthLosses) : _wl(bp.wins, bp.losses)) + '</small></span></div>';
+  }
+  if (bs) {
+    var m = bs.x.m, g = (m.games || [])[0] || {}, aWon = bs.x.w === "A";
+    var win = aWon ? m.teamA : m.teamB, lose = aWon ? m.teamB : m.teamA;
+    var hi = Math.max(g.a || 0, g.b || 0), lo = Math.min(g.a || 0, g.b || 0);
+    var names = function (team) { return team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; "); };
+    html += '<div class="hl-row"><span class="hl-ico">' + icon("chart", 16) + '</span>' +
+      '<span class="rank-text"><small>' + t("bestScore") + (m.date ? ' · ' + fmtDate(m.date) : '') + '</small><b>' + names(win) + ' ' + hi + '–' + lo + '</b>' +
+      '<small>' + t("vsWord") + ' ' + names(lose) + ' · +' + bs.margin + '</small></span></div>';
+  }
+  return html + '</div>';
+}
+
 function _renderRanking() {
   var st = computeStats();
   var month = statsPeriod === "month";
@@ -267,7 +295,8 @@ function _renderRanking() {
   // 1. Pair rank (men's doubles is how most of us play)
   var pairs = Object.keys(st.pairs).map(function (k) { return st.pairs[k]; })
     .filter(function (p) { return p.comp > 0 && (!month || p.monthWins + p.monthLosses > 0); })
-    .sort(function (a, b) { return ((b.comp >= PAIR_MIN_MATCHES) - (a.comp >= PAIR_MIN_MATCHES)) || (b.rating - a.rating); });
+    .sort(function (a, b) { return (b.rating - a.rating) || (b.comp - a.comp); });
+  html += _highlightsHtml(st, pairs, month);
   html += '<div class="settings-section">1. ' + t("pairRank") + '</div><div class="card rank-list">';
   if (!pairs.length) html += '<div class="empty-state" style="padding:12px">' + t("noPairsYet").replace("{n}", PAIR_MIN_MATCHES) + '</div>';
   pairs.forEach(function (p, i) {
