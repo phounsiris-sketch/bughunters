@@ -149,7 +149,7 @@ group**, then type the group's name to confirm.
 ## 4. Polls: planning a game
 
 1. Polls → **+**. Fill in the date, time, court and duration. Optionally:
-   - set the **mode**: *Fun*, *Exercise* or *Competition*. Only Competition matches count for rankings.
+   - set the **mode**: *Fun*, *Exercise* or *Competition*. The mode is only a label to tell players how the game was meant; every game counts for ratings and rankings.
    - set the **game type**: men's doubles, women's doubles, mixed or singles.
    - change the answers. The default is **Join / Skip**.
 2. Everyone picks one answer, like a radio button. Any answer other than "Skip"
@@ -322,9 +322,9 @@ How the numbers are worked out:
 - **Ratings** are Elo-style. Everyone starts at 1500 (K = 32). Beating stronger
   players earns more, and a bigger point difference earns a little more. Pairs
   have their own rating.
-- Only **Competition** games change ratings, from the moment they're saved. Fun
-  and Exercise games still count toward games and minutes played.
-- Everyone with a Competition game appears in the rankings straight away. Until
+- **Every saved game with a score** changes ratings, from the moment it's saved.
+  The mode (Fun / Exercise / Competition) is only a label for the players.
+- Everyone with a game appears in the rankings straight away. Until
   a player has **10** games (a pair **5**), their rating is still settling: they
   show a small "3/10 games" tag and are listed after the settled players.
 - **Levels** are the scale used in Lao badminton. They are set by people, not
@@ -724,7 +724,7 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 | Old version still showing | Close the app fully and reopen it. Settings shows the version number |
 | Weekly backup failed | The `BACKUP_PASSWORD` secret is missing |
 | Two accounts for one person | Run *Merge players* (dry run first) |
-| Not in the ranking | Only Competition games change ratings. Check the session's mode (Fun / Exercise games count as played only) |
+| Not in the ranking | Every saved game with a score changes ratings; the mode doesn't matter. Check the game has a winner (both scores filled) and that the player is in the game's teams |
 | A score is refused | First to 21; after 20-all the winner leads by 2; the group's top score (31 or 30) is the most |
 | Map doesn't load | It needs internet for the map tiles. You can still paste coordinates |
 

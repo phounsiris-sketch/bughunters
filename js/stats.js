@@ -5,8 +5,8 @@
                   court, shuttles, mode fun|exercise|competition,
                   createdBy, createdAt, confirmed, confirmedBy, confirmedAt }
    A match counts once someone on the other team confirms it, or 24 h
-   after it was recorded. Only confirmed Competition matches with a score
-   change ratings; every match counts for matches / minutes played.
+   after it was recorded. Every saved game with a score changes ratings,
+   whatever its mode (fun / exercise / competition is only a label).
    Ratings are Elo-style (start 1500): beating stronger players earns more,
    a bigger point difference a little more. Pairs get their own rating.
    Nothing here is ever shown outside the group.
@@ -105,7 +105,7 @@ function computeStats() {
       if (inMonth) { p.monthPlayed++; p.monthMinutes += m.minutes || 0; }
     });
     var w = matchWinner(m);
-    if (m.mode && m.mode !== "competition") return;
+    // Every game with a score changes ratings: mode (fun | exercise | competition) is only a label for the players
     if (!w) return;
     var sc = matchScore(m);
     var A = m.teamA, B = m.teamB;
