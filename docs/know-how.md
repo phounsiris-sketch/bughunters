@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v85**.
+run it. App version at the time of writing: **v86**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -361,6 +361,13 @@ Live score also has **Try it first** on its first screen: it counts points with 
 players, shows a *Practice: not saved* badge, and nothing is saved or kept. The Home header no
 longer shows the "Badminton Club" line or the "Hi, name" greeting; the rating card has no
 "Start" pill; calendar days with events show clear dots (one per event, up to three).
+
+**Splash screen (v86).** The app opens with a short smash: a shuttle drops in from the top left,
+hits the court, a green ring and yellow rays burst out, then **GOD** slides in and **SMASH** lands
+with a bounce, the group tagline fades in and a thin bar fills. It stays about 1.6 seconds (0.5 s
+when the phone is set to reduce motion, which also shows the finished screen without the movement).
+It is plain HTML and CSS (`#splash` in `index.html`, `.sp-*` in `css/styles.css`, no images).
+To see it without opening the app, open `docs/splash-preview.html` in a browser; *Replay* runs it again.
 
 **E-mail limits (v85).** *Forgot password?* and *Resend email* can be used **once a minute** per phone:
 the link shows a countdown ("Forgot password? (45s)") and a second press says how long to wait. The
