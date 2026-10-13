@@ -252,11 +252,11 @@ function _myStatsCard() {
       last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
-      var mine = x.mine.slice().sort(function (a, b) { return a === me ? -1 : b === me ? 1 : 0; });
+      var mine = byNameAZ(x.mine);
       return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
         '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
         '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
-          '<small>' + t("vsWord") + ' ' + x.them.map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span></div>';
+          '<small>' + t("vsWord") + ' ' + byNameAZ(x.them).map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</small></span></div>';
     }).join('') + '</div></details>';
   }
   html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';
@@ -305,7 +305,7 @@ function _highlightsHtml(st, pairs, month) {
     var m = bs.x.m, g = (m.games || [])[0] || {}, aWon = bs.x.w === "A";
     var win = aWon ? m.teamA : m.teamB, lose = aWon ? m.teamB : m.teamA;
     var hi = Math.max(g.a || 0, g.b || 0), lo = Math.min(g.a || 0, g.b || 0);
-    var names = function (team) { return team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; "); };
+    var names = function (team) { return byNameAZ(team).map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; "); };
     html += '<div class="hl-row"><span class="hl-ico">' + icon("chart", 16) + '</span>' +
       '<span class="rank-text"><small>' + t("bestScore") + (m.date ? ' · ' + fmtDate(m.date) : '') + '</small><b>' + names(win) + ' ' + hi + '–' + lo + '</b>' +
       '<small>' + t("vsWord") + ' ' + names(lose) + ' · +' + bs.margin + '</small></span></div>';
@@ -640,8 +640,13 @@ function _blankGameForm(s) {
   return { sessionId: s.id, id: null, type: type, teamA: [], teamB: [], a: "", b: "", minutes: "" };
 }
 
+/** Players of a team ordered by display name (A→Z), so a pair always reads the same way */
+function byNameAZ(team) {
+  var nm = function (u) { return String(getUserName(u)).toLowerCase(); };
+  return (team || []).slice().sort(function (a, b) { return nm(a).localeCompare(nm(b)) || (a < b ? -1 : 1); });
+}
 function _teamName(team, side) {
-  return team.length ? team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; ") : t("team") + " " + side;
+  return team.length ? byNameAZ(team).map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; ") : t("team") + " " + side;
 }
 
 /** Shortcut button (Session tab): open the Games tab at the add-game form */

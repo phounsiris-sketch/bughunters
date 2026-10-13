@@ -334,21 +334,12 @@ function showVbarDetail(i) {
   for (var k = 0; k < cols.length; k++) cols[k].classList.toggle("sel", k === i);
 }
 
-/** Podium: the 3 players with the biggest share of the period's spending (2nd · 1st · 3rd) */
+/** Top 3 spenders: the same podium card as the Activity leaderboards (_topCard) */
 function _podiumHtml(ps) {
-  var top = ps.uids.slice(0, 3);
-  if (!top.length) return '';
-  var order = top.length === 1 ? [0] : top.length === 2 ? [1, 0] : [1, 0, 2];
-  var heights = [100, 78, 62], medals = ["🥇", "🥈", "🥉"];
-  var html = '<div class="card"><div class="card-title">' + icon("ranking", 14) + ' ' + t("topSpenders") + '</div><div class="podium">';
-  order.forEach(function (r) {
-    var u = top[r];
-    html += '<div class="pod-col pod-' + (r + 1) + '"><div class="pod-who">' + avatarHtml(u, r === 0 ? 48 : 40) +
-      '<span class="pod-name">' + escapeHtml(getUserName(u)) + '</span>' +
-      '<span class="pod-amt" title="' + fmtLAK(ps.data[u].total) + '">' + fmtShort(ps.data[u].total) + '</span></div>' +
-      '<div class="pod-step" style="height:' + heights[r] + 'px"><span>' + medals[r] + '</span><b>' + (r + 1) + '</b></div></div>';
-  });
-  return html + '</div></div>';
+  if (!ps.uids.length) return '';
+  var map = {};
+  ps.uids.slice(0, 3).forEach(function (u) { map[u] = ps.data[u].total; });
+  return _topCard(icon("ranking", 14), t("topSpenders"), map, fmtShort, false, null, null);
 }
 
 function _playerSpend(sessions) {
