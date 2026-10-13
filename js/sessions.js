@@ -608,7 +608,10 @@ function _sessionTabsHtml(s) {
   return '<div class="session-tabs" role="tablist">' +
     '<button role="tab" class="session-tab' + (sessionTab !== "games" ? ' active' : '') + '" onclick="setSessionTab(\'bill\')">' + icon("bill", 15) + ' ' + t("sessionTabBill") + '</button>' +
     '<button role="tab" class="session-tab' + (sessionTab === "games" ? ' active' : '') + '" onclick="setSessionTab(\'games\')">' + icon("ranking", 15) + ' ' + t("sessionTabGames") +
-      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>';
+      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>' +
+    // Shortcut on the Session tab: jump straight to the add-game form
+    (sessionTab !== "games" && typeof _canAddGames === "function" && _canAddGames(s)
+      ? '<button type="button" class="btn-primary quick-game-btn" onclick="quickAddGame()">' + icon("ranking", 16) + ' ' + t("addGameScore") + '</button>' : '');
 }
 
 function setSessionTab(tab) {

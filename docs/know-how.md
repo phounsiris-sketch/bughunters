@@ -301,7 +301,7 @@ compared across groups.
 
 ### Recording games (the session's Games tab)
 
-A session has two tabs: **Session** (players, bill, who pays) and **Games** (scores).
+A session has two tabs: **Session** (players, bill, who pays) and **Games** (scores). On the Session tab, players (and admins) also see an **Add game score** shortcut button under the tabs; it opens the Games tab and scrolls to the add-game form.
 They're kept separate, and switching tabs keeps whatever you were typing in the bill.
 
 On the **Games** tab, **every player of the session** (and any group admin) gets

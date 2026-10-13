@@ -644,6 +644,16 @@ function _teamName(team, side) {
   return team.length ? team.map(function (u) { return escapeHtml(getUserName(u)); }).join(" &amp; ") : t("team") + " " + side;
 }
 
+/** Shortcut button (Session tab): open the Games tab at the add-game form */
+function quickAddGame() {
+  if (currentSession && !_canAddGames(currentSession)) return;
+  setSessionTab("games");
+  setTimeout(function () {
+    var box = document.getElementById("gameFormBox");
+    if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 60);
+}
+
 /** The whole Games tab: add-game form + the list */
 function sessionGamesTabHtml(s) {
   if (!gameForm || gameForm.sessionId !== s.id) gameForm = _blankGameForm(s);

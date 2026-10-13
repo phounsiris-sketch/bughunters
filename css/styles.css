@@ -4643,3 +4643,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .rev-star.on { color: #f5b301; }
 .rev-actions { display: flex; gap: 8px; }
 .rev-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+
+/* Session tab: shortcut to add a game score */
+.quick-game-btn { width: 100%; margin: 10px 0 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
