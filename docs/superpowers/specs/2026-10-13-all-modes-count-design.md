@@ -25,3 +25,7 @@ shift. No data is written or migrated.
 
 ## Progress chart dots
 Dots = 1 start point + 1 per game with a winner in the period (games played = dots − 1).
+The first dot is **hollow** and a legend under the chart reads "Start <rating>"
+(the rating when the period began, 1500 for a new player) and "<n> games (one dot
+each)". `_sparkline(vals, opts)` in `js/stats.js`; CSS `.sparkline circle.start`,
+`.spark-legend`; i18n `startWord`, `gamesDots`.
