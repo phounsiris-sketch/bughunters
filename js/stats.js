@@ -35,7 +35,7 @@ function loadMatches() {
     if (/^(stats|matches|dashboard|user)$/.test(currentPage)) refreshCurrentPage("matches");
     if (currentPage === "session-detail") { refreshSessionGames(); var tn = document.getElementById("sessionTabGamesN"); if (tn && currentSession) tn.textContent = sessionMatches(currentSession.id).length; }
     if (typeof updateNotifications === "function") updateNotifications();
-  }, dbOnError);
+  }, function (e) { dbOnError(e, "matches"); });
 }
 
 function stopMatches() {

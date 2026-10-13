@@ -213,7 +213,7 @@ function startGroupListeners() {
     updateHeaderGroup();
     if (currentPage === "group-settings" && typeof _renderLogoBox === "function") _renderLogoBox();   // new logo
     refreshCurrentPage("app");
-  }, dbOnError));
+  }, function (e) { dbOnError(e, "groups"); }));
   // The group's own courts (a copy of the directory's, with the group's price)
   DB_CACHE.groupCourts = null;
   _groupUnsubs.push(groupScoped(fsdb.collection("groupCourts")).onSnapshot(function (snap) {
@@ -231,7 +231,7 @@ function startGroupListeners() {
     groupMembers = list;
     rebuildGroupCache();
     refreshCurrentPage("users");
-  }, dbOnError));
+  }, function (e) { dbOnError(e, "members"); }));
 }
 
 function stopGroupListeners() {

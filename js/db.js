@@ -5,13 +5,14 @@
 
 // Surface database errors (permission denied, offline, bad project) instead of failing silently
 var _dbErrorShown = false;
-function dbOnError(err) {
-  console.error("Firestore error:", err);
+function dbOnError(err, where) {
+  console.error("Firestore error" + (where ? " (" + where + ")" : "") + ":", err);
   if (_dbErrorShown) return;
   _dbErrorShown = true;
+  var tag = where ? " [" + where + "]" : "";
   var msg = (err && err.code === "permission-denied")
-    ? "Database blocked this request (permission-denied). Check Firestore rules and sign-in."
-    : "Cannot connect to database: " + ((err && err.message) || err);
+    ? "Database blocked this request (permission-denied)" + tag + ". Check Firestore rules and sign-in."
+    : "Cannot connect to database" + tag + ": " + ((err && err.message) || err);
   var bar = document.createElement("div");
   bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 14px;background:#b91c1c;color:#fff;font-size:13px;text-align:center";
   bar.textContent = msg;
@@ -33,7 +34,7 @@ function dbGetCourts(callback) {
         courts.push(d);
       });
       callback(courts);
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "courts"); });
 }
 
 function dbAddCourt(data) {
@@ -68,7 +69,7 @@ function dbGetShuttlecocks(callback) {
         brands.push(d);
       });
       callback(brands.sort(_byName));
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "shuttlecocks"); });
 }
 
 function dbAddShuttlecock(data) {
@@ -96,7 +97,7 @@ function dbGetUsers(callback) {
         users.push(d);
       });
       callback(users);
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "users"); });
 }
 
 function dbGetUser(uid) {
@@ -140,7 +141,7 @@ function dbGetPolls(callback) {
         polls.push(d);
       });
       callback(polls.sort(_byCreatedDesc));
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "polls"); });
 }
 
 function dbCreatePoll(data) {
@@ -165,7 +166,7 @@ function dbGetSessions(callback) {
         sessions.push(d);
       });
       callback(sessions.sort(_byCreatedDesc));
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "sessions"); });
 }
 
 function dbGetSession(id) {
@@ -204,7 +205,7 @@ function dbGetQrCodes(callback) {
       } else {
         callback(null);
       }
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "settings"); });
 }
 
 function dbSetQrCodes(data) {
@@ -243,7 +244,7 @@ function dbStartCache(onChange) {
     _dbCacheUnsubs.push(fsdb.collection("settings").doc("app").onSnapshot(function (doc) {
       DB_CACHE.app = doc.exists ? doc.data() : {};
       onChange("app");
-    }, dbOnError));
+    }, function (e) { dbOnError(e, "settings"); }));
   }
 }
 

@@ -58,7 +58,7 @@ function loadPublic() {
       _publicGames = list.filter(_keepGame);
       if (currentPage === "public") renderPublic();
       updatePublicBadge();
-    }, dbOnError);
+    }, function (e) { dbOnError(e, "openGames"); });
   }
   if (publicTab === "groups") {
     fsdb.collection("groups").where("type", "==", "public").get().then(function (snap) {

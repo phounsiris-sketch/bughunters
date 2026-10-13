@@ -99,9 +99,34 @@ function submitAuth() {
     .catch(function (error) { done(); showToast(authErrorMessage(error)); });
 }
 
+/* ---------- Spam guard: one e-mail request per minute ---------- */
+var MAIL_COOLDOWN_S = 60;
+function _mailWait(kind) {
+  var at = 0;
+  try { at = parseInt(localStorage.getItem("godsmash_mail_" + kind), 10) || 0; } catch (e) {}
+  return Math.max(0, Math.ceil((at + MAIL_COOLDOWN_S * 1000 - Date.now()) / 1000));
+}
+function _mailMark(kind) { try { localStorage.setItem("godsmash_mail_" + kind, String(Date.now())); } catch (e) {} }
+/** Count down on a button (or link) so people see why it is off */
+function _mailCountdown(el, kind, label) {
+  if (!el) return;
+  if (el._cd) clearInterval(el._cd);
+  var tick = function () {
+    var left = _mailWait(kind);
+    if (left <= 0) { el.disabled = false; el.classList.remove("cooling"); el.textContent = label; if (el._cd) clearInterval(el._cd); el._cd = null; return; }
+    el.disabled = true; el.classList.add("cooling"); el.textContent = label + " (" + left + "s)";
+  };
+  tick();
+  if (_mailWait(kind) > 0) el._cd = setInterval(tick, 1000);
+}
+
 function sendPasswordReset() {
+  var wait = _mailWait("reset");
+  if (wait > 0) { showToast(t("mailWait").replace("{n}", wait)); return; }
   var email = (document.getElementById("loginEmail").value || "").trim();
   if (!email) { showToast(t("enterEmailFirst")); document.getElementById("loginEmail").focus(); return; }
+  _mailMark("reset");                                   // count from the press, so errors can not be spammed either
+  _mailCountdown(document.getElementById("forgotPwLink"), "reset", t("forgotPassword"));
   auth.sendPasswordResetEmail(email, actionCodeSettings)
     .then(function () { showToast(t("resetSent")); })
     .catch(function (error) { showToast(authErrorMessage(error)); });
@@ -113,11 +138,16 @@ function _showVerifyScreen(user) {
   document.getElementById("login-page").style.display = "none";
   document.getElementById("verify-page").style.display = "";
   document.getElementById("verifyEmail").textContent = user.email || "";
+  _mailCountdown(document.querySelector('#verify-page [onclick="resendVerification()"]'), "verify", t("resendEmail"));
   showAuthPage();
 }
 
 function resendVerification() {
   if (!auth.currentUser) return;
+  var wait = _mailWait("verify");
+  if (wait > 0) { showToast(t("mailWait").replace("{n}", wait)); return; }
+  _mailMark("verify");
+  _mailCountdown(document.querySelector('#verify-page [onclick="resendVerification()"]'), "verify", t("resendEmail"));
   auth.currentUser.sendEmailVerification(actionCodeSettings)
     .then(function () { showToast(t("verificationSent")); })
     .catch(function (error) { showToast(authErrorMessage(error)); });
@@ -244,6 +274,7 @@ function _resetAuthScreens() {
     if (el) { el.value = ""; if (id === "loginPassword") el.type = "password"; }
   });
   setAuthMode("login");
+  _mailCountdown(document.getElementById("forgotPwLink"), "reset", t("forgotPassword"));   // a countdown still running after a reload
 }
 
 /* ---------- Logout ---------- */
