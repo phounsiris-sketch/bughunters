@@ -18,10 +18,27 @@
 
 <!-- Splash: shown until we know whether someone is signed in -->
 <div id="splash" aria-live="polite">
-  <div class="splash-logo">&#127992;</div>
-  <div class="splash-name">Godsmash</div>
+  <div class="sp-court" aria-hidden="true"></div>
+  <div class="sp-stage" aria-hidden="true">
+    <span class="sp-trail"></span>
+    <svg class="sp-shuttle" viewBox="0 0 64 64" width="68" height="68">
+      <g>
+        <path d="M23 42 L11 8 Q32 1 53 8 L41 42 Z" fill="#fff" fill-opacity=".95"/>
+        <path d="M32 42 L32 4 M27 42 L21 5 M37 42 L43 5 M22.5 42 L13 8 M41.5 42 L51 8" stroke="#0d9488" stroke-opacity=".35" stroke-width="1.2" fill="none"/>
+        <path d="M11 8 Q32 1 53 8" stroke="#0d9488" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <circle cx="32" cy="50" r="10" fill="#fff"/>
+        <circle cx="32" cy="50" r="10" fill="none" stroke="#f59e0b" stroke-width="3"/>
+      </g>
+    </svg>
+    <span class="sp-ring"></span>
+    <span class="sp-rays"><i style="--r:0deg"></i><i style="--r:30deg"></i><i style="--r:60deg"></i><i style="--r:90deg"></i><i style="--r:120deg"></i><i style="--r:150deg"></i><i style="--r:180deg"></i><i style="--r:210deg"></i><i style="--r:240deg"></i><i style="--r:270deg"></i><i style="--r:300deg"></i><i style="--r:330deg"></i></span>
+  </div>
+  <div class="sp-word">
+    <span class="sp-god">GOD</span>
+    <span class="sp-smash">SMASH</span>
+  </div>
   <div class="splash-sub" id="splashSub">Badminton Club</div>
-  <div class="splash-spinner"></div>
+  <div class="sp-load" aria-hidden="true"><i></i></div>
 </div>
 
 

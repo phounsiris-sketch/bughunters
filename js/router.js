@@ -175,12 +175,13 @@ function _defaultCrumbs(page) {
  * Show the authentication container, hide the app
  */
 var _splashStart = Date.now();
+var SPLASH_MIN_MS = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? 500 : 1600;
 
-/** Fade the splash out (kept at least ~0.6s so it doesn't flash) */
+/** Fade the splash out (kept long enough for the smash to play: ~1.6s) */
 function hideSplash() {
   var el = document.getElementById("splash");
   if (!el || el.classList.contains("hide")) return;
-  var wait = Math.max(0, 600 - (Date.now() - _splashStart));
+  var wait = Math.max(0, SPLASH_MIN_MS - (Date.now() - _splashStart));
   setTimeout(function () { el.classList.add("hide"); }, wait);
 }
 
