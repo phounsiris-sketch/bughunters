@@ -95,7 +95,7 @@ function calendarHtml(opts) {
   var cell = function (iso, d) {
     var n = counts[iso] || 0;
     var cls = "cal-day" + (iso === today ? " today" : "") + (iso === opts.selected ? " sel" : "") + (n ? " has" : "");
-    return '<button type="button" class="' + cls + '" onclick="' + opts.pick + '(\'' + iso + '\')"><b>' + d + '</b>' + (n ? '<i>' + (n > 3 ? "3+" : Array(n + 1).join("\u2022")) + '</i>' : '') + '</button>';
+    return '<button type="button" class="' + cls + '" onclick="' + opts.pick + '(\'' + iso + '\')"><b>' + d + '</b>' + (n ? '<span class="cal-dots">' + Array(Math.min(n, 3) + 1).join('<s></s>') + '</span>' : '') + '</button>';
   };
   var html, title;
   if (opts.expanded) {

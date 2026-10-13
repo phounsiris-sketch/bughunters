@@ -5121,3 +5121,24 @@ body.live-on { overflow: hidden; }
 .ls-half .ls-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ls-team { justify-content: center; text-align: center; }
 .ls-score { text-align: center; width: 100%; }
+
+/* ========== Batch 6: iPhone top edge, calendar dots, Live score practice ========== */
+/* the page draws under the iPhone clock (translucent status bar): keep the header below it */
+.header, .app-header { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.toast { top: calc(20px + env(safe-area-inset-top, 0px)); }
+.notif-panel { top: calc(64px + env(safe-area-inset-top, 0px)); }
+#auth-container { padding-top: env(safe-area-inset-top, 0px); }
+.ls-bar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+.live-screen > .ls-half:first-of-type { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.ls-exit { top: calc(12px + env(safe-area-inset-top, 0px)); }
+/* days with events: dots you can see */
+.cal-dots { display: flex; gap: 3px; justify-content: center; min-height: 6px; margin-top: 1px; }
+.cal-dots s { display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.cal-day.has { background: rgba(13, 148, 136, .1); }
+.cal-day.sel .cal-dots s { background: #fff; }
+.cal-day.sel.has { background: var(--primary); }
+.ls-try { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; text-align: left; color: var(--text); background: var(--card); border: 1.5px dashed var(--primary); min-height: 60px; }
+.ls-try span { flex: 1; } .ls-try b { display: block; font-size: 14px; } .ls-try small { color: var(--text-muted); font-size: 12px; }
+.ls-try .si:first-child { color: var(--accent); }
+.ls-test { position: absolute; left: 50%; transform: translateX(-50%); top: calc(14px + env(safe-area-inset-top, 0px)); z-index: 4; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #f59e0b; color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ls-test .si { color: #fff; }

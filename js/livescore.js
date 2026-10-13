@@ -76,7 +76,7 @@ function lsUndoLast(st) {
 
 /* ---------- Storage ---------- */
 
-function lsSave() { try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {} }
+function lsSave() { if (live && live.test) return; /* a practice game is never kept */ try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {} }
 function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); return s && s.sid ? s : null; } catch (e) { return null; } }
 function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
 
@@ -111,7 +111,7 @@ function showLiveScore(sid) {
   _lsShow();
 }
 
-function _lsReady(st) { var size = st.type === "singles" ? 1 : 2; return st.a.length === size && st.b.length === size; }
+function _lsReady(st) { if (st.test) return true;  var size = st.type === "singles" ? 1 : 2; return st.a.length === size && st.b.length === size; }
 
 function _lsShow() {
   var el = document.getElementById("liveScreen");
@@ -167,6 +167,7 @@ function _lsCountHtml() {
   };
   var html = half("A") + half("B");
   html += '<button type="button" class="ls-exit" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
+  if (live.test) html += '<div class="ls-test">' + icon("warning", 14) + ' ' + t("lsTestBadge") + '</div>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
     '<span class="ls-pill">' + t("lsGameN").replace("{n}", live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) + '</span>' +
     '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
@@ -184,6 +185,13 @@ function _lsCountHtml() {
 
 function _lsOverHtml() {
   var w = live.over, ids = byNameAZ(w === "A" ? live.a : live.b);
+  if (live.test) {
+    return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + w) + '</div>' +
+      '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div><div class="form-hint">' + t("lsTestBadge") + '</div>' +
+      '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t("lsTestAgain") + '</button>' +
+      '<button class="btn-secondary" onclick="lsExit()">' + t("lsExit") + '</button>' +
+      '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
+  }
   return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + w) + '</div>' +
     '<div class="ls-over-score">' + live.sa + ' – ' + live.sb + '</div><div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
     '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsSaveNext") + '</button>' +
@@ -195,6 +203,7 @@ function _lsOverHtml() {
 function _lsPickHtml() {
   var list = _lsSessions(), today = _todayIso();
   var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("lsExit") + '" onclick="lsClose()">' + icon("back", 22) + '</button><div><b>' + t("lsPickGame") + '</b><small>' + t("lsPickGameHint") + '</small></div></div><div class="ls-body">';
+  html += '<button type="button" class="ls-try" onclick="lsTry()">' + icon("scoreboard", 22) + '<span><b>' + t("lsTry") + '</b><small>' + t("lsTryHint") + '</small></span>' + icon("chevron", 16) + '</button>';
   if (!list.length) {
     html += '<div class="card"><div class="empty-state" style="padding:16px"><div class="empty-icon">' + icon("sessions", 40) + '</div><div>' + t("homeNoSession") + '</div></div></div>';
   }
@@ -207,6 +216,14 @@ function _lsPickHtml() {
   });
   html += '</div>';
   return html;
+}
+
+/** Practice: count points to see how it works. Nothing is saved or kept, no game is needed. */
+function lsTry() {
+  live = _lsBlank("__test__", "md");
+  live.test = true;
+  liveMode = "count";
+  lsRender();
 }
 
 function lsChoose(sid) {
@@ -299,14 +316,16 @@ function lsRemove(side, uid) { var k = side === "A" ? "a" : "b"; live[k] = live[
 function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; lsSave(); liveMode = "count"; lsRender(); }
 
 function lsReset() {
-  if (live.sa + live.sb > 0 && !confirm(t("lsResetConfirm"))) return;
+  if (!live.test && live.sa + live.sb > 0 && !confirm(t("lsResetConfirm"))) return;
   live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A";
   lsSave(); liveMode = "count"; lsRender();
 }
 
+function lsTestAgain() { live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; lsRender(); }
+
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
-  var started = live && (live.sa + live.sb > 0 || live.saved > 0 || live.a.length || live.b.length);
+  var started = live && !live.test && (live.sa + live.sb > 0 || live.saved > 0 || live.a.length || live.b.length);
   if (started && !confirm(t("lsExitConfirm"))) return;
   live = null; lsSave();
   liveMode = "count";
@@ -315,6 +334,7 @@ function lsExit() {
 
 /** Save the finished game like "Add game score" does, then continue or finish */
 function lsSaveGame(next) {
+  if (live && live.test) return;   // practice games are never saved
   var s = _lsSession(live.sid);
   if (!s || !live.over) return;
   var a = live.sa, b = live.sb, p = scoreProblem(a, b);
