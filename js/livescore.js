@@ -1,0 +1,301 @@
+/* ============================================================
+   livescore.js — count a game live, then save it as a normal game
+   One phone counts. Rules (shuttle rally scoring): a game ends at 21 with a
+   2-point lead; if it stays close it ends when a team reaches the cap
+   (maxPoints(): 30 or 31 — the group's setting). The team that scores serves.
+   Left half of a team = minus, right half = plus.
+   The score lives on this phone (localStorage) until the game is saved, so
+   a refresh or a phone call does not lose it. A saved game is exactly what
+   "Add game score" saves (one document in `matches`).
+   Depends on: stats.js (maxPoints, scoreProblem, _canAddGames, byNameAZ,
+               withGroup), ui.js (personHtml), sessions.js (lastSessions)
+   ============================================================ */
+
+var LS_KEY = "godsmash_live_v1";
+var LS_THEME_KEY = "godsmash_live_theme";
+/** name, team A (from, to), team B (from, to) */
+var LS_THEMES = [
+  ["Classic", "#e2554f", "#ef7a73", "#4f86f0", "#7aa2f5"],
+  ["Sunset", "#f97316", "#fb923c", "#7c3aed", "#a78bfa"],
+  ["Forest", "#16a34a", "#4ade80", "#0f766e", "#2dd4bf"],
+  ["Ocean", "#0891b2", "#22d3ee", "#4338ca", "#818cf8"],
+  ["Night", "#db2777", "#f472b6", "#1e293b", "#475569"]
+];
+var LS_START_POINTS = 21;
+
+var live = null;          // the running game, or null
+var liveMode = "count";   // setup | count | settings | menu
+var _wakeLock = null;
+
+/* ---------- Rules (pure; tested without a screen) ---------- */
+
+/** Is the game over? { done, winner: "A"|"B"|null } */
+function lsOver(a, b, cap) {
+  var hi = Math.max(a, b), lo = Math.min(a, b);
+  var done = (hi >= LS_START_POINTS && hi - lo >= 2) || hi >= cap;
+  return { done: done, winner: done ? (a > b ? "A" : "B") : null };
+}
+
+/** Which team is one point from winning ("A", "B", or null) */
+function lsGamePoint(a, b, cap) {
+  if (lsOver(a, b, cap).done) return null;
+  if (lsOver(a + 1, b, cap).done && a >= b) return "A";
+  if (lsOver(a, b + 1, cap).done && b >= a) return "B";
+  return null;
+}
+
+/** Add (delta +1) or take away (-1) a point for a side. Returns a new state. */
+function lsApply(st, side, delta, cap) {
+  var n = JSON.parse(JSON.stringify(st));
+  if (n.over) return n;
+  var k = side === "A" ? "sa" : "sb";
+  if (delta > 0) {
+    n.hist.push({ s: side, serve: n.serve });
+    n[k] += 1;
+    n.serve = side;
+    var r = lsOver(n.sa, n.sb, cap);
+    if (r.done) n.over = r.winner;
+  } else if (n[k] > 0) {
+    var last = n.hist[n.hist.length - 1];
+    if (last && last.s === side) { n.hist.pop(); n.serve = last.serve; }
+    n[k] -= 1;
+  }
+  return n;
+}
+
+/** Undo the last point of either team */
+function lsUndoLast(st) {
+  var n = JSON.parse(JSON.stringify(st));
+  var last = n.hist.pop();
+  if (!last) return n;
+  n[last.s === "A" ? "sa" : "sb"] -= 1;
+  n.serve = last.serve;
+  n.over = null;
+  return n;
+}
+
+/* ---------- Storage ---------- */
+
+function lsSave() { try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {} }
+function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); return s && s.sid ? s : null; } catch (e) { return null; } }
+function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
+
+function _lsSessions() {
+  var today = _todayIso();
+  return lastSessions.filter(function (s) { return s.status !== "cancelled" && _canAddGames(s) && (s.date || "") <= today; })
+    .sort(function (a, b) { return (b.date || "").localeCompare(a.date || ""); });
+}
+function _lsSession(id) {
+  for (var i = 0; i < lastSessions.length; i++) if (lastSessions[i].id === id) return lastSessions[i];
+  return null;
+}
+function _lsBlank(sid, type) {
+  return { sid: sid, type: type || "md", a: [], b: [], sa: 0, sb: 0, serve: "A", hist: [], over: null, startedAt: Date.now(), saved: 0 };
+}
+
+/* ---------- Open / close ---------- */
+
+/** Open live score for a session (default: my latest running session) */
+function showLiveScore(sid) {
+  var s = sid ? _lsSession(sid) : null;
+  var saved = lsLoad();
+  if (!sid && saved && _lsSession(saved.sid)) { s = _lsSession(saved.sid); }
+  if (!s) { var list = _lsSessions(); s = list[0]; }
+  if (!s) { showToast(t("homeNoSession")); return; }
+  if (saved && saved.sid === s.id) live = saved;
+  else live = _lsBlank(s.id, s.gameType && s.gameType !== "any" ? s.gameType : "md");
+  liveMode = _lsReady(live) ? "count" : "setup";
+  _lsShow();
+}
+
+function _lsReady(st) { var size = st.type === "singles" ? 1 : 2; return st.a.length === size && st.b.length === size; }
+
+function _lsShow() {
+  var el = document.getElementById("liveScreen");
+  if (!el) return;
+  el.classList.add("on");
+  document.body.classList.add("live-on");
+  lsRender();
+  _lsWake(true);
+}
+
+function lsClose() {
+  var el = document.getElementById("liveScreen");
+  if (el) { el.classList.remove("on"); el.innerHTML = ""; }
+  document.body.classList.remove("live-on");
+  _lsWake(false);
+  if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+}
+
+function _lsWake(on) {
+  try {
+    if (on && navigator.wakeLock && !_wakeLock) navigator.wakeLock.request("screen").then(function (l) { _wakeLock = l; l.addEventListener("release", function () { _wakeLock = null; }); }).catch(function () {});
+    if (!on && _wakeLock) { _wakeLock.release(); _wakeLock = null; }
+  } catch (e) {}
+}
+
+/* ---------- Render ---------- */
+
+function lsRender() {
+  var el = document.getElementById("liveScreen");
+  if (!el || !live) return;
+  if (liveMode === "setup") el.innerHTML = _lsSetupHtml();
+  else if (liveMode === "settings") el.innerHTML = _lsSettingsHtml();
+  else el.innerHTML = _lsCountHtml();
+}
+
+function _lsTheme() { return LS_THEMES[lsThemeIdx()]; }
+function _lsTeam(side, ids) {
+  return ids.map(function (u) { return '<span class="ls-chip">' + avatarHtml(u, 26) + '<span>' + getUserName(u) + '</span></span>'; }).join("");
+}
+
+function _lsCountHtml() {
+  var th = _lsTheme(), cap = maxPoints(), gp = lsGamePoint(live.sa, live.sb, cap);
+  var half = function (side) {
+    var score = side === "A" ? live.sa : live.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
+    var ids = byNameAZ(side === "A" ? live.a : live.b);
+    return '<div class="ls-half" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
+      '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 30) + '</span></button>' +
+      '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 40) + '</span></button>' +
+      '<div class="ls-info"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + t("lsTeam") + ' ' + side + '</div>' +
+      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div></div></div>';
+  };
+  var html = half("A") + half("B");
+  html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
+    '<span class="ls-pill">' + t("lsGameN").replace("{n}", live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) + '</span>' +
+    '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
+  if (gp && !live.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' · ' + t("lsTeam") + ' ' + gp + '</span></div>';
+  if (liveMode === "menu") {
+    html += '<div class="ls-scrim" onclick="lsMenu(false)"></div><div class="ls-menu">' +
+      '<button type="button" onclick="lsExit()">' + icon("back", 32) + '<span>' + t("lsExit") + '</span></button>' +
+      '<button type="button" onclick="lsReset()">' + icon("history", 32) + '<span>' + t("lsReset") + '</span></button>' +
+      '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button></div>' +
+      '<button type="button" class="ls-menu-x" aria-label="' + t("close") + '" onclick="lsMenu(false)">' + icon("close", 26) + '</button>';
+  }
+  if (live.over) html += _lsOverHtml();
+  return html;
+}
+
+function _lsOverHtml() {
+  var w = live.over, ids = byNameAZ(w === "A" ? live.a : live.b);
+  return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + w) + '</div>' +
+    '<div class="ls-over-score">' + live.sa + ' – ' + live.sb + '</div><div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
+    '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsSaveNext") + '</button>' +
+    '<button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>' +
+    '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
+}
+
+function _lsSetupHtml() {
+  var s = _lsSession(live.sid) || {}, size = live.type === "singles" ? 1 : 2, th = _lsTheme();
+  var team = function (side, ids, from, to) {
+    var html = '<div class="ls-team-box" style="background:linear-gradient(160deg,' + from + ',' + to + ')"><div class="ls-team-head"><b>' + t("lsTeam") + ' ' + side + '</b><span>' + ids.length + '/' + size + '</span></div><div class="ls-chips">';
+    html += ids.map(function (u) { return '<button type="button" class="ls-chip rm" onclick="lsRemove(\'' + side + '\',\'' + u + '\')">' + avatarHtml(u, 26) + '<span>' + getUserName(u) + '</span>' + icon("close", 12) + '</button>'; }).join("");
+    if (ids.length < size) html += '<span class="ls-chip ghost">' + icon("add", 18) + ' ' + t("lsAddPlayer") + '</span>';
+    return html + '</div></div>';
+  };
+  var taken = live.a.concat(live.b);
+  var pool = (s.players || []).filter(function (u) { return taken.indexOf(u) < 0; });
+  pool = byNameAZ(pool);
+  var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="lsClose()">' + icon("back", 22) + '</button><div><b>' + t("lsTitle") + '</b><small>' + fmtDate(s.date) + ' · ' + escapeHtml(s.courtName || "") + '</small></div></div><div class="ls-body">' +
+    '<div class="seg seg-wrap">' + ["md", "wd", "xd", "singles"].map(function (x) { return '<button type="button" class="seg-btn' + (live.type === x ? ' active' : '') + '" onclick="lsType(\'' + x + '\')">' + t("gameType_" + x) + '</button>'; }).join("") + '</div>' +
+    team("A", live.a, th[1], th[2]) + team("B", live.b, th[3], th[4]) +
+    '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsPickPlayers") + '</div><div class="ls-pool">' +
+    (pool.length ? pool.map(function (u) { return '<button type="button" class="ls-pool-chip" onclick="lsAdd(\'' + u + '\')">' + personHtml(u, 30) + '</button>'; }).join("") : '<div class="form-hint">' + t("lsNoMore") + '</div>') +
+    '</div></div>' +
+    '<div class="card ls-rules"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsRules") + '</div>' +
+    '<div>' + icon("medal", 16) + ' ' + t("lsRule1").replace("{n}", LS_START_POINTS) + '</div><div>' + icon("check", 16) + ' ' + t("lsRule2") + '</div>' +
+    '<div>' + icon("crown", 16) + ' ' + t("lsRule3").replace("{cap}", maxPoints()) + '</div><div>' + icon("shuttle", 16) + ' ' + t("lsRule4") + '</div></div></div>' +
+    '<div class="ls-foot"><button class="btn-primary" ' + (_lsReady(live) ? '' : 'disabled') + ' onclick="lsStart()">' + icon("court", 18) + ' ' + t("lsStart") + '</button></div>';
+  return html;
+}
+
+function _lsSettingsHtml() {
+  var cur = lsThemeIdx(), size = live.type === "singles" ? 1 : 2;
+  var games = _lsSessions();
+  var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="liveMode=\'count\';lsRender()">' + icon("back", 22) + '</button><div><b>' + t("lsSettings") + '</b></div></div><div class="ls-body">';
+  html += '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("lsCurrentGame") + '</div>' +
+    games.map(function (s) {
+      var on = s.id === live.sid;
+      return '<button type="button" class="ls-game-row' + (on ? ' on' : '') + '" onclick="lsPickSession(\'' + s.id + '\')"><span class="radio-dot' + (on ? ' on' : '') + '"></span><span><b>' + fmtDate(s.date) + '</b><small>' + escapeHtml(s.courtName || "") + ' · ' + (s.players || []).length + ' ' + t("playersWord") + '</small></span></button>';
+    }).join("") + '</div>';
+  html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsTeamsPlaying") + '</div>' +
+    ["A", "B"].map(function (side) {
+      var ids = side === "A" ? live.a : live.b, th = LS_THEMES[cur];
+      return '<div class="ls-team-box" style="background:linear-gradient(160deg,' + (side === "A" ? th[1] : th[3]) + ',' + (side === "A" ? th[2] : th[4]) + ')"><div class="ls-team-head"><b>' + t("lsTeam") + ' ' + side + '</b><span>' + ids.length + '/' + size + '</span></div><div class="ls-chips">' +
+        ids.map(function (u) { return '<span class="ls-chip">' + avatarHtml(u, 26) + '<span>' + getUserName(u) + '</span></span>'; }).join("") + '</div></div>';
+    }).join("") +
+    '<button type="button" class="btn-secondary" onclick="lsEditTeams()">' + icon("pen", 16) + ' ' + t("lsChangeTeams") + '</button></div>';
+  html += '<div class="card"><div class="card-title">' + icon("sun", 14) + ' ' + t("lsTheme") + '</div><div class="ls-themes">' +
+    LS_THEMES.map(function (th, i) {
+      return '<button type="button" class="ls-theme' + (i === cur ? ' on' : '') + '" onclick="lsSetTheme(' + i + ')"><span style="background:linear-gradient(160deg,' + th[1] + ',' + th[2] + ')"></span><span style="background:linear-gradient(160deg,' + th[3] + ',' + th[4] + ')"></span><b>' + th[0] + (i === cur ? ' ' + icon("check", 14) : '') + '</b></button>';
+    }).join("") + '</div></div></div>' +
+    '<div class="ls-foot"><button class="btn-primary" onclick="liveMode=\'count\';lsRender()">' + icon("check", 18) + ' ' + t("done") + '</button></div>';
+  return html;
+}
+
+/* ---------- Actions ---------- */
+
+function lsTap(side, delta) {
+  if (!live || live.over) return;
+  var before = live.sa + live.sb;
+  live = lsApply(live, side, delta, maxPoints());
+  if (delta > 0 && live.sa + live.sb !== before) { try { if (navigator.vibrate) navigator.vibrate(live.over ? [60, 40, 60] : 25); } catch (e) {} }
+  lsSave();
+  lsRender();
+}
+function lsUndo() { if (!live) return; live = lsUndoLast(live); lsSave(); lsRender(); }
+function lsMenu(on) { liveMode = on === false ? "count" : "menu"; lsRender(); }
+function lsOpenSettings() { liveMode = "settings"; lsRender(); }
+function lsEditTeams() { live.a = []; live.b = []; lsSave(); liveMode = "setup"; lsRender(); }
+function lsSetTheme(i) { try { localStorage.setItem(LS_THEME_KEY, String(i)); } catch (e) {} lsRender(); }
+function lsPickSession(id) {
+  if (id === live.sid) return;
+  live = _lsBlank(id, live.type); lsSave(); liveMode = "setup"; lsRender();
+}
+function lsType(x) { live.type = x; live.a = []; live.b = []; lsSave(); lsRender(); }
+function lsAdd(uid) {
+  var size = live.type === "singles" ? 1 : 2;
+  if (live.a.length < size) live.a.push(uid); else if (live.b.length < size) live.b.push(uid);
+  lsSave(); lsRender();
+}
+function lsRemove(side, uid) { var k = side === "A" ? "a" : "b"; live[k] = live[k].filter(function (u) { return u !== uid; }); lsSave(); lsRender(); }
+function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; lsSave(); liveMode = "count"; lsRender(); }
+
+function lsReset() {
+  if (live.sa + live.sb > 0 && !confirm(t("lsResetConfirm"))) return;
+  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A";
+  lsSave(); liveMode = "count"; lsRender();
+}
+
+/** Leave without saving: the score stays on this phone */
+function lsExit() {
+  if (live.sa + live.sb > 0 && !live.over && !confirm(t("lsExitConfirm"))) return;
+  liveMode = "count";
+  lsClose();
+}
+
+/** Save the finished game like "Add game score" does, then continue or finish */
+function lsSaveGame(next) {
+  var s = _lsSession(live.sid);
+  if (!s || !live.over) return;
+  var a = live.sa, b = live.sb, p = scoreProblem(a, b);
+  if (p) { showToast(p); return; }
+  var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
+    minutes: Math.max(1, Math.min(180, Math.round((Date.now() - (live.startedAt || Date.now())) / 60000))) };
+  fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
+    court: null, shuttles: 0, createdBy: currentUser.uid, createdAt: Date.now(), confirmed: false, live: true })))
+    .then(function () {
+      showToast(t("gameSaved") + " ✔");
+      if (next) {
+        var winner = live.over;
+        live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now();
+        lsSave(); liveMode = "count"; lsRender();
+      } else {
+        live = null; lsSave(); lsClose();
+        showSessionDetail(s.id, "games");
+      }
+    }).catch(function (e) { showToast(_permError(e)); });
+}
+
+/** A game is still being counted on this phone (for the Home banner) */
+function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb > 0) && _lsSession(s.sid) ? s : null; }
