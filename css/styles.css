@@ -4563,10 +4563,10 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .vbar-plot { width: 100%; height: 130px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--border); }
 .vbar-stack { display: flex; flex-direction: column-reverse; width: 60%; max-width: 28px; border-radius: 6px 6px 0 0; overflow: hidden; }
 .vbar-stack i { display: block; width: 100%; }
-.t-court { background: #2563eb; }
-.t-shuttle { background: #f59e0b; }
-.t-other { background: #8b5cf6; }
-.t-dinner { background: #10b981; }
+.t-court { background: var(--viz-court); }
+.t-shuttle { background: var(--viz-shuttle); }
+.t-other { background: var(--viz-other); }
+.t-dinner { background: var(--viz-dinner); }
 .vbar-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
 .vbar-dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: baseline; }
 .vbar-part { display: inline-block; margin: 0 6px; white-space: nowrap; }
