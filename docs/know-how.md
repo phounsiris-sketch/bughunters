@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v82**.
+run it. App version at the time of writing: **v83**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -893,6 +893,7 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 
 | Problem | Fix |
 |---|---|
+| On iPhone (home-screen app) the bell and profile picture can not be tapped | The top bar sits under the iOS clock. Cause: `viewport-fit=cover` in the viewport meta (added in v63) together with the translucent status bar. Fixed in v83 by removing it. Do not add `viewport-fit=cover` again unless the header, toast and full-screen layers get `env(safe-area-inset-top)` padding. |
 | No Stats or Public tab | Groups aren't active yet. Do section 15, then reopen the app |
 | "Missing or insufficient permissions" | The rules weren't published, or the person lacks the right. Check their role and permissions in Settings → Members |
 | Something new was created but others can't see it | It has no `groupId` (it was made between the migration and the rules publish). Rerun *Migrate to groups* |
