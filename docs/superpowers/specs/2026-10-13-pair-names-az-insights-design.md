@@ -1,5 +1,5 @@
-# Pair names A→Z in best/worst partner card (v59)
+# Pair name order: shared views A→Z, personal views me first (v59)
 
-**Problem:** the Progress tab best/worst partner card showed "me & partner", so the same pair read differently from the A→Z names used elsewhere.
-**Change:** `_pairInsightsHtml` row now uses `byNameAZ([uid, x.uid])`. Audit of `js/*.js` found no other unsorted pair or team name (the Progress recap image uses `pairUids`, already A→Z).
+**Rule:** shared views (pair ranking, session games, pair vs pair, head to head lists, best pair/best score) show pair and team names **A→Z** so every viewer reads the same text. Personal views (My last games, Progress best/worst partner card) show the viewed player **first**, then the partner. Opponents are always A→Z. Display only: stats key on sorted uids (`pairKey`).
+**Audit:** no other unsorted pair or team name in `js/*.js`.
 **Version:** v59 (`APP_VERSION`, `CACHE_NAME`).

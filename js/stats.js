@@ -252,7 +252,7 @@ function _myStatsCard() {
       last.slice().reverse().map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
-      var mine = byNameAZ(x.mine);
+      var mine = x.mine.slice().sort(function (p, q) { return (q === me) - (p === me); });  // personal view: me first
       return '<div class="recent-game ' + (x.won ? 'won' : 'lost') + '">' +
         '<span class="rg-res">' + (x.won ? t("winShort") : t("lossShort")) + '</span>' +
         '<span class="rg-teams"><b>' + mine.map(nm).join(' &amp; ') + '</b>' +
@@ -563,7 +563,7 @@ function _pairInsightsHtml(uid, games) {
   var fill = function (str, x) { return str.replace("{name}", escapeHtml(getUserName(x.uid))).replace("{w}", x.w).replace("{l}", x.n - x.w).replace("{pct}", Math.round(rate(x) * 100)); };
   var row = function (x, cls, label) {
     return '<div class="ins-row ' + cls + '"><span class="rank-avatars">' + avatarHtml(uid, 28) + avatarHtml(x.uid, 28) + '</span>' +
-      '<span class="rank-text"><small>' + label + '</small><b>' + byNameAZ([uid, x.uid]).map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</b>' +
+      '<span class="rank-text"><small>' + label + '</small><b>' + escapeHtml(getUserName(uid)) + ' &amp; ' + escapeHtml(getUserName(x.uid)) + '</b>' +
       '<small>' + _wl(x.w, x.n - x.w) + ' · ' + Math.round(rate(x) * 100) + '%</small></span></div>';
   };
   var html = '<div class="card ins-card"><div class="card-title">' + icon("users", 14) + ' ' + t("bestWorstPair") + '</div>';

@@ -1,5 +1,6 @@
-# Plan: pair names A→Z in best/worst partner card
+# Plan: name order split (v59)
 
-1. In `js/stats.js` `_pairInsightsHtml`, replace the fixed "me & partner" label with `byNameAZ([uid, x.uid])` joined by ` &amp; `.
-2. Bump `APP_VERSION` in `js/app.js` and `CACHE_NAME` in `sw.js` to v59; update the version line in `docs/know-how.md`.
-3. Check: `node --check js/stats.js`; grep for other `getUserName` joins (none unsorted).
+1. `js/stats.js` My last games: own team sorted me-first; rivals stay `byNameAZ`.
+2. `_pairInsightsHtml`: viewed player first, partner second (reverted to the explicit order).
+3. Bump `APP_VERSION`/`CACHE_NAME` to v59; update know-how version and A→Z notes.
+4. Check: `node --check js/stats.js`.
