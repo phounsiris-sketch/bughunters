@@ -563,7 +563,7 @@ function _pairInsightsHtml(uid, games) {
   var fill = function (str, x) { return str.replace("{name}", escapeHtml(getUserName(x.uid))).replace("{w}", x.w).replace("{l}", x.n - x.w).replace("{pct}", Math.round(rate(x) * 100)); };
   var row = function (x, cls, label) {
     return '<div class="ins-row ' + cls + '"><span class="rank-avatars">' + avatarHtml(uid, 28) + avatarHtml(x.uid, 28) + '</span>' +
-      '<span class="rank-text"><small>' + label + '</small><b>' + escapeHtml(getUserName(uid)) + ' &amp; ' + escapeHtml(getUserName(x.uid)) + '</b>' +
+      '<span class="rank-text"><small>' + label + '</small><b>' + byNameAZ([uid, x.uid]).map(function (u) { return escapeHtml(getUserName(u)); }).join(' &amp; ') + '</b>' +
       '<small>' + _wl(x.w, x.n - x.w) + ' · ' + Math.round(rate(x) * 100) + '%</small></span></div>';
   };
   var html = '<div class="card ins-card"><div class="card-title">' + icon("users", 14) + ' ' + t("bestWorstPair") + '</div>';
