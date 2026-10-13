@@ -86,7 +86,7 @@ function pushSettingsRows() {
     var on = st === "on";
     html += '<div class="nav-row"><span class="nav-row-ico">' + icon("bell", 20) + '</span>' +
       '<span class="nav-row-text"><b>' + t("pushTitle") + '</b><small>' + t(on ? "pushOn" : "pushHintShort") + '</small></span>' +
-      '<button type="button" class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + t("pushTitle") + '" onclick="' + (on ? 'disablePush()' : 'enablePush()') + '"><i></i></button></div>';
+      '<button type="button" class="tgl' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + t("pushTitle") + '" onclick="' + (on ? 'disablePush()' : 'enablePush()') + '"><i></i></button></div>';
     if (on) html += '<button type="button" class="nav-row" onclick="localTestPush()"><span class="nav-row-ico">' + icon("check", 20) + '</span>' +
       '<span class="nav-row-text"><b>' + t("pushLocalTest") + '</b><small id="pushLocalResult">' + t("pushHintShort") + '</small></span>' + icon("chevron", 16) + '</button>';
     else html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';

@@ -83,7 +83,7 @@ function _homeBadgeCard(me) {
     return '<span class="hs-badge' + (b.earned ? ' on' : '') + '">' + icon(b.icon, 22) + '</span>';
   }).join("");
   var pct = list.length ? Math.round(got / list.length * 100) : 0;
-  return _hsCard("hs-badges", "medal", t("homeBadges"), "showPage('stats')",
+  return _hsCard("hs-badges", "medal", t("homeBadges"), "showPage('profile')",
     '<div class="hs-big">' + got + ' <small>' + t("homeEarned").replace("{m}", list.length) + '</small></div>' +
     '<div class="hs-badge-row">' + icons + '</div><div class="hs-track"><i style="width:' + pct + '%"></i></div>');
 }
@@ -108,7 +108,7 @@ function _homeRatingCard(me) {
   }
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
   var best = vals.length ? Math.max.apply(null, vals) : ratingOf(me);
-  return _hsCard("hs-rating", "ranking", t("homeRating"), "showPage('stats')",
+  return _hsCard("hs-rating", "ranking", t("homeRating"), "progressUser=currentUser.uid;statsTab='progress';showPage('stats')",
     '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
     '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + (p ? p.played : 0) + ' ' + t("gamesWord") + '</span>' +
     '<span>' + t("homeStartR") + ' ' + RATING_START + '</span></div>');
@@ -184,8 +184,9 @@ function renderHome() {
 
   // A live score still being counted on this phone
   var running = typeof lsInProgress === "function" ? lsInProgress() : null;
-  if (running) html += '<button type="button" class="home-live" onclick="showLiveScore(\'' + running.sid + '\')">' + icon("scoreboard", 22) +
-    '<span><b>' + t("lsResume") + '</b><small>' + running.sa + ' – ' + running.sb + '</small></span><i>' + t("lsContinue") + '</i></button>';
+  if (running) html += '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showLiveScore(\'' + running.sid + '\')">' + icon("scoreboard", 22) +
+    '<span><b>' + t("lsResume") + '</b><small>' + running.sa + ' \u2013 ' + running.sb + '</small></span><i>' + t("lsContinue") + '</i></button>' +
+    '<button type="button" class="home-live-x" aria-label="' + t("cancel") + '" onclick="lsCancelSaved()">' + icon("close", 16) + '</button></div>';
 
   // 1. My stat cards, swipe sideways
   var cards = [];
