@@ -548,7 +548,7 @@ function showSessionDetail(sessionId, tab) {
     // Don't wipe a form the user is typing in
     if (sessionTab === "games" && _hasGamesTab()) { if (document.getElementById("sgList")) refreshSessionGames(); else renderSessionGamesTab(); }
     else if (!sessionEditing) renderSessionDetail();
-  }, dbOnError);
+  }, function (e) { dbOnError(e, "sessions"); });
 }
 
 function refreshSessionDetail() {

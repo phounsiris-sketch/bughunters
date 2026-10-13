@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v84**.
+run it. App version at the time of writing: **v85**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -361,6 +361,10 @@ Live score also has **Try it first** on its first screen: it counts points with 
 players, shows a *Practice: not saved* badge, and nothing is saved or kept. The Home header no
 longer shows the "Badminton Club" line or the "Hi, name" greeting; the rating card has no
 "Start" pill; calendar days with events show clear dots (one per event, up to three).
+
+**E-mail limits (v85).** *Forgot password?* and *Resend email* can be used **once a minute** per phone:
+the link shows a countdown ("Forgot password? (45s)") and a second press says how long to wait. The
+countdown survives a reload.
 
 ### Live score
 
@@ -899,6 +903,7 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 | Problem | Fix |
 |---|---|
 | On iPhone (home-screen app) the bell and profile picture can not be tapped | The page draws under the iOS clock (translucent status bar). The header, toast, notification panel, sign-in and Live score bars add `env(safe-area-inset-top)` padding and the viewport has `viewport-fit=cover` (v84). If a new full-width bar is added at the top, give it the same padding. |
+| A red bar "Database blocked this request (permission-denied) [name]" | The name in brackets (v85) is the request that was refused: `sessions`, `polls`, `matches`, `members`, `groups`, `openGames`, `users`, `courts`, `shuttlecocks` or `settings`. It means this person's account is not allowed to read that data: a join request still waiting for approval, a group they were just removed from, or rules not yet published. Check their membership first, then the rules (section 13). Open the browser console for the full error. |
 | No Stats or Public tab | Groups aren't active yet. Do section 15, then reopen the app |
 | "Missing or insufficient permissions" | The rules weren't published, or the person lacks the right. Check their role and permissions in Settings → Members |
 | Something new was created but others can't see it | It has no `groupId` (it was made between the migration and the rules publish). Rerun *Migrate to groups* |
