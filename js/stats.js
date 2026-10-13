@@ -408,6 +408,63 @@ function _renderH2H() {
   html += '<div class="settings-section">' + t("h2hVsPairs") + '</div><div class="card rank-list">' + _h2hRows(vsPairs, pairAv, pairName) + '</div>';
   html += '<div class="settings-section">' + t(me === currentUser.uid ? "h2hWithPartner" : "h2hWithPartners") + '</div><div class="card rank-list">' + _h2hRows(withPartner, oneAv, oneName) + '</div>';
   html += '<div class="settings-section">' + t("h2hVsSingles") + '</div><div class="card rank-list">' + _h2hRows(vsSingles, oneAv, oneName) + '</div>';
+  html += _pairVsPairHtml(me);
+  return html;
+}
+
+/* ---------- Pair vs pair: pick two pairs, see their record against each other ---------- */
+
+var h2hPairA = null, h2hPairB = null;
+
+function _plainPair(key) { return pairUids(key).map(function (u) { return plainUserName(findUser(u)); }).join(" & "); }
+function _disjoint(ka, kb) { var a = ka.split("+"); return kb.split("+").every(function (u) { return a.indexOf(u) < 0; }); }
+
+function _pairVsPairHtml(me) {
+  var ms = lastMatches.filter(function (m) { return m.teamA && m.teamB && m.teamA.length === 2 && m.teamB.length === 2 && matchWinner(m); });
+  if (!ms.length) return '';
+  var pairsSet = {}, meet = {};   // meet[ka][kb] = games
+  ms.forEach(function (m) {
+    var ka = pairKey(m.teamA), kb = pairKey(m.teamB);
+    pairsSet[ka] = pairsSet[kb] = true;
+    (meet[ka] = meet[ka] || {})[kb] = (meet[ka][kb] || 0) + 1;
+    (meet[kb] = meet[kb] || {})[ka] = (meet[kb][ka] || 0) + 1;
+  });
+  var keys = Object.keys(pairsSet).sort(function (a, b) { return _plainPair(a).localeCompare(_plainPair(b)); });
+  var games = function (k) { var n = 0; Object.keys(meet[k] || {}).forEach(function (o) { n += meet[k][o]; }); return n; };
+  // Defaults: my most-played pair, then the pair it has met most
+  if (!h2hPairA || !pairsSet[h2hPairA]) {
+    var mine = keys.filter(function (k) { return k.split("+").indexOf(me) >= 0; });
+    h2hPairA = (mine.length ? mine : keys).slice().sort(function (a, b) { return games(b) - games(a); })[0];
+    h2hPairB = null;
+  }
+  var others = keys.filter(function (k) { return _disjoint(h2hPairA, k); });
+  if (!h2hPairB || others.indexOf(h2hPairB) < 0) {
+    h2hPairB = others.slice().sort(function (a, b) { return ((meet[h2hPairA] || {})[b] || 0) - ((meet[h2hPairA] || {})[a] || 0); })[0] || null;
+  }
+  var opts = function (list, sel) { return list.map(function (k) { return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + escapeHtml(_plainPair(k)) + '</option>'; }).join(''); };
+  var html = '<div class="settings-section">' + t("h2hPairVsPair") + '</div><div class="card pvp-card">' +
+    '<select class="form-select" onchange="h2hPairA=this.value;h2hPairB=null;renderStats()">' + opts(keys, h2hPairA) + '</select>' +
+    '<div class="pvp-vs">' + t("vsWord") + '</div>' +
+    '<select class="form-select" onchange="h2hPairB=this.value;renderStats()">' + opts(others, h2hPairB) + '</select>';
+  if (!h2hPairB) return html + '<div class="form-hint" style="margin-top:10px">' + t("pvpNoOpponent") + '</div></div>';
+  var rows = [], wa = 0, wb = 0, pts = 0;
+  ms.forEach(function (m) {
+    var ka = pairKey(m.teamA), kb = pairKey(m.teamB), aIsA = ka === h2hPairA;
+    if (!((ka === h2hPairA && kb === h2hPairB) || (ka === h2hPairB && kb === h2hPairA))) return;
+    var sc = matchScore(m), g = (m.games || [])[0] || {}, aWon = (matchWinner(m) === "A") === aIsA;
+    if (aWon) wa++; else wb++;
+    pts += aIsA ? sc.pts : -sc.pts;
+    rows.push({ date: m.date || "", a: aIsA ? g.a : g.b, b: aIsA ? g.b : g.a, aWon: aWon });
+  });
+  var av = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
+  html += '<div class="pvp-score"><span class="pvp-side">' + av(h2hPairA) + '</span><b>' + wa + ' \u2013 ' + wb + '</b><span class="pvp-side">' + av(h2hPairB) + '</span></div>';
+  if (!rows.length) return html + '<div class="form-hint" style="text-align:center">' + t("pvpNeverMet") + '</div></div>';
+  html += '<div class="h2h-facts" style="text-align:center">' + rows.length + ' ' + t("gamesWord") + ' \u00B7 ' + (pts >= 0 ? '+' : '') + pts + ' ' + t("ptsShort") + '</div>';
+  rows.sort(function (x, y) { return y.date.localeCompare(x.date); });
+  html += '<div class="pvp-list">' + rows.map(function (r) {
+    return '<div class="pvp-game"><span class="pvp-date">' + (r.date ? fmtDate(r.date) : '') + '</span>' +
+      '<span class="pvp-pts ' + (r.aWon ? 'won' : 'lost') + '">' + (r.a != null ? r.a : '\u2013') + ' \u2013 ' + (r.b != null ? r.b : '\u2013') + '</span></div>';
+  }).join('') + '</div></div>';
   return html;
 }
 

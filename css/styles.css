@@ -4613,3 +4613,14 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .ins-tips-title { margin: 12px 0 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 .ins-tips { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
 .ins-tips li { margin-bottom: 6px; }
+
+/* Head to head: pair vs pair */
+.pvp-card { padding: 14px; }
+.pvp-vs { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+.pvp-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 4px; }
+.pvp-score b { font-size: 30px; }
+.pvp-side { display: inline-flex; }
+.pvp-list { margin-top: 10px; border-top: 1px solid var(--border); }
+.pvp-game { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.pvp-date { color: var(--text-muted); }
+.pvp-pts { font-weight: 700; } .pvp-pts.won { color: #16a34a; } .pvp-pts.lost { color: #ef4444; }
