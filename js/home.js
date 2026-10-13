@@ -111,7 +111,7 @@ function _homeRatingCard(me) {
   return _hsCard("hs-rating", "ranking", t("homeRating"), "progressUser=currentUser.uid;statsTab='progress';showPage('stats')",
     '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
     '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + (p ? p.played : 0) + ' ' + t("gamesWord") + '</span>' +
-    '<span>' + t("homeStartR") + ' ' + RATING_START + '</span></div>');
+    '</div>');
 }
 
 function _homeShortcut(iconName, label, sub, onclick, cls) {
@@ -180,7 +180,7 @@ function renderHome() {
   var el = document.getElementById("homeContent");
   if (!el || !currentUser) return;
   var me = currentUser.uid, groups = typeof GROUPS_ON !== "undefined" && GROUPS_ON;
-  var html = '<div class="home-hi">' + t("homeHi").replace("{name}", _homeName()) + '</div>';
+  var html = '';
 
   // A live score still being counted on this phone
   var running = typeof lsInProgress === "function" ? lsInProgress() : null;

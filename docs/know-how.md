@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v83**.
+run it. App version at the time of writing: **v84**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -356,6 +356,11 @@ than 4). **A game that is not confirmed 24 hours after it was posted is removed*
 everyone stops seeing it, and its host's phone deletes it and says so (`PUBLIC_GAME_TTL_H`,
 `PUBLIC_GAME_MIN_PLAYERS` in `js/public.js`). The card is compact: host and players (photo + name), tags
 and one button.
+
+Live score also has **Try it first** on its first screen: it counts points with no game and no
+players, shows a *Practice: not saved* badge, and nothing is saved or kept. The Home header no
+longer shows the "Badminton Club" line or the "Hi, name" greeting; the rating card has no
+"Start" pill; calendar days with events show clear dots (one per event, up to three).
 
 ### Live score
 
@@ -893,7 +898,7 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 
 | Problem | Fix |
 |---|---|
-| On iPhone (home-screen app) the bell and profile picture can not be tapped | The top bar sits under the iOS clock. Cause: `viewport-fit=cover` in the viewport meta (added in v63) together with the translucent status bar. Fixed in v83 by removing it. Do not add `viewport-fit=cover` again unless the header, toast and full-screen layers get `env(safe-area-inset-top)` padding. |
+| On iPhone (home-screen app) the bell and profile picture can not be tapped | The page draws under the iOS clock (translucent status bar). The header, toast, notification panel, sign-in and Live score bars add `env(safe-area-inset-top)` padding and the viewport has `viewport-fit=cover` (v84). If a new full-width bar is added at the top, give it the same padding. |
 | No Stats or Public tab | Groups aren't active yet. Do section 15, then reopen the app |
 | "Missing or insufficient permissions" | The rules weren't published, or the person lacks the right. Check their role and permissions in Settings → Members |
 | Something new was created but others can't see it | It has no `groupId` (it was made between the migration and the rules publish). Rerun *Migrate to groups* |
