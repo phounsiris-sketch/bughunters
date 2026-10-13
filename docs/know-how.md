@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v64**.
+run it. App version at the time of writing: **v65**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -258,6 +258,17 @@ opens that session's matches (see section 7).
 
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
+
+### Live score
+
+Home > Create > **Live score** (or the button on a session's Games tab). Pick the
+teams (photo + name), then count: **left half of a team = minus, right half =
+plus**. The team that scores serves (shuttle icon). A game ends at 21 with a
+2-point lead, or at the cap (30 or 31, the group's setting). **Save and next game**
+stores the game exactly like *Add game score* and starts the next one with the
+same teams. The score stays on your phone if you leave or refresh; Home shows
+*Live score in progress*. Menu: Exit, Reset, Settings (current game, teams, theme
+colour). Code: `js/livescore.js`.
 
 ### Spending tab (Dashboard)
 
