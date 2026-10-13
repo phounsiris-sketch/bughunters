@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v61**.
+run it. App version at the time of writing: **v63**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -48,6 +48,24 @@ The app has two zones, kept visually apart so nobody confuses them:
 | **Public** | Pink/purple with a "Public — everyone can see this" banner | Every signed-in user | Open games, play buddies, the gear Market, public groups, the court directory |
 
 **Bottom bar:** Polls · Sessions · **Home** (middle) · Stats · Public.
+
+**Home** is where the app opens. Top to bottom:
+
+- **My stats**, five cards you swipe sideways (dots below): **Play** (games this
+  month, last 8 results as W/L dots, rating, win rate), **Spending** (this year's
+  total, a small bar per month, your share), **Payments** (what you owe, what
+  others owe you), **Badges** (earned of total) and **Rating** (number, trend
+  line). Tap a card to open the full page (Stats, Dashboard > Spending, My payments).
+- **Shortcuts:** *Find court* (Public > Games, to join an open game or vote),
+  *Find friends* (Public > Buddies), *Market* (Public > Market). Only when groups
+  are on.
+- **Create:** *Vote* (new poll), *Game* (new session), *Add score* (opens the
+  Games tab of your latest running session) and *Pay* (My payments).
+- **Next game:** the soonest open vote or upcoming session, with the vote bar for
+  a poll. With nothing planned it offers *Vote*.
+
+The old Dashboard (Activity, Spending, Leaderboard) is still there: tap the
+Spending card, or open it from Stats. The code is `js/home.js`.
 Stats and Public only show once groups are turned on (see section 15).
 
 **Header:** the group name with ▾ (tap it to switch group), the 🔔
@@ -67,7 +85,11 @@ two tabs:
 
 ## 2. Getting started
 
-1. Open the app link and **sign in with Google**.
+1. Open the app link. The app opens in **Lao** the first time (the globe button switches
+   to English). **Register** with your email and a password (use *Show* to check
+   what you typed), confirm the email, then sign in. If you came from an **invite
+   link**, it is remembered through sign-up and the email check and joins you to
+   the group once you are in.
 2. **Install it** (optional, but needed for push on iPhone):
    - Android/Chrome: menu → *Install app*.
    - iPhone/Safari: Share → *Add to Home Screen*.

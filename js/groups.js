@@ -313,7 +313,7 @@ function switchGroup(gid) {
   if (!currentGroupId) { showPage("groups"); return; }
   loadSessions();
   loadMatches();
-  showPage("dashboard");
+  showPage("home");
 }
 
 /* ---------- Header: group name + switcher ---------- */
@@ -564,10 +564,15 @@ function cancelJoinRequest(gid) {
 }
 
 /** A link like …#join=<gid>.<code> opened the app */
+// An invite link survives sign-up and the email check: remember it until the person is in
+try { if (/^#join=/.test(location.hash)) localStorage.setItem("pendingJoin", location.hash); } catch (e) {}
+
 function joinFromHash() {
-  var inv = parseInviteText(location.hash);
+  var saved = ""; try { saved = localStorage.getItem("pendingJoin") || ""; } catch (e) {}
+  var inv = parseInviteText(location.hash) || parseInviteText(saved);
   if (!inv) return false;
-  history.replaceState(null, "", location.pathname);
+  try { localStorage.removeItem("pendingJoin"); } catch (e) {}
+  if (location.hash) history.replaceState(null, "", location.pathname);
   joinGroup(inv.gid, inv.code);
   return true;
 }
