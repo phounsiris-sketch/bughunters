@@ -54,6 +54,14 @@ function renderSettings() {
     _fillQrCard();
     return;
   }
+  if (page === "profile-sub") {
+    var ps = document.getElementById("profileSubContent");
+    if (!ps) return;
+    if (document.activeElement && /^(pf|ab|story)/.test(document.activeElement.id || '')) return;   // do not wipe a form being typed in
+    ps.innerHTML = _renderProfileSub();
+    if (pfSub === "qr") _fillQrCard();
+    return;
+  }
   var container = document.getElementById("settingsContent");
   if (container) { setBreadcrumb(null); container.innerHTML = _meTitleHtml("settings", "navSettings") + _renderSettingsPage(); }
 }
@@ -91,15 +99,27 @@ function _renderConfigPage() {
 }
 
 /* ---------- Profile: who you are, your QR codes ---------- */
-var pfOpen = ""; // which profile section is open: "", "personal", "gear" or "qr"
-function togglePfRow(id) { pfOpen = pfOpen === id ? "" : id; renderSettings(); }
+var pfSub = "personal"; // which profile page is open: personal | gear | qr
 
-/** One row of the profile list (tap to open its section) */
+/** A row of the profile list: opens its own page (with a breadcrumb), no drop-down */
+function openPfSub(id) { pfSub = id; showPage("profile-sub"); }
 function _pfRow(id, iconName, title, hint) {
-  var on = pfOpen === id;
-  return '<button type="button" class="nav-row pf-row' + (on ? ' open' : '') + '" onclick="togglePfRow(\'' + id + '\')" aria-expanded="' + on + '">' +
+  return '<button type="button" class="nav-row pf-row" onclick="openPfSub(\'' + id + '\')">' +
     '<span class="nav-row-ico">' + icon(iconName, 20) + '</span>' +
-    '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16, on ? "pf-chev open" : "pf-chev") + '</button>';
+    '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16) + '</button>';
+}
+
+/** One profile page: Personal info, My gear or Payment QR */
+function _renderProfileSub() {
+  var me = currentUser ? currentUser.uid : "";
+  var title = pfSub === "gear" ? t("myGear") : pfSub === "qr" ? t("pfQr") : t("pfPersonal");
+  var iconName = pfSub === "gear" ? "shuttle" : pfSub === "qr" ? "qr" : "user";
+  var body = "";
+  if (pfSub === "personal") body = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml() : "");
+  else if (pfSub === "gear") body = typeof gearCardHtml === "function" ? gearCardHtml(me, true) : "";
+  else { qrOwner = me; body = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
+  setBreadcrumb([{ label: t("myProfile"), action: "showPage('profile')" }, { label: title }]);
+  return _meTitleHtml(iconName, pfSub === "gear" ? "myGear" : pfSub === "qr" ? "pfQr" : "pfPersonal") + body;
 }
 
 function _renderProfileTab() {
@@ -127,14 +147,9 @@ function _renderProfileTab() {
   // Badges
   if (GROUPS_ON && typeof badgesHtml === "function" && me) html += badgesHtml(me, true);
 
-  // My details, one row each; tap a row to open it
-  var open = '';
-  if (pfOpen === "personal") open = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : '') + (typeof aboutCardHtml === "function" ? aboutCardHtml() : '');
-  else if (pfOpen === "gear") open = typeof gearCardHtml === "function" ? gearCardHtml(me, true) : '';
-  else if (pfOpen === "qr") { qrOwner = me; open = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
+  // My details: one row each, each opens its own page
   var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
   html += '<div class="card nav-rows">' + rows.map(function (r) { return _pfRow(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
-  if (open) html += '<div class="pf-open">' + open + '</div>';
   if (GROUPS_ON && typeof makeRecap === "function") html += '<button class="btn-secondary" onclick="makeRecap()">' + icon("share", 16) + ' ' + t("monthlyRecap") + '</button>';
   return html;
 }

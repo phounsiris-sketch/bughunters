@@ -271,7 +271,7 @@ function gearCardHtml(uid, editable) {
     loadGear(uid).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(uid, editable); });
     list = list || [];
   }
-  var shown = list;
+  var shown = list.filter(function (g) { return !g.sold; });   // sold items are gone
   var selling = list.filter(function (g) { return g.forSale; }).length;
   var html = '<div class="card" id="gearCard"><div class="card-title">' + icon("shuttle", 14) + ' ' + t(editable ? "myGear" : "gear") +
     (editable && selling ? ' <span class="badges-count">' + t("sellingN").replace("{n}", selling).replace("{max}", MAX_LISTINGS) + '</span>' : '') + '</div>';
@@ -296,10 +296,16 @@ var _gearPhoto = null;
 var GEAR_KINDS = ["racket", "shoes", "other"];
 var MAX_LISTINGS = 3;
 
-/** Sold: off the market (frees a listing slot), marked "Sold" on the item */
+/** Sold: the item leaves the market AND my gear list (it is gone, not just unlisted) */
 function markGearSold(id) {
   if (!confirm(t("markSoldQ"))) return;
-  _updateSale(id, { forSale: false, sold: true, soldAt: Date.now() }, t("soldWord"));
+  fsdb.collection("gear").doc(id).delete().then(function () {
+    showToast(t("soldWord") + " \u2714");
+    if (typeof _gearBoard !== "undefined") _gearBoard = null;
+    if (typeof currentPage !== "undefined" && currentPage === "public" && typeof loadMarket === "function") loadMarket();
+    return loadGear(currentUser.uid);
+  }).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(currentUser.uid, true); if (typeof renderSettings === "function") renderSettings(); })
+    .catch(function (e) { showToast(_permError(e)); });
 }
 /** Take it off sale without selling */
 function removeFromSale(id) { _updateSale(id, { forSale: false }, t("removeSale")); }

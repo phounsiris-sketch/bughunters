@@ -412,14 +412,46 @@ function loadMarket() {
 
 function _salePrice(g) { return g.salePrice ? fmtMoneyIn(g.salePrice, g.saleCurrency) : t("priceAsk"); }
 
+var marketFilter = { q: "", kind: "", min: "", max: "" };
+function setMarketFilter(field, value) {
+  marketFilter[field] = value;
+  var box = document.getElementById("marketList");
+  if (box) box.innerHTML = _marketListHtml(); else renderPublic();
+}
+function clearMarketFilter() { marketFilter = { q: "", kind: "", min: "", max: "" }; renderPublic(); }
+
+function _marketItems() {
+  var city = publicCity(), f = marketFilter, q = f.q.trim().toLowerCase();
+  var min = parseMoney(f.min) || 0, max = parseMoney(f.max) || 0;
+  return _market.filter(function (g) {
+    if (!(g.saleScope === "public" && !g.sold && !isBlockedPair(g.uid) && (city === "all" || !g.saleCity || normCity(g.saleCity) === city))) return false;
+    if (f.kind && (g.kind || "other") !== f.kind) return false;
+    if (q && (String(g.name || "") + " " + String(g.brand || "") + " " + String(g.note || "")).toLowerCase().indexOf(q) < 0) return false;
+    if (min && !(g.salePrice >= min)) return false;
+    if (max && !(g.salePrice && g.salePrice <= max)) return false;
+    return true;
+  });
+}
+
 function _renderMarket() {
   if (_market === null) return '<div class="empty-state">' + t("loading") + '</div>';
-  var city = publicCity(), me = currentUser.uid;
-  var list = _market.filter(function (g) {
-    return g.saleScope === "public" && !isBlockedPair(g.uid) && (city === "all" || !g.saleCity || normCity(g.saleCity) === city);
-  });
-  var html = '<div class="form-hint" style="margin:0 2px 10px">' + t("marketHint") + '</div>';
-  if (!list.length) return html + '<div class="empty-state">' + icon("shuttle", 40) + '<div>' + t("marketEmpty") + '</div></div>';
+  var f = marketFilter;
+  var html = '<div class="form-hint" style="margin:0 2px 8px">' + t("marketHint") + '</div>';
+  // Search, type and price range
+  html += '<div class="market-filters"><div class="mf-search">' + icon("filter", 16) + '<input class="form-input" type="search" placeholder="' + t("marketSearch") + '" value="' + escapeHtml(f.q) + '" oninput="setMarketFilter(\'q\',this.value)"></div>' +
+    '<div class="mf-chips">' + [["", t("allTypes")]].concat(GEAR_KINDS.map(function (k) { return [k, t("gearKind_" + k)]; })).map(function (x) {
+      return '<button type="button" class="chip' + (f.kind === x[0] ? ' active' : '') + '" onclick="setMarketFilter(\'kind\',\'' + x[0] + '\');renderPublic()">' + x[1] + '</button>';
+    }).join("") + '</div>' +
+    '<div class="mf-price"><input class="form-input" inputmode="numeric" placeholder="' + t("priceFrom") + '" value="' + escapeHtml(f.min) + '" oninput="setMarketFilter(\'min\',this.value)"><span>\u2013</span>' +
+    '<input class="form-input" inputmode="numeric" placeholder="' + t("priceTo") + '" value="' + escapeHtml(f.max) + '" oninput="setMarketFilter(\'max\',this.value)">' +
+    ((f.q || f.kind || f.min || f.max) ? '<button type="button" class="edit-btn" onclick="clearMarketFilter()" aria-label="' + t("clear") + '">' + icon("close", 14) + '</button>' : '') + '</div></div>';
+  html += '<div id="marketList">' + _marketListHtml() + '</div>';
+  return html;
+}
+
+function _marketListHtml() {
+  var me = currentUser.uid, list = _marketItems(), html = "";
+  if (!list.length) return '<div class="empty-state">' + icon("shuttle", 40) + '<div>' + (_market.length ? t("noMatch") : t("marketEmpty")) + '</div></div>';
   list.forEach(function (g) {
     var u = findUser(g.uid);
     var seller = (u && plainUserName(u)) || g.sellerName || "?";
@@ -427,7 +459,8 @@ function _renderMarket() {
     html += '<div class="card market-card">' +
       (g.photo ? '<img class="market-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="openImage(this.src)">' : '<div class="market-photo empty">' + icon(g.kind === "other" ? "other" : "shuttle", 36) + '</div>') +
       '<div class="market-body"><div class="market-top"><b>' + escapeHtml(g.name) + '</b><span class="market-price">' + _salePrice(g) + '</span></div>' +
-      '<div class="market-facts">' + t("gearKind_" + (g.kind || "other")) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') + (g.saleCity ? ' · ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.saleCity)) : '') + '</div>' +
+      '<div class="market-facts">' + t("gearKind_" + (g.kind || "other")) + (g.brand ? ' \u00B7 ' + escapeHtml(g.brand) : '') + (g.saleCity ? ' \u00B7 ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.saleCity)) : '') + '</div>' +
+      (g.listedAt ? '<div class="market-posted">' + icon("clock", 12) + ' ' + t("postedAt").replace("{when}", _whenShort(g.listedAt)) + '</div>' : '') +
       (g.note ? '<div class="market-note">' + escapeHtml(g.note) + '</div>' : '') +
       '<div class="market-seller" onclick="showUserProfile(\'' + g.uid + '\',event)">' + avatarHtml(g.uid, 24) + '<span>' + escapeHtml(seller) + (g.uid === me ? ' (' + t("you") + ')' : '') + '</span></div>' +
       (g.uid === me ? '<div class="game-actions"><button class="btn-primary" onclick="markGearSold(\'' + g.id + '\')">' + t("markSold") + '</button><button class="btn-secondary" onclick="removeFromSale(\'' + g.id + '\')">' + t("removeSale") + '</button></div>' : '') +

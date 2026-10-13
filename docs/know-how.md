@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v76**.
+run it. App version at the time of writing: **v77**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -115,7 +115,8 @@ notifications button and **your picture**. They are two separate pages:
 - **My profile** (your picture in the header): one hero card (photo, name, level,
   permissions and three number tiles: rating, games, win rate), your badges, then a
   list of rows: **Personal info** (story, details, who can see), **My gear**,
-  **Payment QR**. Tap a row to open it, tap again to close. *Share my month recap*
+  **Payment QR**. Each row opens **its own page** (breadcrumb *My profile > Personal info*;
+  the browser back button returns to the profile), not a drop-down. *Share my month recap*
   at the bottom.
 - **Settings** (the last button of the bottom bar), grouped like a list of icon rows:
   - **Group:** switch group, group settings, members, courts & prices, cocks,

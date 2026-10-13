@@ -4988,3 +4988,15 @@ body.live-on { overflow: hidden; }
 .games-links { display: flex; gap: 10px; margin: 0 0 12px; }
 .games-links .btn-secondary { flex: 1; width: auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--surface); }
 .games-links .btn-secondary .si { color: var(--accent); }
+
+/* ========== Market filters ========== */
+.market-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.mf-search { display: flex; align-items: center; gap: 8px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 0 10px; }
+.mf-search .si { color: var(--text-muted); flex: none; }
+.mf-search .form-input { border: 0; background: none; min-height: 44px; }
+.mf-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.mf-chips .chip { min-height: 40px; }
+.mf-price { display: flex; align-items: center; gap: 8px; }
+.mf-price .form-input { flex: 1; min-width: 0; min-height: 44px; }
+.market-posted { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.market-posted .si { color: var(--accent); }

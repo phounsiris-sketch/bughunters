@@ -329,7 +329,7 @@ function monthsOf(items, getDate) {
 function refreshCurrentPage(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
-  if ((currentPage === "settings" || currentPage === "profile" || currentPage === "config") && typeof renderSettings === "function") {
+  if ((currentPage === "settings" || currentPage === "profile" || currentPage === "profile-sub" || currentPage === "config") && typeof renderSettings === "function") {
     renderSettings();
   } else if (currentPage === "user" && typeof loadUserProfile === "function") {
     loadUserProfile();
@@ -385,7 +385,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v76"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v77"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
