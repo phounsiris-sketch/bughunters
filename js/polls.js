@@ -142,8 +142,8 @@ function renderPolls(polls) {
   }).sort(byLatest(dateOf));
 
   setBreadcrumb(pollView === "history"
-    ? [{ label: t("navPolls"), action: "setPollView('active')" }, { label: t("history") }]
-    : null);
+    ? [{ label: t("navGames"), action: "showPage('games')" }, { label: t("navPolls"), action: "setPollView('active')" }, { label: t("history") }]
+    : [{ label: t("navGames"), action: "showPage('games')" }, { label: t("navPolls") }]);
 
   var html = '<div class="dashboard-tabs">';
   html += '<button class="dash-tab' + (pollView === "active" ? ' active' : '') + '" onclick="setPollView(\'active\')">' + icon("vote", 15) + ' ' + t("activePolls") + ' (' + active.length + ')</button>';
@@ -254,7 +254,7 @@ function _renderPollCard(poll) {
     html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
     html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(answerLabel(np.answers[ai])) +
       (ai === 0 ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
-    if (uids.length) html += '<div class="poll-voters">' + peopleHtml(uids, 20, 4) + '</div>';
+    if (uids.length) html += '<div class="poll-voters">' + peopleHtml(uids, 20, 6) + '</div>';
     html += '</div>';
     html += '<div class="vote-count" style="font-weight:700;color:' + (ai === 0 && enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +
       uids.length + (ai === 0 ? '/' + minPlayers : '') + '</div>';
@@ -528,7 +528,7 @@ function renderPollCreateForm() {
   }
   if (!newPoll.courtId || !dbFindById(courts, newPoll.courtId)) newPoll.courtId = courts[0].id;
 
-  setBreadcrumb([{ label: t("navPolls"), action: "showPage('polls')" }, { label: t("createPoll") }]);
+  setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: t("createPoll") }]);
   var step = newPoll.step === 2 ? 2 : 1;
   var html = wizBarHtml(step - 1, [t('wzWhenWhere'), t('wzVoteOptions')]);
 

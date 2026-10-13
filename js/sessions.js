@@ -248,8 +248,8 @@ function renderSessionsList(sessions) {
   html += '</div>';
 
   setBreadcrumb(sessionView === "history"
-    ? [{ label: t("navSessions"), action: "setSessionView('recent')" }, { label: t("history") }]
-    : null);
+    ? [{ label: t("navGames"), action: "showPage('games')" }, { label: t("navSessions"), action: "setSessionView('recent')" }, { label: t("history") }]
+    : [{ label: t("navGames"), action: "showPage('games')" }, { label: t("navSessions") }]);
 
   var inView = sessionView === "history" ? older : recent;
   var months = monthsOf(inView, function (s) { return s.date; });
@@ -405,7 +405,7 @@ function createAdHocSession() {
 function renderSessionCreateForm() {
   var container = document.getElementById("sessionCreateContent");
   if (!container || !newSes) return;
-  setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: t("newSession") }]);
+  setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: t("newSession") }]);
 
   var courts = DB_CACHE.courts;
   if (!courts.length) {
@@ -551,7 +551,7 @@ function renderSessionDetail() {
   if (!container || !currentSession) return;
   var s = currentSession;
   // The session can arrive after the user has moved on — leave other pages alone
-  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(s.date) }]);
+  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: fmtDate(s.date) }]);
   if (sessionTab === "games" && _hasGamesTab()) { renderSessionGamesTab(); return; }
 
   if (!s.calculated && !sessionEditing) {
@@ -646,7 +646,7 @@ function setSessionTab(tab) {
 function renderSessionGamesTab() {
   var container = document.getElementById("sessionDetailContent");
   if (!container || !currentSession) return;
-  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navSessions"), action: "showPage('sessions')" }, { label: fmtDate(currentSession.date) }, { label: t("sessionTabGames") }]);
+  if (currentPage === "session-detail") setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: fmtDate(currentSession.date) }, { label: t("sessionTabGames") }]);
   container.innerHTML = _renderSessionHeader(currentSession) + _sessionTabsHtml(currentSession) + sessionGamesTabHtml(currentSession);
 }
 
@@ -970,7 +970,7 @@ function renderEditForm() {
   var html = "";
   var canDetails = canEditSessionDetails(currentSession), canBill = canEditBill(currentSession);
   if (currentPage === "session-detail") setBreadcrumb([
-    { label: t("navSessions"), action: "showPage('sessions')" },
+    { label: t("navGames"), action: "showPage('games')" },
     { label: fmtDate(edit.date), action: currentSession && currentSession.calculated ? "cancelEditSession()" : "showPage('sessions')" },
     { label: t("editCosts") }
   ]);
