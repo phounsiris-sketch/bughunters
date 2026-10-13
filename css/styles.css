@@ -4545,3 +4545,13 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .recent-wrap > summary::-webkit-details-marker { display: none; }
 .recent-chev { display: inline-flex; margin-left: 4px; color: var(--text-muted); transform: rotate(90deg); transition: transform .2s; }
 .recent-wrap[open] .recent-chev { transform: rotate(-90deg); }
+
+/* Games tab: summary card (total games + games per player) */
+.games-summary { padding: 12px 14px; margin-bottom: 12px; }
+.games-summary .gs-total { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+.games-summary .gs-total b { color: var(--text); font-size: 18px; }
+.games-summary .gs-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.games-summary .gs-name { flex: 0 0 38%; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.games-summary .gs-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--border, rgba(128,128,128,.2)); overflow: hidden; }
+.games-summary .gs-bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #00897b, #2563eb); }
+.games-summary .gs-n { flex: 0 0 24px; text-align: right; font-weight: 700; font-size: 13px; }

@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v55**.
+run it. App version at the time of writing: **v56**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -284,6 +284,10 @@ record **one game at a time**:
      *Highest score in a game*.
 4. Optionally type the minutes played, then **Save game**. The form clears for
    the next game, and the list below updates for everyone at once.
+
+Above the list, a **Summary** card shows the total games of the session and
+how many games each player played (bar + number, most games first). Both teams
+count, in any game type. It updates live and is hidden until the first game.
 
 A game **counts in Stats as soon as it's saved**; nobody needs to confirm it. If a
 score is wrong, the person who saved it (or an admin) taps ✎ to fix it or 🗑 to
