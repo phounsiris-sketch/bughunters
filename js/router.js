@@ -95,7 +95,7 @@ function showPage(page, pushHistory) {
     loadDashboard();
   } else if (page === "payments" && typeof loadPayments === "function") {
     loadPayments();
-  } else if ((page === "settings" || page === "profile") && typeof loadSettings === "function") {
+  } else if ((page === "settings" || page === "profile" || page === "profile-sub") && typeof loadSettings === "function") {
     loadSettings();
   } else if (page === "config" && typeof loadConfig === "function") {
     loadConfig();

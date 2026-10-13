@@ -627,7 +627,7 @@ function _sessionActionBar(s) {
   if (!s || typeof sessionStep !== "function" || sessionEditing) return "";
   var step = sessionStep(s), btns = "";
   if (step <= 1 && sessionTab !== "games" && _hasGamesTab() && typeof _canAddGames === "function" && _canAddGames(s)) {
-    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + s.id + '\')">' + icon("court", 16) + ' ' + t("lsTitle") + '</button>' +
+    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + s.id + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>' +
       '<button type="button" class="btn-primary" onclick="quickAddGame()">' + icon("add", 16) + ' ' + t("addGameScore") + '</button>';
   } else if (step === 2 && typeof myOweOn === "function" && myOweOn(s) > 0) {
     btns = '<button type="button" class="btn-primary" onclick="showMyPayments()">' + icon("wallet", 16) + ' ' + t("homePay") + ' ' + fmtShort(myOweOn(s)) + '</button>';

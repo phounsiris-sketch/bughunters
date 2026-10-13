@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v75**.
+run it. App version at the time of writing: **v79**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -115,7 +115,8 @@ notifications button and **your picture**. They are two separate pages:
 - **My profile** (your picture in the header): one hero card (photo, name, level,
   permissions and three number tiles: rating, games, win rate), your badges, then a
   list of rows: **Personal info** (story, details, who can see), **My gear**,
-  **Payment QR**. Tap a row to open it, tap again to close. *Share my month recap*
+  **Payment QR**. Each row opens **its own page** (breadcrumb *My profile > Personal info*;
+  the browser back button returns to the profile), not a drop-down. *Share my month recap*
   at the bottom.
 - **Settings** (the last button of the bottom bar), grouped like a list of icon rows:
   - **Group:** switch group, group settings, members, courts & prices, cocks,
@@ -304,6 +305,28 @@ opens that session's matches (see section 7).
 **Deleting** a session or poll moves it to **Recently deleted** (Settings), where
 it can be restored for **30 days**.
 
+### Subscription step (demo, v79)
+
+A **new account** (just finished registering) sees *Start with Godsmash* before the app
+opens: Monthly 30,000 ₭ or Yearly 300,000 ₭, what is included, a payment method
+(OnePay, card, bank transfer) and **Pay**. **This is a mock: nothing is charged.** *Pay*
+marks the account as subscribed on this phone (`localStorage`) and opens Home. Accounts
+that already existed are not asked. Settings > App shows *Subscription* with the plan.
+The code is `js/subscription.js`; replace `subPayMock()` with a real payment provider
+(and store the subscription on the server, not on the phone) before charging anyone.
+
+### Public games: calendar, photo, repeat, auto-cancel (v78)
+
+*Community > Open games* starts with a **month calendar**: days with games show dots,
+tap a day to see only that day (tap again to clear), arrows change the month. Tap *Join*
+to reserve a place. The **Play buddies** tab has the same calendar for your invites. A
+game has an optional **photo** (a thumbnail on the card, good for an ad or the venue) and
+can **repeat weekly** (2 to 12 weeks; one game is posted for each week, tagged "Repeats
+weekly"). **A game that is not full (confirmed) 24 hours after it was posted is cancelled**
+(`PUBLIC_GAME_TTL_H` in `js/public.js`): everyone stops seeing it and its host's phone
+marks it cancelled and says so. The card is compact: host and players (photo + name), tags
+and one button.
+
 ### Live score
 
 Home > Create > **Live score** (or the button on a session's Games tab). Pick the
@@ -315,7 +338,12 @@ same teams. The score stays on your phone if you leave or refresh; Home shows
 *Live score in progress*. Menu: Exit, Reset, Settings (current game, teams, theme
 colour). **Live score always starts by asking which game (session) the score is for**
 (today's or the latest one is first and marked); you can change it later from the
-setup screen. An **Exit** button is at the top left of the counter. Code: `js/livescore.js`.
+setup screen. An **Exit** button is at the top left of the counter: it
+asks first, then clears the live game (nothing counted is kept). Live score is only offered
+for games that are not completed, and it never creates a game: pick an existing one. In the
+counter the **left half of each team is darker (minus, small button) and the right half is
+plain (plus)**. After *Save and next game* you land on the team setup with the **same
+players marked**: change them or tap Start. The icon is a scoreboard. Code: `js/livescore.js`.
 
 ### Spending tab (Dashboard)
 
