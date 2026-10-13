@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v65**.
+run it. App version at the time of writing: **v66**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -47,7 +47,17 @@ The app has two zones, kept visually apart so nobody confuses them:
 | **Private (my group)** | Your theme colour | Only members of the group | Polls, sessions, bills, matches, stats, members |
 | **Public** | Pink/purple with a "Public — everyone can see this" banner | Every signed-in user | Open games, play buddies, the gear Market, public groups, the court directory |
 
-**Bottom bar:** Polls · Sessions · **Home** (middle) · Stats · Public.
+**Bottom bar:** **Games** · Rankings · **Home** (middle) · Community · Me.
+Rankings and Community show once groups are on. The floating **+** on Games opens
+*Create*: Vote, Game, Live score, Add score.
+
+**Games** is one list of votes and sessions: *Upcoming* (open votes, games being
+played), *Past* (to pay, done) and *All*. Each card has a date block, the court,
+icons (people, time, what you owe), a status pill (Vote blue, Playing teal, To pay
+orange, Done green), a Plan-Play-Pay-Done bar, a vote bar (for votes) and the
+people with photo and name. A confirmed vote shows as its session, not twice. The
+old Polls and Sessions pages are still there (links at the bottom of Games). Code:
+`js/games.js`.
 
 **Home** is where the app opens. Top to bottom:
 

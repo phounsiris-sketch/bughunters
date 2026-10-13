@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(home|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
+var GROUP_PAGES = /^(home|games|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 /** Header button with my picture (opens My profile) */
@@ -51,7 +51,7 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "home": "dashboard", "session-create": "sessions", "poll-create": "polls", "game-create": "public", "game-detail": "public", "matches": "sessions", "match-record": "sessions" };
+  var navOf = { "home": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "profile": "me", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
@@ -69,11 +69,12 @@ function showPage(page, pushHistory) {
   if (fab) {
     var fabSession = page === "sessions";
     var fabGame = page === "public" && typeof publicTab !== "undefined" && publicTab === "games";
-    fab.style.display = (page === "polls" || page === "dashboard" || fabSession || fabGame) ? "" : "none"; // everyone can create
+    var fabGames = page === "games";
+    fab.style.display = (page === "polls" || page === "dashboard" || fabSession || fabGame || fabGames) ? "" : "none"; // everyone can create
     var fabLabel = fabGame ? "newPublicGame" : fabSession ? "newSession" : "createPoll";
     fab.setAttribute("aria-label", t(fabLabel));
     fab.title = t(fabLabel);
-    fab.onclick = fabGame ? function () { showPage("game-create"); } : fabSession ? function () { createAdHocSession(); } : function () { showCreatePoll(); };
+    fab.onclick = fabGames ? function () { showCreateSheet(); } : fabGame ? function () { showPage("game-create"); } : fabSession ? function () { createAdHocSession(); } : function () { showCreatePoll(); };
   }
 
   // Each page sets its breadcrumb when it renders; start from the top level
@@ -86,6 +87,8 @@ function showPage(page, pushHistory) {
     loadSessions();
   } else if (page === "home" && typeof loadHome === "function") {
     loadHome();
+  } else if (page === "games" && typeof loadGames === "function") {
+    loadGames();
   } else if (page === "dashboard" && typeof loadDashboard === "function") {
     loadDashboard();
   } else if (page === "payments" && typeof loadPayments === "function") {

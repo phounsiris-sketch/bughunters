@@ -109,6 +109,7 @@ function openModal() {
 function closeModal() {
   var overlay = document.getElementById("modal");
   if (overlay) overlay.classList.remove("active");
+  var ok = document.getElementById("modalConfirmBtn"); if (ok) ok.style.display = "";
   modalCallback = null;
 }
 
@@ -344,6 +345,8 @@ function refreshCurrentPage(reason) {
     renderPayments();
   } else if (currentPage === "home" && typeof renderHome === "function") {
     renderHome();
+  } else if (currentPage === "games" && typeof renderGames === "function") {
+    renderGames();
   } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
     _renderDashboard();
   } else if (currentPage === "stats" && typeof renderStats === "function") {
@@ -382,7 +385,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v65"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v66"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

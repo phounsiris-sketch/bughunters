@@ -4843,3 +4843,26 @@ body.live-on { overflow: hidden; }
 .home-live .si:first-child, .live-launch .si:first-child { color: var(--accent); }
 .home-live span, .live-launch span { flex: 1; } .home-live b, .live-launch b { display: block; font-size: 14px; } .home-live small, .live-launch small { color: var(--text-muted); font-size: 12px; }
 .home-live i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--accent); }
+
+/* ========== Games list (votes + sessions) ========== */
+.game-card2 { width: 100%; display: block; text-align: left; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; box-shadow: var(--card-shadow); color: var(--text); font: inherit; cursor: pointer; }
+.gc-top { display: flex; align-items: flex-start; gap: 12px; }
+.gc-main { flex: 1; min-width: 0; }
+.gc-court { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.gc-stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.icon-stat.owe, .icon-stat.owe .si { color: var(--orange); }
+.gseg { display: flex; gap: 4px; margin: 12px 0 10px; }
+.gseg i { flex: 1; height: 5px; border-radius: 3px; background: var(--border); }
+.gseg i.on { background: var(--primary); }
+.gc-people { margin-top: 8px; }
+.game-card2 .vote-bar { margin-top: 2px; }
+.gc-cta { display: flex; justify-content: flex-end; align-items: center; gap: 2px; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--accent); }
+.gc-cta .si { color: var(--accent); }
+.games-links { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.home-news.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.home-news.two { grid-template-columns: 1fr; margin-top: 10px; }
+.home-new.big { min-height: 112px; padding: 14px 4px; }
+.home-new.big small { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+.home-new.big .home-new-ico { width: 52px; height: 52px; }
+.home-new.row { flex-direction: row; justify-content: flex-start; padding: 8px 14px; min-height: 52px; gap: 10px; }
+.home-new.row .home-new-ico { width: 36px; height: 36px; }
