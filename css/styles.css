@@ -5185,10 +5185,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Match score (games won) as a small line under the big score */
 .ls-won { margin-top: 2px; font-size: clamp(13px, 2.6vh, 24px); font-weight: 600; letter-spacing: .5px; opacity: .92; text-align: center; }
 
-/* Match score under the score: small text, games won then each finished game's points */
-.ls-flip { display: flex; gap: 10px; justify-content: center; align-items: baseline; flex-wrap: wrap; margin-top: 4px; }
-.ls-won-n { font-size: clamp(13px, 2.6vh, 24px); font-weight: 600; letter-spacing: .5px; opacity: .92; }
-.ls-pt { font-size: clamp(13px, 2.6vh, 24px); font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
+/* Match score under the score: flip card with games won, then each finished game's points as small text below it */
+.ls-flip { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 8px; }
+.fc { position: relative; display: inline-block; min-width: 1.5em; padding: .28em .4em .22em; border-radius: 8px; background: #1b1b21; color: #facc15; font-weight: 800; line-height: 1; text-align: center; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); font-variant-numeric: tabular-nums; }
+.fc::before { content: ""; position: absolute; top: -5px; left: 50%; width: 34%; height: 9px; transform: translateX(-50%); border-radius: 4px; background: #0d0d11; border: 2px solid rgba(255, 255, 255, .28); box-sizing: border-box; }
+.fc.won { font-size: clamp(26px, 6.4vh, 64px); }
+.ls-pts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ls-pt { font-size: clamp(12px, 2.4vh, 22px); font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
 .ls-pt.win { font-weight: 800; opacity: 1; }
 
 /* Phones: no match count / per-game results on the score screen (iPad and wide screens keep them) */

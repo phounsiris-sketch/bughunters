@@ -120,11 +120,13 @@ function _boSegHtml() {
   }).join("") + '</div>';
 }
 
-/** Match score as small text under the score: games won, then this team's points in each finished game (the game it won in bold) */
+/** Match score: a flip card with the games won, and under it the points of each finished game as small text (the game this team won in bold) */
 function flipBoardHtml(side, sw, gl) {
   var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
-  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="ls-won-n">' + t("lsGamesWon").replace("{n}", sw[side]) + '</span>';
-  (gl || []).forEach(function (g) { html += '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '">' + g[k] + '</span>'; });
+  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span>';
+  if ((gl || []).length) {
+    html += '<div class="ls-pts">' + gl.map(function (g) { return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '">' + g[k] + '</span>'; }).join("") + '</div>';
+  }
   return html + '</div>';
 }
 
