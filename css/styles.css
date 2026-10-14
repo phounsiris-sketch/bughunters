@@ -5195,3 +5195,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @media (max-width: 767px), (max-height: 500px) {
   .ls-flip, .ls-tname, .ls-pill-x, .ls-exit-count { display: none; }   /* minimal: names + big score + serve shuttle; Exit lives in the menu */
 }
+
+/* Live score: fast taps must never zoom the page (double-tap / pinch), and text must not be selected */
+.live-screen, .live-screen * { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }

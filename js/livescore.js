@@ -550,3 +550,8 @@ function _lsWatchHtml() {
   }
   return html;
 }
+
+/* iOS Safari can still start a pinch zoom while the live screen is open: stop it (taps are not touched, so spamming + / - still counts every tap) */
+["gesturestart", "gesturechange"].forEach(function (n) {
+  document.addEventListener(n, function (e) { if (document.body.classList.contains("live-on")) e.preventDefault(); });
+});
