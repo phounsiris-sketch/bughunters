@@ -1019,3 +1019,6 @@ Flip cards dropped (user: a small number is enough). Under the score: "Games won
 
 ## Phones hide the match count (v104)
 Match score line (`.ls-flip`) is iPad/wide-screen only: hidden at width <= 767px or height <= 500px (phones, also landscape). Data still tracked; match-win title and Rematch on the game-over screen are unchanged.
+
+## Minimal phone score screen (v105)
+Phones (width <= 767px or height <= 500px) show only: player names, big score, serve shuttle, Undo / "Game N" / Settings. Hidden: "Team A/B" text, "to 21 · best of 3 (1–0)" part of the pill, top-left Exit (Exit is in the Settings menu), match-count line. Watch screen keeps its Exit button. iPad/wide unchanged.

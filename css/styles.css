@@ -5192,4 +5192,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-pt.win { font-weight: 800; opacity: 1; }
 
 /* Phones: no match count / per-game results on the score screen (iPad and wide screens keep them) */
-@media (max-width: 767px), (max-height: 500px) { .ls-flip { display: none; } }
+@media (max-width: 767px), (max-height: 500px) {
+  .ls-flip, .ls-tname, .ls-pill-x, .ls-exit-count { display: none; }   /* minimal: names + big score + serve shuttle; Exit lives in the menu */
+}
