@@ -5239,3 +5239,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Format tabs: one row, equal width, labels never wrap (the long name sits in the hint under the tabs) */
 .ls-fmt .seg-btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding: 10px 4px; }
 .ls-fmt-hint { margin-top: 6px; text-align: center; }
+
+/* Match won: bigger gold trophy and a stronger glow. Draw: medal on both sides, no fading. */
+.ls-crown.ls-trophy .si { width: clamp(52px, 12vh, 108px); height: clamp(52px, 12vh, 108px); }
+.ls-half.ls-champ { animation-duration: .8s; }
+.ls-half.ls-draw .ls-score { text-shadow: 0 0 18px rgba(255, 255, 255, .4); }
