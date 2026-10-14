@@ -95,7 +95,29 @@ function _lsSession(id) {
   return null;
 }
 function _lsBlank(sid, type) {
-  return { sid: sid, type: type || "md", a: [], b: [], sa: 0, sb: 0, serve: "A", hist: [], over: null, startedAt: Date.now(), saved: 0 };
+  return { sid: sid, type: type || "md", a: [], b: [], sa: 0, sb: 0, serve: "A", hist: [], over: null, startedAt: Date.now(), saved: 0, bo: 1, sw: { A: 0, B: 0 } };
+}
+
+/* ---------- Match format: single game, best of 3, best of 5 (the same pairs play on) ---------- */
+
+function lsNeed(st) { return Math.ceil(((st || live).bo || 1) / 2); }
+/** Games won so far in this match, counting the game that just finished */
+function lsSeriesAfter(st, winner) {
+  var sw = st.sw || { A: 0, B: 0 }, n = { A: sw.A || 0, B: sw.B || 0 };
+  n[winner] += 1;
+  return n;
+}
+function lsMatchDecided(st, winner) { return (st.bo || 1) > 1 && lsSeriesAfter(st, winner)[winner] >= lsNeed(st); }
+function lsBo(n) {
+  if (!live) return;
+  live.bo = n; live.sw = { A: 0, B: 0 };
+  lsSave(); lsRender();
+}
+function _boSegHtml() {
+  var cur = live.bo || 1;
+  return '<div class="seg seg-wrap">' + [1, 3, 5].map(function (n) {
+    return '<button type="button" class="seg-btn' + (cur === n ? ' active' : '') + '" onclick="lsBo(' + n + ')">' + (n === 1 ? t("lsSingleGame") : t("lsBestOf").replace("{n}", n)) + '</button>';
+  }).join("") + '</div>';
 }
 
 /* ---------- Open / close ---------- */
@@ -175,7 +197,8 @@ function _lsCountHtml() {
   html += '<button type="button" class="ls-exit" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   if (live.test) html += '<div class="ls-test">' + icon("warning", 14) + ' ' + t("lsTestBadge") + '</div>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
-    '<span class="ls-pill">' + t("lsGameN").replace("{n}", live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) + '</span>' +
+    '<span class="ls-pill">' + t("lsGameN").replace("{n}", (live.bo || 1) > 1 ? (live.sw.A + live.sw.B + 1) : live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) +
+      ((live.bo || 1) > 1 ? ' · ' + t("lsBestOf").replace("{n}", live.bo) + ' (' + live.sw.A + '\u2013' + live.sw.B + ')' : '') + '</span>' +
     '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
   if (gp && !live.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' · ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (liveMode === "menu") {
@@ -192,16 +215,21 @@ function _lsCountHtml() {
 
 function _lsOverHtml() {
   var w = live.over, ids = byNameAZ(w === "A" ? live.a : live.b);
+  var after = lsSeriesAfter(live, w), decided = lsMatchDecided(live, w), multi = (live.bo || 1) > 1;
+  var title = decided
+    ? t("lsMatchWins").replace("{team}", t("lsTeam") + " " + w).replace("{a}", after.A).replace("{b}", after.B)
+    : t("lsWins").replace("{team}", t("lsTeam") + " " + w);
+  var series = multi && !decided ? '<div class="form-hint">' + t("lsBestOf").replace("{n}", live.bo) + ' \u00B7 ' + after.A + '\u2013' + after.B + '</div>' : '';
   if (live.test) {
-    return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + w) + '</div>' +
-      '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div><div class="form-hint">' + t("lsTestBadge") + '</div>' +
-      '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t("lsTestAgain") + '</button>' +
+    return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
+      '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="form-hint">' + t("lsTestBadge") + '</div>' +
+      '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t(decided ? "lsRematch" : "lsTestAgain") + '</button>' +
       '<button class="btn-secondary" onclick="lsExit()">' + t("lsExit") + '</button>' +
       '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
   }
-  return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + w) + '</div>' +
-    '<div class="ls-over-score">' + live.sa + ' – ' + live.sb + '</div><div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
-    '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsSaveNext") + '</button>' +
+  return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
+    '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
+    '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t(decided ? "lsRematch" : "lsSaveNext") + '</button>' +
     '<button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>' +
     '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
 }
@@ -259,6 +287,7 @@ function _lsSetupHtml() {
   var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="lsChangeGame()">' + icon("back", 22) + '</button><div><b>' + t("lsTitle") + '</b><small>' + fmtDate(s.date) + ' · ' + escapeHtml(s.courtName || "") + '</small></div></div><div class="ls-body">' +
     '<button type="button" class="ls-current" onclick="lsChangeGame()">' + dateBlockHtml(s.date) + '<span><b>' + escapeHtml(s.courtName || "–") + '</b><small>' + t("lsCurrentGame") + '</small></span><i>' + t("lsChange") + '</i></button>' +
     '<div class="seg seg-wrap">' + ["md", "wd", "xd", "singles"].map(function (x) { return '<button type="button" class="seg-btn' + (live.type === x ? ' active' : '') + '" onclick="lsType(\'' + x + '\')">' + t("gameType_" + x) + '</button>'; }).join("") + '</div>' +
+    '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsFormat") + '</div>' + _boSegHtml() + '</div>' +
     (live.saved > 0 ? '<div class="ls-same">' + icon("users", 18) + '<span><b>' + t("lsSamePlayers") + '</b><small>' + t("lsSamePlayersHint") + '</small></span></div>' : '') +
     team("A", live.a, th[1], th[2]) + team("B", live.b, th[3], th[4]) +
     '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsPickPlayers") + '</div><div class="ls-pool">' +
@@ -275,6 +304,7 @@ function _lsSettingsHtml() {
   var cur = lsThemeIdx(), size = live.type === "singles" ? 1 : 2;
   var games = _lsSessions();
   var html = '<div class="ls-bar"><button type="button" class="ls-back" aria-label="' + t("back") + '" onclick="liveMode=\'count\';lsRender()">' + icon("back", 22) + '</button><div><b>' + t("lsSettings") + '</b></div></div><div class="ls-body">';
+  html += '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsFormat") + '</div>' + _boSegHtml() + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("lsCurrentGame") + '</div>' +
     games.map(function (s) {
       var on = s.id === live.sid;
@@ -333,7 +363,12 @@ function lsReset() {
   lsSave(); liveMode = "count"; lsRender();
 }
 
-function lsTestAgain() { live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; lsShare(); lsRender(); }
+function lsTestAgain() {
+  var w = live.over || "A", decided = lsMatchDecided(live, w);
+  live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, w);
+  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = w;
+  lsShare(); lsRender();
+}
 
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
@@ -359,9 +394,10 @@ function lsSaveGame(next) {
     .then(function () {
       showToast(t("gameSaved") + " ✔");
       if (next) {
-        var winner = live.over;
+        var winner = live.over, decided = lsMatchDecided(live, winner);
+        live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, winner);   // a decided match starts again from 0\u20130
         live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now();
-        lsSave(); liveMode = "setup"; lsRender();   // same players are marked; change them or just start
+        lsSave(); liveMode = "count"; lsRender();   // the same pairs play on; Settings \u2192 change teams to swap players
       } else {
         live = null; lsSave(); lsClose();
         showSessionDetail(s.id, "games");
@@ -403,7 +439,7 @@ function lsShare() {
     _shared = true;
     fsdb.collection("liveGames").doc(currentUser.uid).set({
       hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
-      test: !!live.test, sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
+      test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
       theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now()
     }).catch(function () {});   // watching is a bonus: counting never fails because of it
   }, 250);
@@ -462,18 +498,28 @@ function _lsWatchHtml() {
   if (!g) return "";
   var th = LS_THEMES[g.theme >= 0 && g.theme < LS_THEMES.length ? g.theme : 0];
   var cap = maxPoints(), gp = lsGamePoint(g.sa, g.sb, cap);
+  var bo = g.bo || 1, need = Math.ceil(bo / 2), sw = g.sw || { A: 0, B: 0 };
+  var pips = function (side) {
+    if (bo < 2) return "";
+    var out = "";
+    for (var i = 0; i < need; i++) out += '<i class="' + (i < sw[side] ? 'on' : '') + '"></i>';
+    return '<div class="ls-pips" aria-label="' + sw[side] + '/' + need + '">' + out + '</div>';
+  };
   var half = function (side) {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);
     return '<div class="ls-half" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
       '<div class="ls-info"><div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
-      '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
+      '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' + pips(side) +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div></div></div>';
   };
   var html = half("A") + half("B");
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
-  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", (g.saved || 0) + 1) + '</span></div>';
+  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + t("lsBestOf").replace("{n}", bo) : '') + '</span></div>';
   if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
-  if (g.over) html += '<div class="ls-gp"><span>' + icon("medal", 14) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + g.over) + '</span></div>';
+  if (g.over) {
+    var aft = { A: sw.A + (g.over === "A" ? 1 : 0), B: sw.B + (g.over === "B" ? 1 : 0) }, done = bo > 1 && aft[g.over] >= need;
+    html += '<div class="ls-gp"><span>' + icon("medal", 14) + ' ' + (done ? t("lsMatchWins").replace("{team}", t("lsTeam") + " " + g.over).replace("{a}", aft.A).replace("{b}", aft.B) : t("lsWins").replace("{team}", t("lsTeam") + " " + g.over)) + '</span></div>';
+  }
   return html;
 }

@@ -5162,3 +5162,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @keyframes ls-serve-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @media (orientation: landscape) and (min-width: 560px) { .ls-serve-slot { height: clamp(90px, 24vh, 200px); } .ls-serve-big { width: clamp(80px, 22vh, 190px); height: clamp(80px, 22vh, 190px); } }
 @media (prefers-reduced-motion: reduce) { .ls-serve-big { animation: none; } }
+
+/* Match count: a pip per game needed to win the match, filled when won */
+.ls-pips { display: flex; gap: 10px; justify-content: center; margin: 6px 0 2px; }
+.ls-pips i { width: clamp(14px, 3.2vh, 30px); height: clamp(14px, 3.2vh, 30px); border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, .85); background: transparent; }
+.ls-pips i.on { background: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, .6); }

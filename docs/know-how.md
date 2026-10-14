@@ -983,3 +983,8 @@ The Home "Live now" list hides only boards published by this same device (`dev` 
 
 ## Watch screen: big serve shuttle (v94)
 The watch screen shows who serves as a large shuttle above the team name (up to ~190 px in landscape), pulsing, and hides it when the game is over. Layout keeps a fixed slot so both halves line up. Planned next (not built): match count such as best of 3 and "same pairs" for the next game; the `liveGames` document already carries `saved` (games finished) and `a`/`b` (the pairs).
+
+## Match format: best of 3 / 5 and same pairs (v95)
+- `live.bo` (1, 3, 5) and `live.sw` ({A,B} games won in this match). Chosen in setup and in Settings. Each game is still saved as its own match document as before; the series is only tracked on the live board.
+- After "Save and next game" the same pairs play on straight away (count screen, winner serves). Settings → change teams swaps players. When a side reaches the needed wins the over card says "wins the match 2-1" and the button becomes "rematch with the same pairs" (series back to 0-0).
+- The count pill shows Game n · to 21 · Best of 3 (1-0). The shared board carries `bo` and `sw`; the watch screen draws a pip per game needed (filled when won), "Best of 3" in the pill and the match winner line. Tests: /tmp/series_test.js.
