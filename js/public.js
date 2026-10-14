@@ -195,7 +195,9 @@ function gameCardHtml(g) {
     (left ? '<span class="slot-row">' + Array(Math.min(left, 6) + 1).join('<span class="slot-empty"></span>') + (left > 6 ? '<small>+' + (left - 6) + '</small>' : '') + '</span>' : '') + '</div>';
   html += '<div class="game-actions">';
   if (host) {
-    html += '<button class="btn-secondary" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>';
+    html += '<button class="btn-secondary" onclick="editPublicGame(\'' + g.id + '\')">' + icon("edit", 16) + ' ' + t("edit") + '</button>' +
+      '<button class="btn-secondary" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>' +
+      '<button class="btn-danger" onclick="deletePublicGame(\'' + g.id + '\')">' + icon("trash", 16) + ' ' + t("delete") + '</button>';
   } else if (inGame || onWait) {
     html += '<button class="btn-secondary" onclick="toggleGame(\'' + g.id + '\')"' + (closed ? ' disabled' : '') + '>' + t(onWait ? "leaveWaitlist" : "leaveGame") + '</button>';
   } else {
@@ -261,12 +263,35 @@ function cancelGame(id) {
     .catch(function (e) { showToast(_permError(e)); });
 }
 
+/** Host removes the card for good (players are not told; use Cancel to tell them) */
+function deletePublicGame(id) {
+  if (!confirm(t("deleteGameConfirm"))) return;
+  fsdb.collection("openGames").doc(id).delete()
+    .then(function () { showToast(t("delete") + " \u2714"); })
+    .catch(function (e) { showToast(_permError(e)); });
+}
+
 /* ---------- Host a public game ---------- */
 
 var newGame = null;
+var _gameEditOpen = false;
+
+/** Host opens his own card in the same form to change it */
+function editPublicGame(id) {
+  var g = _publicGames.filter(function (x) { return x.id === id; })[0];
+  if (!g || !currentUser || g.hostId !== currentUser.uid) return;
+  newGame = { _editId: id, _photo: g.photo || null, date: g.date, time: g.time, duration: g.duration || 2, courtId: g.courtId || "",
+    slots: g.slots || 4, hostPlays: (g.players || []).indexOf(g.hostId) >= 0, gameType: g.gameType || "md", mode: g.mode || "fun",
+    levelMin: g.levelMin || "", levelMax: g.levelMax || "", price: g.price || 0, dinner: !!g.dinner, note: g.note || "", title: g.title || "",
+    repeat: "none", repeatN: 4, photoData: null, _more: true };
+  _gameEditOpen = true;
+  showPage("game-create");
+}
 
 function loadGameCreate() {
   setBreadcrumb([{ label: t("navPublic"), action: "showPage('public')" }, { label: t("newPublicGame") }]);
+  if (newGame && newGame._editId && !_gameEditOpen) newGame = null;   // an abandoned edit is not a draft
+  _gameEditOpen = false;
   if (!newGame) {
     var d = new Date(Date.now() + 86400e3);
     newGame = { date: d.toISOString().slice(0, 10), time: (currentGroup && currentGroup.usualTime) || "18:00", duration: 2, courtId: "",
@@ -322,7 +347,7 @@ function renderGameForm() {
   html += '<div class="form-group"><label class="form-label">' + icon("camera", 12) + ' ' + t("gamePhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
     (g.photoData ? '<img class="rest-photo" src="' + g.photoData + '" alt="">' : '') +
     '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="gamePhotoChosen(this)"></div>';
-  html += '<div class="form-group"><label class="form-label">' + icon("history", 12) + ' ' + t("repeatLabel") + '</label>' +
+  if (!g._editId) html += '<div class="form-group"><label class="form-label">' + icon("history", 12) + ' ' + t("repeatLabel") + '</label>' +
     '<div class="seg seg-wrap"><button type="button" class="seg-btn' + (g.repeat !== "weekly" ? ' active' : '') + '" onclick="gameSet(\'repeat\',\'none\')">' + t("repeatNone") + '</button>' +
     '<button type="button" class="seg-btn' + (g.repeat === "weekly" ? ' active' : '') + '" onclick="gameSet(\'repeat\',\'weekly\')">' + t("repeatWeekly") + '</button></div>' +
     (g.repeat === "weekly" ? '<div class="stepper" style="margin-top:8px"><button type="button" onclick="gameSet(\'repeatN\',Math.max(2,newGame.repeatN-1))">\u2212</button><b>' + t("repeatTimes").replace("{n}", g.repeatN) + '</b>' +
@@ -333,8 +358,8 @@ function renderGameForm() {
     '<div class="form-group"><label class="form-label">' + t("note") + '</label><textarea class="form-input" rows="2" maxlength="200" oninput="newGame.note=this.value">' + escapeHtml(g.note) + '</textarea></div>' +
     '</details>';
   html += '<div class="live-summary">' + _gameSummary() + '</div>';
-  html += '<button class="btn-primary" onclick="submitGame()">' + icon("globe", 16) + ' ' + t("postPublicly") + '</button>';
-  html += '<div class="form-hint" style="text-align:center;margin-top:8px">' + t("publicSafety") + '</div>';
+  html += '<button class="btn-primary" onclick="submitGame()">' + (g._editId ? icon("check", 16) + ' ' + t("save") : icon("globe", 16) + ' ' + t("postPublicly")) + '</button>';
+  if (!g._editId) html += '<div class="form-hint" style="text-align:center;margin-top:8px">' + t("publicSafety") + '</div>';
   html += '</div>';
   box.innerHTML = html;
 }
@@ -372,6 +397,20 @@ function submitGame() {
   if (!start || start < Date.now() + 2 * 3600e3) { showToast(t("gameTooSoon")); return; }
   if (!(g.price >= 0)) { showToast(t("pricePerPerson")); return; }
   var me = currentUser.uid;
+  if (g._editId) {
+    var upd = { title: (g.title || "").trim() || t("gameType_" + g.gameType) + " · " + court.name, date: g.date, time: g.time, duration: g.duration,
+      courtId: court.id, courtName: court.name, slots: g.slots, gameType: g.gameType, mode: g.mode, levelMin: g.levelMin || null, levelMax: g.levelMax || null,
+      price: g.price, dinner: !!g.dinner, note: (g.note || "").trim(), closesAt: defaultCloseAt(g.date, g.time, Date.now()) };
+    var saved = g.photoData ? dbSaveImage(g.photoData, "game") : Promise.resolve(null);
+    saved.then(function (ref) {
+      if (ref) upd.photo = ref;
+      return fsdb.collection("openGames").doc(g._editId).update(upd);
+    }).then(function () {
+      newGame = null; publicTab = "games";
+      showToast(t("save") + " \u2714"); showPage("public");
+    }).catch(function (e) { showToast(_permError(e)); });
+    return;
+  }
   var data = {
     hostId: me, title: (g.title || "").trim() || t("gameType_" + g.gameType) + " · " + court.name,
     date: g.date, time: g.time, duration: g.duration, courtId: court.id, courtName: court.name,

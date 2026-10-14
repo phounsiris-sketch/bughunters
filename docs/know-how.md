@@ -964,3 +964,8 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 - Beats: loom (shadow) 0.26 s, gauntlet swing, shuttle hit at 1.0 s, 130 ms slow motion, white flash, shock ring (split colour), debris + dust, decaying camera shake, fractures grow, floor breaks into shards at 1.65 s over the glow, embers. About 2.4 s (`SPLASH_MIN_MS`).
 - Red/blue alternates by `localStorage godsmash_splash`. Cracks and shards are random every launch (`?seed=7` fixes them in `docs/splash-preview.html?theme=red&t=<ms>`).
 - Reduced motion: one still frame (broken floor + glow), 600 ms.
+
+## v90 batch
+- Public game: host card now has Edit (same form, `newGame._editId`, saves with `update`), Cancel game (tells players) and Delete (removes the card, rules already allow host delete).
+- Home strip: Rating card now before Badges. Live score: 6th colour theme "Royal"; landscape layout (teams side by side, controls along the bottom, big numbers) for tablets; menu has Full screen when the browser supports it.
+- Settings notification test: centred tile with a visible "Send test" button.
