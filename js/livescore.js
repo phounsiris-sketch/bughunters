@@ -388,6 +388,10 @@ function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb 
 
 var LIVE_STALE_MS = 6 * 3600e3;   // a board nobody touched for 6 h is ignored
 var liveNow = [];                  // other people's live games in my group
+/** A random id kept on this device, so the board of my OWN phone is not offered to my own iPad logged in with the same account */
+function _lsDev() {
+  try { var d = localStorage.getItem("godsmash_dev"); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem("godsmash_dev", d); } return d; } catch (e) { return "nodev"; }
+}
 var _liveListUnsub = null, _watchUnsub = null, _watch = null, _shareTimer = null, _shared = false;
 
 /** Publish the running game (a short wait collects fast taps into one write) */
@@ -398,7 +402,7 @@ function lsShare() {
     if (!live) return;
     _shared = true;
     fsdb.collection("liveGames").doc(currentUser.uid).set({
-      hostId: currentUser.uid, groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
+      hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
       test: !!live.test, sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
       theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now()
     }).catch(function () {});   // watching is a bonus: counting never fails because of it
@@ -416,7 +420,7 @@ function liveWatchStart() {
   if (_liveListUnsub || !currentUser || !currentGroupId) return;
   _liveListUnsub = groupScoped(fsdb.collection("liveGames")).onSnapshot(function (snap) {
     var list = [];
-    snap.forEach(function (d) { var x = d.data(); x.id = d.id; if (x.hostId !== currentUser.uid && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x); });
+    snap.forEach(function (d) { var x = d.data(); x.id = d.id; if (x.dev !== _lsDev() && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x); });
     liveNow = list;
     if (typeof refreshCurrentPage === "function" && currentPage === "home") refreshCurrentPage("live");
   }, function (e) { dbOnError(e, "liveGames"); });

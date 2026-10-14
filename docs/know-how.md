@@ -977,3 +977,6 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 
 ## Practice games are watchable (v92)
 Practice ("Try it") games publish to `liveGames` with `test: true` (never saved on the phone), so the iPad watch screen can be tried without a session. Banner and watch screen show the Practice badge.
+
+## Same account on two devices (v93)
+The Home "Live now" list hides only boards published by this same device (`dev` id in localStorage `godsmash_dev`), not every board of the same user. An iPad logged in with the phone's account now sees the phone's board. Boards are keyed by uid, so one account counts one live board at a time.
