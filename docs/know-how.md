@@ -1054,3 +1054,8 @@ No "(2 games)" anywhere: the format is just "Rematch" / ແຂ່ງແກ້ມ
 
 ## Trophy for the match, medal for a game or a draw (v114)
 `_lsEnd(st)` says what just ended: `game` (match goes on: medal + glow + confetti, as before), `match` (single game, or the deciding game of best of 3 / rematch 2–0: gold trophy, bigger, same celebration), `draw` (rematch 1–1: medal on both sides, nobody fades, no confetti). Trophy icon is new in icons.js (`trophy`). Same on the iPad watch screen.
+
+## Bigger medal/trophy and the match summary page (v115)
+- Medal and trophy are twice as big (portrait: the winner's score shrinks a little to make room).
+- When a best of 3 is decided or a rematch finished, the confirm is a summary page (not a native popup): every game as a table (Team A / Team B, winner in gold), the match score, then "Save, rematch" / "Save and finish". Phones: centred card. iPad / wide: card sits at the bottom so the trophy stays visible until the counter confirms; saving resets everything to 0–0 (the watch screen follows).
+- Single games keep the normal game-over card.

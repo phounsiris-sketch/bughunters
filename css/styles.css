@@ -5244,3 +5244,27 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-crown.ls-trophy .si { width: clamp(52px, 12vh, 108px); height: clamp(52px, 12vh, 108px); }
 .ls-half.ls-champ { animation-duration: .8s; }
 .ls-half.ls-draw .ls-score { text-shadow: 0 0 18px rgba(255, 255, 255, .4); }
+
+/* Medal / trophy twice as big */
+.ls-crown .si { width: clamp(80px, 18vh, 168px); height: clamp(80px, 18vh, 168px); }
+.ls-crown.ls-trophy .si { width: clamp(104px, 24vh, 216px); height: clamp(104px, 24vh, 216px); }
+@media (orientation: portrait) {
+  .ls-half.ls-winner .ls-score { font-size: min(20vh, 34vw, 150px); }   /* room for the big medal / trophy */
+  .ls-half.ls-winner .ls-crown .si { width: clamp(80px, 15vh, 150px); height: clamp(80px, 15vh, 150px); }
+  .ls-half.ls-winner .ls-crown.ls-trophy .si { width: clamp(96px, 19vh, 190px); height: clamp(96px, 19vh, 190px); }
+}
+
+/* Match summary: every game, the match score, then confirm */
+.ls-sum { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.ls-sum-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.ls-sum-row i { font-style: normal; font-size: 13px; opacity: .7; }
+.ls-sum-row b { text-align: center; font-size: 22px; font-weight: 700; opacity: .65; }
+.ls-sum-row b.w { opacity: 1; color: #d97706; font-weight: 800; }
+.ls-sum-row.head b { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: .6; }
+.ls-sum-row.total { border-bottom: 0; border-top: 2px solid var(--border); }
+.ls-sum-row.total b { font-size: 28px; }
+/* Wide screens (iPad): the summary sits at the bottom so the trophy stays in view until it is confirmed */
+@media (min-width: 768px) and (min-height: 501px) {
+  .ls-scrim.sum { background: rgba(0, 0, 0, .12); }
+  .ls-over.ls-sum { top: auto; bottom: 18px; left: 50%; right: auto; width: min(460px, 92vw); transform: translateX(-50%); max-height: 46vh; overflow: auto; }
+}
