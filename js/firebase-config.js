@@ -28,12 +28,25 @@ var auth = firebase.auth();
 // Firestore (named fsdb to avoid conflict with the db helper module)
 var fsdb = firebase.firestore();
 
-// Enable offline persistence with multi-tab synchronisation
-fsdb.enablePersistence({ synchronizeTabs: true })
-  .catch(function (err) {
-    if (err.code === "failed-precondition") {
-      console.warn("Firestore persistence failed: multiple tabs open.");
-    } else if (err.code === "unimplemented") {
-      console.warn("Firestore persistence not supported in this browser.");
-    }
+// Keep the sign-in across restarts (LOCAL = survives closing the tab); falls back by itself if storage is blocked
+try {
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
+    console.warn("Auth persistence not available:", err && err.code);
   });
+} catch (e) {}
+
+// iPad / iPhone Safari: IndexedDB can hang or be wiped, which froze sign-in and dropped the session.
+// There Firestore runs without its offline cache (data is still live, just not kept offline).
+var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// Enable offline persistence with multi-tab synchronisation (not on iOS, see above)
+if (!IS_IOS) {
+  fsdb.enablePersistence({ synchronizeTabs: true })
+    .catch(function (err) {
+      if (err.code === "failed-precondition") {
+        console.warn("Firestore persistence failed: multiple tabs open.");
+      } else if (err.code === "unimplemented") {
+        console.warn("Firestore persistence not supported in this browser.");
+      }
+    });
+}

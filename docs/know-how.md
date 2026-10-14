@@ -1028,3 +1028,6 @@ Spamming + / - zoomed the page (iOS double-tap zoom). `.live-screen` and childre
 
 ## Games won as a card, points small below (v107)
 Match score: a dark flip card with the games won (yellow, big), and under it each finished game's points as small text (game this team won in bold). Replaces the text-only line of v103. Still hidden on phones (v104/v105).
+
+## iPad keeps asking to sign in (v108)
+Symptom: iPad shows the password autofill sheet every time, sign-in "fails" or the session is gone on next open. Likely cause: iOS Safari IndexedDB (Firestore offline cache + auth storage) hanging or being wiped; Safari also purges site data of tabs not opened for 7 days (home-screen apps are exempt). Fix: `auth.setPersistence(LOCAL)` explicitly, and no Firestore `enablePersistence` on iOS (`IS_IOS` in firebase-config.js). Tip: install to Home Screen (Share, Add to Home Screen). Unconfirmed on a real iPad: if it still happens, read the "Sign-in stopped (step)" message from v102.
