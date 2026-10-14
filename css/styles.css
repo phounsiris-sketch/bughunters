@@ -3096,61 +3096,64 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 .st-unpaid,   [data-theme="light"] .st-unpaid   { background: #dc2626; color: #fff; }
 .st-settled,  [data-theme="light"] .st-settled  { background: #16a34a; color: #fff; }
 
-/* ========== Splash screen: a smash ========== */
-/* The shuttle drops in, hits the court, a ring and rays burst out, then GOD / SMASH lands. */
-#splash {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  overflow: hidden;
-  color: #fff;
-  background: linear-gradient(160deg, #0b6f66 0%, #17508f 55%, #1d4ed8 100%);
-  transition: opacity 0.4s ease, visibility 0.4s ease;
-}
-#splash .sp-court, #splash .sp-stage, #splash .sp-word { animation: sp-shake 0.28s 0.56s both; }
+/* ========== Splash screen: Mars smashes the shuttle into the logo, the earth breaks ========== */
+/* The app logo never moves. Mars rises, swings, the shuttle drives into the middle of the logo,
+   cracks run across the ground, the ground breaks into shards and flies away. Red or blue, one each launch. */
+#splash { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: var(--bge); transition: opacity 0.45s ease, visibility 0.45s ease; cursor: pointer; }
 #splash.hide { opacity: 0; visibility: hidden; }
+#splash.sp-red { --bgc: #3d0b12; --bge: #14030a; --hot: #ff4d3d; --hot2: #ffc2a8; --cape: #62101d; }
+#splash.sp-blue { --bgc: #0b2d6b; --bge: #030a1d; --hot: #38bdf8; --hot2: #c4f1ff; --cape: #0c2d66; }
+.sp2 { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sp2 * { transform-box: fill-box; }
+.sp2-mars, .sp2-shuttle { transform-box: view-box; transform-origin: 0 0; }   /* their transform attributes scale/move from the stage origin */
+.sp2-shard { fill: url(#sp2bg); stroke: var(--bge); stroke-width: .6; transform-origin: center; animation: sp2-shard .75s calc(1.95s + var(--i) * .045s) cubic-bezier(.5, 0, 1, .8) both; }
+.sp2-glow { opacity: 0; animation: sp2-glow 1.1s 1.3s ease-out both; }
+.sp2-cracks { filter: drop-shadow(0 0 5px var(--hot)); }
+.sp2-cracks path { fill: none; stroke: var(--hot2); stroke-width: 2.4; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp2-crack .5s calc(1.18s + var(--i) * .035s) ease-out both, sp2-fadeout .5s 2.45s ease-in forwards; }
+.sp2-cracks path.br { stroke-width: 1.4; stroke: var(--hot); animation: sp2-crack .4s calc(1.4s + var(--i) * .05s) ease-out both, sp2-fadeout .5s 2.45s ease-in forwards; }
+.sp2-shake { animation: sp2-shake .3s 1.15s both; }
+.sp2-ring { fill: none; stroke: var(--hot2); stroke-width: 5; transform-origin: center; opacity: 0; filter: drop-shadow(0 0 8px var(--hot)); animation: sp2-ring .65s 1.15s ease-out forwards; }
+.sp2-sparks line { stroke: var(--hot2); stroke-width: 3; stroke-linecap: round; transform-origin: 195px 330px; transform-box: view-box; opacity: 0; filter: drop-shadow(0 0 4px var(--hot)); animation: sp2-spark .55s 1.15s ease-out forwards; }
+.sp2-logo rect:first-child { filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .55)); }
+.sp2-word { font: 800 17px Montserrat, system-ui, sans-serif; letter-spacing: 9px; fill: #fff; }
+.sp2-sub { font: 500 12px Montserrat, 'Noto Sans Lao', system-ui, sans-serif; letter-spacing: 1.5px; fill: rgba(255, 255, 255, .72); }
 
-/* court lines */
-.sp-court { position: absolute; inset: 7% 9%; border: 2px solid rgba(255, 255, 255, .13); border-radius: 6px; }
-.sp-court::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: rgba(255, 255, 255, .13); }
-.sp-court::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255, 255, 255, .08); }
+/* Mars: dark silhouette with a rim light in the theme colour */
+.sp2-mars .body { fill: #07070e; stroke: var(--hot); stroke-width: 1.6; stroke-opacity: .75; stroke-linejoin: round; }
+.sp2-mars .cape { fill: var(--cape); stroke: var(--hot); stroke-width: 1.4; stroke-opacity: .55; }
+.sp2-mars .plume { fill: var(--hot); stroke: var(--hot2); stroke-width: 1.2; stroke-opacity: .7; filter: drop-shadow(0 0 6px var(--hot)); }
+.sp2-mars .rim { fill: none; stroke: var(--hot); stroke-width: 1.4; stroke-opacity: .45; }
+.sp2-mars .eye { fill: var(--hot2); filter: drop-shadow(0 0 7px var(--hot)); }
+.sp2-mars .aura { fill: var(--hot); opacity: .14; filter: blur(14px); }
+.sp2-mars .handle { stroke: #07070e; stroke-width: 7; stroke-linecap: round; }
+.sp2-mars .frame { fill: rgba(255, 255, 255, .05); stroke: var(--hot2); stroke-width: 5; filter: drop-shadow(0 0 6px var(--hot)); }
+.sp2-mars .strings { fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 1.2; }
+.sp2-mars-in { animation: sp2-mars-in .55s .15s cubic-bezier(.2, .9, .3, 1) both, sp2-mars-out .45s 1.5s ease-in forwards; }
+.sp2-arm { transform-box: fill-box; transform-origin: 0 29px; animation: sp2-swing .5s .7s both; }   /* pivot = the shoulder: left edge of the arm, 29 px below the top of its box */
+.sp2-shuttle { opacity: 0; animation: sp2-show .01s .92s forwards, sp2-hide .14s 1.17s forwards; }
+.sp2-shuttle-in { animation: sp2-fly .25s .92s cubic-bezier(.45, 0, .9, .7) both; }
+.sp2-flash { opacity: 0; animation: sp2-flash .45s 1.15s ease-out forwards; }
 
-.sp-stage { position: relative; width: 240px; height: 200px; display: flex; align-items: center; justify-content: center; }
-.sp-shuttle { position: absolute; transform: rotate(-45deg); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35)); animation: sp-fly 0.58s cubic-bezier(.55, 0, 1, .6) both; }
-.sp-trail { position: absolute; width: 150px; height: 6px; border-radius: 3px; transform-origin: right center; transform: rotate(45deg) translateX(-30px); background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .8)); animation: sp-trail 0.58s cubic-bezier(.55, 0, 1, .6) both; }
-.sp-ring { position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 4px solid #4ade80; opacity: 0; animation: sp-ring 0.55s 0.56s ease-out both; }
-.sp-rays { position: absolute; width: 0; height: 0; }
-.sp-rays i { position: absolute; left: -2px; top: -70px; width: 4px; height: 26px; border-radius: 2px; background: #fde68a; opacity: 0; transform-origin: 50% 70px; transform: rotate(var(--r)) scaleY(0); animation: sp-ray 0.5s 0.56s ease-out both; }
-
-.sp-word { display: flex; flex-direction: column; align-items: center; line-height: 1; margin-top: -8px; }
-.sp-god { font-size: 20px; font-weight: 500; letter-spacing: 0.7em; padding-left: 0.7em; opacity: 0; animation: sp-god 0.45s 0.7s ease-out both; }
-.sp-smash { font-size: 58px; font-weight: 900; font-style: italic; letter-spacing: 0.01em; margin-top: 4px; padding-right: 6px; background: linear-gradient(180deg, #ffffff 30%, #a7f3d0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 4px 22px rgba(74, 222, 128, .35); opacity: 0; animation: sp-smash 0.5s 0.78s cubic-bezier(.2, 1.4, .4, 1) both; }
-.splash-sub { margin-top: 10px; font-size: 13px; letter-spacing: 0.08em; color: rgba(255, 255, 255, .8); opacity: 0; animation: sp-fade 0.5s 1.15s ease-out both; }
-.sp-load { position: absolute; left: 50%; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); width: 120px; height: 4px; margin-left: -60px; border-radius: 2px; background: rgba(255, 255, 255, .2); overflow: hidden; }
-.sp-load i { display: block; height: 100%; width: 100%; border-radius: 2px; background: #fff; transform-origin: left; animation: sp-load 1.4s 0.2s ease-in-out both; }
-
-@keyframes sp-fly { 0% { transform: translate(-150px, -190px) rotate(-45deg) scale(1.15); opacity: 0; } 18% { opacity: 1; } 96% { opacity: 1; } 100% { transform: translate(0, 4px) rotate(-45deg) scale(.95); opacity: 0; } }
-@keyframes sp-trail { 0% { transform: translate(-150px, -190px) rotate(45deg) translateX(-30px); opacity: 0; } 20% { opacity: .9; } 100% { transform: translate(0, 4px) rotate(45deg) translateX(-30px); opacity: 0; } }
-@keyframes sp-ring { 0% { transform: scale(.2); opacity: .95; } 100% { transform: scale(2.4); opacity: 0; } }
-@keyframes sp-ray { 0% { opacity: 1; transform: rotate(var(--r)) translateY(0) scaleY(.2); } 60% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--r)) translateY(-34px) scaleY(1); } }
-@keyframes sp-god { 0% { opacity: 0; transform: translateX(-34px); } 100% { opacity: .95; transform: none; } }
-@keyframes sp-smash { 0% { opacity: 0; transform: scale(2.2) translateY(-30px) skewX(-8deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
-@keyframes sp-fade { to { opacity: 1; } }
-@keyframes sp-load { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
-@keyframes sp-shake { 0% { transform: translate(0, 0); } 25% { transform: translate(-4px, 3px); } 50% { transform: translate(3px, -3px); } 75% { transform: translate(-2px, 2px); } 100% { transform: translate(0, 0); } }
+@keyframes sp2-mars-in { from { opacity: 0; transform: translate(-70px, -50px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes sp2-mars-out { to { opacity: 0; transform: translate(-30px, -20px); } }
+@keyframes sp2-swing { 0% { transform: rotate(-118deg); animation-timing-function: cubic-bezier(.55, 0, .85, .5); } 45% { transform: rotate(-10deg); animation-timing-function: ease-out; } 100% { transform: rotate(22deg); } }
+@keyframes sp2-show { to { opacity: 1; } }
+@keyframes sp2-hide { to { opacity: 0; } }
+@keyframes sp2-fly { from { transform: translate(0, 0) rotate(16deg) scale(1.1); } to { transform: translate(-48px, 166px) rotate(16deg) scale(.9); } }
+@keyframes sp2-ring { 0% { opacity: .95; transform: scale(.35); } 100% { opacity: 0; transform: scale(5.5); stroke-width: 1.5; } }
+@keyframes sp2-spark { 0% { opacity: 1; transform: rotate(var(--r)) translateY(0) scaleY(.4); } 100% { opacity: 0; transform: rotate(var(--r)) translateY(-120px) scaleY(1.4); } }
+@keyframes sp2-flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+@keyframes sp2-shake { 0% { transform: translate(0, 0); } 20% { transform: translate(-7px, 5px); } 40% { transform: translate(6px, -5px); } 60% { transform: translate(-4px, 3px); } 80% { transform: translate(3px, -2px); } 100% { transform: translate(0, 0); } }
+@keyframes sp2-crack { to { stroke-dashoffset: 0; } }
+@keyframes sp2-fadeout { to { opacity: 0; } }
+@keyframes sp2-glow { 0% { opacity: 0; } 100% { opacity: .95; } }
+@keyframes sp2-shard { 0% { transform: none; opacity: 1; } 100% { transform: translate(calc(var(--dx) * 700px), calc(var(--dy) * 700px)) rotate(var(--rot)); opacity: 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* no motion: show the finished screen at once */
+/* no motion: the logo, the name and the ground, nothing moving */
 @media (prefers-reduced-motion: reduce) {
-  #splash .sp-court, #splash .sp-stage, #splash .sp-word { animation: none; }
-  .sp-shuttle, .sp-trail, .sp-ring, .sp-rays { display: none; }
-  .sp-god, .sp-smash, .splash-sub { animation: none; opacity: 1; }
-  .sp-load i { animation: none; }
+  .sp2-mars, .sp2-shuttle, .sp2-ring, .sp2-sparks, .sp2-cracks, .sp2-glow, .sp2-flash { display: none; }
+  .sp2-shard, .sp2-shake { animation: none; }
 }
 
 /* ========== Notifications ========== */

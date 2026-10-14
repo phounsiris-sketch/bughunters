@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v87';
+var CACHE_NAME = 'godsmash-v88';
 var ASSETS = [
   './',
   './index.html',
@@ -58,6 +58,7 @@ var ASSETS = [
   './js/icons.js',
   './icons/favicon-32.png',
   './icons/icon-192.png',
+  './icons/icon-512.png',
   './icons/apple-touch-icon.png',
   './js/select.js',
   './js/datepicker.js',

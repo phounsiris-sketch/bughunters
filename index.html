@@ -20,29 +20,65 @@
 <body data-theme="dark">
 
 <!-- Splash: shown until we know whether someone is signed in -->
-<div id="splash" aria-live="polite">
-  <div class="sp-court" aria-hidden="true"></div>
-  <div class="sp-stage" aria-hidden="true">
-    <span class="sp-trail"></span>
-    <svg class="sp-shuttle" viewBox="0 0 64 64" width="68" height="68">
-      <g>
-        <path d="M23 42 L11 8 Q32 1 53 8 L41 42 Z" fill="#fff" fill-opacity=".95"/>
-        <path d="M32 42 L32 4 M27 42 L21 5 M37 42 L43 5 M22.5 42 L13 8 M41.5 42 L51 8" stroke="#0d9488" stroke-opacity=".35" stroke-width="1.2" fill="none"/>
-        <path d="M11 8 Q32 1 53 8" stroke="#0d9488" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <circle cx="32" cy="50" r="10" fill="#fff"/>
-        <circle cx="32" cy="50" r="10" fill="none" stroke="#f59e0b" stroke-width="3"/>
+<div id="splash" class="sp-red" data-nokb aria-live="polite" onclick="skipSplash()">
+  <svg class="sp2" viewBox="0 0 390 760" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs>
+      <radialGradient id="sp2bg" gradientUnits="userSpaceOnUse" cx="195" cy="330" r="620">
+        <stop offset="0" stop-color="var(--bgc)"/><stop offset="1" stop-color="var(--bge)"/>
+      </radialGradient>
+      <radialGradient id="sp2glow" gradientUnits="userSpaceOnUse" cx="195" cy="330" r="520">
+        <stop offset="0" stop-color="var(--hot2)"/><stop offset=".25" stop-color="var(--hot)"/><stop offset="1" stop-color="var(--bge)" stop-opacity="0"/>
+      </radialGradient>
+      <clipPath id="sp2logo"><rect x="135" y="270" width="120" height="120" rx="28"/></clipPath>
+    </defs>
+    <rect class="sp2-under" x="-1400" y="-1400" width="3200" height="3600" fill="var(--bge)"/>
+    <circle class="sp2-glow" cx="195" cy="330" r="1100" fill="url(#sp2glow)"/>
+    <g class="sp2-shake">
+      <g class="sp2-shards"><polygon class="sp2-shard" style="--dx:0.19;--dy:-0.98;--rot:-9deg;--i:0" points="195.0,330.0 184.6,285.2 180.9,214.9 151.3,155.4 160.2,62.3 73.4,-30.0 77.8,-186.9 30.0,-483.4 -313.1,-1841.3 168.3,-1069.7 461.8,-1044.3 743.5,-958.1 1478.7,-1493.5 701.7,-327.4 504.1,-100.5 419.3,23.3 326.5,94.2 303.0,186.0 267.8,239.7 218.1,290.2 195.0,330.0"/><polygon class="sp2-shard" style="--dx:0.91;--dy:-0.42;--rot:-14deg;--i:1" points="195.0,330.0 218.1,290.2 267.8,239.7 303.0,186.0 326.5,94.2 419.3,23.3 504.1,-100.5 701.7,-327.4 1478.7,-1493.5 1271.4,-565.2 1467.5,-253.7 1575.7,98.1 2414.5,546.6 1018.4,434.3 721.5,390.7 575.0,333.0 460.6,378.5 374.8,338.6 311.0,331.6 241.0,329.6 195.0,330.0"/><polygon class="sp2-shard" style="--dx:0.90;--dy:0.44;--rot:-9deg;--i:2" points="195.0,330.0 241.0,329.6 311.0,331.6 374.8,338.6 460.6,378.5 575.0,333.0 721.5,390.7 1018.4,434.3 2414.5,546.6 1541.9,711.8 1452.4,945.5 1322.8,1159.5 1727.5,1950.0 789.1,909.6 543.6,729.2 453.0,609.0 374.6,531.6 314.4,464.7 276.3,412.7 229.0,361.0 195.0,330.0"/><polygon class="sp2-shard" style="--dx:0.23;--dy:0.97;--rot:6deg;--i:3" points="195.0,330.0 229.0,361.0 276.3,412.7 314.4,464.7 374.6,531.6 453.0,609.0 543.6,729.2 789.1,909.6 1727.5,1950.0 862.3,1560.7 522.4,1691.2 160.4,1729.6 -433.1,2469.7 -24.2,1130.5 43.5,837.9 80.7,692.4 107.8,585.5 147.2,503.5 167.1,442.6 185.1,374.9 195.0,330.0"/><polygon class="sp2-shard" style="--dx:-0.65;--dy:0.76;--rot:-9deg;--i:4" points="195.0,330.0 185.1,374.9 167.1,442.6 147.2,503.5 107.8,585.5 80.7,692.4 43.5,837.9 -24.2,1130.5 -433.1,2469.7 -472.0,1560.9 -715.0,1393.9 -917.7,1179.7 -1821.5,1282.1 -562.8,668.6 -276.3,572.5 -149.6,490.2 -47.1,449.5 37.1,416.5 92.5,384.4 152.2,346.7 195.0,330.0"/><polygon class="sp2-shard" style="--dx:-1.00;--dy:0.04;--rot:-14deg;--i:5" points="195.0,330.0 152.2,346.7 92.5,384.4 37.1,416.5 -47.1,449.5 -149.6,490.2 -276.3,572.5 -562.8,668.6 -1821.5,1282.1 -1164.6,664.0 -1203.8,386.9 -1187.2,107.5 -1892.2,-455.2 -582.1,38.5 -294.9,127.8 -152.0,175.1 -55.8,230.1 21.5,281.9 82.5,301.6 151.2,316.0 195.0,330.0"/><polygon class="sp2-shard" style="--dx:-0.66;--dy:-0.75;--rot:-5deg;--i:6" points="195.0,330.0 151.2,316.0 82.5,301.6 21.5,281.9 -55.8,230.1 -152.0,175.1 -294.9,127.8 -582.1,38.5 -1892.2,-455.2 -956.4,-466.4 -728.6,-722.1 -445.5,-914.9 -313.1,-1841.3 30.0,-483.4 77.8,-186.9 73.4,-30.0 160.2,62.3 151.3,155.4 180.9,214.9 184.6,285.2 195.0,330.0"/></g>
+      <g class="sp2-cracks"><path pathLength="1" style="--i:0" d="M195.0,330.0 L184.6,285.2 L180.9,214.9 L151.3,155.4 L160.2,62.3 L73.4,-30.0 L77.8,-186.9"/><path pathLength="1" style="--i:1" d="M195.0,330.0 L218.1,290.2 L267.8,239.7 L303.0,186.0 L326.5,94.2 L419.3,23.3 L504.1,-100.5"/><path pathLength="1" style="--i:2" d="M195.0,330.0 L241.0,329.6 L311.0,331.6 L374.8,338.6 L460.6,378.5 L575.0,333.0 L721.5,390.7"/><path pathLength="1" style="--i:3" d="M195.0,330.0 L229.0,361.0 L276.3,412.7 L314.4,464.7 L374.6,531.6 L453.0,609.0 L543.6,729.2"/><path pathLength="1" style="--i:4" d="M195.0,330.0 L185.1,374.9 L167.1,442.6 L147.2,503.5 L107.8,585.5 L80.7,692.4 L43.5,837.9"/><path pathLength="1" style="--i:5" d="M195.0,330.0 L152.2,346.7 L92.5,384.4 L37.1,416.5 L-47.1,449.5 L-149.6,490.2 L-276.3,572.5"/><path pathLength="1" style="--i:6" d="M195.0,330.0 L151.2,316.0 L82.5,301.6 L21.5,281.9 L-55.8,230.1 L-152.0,175.1 L-294.9,127.8"/><path class="br" pathLength="1" style="--i:0" d="M180.9,214.9 L149.9,212.2 L117.1,200.4"/><path class="br" pathLength="1" style="--i:1" d="M160.2,62.3 L155.2,25.0 L150.2,-21.7"/><path class="br" pathLength="1" style="--i:2" d="M267.8,239.7 L251.4,181.3 L235.8,117.6"/><path class="br" pathLength="1" style="--i:3" d="M326.5,94.2 L332.9,56.6 L336.7,13.2"/><path class="br" pathLength="1" style="--i:4" d="M311.0,331.6 L346.3,352.7 L376.1,389.2"/><path class="br" pathLength="1" style="--i:0" d="M460.6,378.5 L510.1,387.4 L559.8,405.3"/><path class="br" pathLength="1" style="--i:1" d="M276.3,412.7 L277.7,457.2 L282.5,489.8"/><path class="br" pathLength="1" style="--i:2" d="M374.6,531.6 L414.1,535.1 L460.8,550.1"/><path class="br" pathLength="1" style="--i:3" d="M167.1,442.6 L129.3,456.2 L94.2,474.3"/><path class="br" pathLength="1" style="--i:4" d="M107.8,585.5 L70.6,596.2 L43.9,615.5"/><path class="br" pathLength="1" style="--i:0" d="M92.5,384.4 L57.0,431.5 L31.7,485.7"/><path class="br" pathLength="1" style="--i:1" d="M-47.1,449.5 L-67.6,493.9 L-90.1,523.8"/><path class="br" pathLength="1" style="--i:2" d="M82.5,301.6 L33.4,326.4 L-30.2,345.4"/><path class="br" pathLength="1" style="--i:3" d="M-55.8,230.1 L-72.8,188.0 L-89.3,149.1"/></g>
+    </g>
+    <circle class="sp2-flash" cx="195" cy="330" r="900" fill="url(#sp2glow)"/>
+    <circle class="sp2-ring" cx="195" cy="330" r="70"/>
+    <g class="sp2-sparks"><line x1="195" y1="262" x2="195" y2="236" style="--r:0deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:30deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:60deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:90deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:120deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:150deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:180deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:210deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:240deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:270deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:300deg"/><line x1="195" y1="262" x2="195" y2="236" style="--r:330deg"/></g>
+    <g class="sp2-mars" transform="translate(95,190) scale(.95)">
+      <g class="sp2-mars-in">
+        <ellipse class="aura" cx="-40" cy="20" rx="170" ry="190"/>
+        <path class="cape" d="M-100 -6 C-176 8 -196 96 -178 176 C-142 146 -112 112 -96 72 Z"/>
+        <path class="body" d="M-98 -12 L12 -20 L26 74 L-8 136 L-72 140 L-104 82 Z"/>
+        <path class="rim" d="M-72 10 L-28 18 M-76 40 L-24 46 M-70 72 L-28 76 M-46 -4 L-46 130"/>
+        <circle class="body" cx="-94" cy="-4" r="25"/>
+        <circle class="body" cx="2" cy="-6" r="23"/>
+        <path class="body" d="M-100 14 L-124 58"/>
+        <circle class="body" cx="-124" cy="66" r="14"/>
+        <path class="body" d="M-78 -48 C-80 -92 -64 -110 -47 -110 C-30 -110 -16 -92 -18 -48 Z"/>
+        <path class="plume" d="M-62 -102 C-84 -156 -8 -168 26 -120 C-6 -124 -30 -114 -47 -108 Z"/>
+        <path class="body" d="M-78 -48 L-73 -20 L-54 -28 L-54 -48 Z"/>
+        <rect class="eye" x="-42" y="-68" width="30" height="6" rx="3"/>
+        <g class="sp2-arm">
+          <path class="body" d="M0 -12 L64 -14 L68 10 L0 14 Z"/>
+          <circle class="body" cx="70" cy="-2" r="11"/>
+          <line class="handle" x1="76" y1="-2" x2="118" y2="-2"/>
+          <ellipse class="frame" cx="154" cy="-2" rx="38" ry="27"/>
+          <path class="strings" d="M120 -2 H190 M127 -14 H181 M127 10 H181 M141 -26 V22 M154 -29 V25 M167 -26 V22"/>
+        </g>
       </g>
-    </svg>
-    <span class="sp-ring"></span>
-    <span class="sp-rays"><i style="--r:0deg"></i><i style="--r:30deg"></i><i style="--r:60deg"></i><i style="--r:90deg"></i><i style="--r:120deg"></i><i style="--r:150deg"></i><i style="--r:180deg"></i><i style="--r:210deg"></i><i style="--r:240deg"></i><i style="--r:270deg"></i><i style="--r:300deg"></i><i style="--r:330deg"></i></span>
-  </div>
-  <div class="sp-word">
-    <span class="sp-god">GOD</span>
-    <span class="sp-smash">SMASH</span>
-  </div>
-  <div class="splash-sub" id="splashSub">Badminton Club</div>
-  <div class="sp-load" aria-hidden="true"><i></i></div>
+    </g>
+    <g class="sp2-logo">
+      <rect x="135" y="270" width="120" height="120" rx="28" fill="#0b1220"/>
+      <image href="icons/icon-512.png" x="135" y="270" width="120" height="120" clip-path="url(#sp2logo)"/>
+      <rect x="135" y="270" width="120" height="120" rx="28" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1.5"/>
+      <text class="sp2-word" x="195" y="428" text-anchor="middle">GODSMASH</text>
+      <text id="splashSub" class="sp2-sub" x="195" y="452" text-anchor="middle">Badminton Club</text>
+    </g>
+    <g class="sp2-shuttle" transform="translate(243,164)"><g class="sp2-shuttle-in">
+      <path d="M-7 -2 L-13 -34 Q0 -39 13 -34 L7 -2 Z" fill="#fff"/>
+      <path d="M0 -2 L0 -36 M-3.5 -2 L-8 -34 M3.5 -2 L8 -34" stroke="var(--hot)" stroke-opacity=".5" stroke-width="1" fill="none"/>
+      <path d="M-13 -34 Q0 -39 13 -34" stroke="var(--hot)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <circle cx="0" cy="3" r="7" fill="#fff" stroke="#f59e0b" stroke-width="2.4"/>
+    </g></g>
+  </svg>
 </div>
+<script>try{var _s=document.getElementById("splash"),_k="godsmash_splash",_n=localStorage.getItem(_k)==="red"?"blue":"red";localStorage.setItem(_k,_n);_s.className="sp-"+_n;}catch(e){}</script>
 
 
 <!-- ==================== AUTH CONTAINER ==================== -->
