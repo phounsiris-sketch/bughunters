@@ -5248,11 +5248,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Medal / trophy twice as big */
 .ls-crown .si { width: clamp(80px, 18vh, 168px); height: clamp(80px, 18vh, 168px); }
 .ls-crown.ls-trophy .si { width: clamp(104px, 24vh, 216px); height: clamp(104px, 24vh, 216px); }
-@media (orientation: portrait) {
-  .ls-half.ls-winner .ls-score { font-size: min(20vh, 34vw, 150px); }   /* room for the big medal / trophy */
-  .ls-half.ls-winner .ls-crown .si { width: clamp(80px, 15vh, 150px); height: clamp(80px, 15vh, 150px); }
-  .ls-half.ls-winner .ls-crown.ls-trophy .si { width: clamp(96px, 19vh, 190px); height: clamp(96px, 19vh, 190px); }
-}
 
 /* Match summary: every game, the match score, then confirm */
 .ls-sum { display: flex; flex-direction: column; gap: 2px; text-align: left; }
@@ -5272,3 +5267,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Match row: the scorekeeper (photo + name) */
 .match-by { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .match-by .person-chip { font-size: 12px; font-weight: 600; color: var(--text); }
+
+/* Medal / trophy: big, centred behind the score. It never moves the score or the names (no layout shift). */
+.ls-crown { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 0; margin: 0; opacity: .55; pointer-events: none; animation: ls-crown-in .6s cubic-bezier(.2, 1.4, .4, 1) both; }
+.ls-crown .si { width: min(34vh, 70vw, 300px); height: min(34vh, 70vw, 300px); }
+.ls-crown.ls-trophy .si { width: min(42vh, 80vw, 360px); height: min(42vh, 80vw, 360px); }
+.ls-half.ls-winner .ls-info > :not(.ls-crown), .ls-half.ls-draw .ls-info > :not(.ls-crown) { position: relative; z-index: 1; }
+.ls-half.ls-winner .ls-score, .ls-half.ls-draw .ls-score { text-shadow: 0 2px 10px rgba(0, 0, 0, .55), 0 0 2px rgba(0, 0, 0, .5); }
+@keyframes ls-crown-in { from { transform: translate(-50%, -50%) scale(.6); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: .55; } }
+
+/* The serving shuttle must not move the score: the team row always keeps the shuttle's height, serving or not */
+.ls-team { min-height: 34px; box-sizing: border-box; }
