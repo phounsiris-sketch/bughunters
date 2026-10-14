@@ -283,6 +283,7 @@ function logoutUser() {
   GROUPS_ON = false; currentGroupId = null; currentGroup = null;
   if (typeof stopPolls === "function") stopPolls();
   if (typeof stopSessions === "function") stopSessions();
+  if (typeof liveWatchStop === "function") liveWatchStop();
   if (typeof stopMatches === "function") stopMatches();
   if (typeof stopInviteListeners === "function") stopInviteListeners();
   if (typeof dbStopCache === "function") dbStopCache();
