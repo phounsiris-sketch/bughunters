@@ -1063,3 +1063,6 @@ No "(2 games)" anywhere: the format is just "Rematch" / ແຂ່ງແກ້ມ
 ## Scorekeeper in stats + badge (v116)
 - Game rows (stats / session Games tab): games counted with Live score (`live: true`) read "Score counted by [photo] name"; other games keep "Added by name".
 - Badge "Pair of the month" replaced by "Scorekeeper" (`scorer`): count the score of 10 games with Live score (`_gamesCounted(uid)` = matches with `live && createdBy === uid`). Lao: ຜູ້ນັບຄະແນນ. Old `_isPairOfMonth` removed (the Best pair card is unchanged).
+
+## Trophy / medal centred behind the score (v117)
+The big medal/trophy used to sit above the score in the layout, so the score shrank and dropped when a game ended. Now `.ls-crown` is absolutely centred behind the score (opacity .55, gold glow), the score keeps its size and place, no layout shift, nothing touches the screen edge. The v115 portrait score-shrink rule is gone. Same on the watch screen.
