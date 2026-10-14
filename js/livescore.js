@@ -120,10 +120,11 @@ function _boSegHtml() {
   }).join("") + '</div>';
 }
 
-/** Like the folding table scoreboard: a dark card with the games won, then a small card per finished game with this team's points */
+/** Match score as small text under the score: games won, then this team's points in each finished game (the game it won in bold) */
 function flipBoardHtml(side, sw, gl) {
-  var o = side === "A" ? "B" : "A", html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span>';
-  (gl || []).forEach(function (g) { html += '<span class="fc pt' + (g[side.toLowerCase()] > g[o.toLowerCase()] ? ' win' : '') + '">' + g[side.toLowerCase()] + '</span>'; });
+  var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
+  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="ls-won-n">' + t("lsGamesWon").replace("{n}", sw[side]) + '</span>';
+  (gl || []).forEach(function (g) { html += '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '">' + g[k] + '</span>'; });
   return html + '</div>';
 }
 
@@ -197,16 +198,16 @@ function _lsCountHtml() {
     return '<div class="ls-half" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
       '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 18) + '</span></button>' +
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
-      '<div class="ls-info"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + t("lsTeam") + ' ' + side + '</div>' +
+      '<div class="ls-info"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, live.sw, live.gl) : '') + '</div></div>';
   };
   var html = half("A") + half("B");
-  html += '<button type="button" class="ls-exit" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
+  html += '<button type="button" class="ls-exit ls-exit-count" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   if (live.test) html += '<div class="ls-test">' + icon("warning", 14) + ' ' + t("lsTestBadge") + '</div>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
-    '<span class="ls-pill">' + t("lsGameN").replace("{n}", (live.bo || 1) > 1 ? (live.sw.A + live.sw.B + 1) : live.saved + 1) + ' · ' + t("lsTo").replace("{n}", LS_START_POINTS) +
-      ((live.bo || 1) > 1 ? ' · ' + t("lsBestOf").replace("{n}", live.bo) + ' (' + live.sw.A + '\u2013' + live.sw.B + ')' : '') + '</span>' +
+    '<span class="ls-pill">' + t("lsGameN").replace("{n}", (live.bo || 1) > 1 ? (live.sw.A + live.sw.B + 1) : live.saved + 1) + '<span class="ls-pill-x"> · ' + t("lsTo").replace("{n}", LS_START_POINTS) +
+      ((live.bo || 1) > 1 ? ' · ' + t("lsBestOf").replace("{n}", live.bo) + ' (' + live.sw.A + '\u2013' + live.sw.B + ')' : '') + '</span></span>' +
     '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
   if (gp && !live.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' · ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (liveMode === "menu") {
