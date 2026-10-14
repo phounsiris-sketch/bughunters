@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v86**.
+run it. App version at the time of writing: **v87**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -361,6 +361,22 @@ Live score also has **Try it first** on its first screen: it counts points with 
 players, shows a *Practice: not saved* badge, and nothing is saved or kept. The Home header no
 longer shows the "Badminton Club" line or the "Hi, name" greeting; the rating card has no
 "Start" pill; calendar days with events show clear dots (one per event, up to three).
+
+**Accessibility rules (v87, from the UI audit).**
+- **Contrast:** text on a brand fill is white only when the fill is at least 4.5:1 (the base teal is `#0f766e`;
+  the stat-card gradients, notification badge and every colour style were adjusted). `--text-muted` and
+  `--text-dim` pass 4.5:1 on cards in every light and dark style. Light-theme status pills use darker text.
+- **Keyboard:** a script in `js/app.js` makes every element that has an inline `onclick` but is not a real control
+  (a `div`, `span`, `img`) focusable, announced as a button, and pressable with Enter or Space. Opt out with
+  `data-nokb`. There is one visible focus ring (white on gradient surfaces). The toast is a polite live region.
+- **Size:** small controls get an invisible 44 px hit area; chips, calendar days and period buttons are 44 px
+  high; no text is below 11 px and the bottom bar labels are 12 px. In Lao mode the line height is 1.55.
+- **Motion:** `prefers-reduced-motion` turns off smooth scroll, the switch and chevron movement and the
+  loading bar, and shows the finished splash; state changes still happen.
+- **Speed:** the unused Chart.js library is gone, fonts load from `<link>` tags in the page head (in parallel)
+  instead of a CSS `@import`, and `transition: all` is replaced by named properties.
+When you add a clickable element prefer `<button>`; when you add a colour that carries white text check it is
+at least 4.5:1.
 
 **Splash screen (v86).** The app opens with a short smash: a shuttle drops in from the top left,
 hits the court, a green ring and yellow rays burst out, then **GOD** slides in and **SMASH** lands

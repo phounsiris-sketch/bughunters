@@ -385,7 +385,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v86"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v87"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
@@ -433,6 +433,34 @@ var _splashSub = document.getElementById("splashSub");
 if (_splashSub && typeof t === "function") _splashSub.textContent = t("headerSub");
 // Never leave someone stuck on the splash (e.g. offline at first start)
 setTimeout(function () { if (typeof hideSplash === "function") hideSplash(); }, 8000);
+
+/* Keyboard and screen-reader access: anything that has an inline onclick but is not a real control
+   (a div, a span, an img) becomes focusable, is announced as a button, and Enter / Space press it. */
+(function () {
+  var REAL = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY|LABEL|OPTION)$/;
+  var SKIP = /(^|\s)(modal-overlay|image-viewer|ls-scrim|notif-panel|lg-sheet)(\s|$)/;
+  function fix(el) {
+    if (!el || el.nodeType !== 1) return;
+    if (el.hasAttribute("onclick") && !REAL.test(el.tagName) && !el.hasAttribute("tabindex") && !el.hasAttribute("data-nokb") && !SKIP.test(el.className || "")) {
+      el.setAttribute("tabindex", "0");
+      if (!el.hasAttribute("role")) el.setAttribute("role", "button");
+      if (el.tagName === "IMG" && !el.hasAttribute("aria-label")) el.setAttribute("aria-label", typeof t === "function" ? t("viewPhoto") : "Photo");
+    }
+    var kids = el.querySelectorAll ? el.querySelectorAll("[onclick]") : [];
+    for (var i = 0; i < kids.length; i++) fix(kids[i]);
+  }
+  new MutationObserver(function (list) {
+    list.forEach(function (m) { for (var i = 0; i < m.addedNodes.length; i++) fix(m.addedNodes[i]); });
+  }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var el = e.target;
+    if (!el || !el.hasAttribute || !el.hasAttribute("onclick") || REAL.test(el.tagName) || el.isContentEditable) return;
+    e.preventDefault();
+    el.click();
+  });
+  fix(document.body);
+})();
 
 // initAuth is defined in auth.js (loaded before app.js)
 initAuth();

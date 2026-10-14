@@ -253,7 +253,7 @@ function _renderPollCard(poll) {
       (isVotable ? ' role="radio" aria-checked="' + mine + '" onclick="respondPoll(\'' + poll.id + '\',' + ai + ')"' : ' style="cursor:default"') + '>';
     html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
     html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(answerLabel(np.answers[ai])) +
-      (ai === 0 ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
+      (ai === 0 ? ' <span style="font-size:11px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
     if (uids.length) html += '<div class="poll-voters">' + peopleHtml(uids, 20, 6) + '</div>';
     html += '</div>';
     html += '<div class="vote-count" style="font-weight:700;color:' + (ai === 0 && enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +

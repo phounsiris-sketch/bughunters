@@ -4,12 +4,10 @@
    Depends on: sessions.js (lastSessions, computeLedger, openTransfers,
                loadSessions), polls.js (lastPolls, loadPolls, getUserName),
                i18n.js (t), app.js (COLORS, fmtLAK, fmtShort, fmtDate)
-   Chart.js loaded from CDN (global `Chart`)
    ============================================================ */
 
 var dashPeriod = "monthly";
 var dashTab = "leaders";
-var _dashChart = null;
 
 
 function loadDashboard() {
@@ -64,7 +62,6 @@ function _renderDashboard() {
   var container = document.getElementById("dashboardContent");
   if (!container) return;
 
-  if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb([{ label: t("navHome"), action: "showPage('home')" }, { label: t("navDashboard") }]);
 
   // My rating card lives on Rankings and Home; gear for sale lives on the Market. Only the leaderboard keeps the gear board.
@@ -95,7 +92,7 @@ function _renderDashboard() {
     var filtered = calculated.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
     html += _renderSpendingTab(filtered, calculated);
     container.innerHTML = html;
-    setTimeout(function () { _createSpendingChart(filtered); var vs = document.getElementById("vbarScroll"); if (vs) vs.scrollLeft = vs.scrollWidth; }, 0);
+    setTimeout(function () { var vs = document.getElementById("vbarScroll"); if (vs) vs.scrollLeft = vs.scrollWidth; }, 0);
   } else {
     html += _renderActivityTab();
     container.innerHTML = html;
@@ -380,43 +377,6 @@ function _playerSpend(sessions) {
   var list = Object.keys(data).filter(function (u) { return data[u].total > 0; });
   list.sort(function (a, b) { return data[b].total - data[a].total; });
   return { uids: list, data: data };
-}
-
-function _createSpendingChart(sessions) {
-  var canvas = document.getElementById("spendingChart");
-  if (!canvas || typeof Chart === "undefined") return;
-
-  var ps = _playerSpend(sessions);
-  var plain = function (uid) { var u = findUser(uid); return u ? u.displayName : "?"; };
-  var css = getComputedStyle(document.body);
-  var series = [
-    ["court", t("courtCost"), "#0d9488"],
-    ["shuttle", t("shuttleCost"), "#2563eb"],
-    ["other", t("otherCosts"), "#a855f7"],
-    ["dinner", t("dinnerCost"), "#f59e0b"]
-  ];
-
-  _dashChart = new Chart(canvas.getContext("2d"), {
-    type: "bar",
-    data: {
-      labels: ps.uids.map(plain),
-      datasets: series.map(function (sr) {
-        return { label: sr[1], data: ps.uids.map(function (u) { return Math.round(ps.data[u][sr[0]]); }), backgroundColor: sr[2] };
-      })
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { color: css.getPropertyValue("--text-muted").trim() || "#94a3b8", boxWidth: 12, font: { size: 10 } } }
-      },
-      scales: {
-        x: { stacked: true, ticks: { color: css.getPropertyValue("--text-dim").trim() || "#64748b", callback: function (v) { return fmtShort(v); } }, grid: { color: "rgba(128,128,128,0.1)" } },
-        y: { stacked: true, ticks: { color: css.getPropertyValue("--text").trim() || "#e0e8f0", font: { size: 12 } }, grid: { display: false } }
-      }
-    }
-  });
 }
 
 /* ──────────────────────────────────────────────────────────
