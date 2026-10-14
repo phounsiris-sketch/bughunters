@@ -259,6 +259,20 @@ function _lsCountHtml() {
   return html;
 }
 
+/** Match over (best of 3 decided, or a rematch finished): one summary to check and confirm: every game, the match score, then Save */
+function _lsSummaryHtml(decided, draw, title, after) {
+  var all = (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
+  var rows = '<div class="ls-sum-row head"><i></i><b>' + t("lsTeam") + ' A</b><b>' + t("lsTeam") + ' B</b></div>' + all.map(function (g, i) {
+    return '<div class="ls-sum-row"><i>' + t("lsGameN").replace("{n}", i + 1) + '</i><b class="' + (g.a > g.b ? 'w' : '') + '">' + g.a + '</b><b class="' + (g.b > g.a ? 'w' : '') + '">' + g.b + '</b></div>';
+  }).join("") + '<div class="ls-sum-row total"><i>' + t("lsMatchScoreShort") + '</i><b class="' + (after.A > after.B ? 'w' : '') + '">' + after.A + '</b><b class="' + (after.B > after.A ? 'w' : '') + '">' + after.B + '</b></div>';
+  var btns = live.test
+    ? '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t("lsRematch") + '</button><button class="btn-secondary" onclick="lsExit()">' + t("lsExit") + '</button>'
+    : '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsRematch") + '</button><button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>';
+  return '<div class="ls-scrim dark sum"></div><div class="ls-over ls-sum"><div class="ls-over-cap">' + t("lsConfirmMatch") + '</div>' +
+    '<div class="ls-over-title">' + icon(draw ? "medal" : "trophy", 30) + ' ' + title + '</div><div class="ls-sum">' + rows + '</div>' +
+    (live.test ? '<div class="form-hint">' + t("lsTestBadge") + '</div>' : '') + btns + '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
+}
+
 function _lsOverHtml() {
   var w = live.over, ids = byNameAZ(w === "A" ? live.a : live.b);
   var after = lsSeriesAfter(live, w), decided = lsMatchDecided(live, w), multi = (live.bo || 1) > 1;
@@ -268,6 +282,7 @@ function _lsOverHtml() {
     : t("lsWins").replace("{team}", t("lsTeam") + " " + w);
   var series = multi ? '<div class="ls-over-series">' + t("lsMatchScore").replace("{a}", after.A).replace("{b}", after.B) + ' \u00B7 ' + _boLabel(live.bo) + '</div>' : '';
   var gcap = '<div class="ls-over-cap">' + t("lsGameResult").replace("{n}", multi ? live.sw.A + live.sw.B + 1 : live.saved + 1) + '</div>';
+  if (decided && multi) return _lsSummaryHtml(decided, draw, title, after);   // match over: summary page to confirm
   if (live.test) {
     return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
       gcap + '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="form-hint">' + t("lsTestBadge") + '</div>' +
@@ -436,11 +451,6 @@ function lsSaveGame(next) {
   if (!s || !live.over) return;
   var a = live.sa, b = live.sb, p = scoreProblem(a, b);
   if (p) { showToast(p); return; }
-  if (lsMatchDecided(live, live.over)) {   // the match is over: show the whole result and ask before saving
-    var af = lsSeriesAfter(live, live.over), all = (live.gl || []).concat([{ a: a, b: b }]);
-    if (!confirm((af.A === af.B ? t("lsSaveDrawConfirm").replace("{a}", af.A).replace("{b}", af.B) : t("lsSaveMatchConfirm").replace("{team}", t("lsTeam") + " " + live.over).replace("{a}", af.A).replace("{b}", af.B)) + "\n" +
-      all.map(function (g, i) { return t("lsGameShort").replace("{n}", i + 1) + " " + g.a + "\u2013" + g.b; }).join("  \u00B7  "))) return;
-  }
   var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
     minutes: Math.max(1, Math.min(180, Math.round((Date.now() - (live.startedAt || Date.now())) / 60000))) };
   fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
