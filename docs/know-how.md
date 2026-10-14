@@ -1048,3 +1048,9 @@ The side that wins a GAME shows a gold medal above its score (also on the iPad w
 
 ## Format tabs (v112)
 Match format is one tab row, equal width, no wrapping: Single · Rematch · Best of 3 (Lao: ເກມດຽວ · ແຂ່ງແກ້ມື · ໃຜຊະນະ 3 ເກມ). The full name ("Rematch (2 games)") shows as a small hint under the tabs.
+
+## Rematch label (v113)
+No "(2 games)" anywhere: the format is just "Rematch" / ແຂ່ງແກ້ມື, and the hint under the tabs is gone.
+
+## Trophy for the match, medal for a game or a draw (v114)
+`_lsEnd(st)` says what just ended: `game` (match goes on: medal + glow + confetti, as before), `match` (single game, or the deciding game of best of 3 / rematch 2–0: gold trophy, bigger, same celebration), `draw` (rematch 1–1: medal on both sides, nobody fades, no confetti). Trophy icon is new in icons.js (`trophy`). Same on the iPad watch screen.

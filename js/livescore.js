@@ -122,7 +122,7 @@ function _boSegHtml() {
   var cur = live.bo || 1, tabs = [[1, "lsTabSingle"], [2, "lsTabRematch"], [3, "lsTabBo3"]];
   return '<div class="seg ls-fmt" role="tablist">' + tabs.map(function (x) {
     return '<button type="button" role="tab" aria-selected="' + (cur === x[0]) + '" class="seg-btn' + (cur === x[0] ? ' active' : '') + '" onclick="lsBo(' + x[0] + ')">' + t(x[1]) + '</button>';
-  }).join("") + '</div><div class="form-hint ls-fmt-hint">' + _boLabel(cur) + '</div>';
+  }).join("") + '</div>';
 }
 
 /** Match score: a flip card with the games won, and under it the points of each finished game as "G1 21" (the game this team won in bold) */
@@ -195,12 +195,30 @@ function lsRender() {
 }
 
 function _lsTheme() { return LS_THEMES[lsThemeIdx()]; }
-/** The side that won the game celebrates (glow, pop, confetti); the other one fades */
-function _lsWinCls(side, over) { return over ? (over === side ? " ls-winner" : " ls-loser") : ""; }
-/** Medal on the side that won the GAME (the number card is the MATCH) */
-function _lsCrown(side, over) { return over === side ? '<div class="ls-crown">' + icon("medal", 52) + '</div>' : ""; }
-function _lsConfetti(side, over) {
-  if (over !== side) return "";
+/** What just ended: "game" (the match goes on), "match" (single game, or the deciding game: trophy) or "draw" (rematch 1–1: medal for both). null while playing. */
+function _lsEnd(st) {
+  if (!st || !st.over) return null;
+  var bo = st.bo || 1;
+  if (bo === 1) return "match";
+  if (!lsMatchDecided(st, st.over)) return "game";
+  var n = lsSeriesAfter(st, st.over);
+  return n.A === n.B ? "draw" : "match";
+}
+/** Game won: glow + confetti + medal on the winner. Match won: the same, with a trophy. Draw: a medal on both, nobody fades. */
+function _lsWinCls(side, st) {
+  var e = _lsEnd(st);
+  if (!e) return "";
+  if (e === "draw") return " ls-draw";
+  return st.over === side ? " ls-winner" + (e === "match" ? " ls-champ" : "") : " ls-loser";
+}
+function _lsCrown(side, st) {
+  var e = _lsEnd(st);
+  if (!e || (e !== "draw" && st.over !== side)) return "";
+  return '<div class="ls-crown' + (e === "match" ? ' ls-trophy' : '') + '">' + icon(e === "match" ? "trophy" : "medal", 52) + '</div>';
+}
+function _lsConfetti(side, st) {
+  var e = _lsEnd(st);
+  if (!e || e === "draw" || st.over !== side) return "";
   var h = '<div class="ls-confetti" aria-hidden="true">';
   for (var i = 0; i < 16; i++) h += "<i></i>";
   return h + "</div>";
@@ -214,10 +232,10 @@ function _lsCountHtml() {
   var half = function (side) {
     var score = side === "A" ? live.sa : live.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? live.a : live.b);
-    return '<div class="ls-half' + _lsWinCls(side, live.over) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, live.over) +
+    return '<div class="ls-half' + _lsWinCls(side, live) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, live) +
       '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 18) + '</span></button>' +
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
-      '<div class="ls-info">' + _lsCrown(side, live.over) + '<div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
+      '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, live.sw, live.gl) : '') + '</div></div>';
   };
@@ -562,8 +580,8 @@ function _lsWatchHtml() {
   var half = function (side) {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);
-    return '<div class="ls-half ls-watch' + _lsWinCls(side, g.over) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, g.over) +
-      '<div class="ls-info">' + _lsCrown(side, g.over) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
+    return '<div class="ls-half ls-watch' + _lsWinCls(side, g) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, g) +
+      '<div class="ls-info">' + _lsCrown(side, g) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
       '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' + won(side) + '</div></div>';
   };
