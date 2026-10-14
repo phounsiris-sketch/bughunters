@@ -1045,3 +1045,6 @@ Symptom: iPad shows the password autofill sheet every time, sign-in "fails" or t
 
 ## Medal = game winner, card = match (v111)
 The side that wins a GAME shows a gold medal above its score (also on the iPad watch screen); the number card stays the MATCH count. Finished games in the small points row get a small medal when that team won them. The score counter resets to 0–0 on Save and next / Rematch.
+
+## Format tabs (v112)
+Match format is one tab row, equal width, no wrapping: Single · Rematch · Best of 3 (Lao: ເກມດຽວ · ແຂ່ງແກ້ມື · ໃຜຊະນະ 3 ເກມ). The full name ("Rematch (2 games)") shows as a small hint under the tabs.

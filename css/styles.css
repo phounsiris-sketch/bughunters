@@ -5235,3 +5235,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-crown { display: flex; justify-content: center; color: #facc15; margin-bottom: 4px; animation: ls-pop .6s cubic-bezier(.2, 1.6, .4, 1) both; filter: drop-shadow(0 0 12px rgba(250, 204, 21, .8)); }
 .ls-crown .si { width: clamp(40px, 9vh, 84px); height: clamp(40px, 9vh, 84px); }
 .ls-pt .si { vertical-align: -2px; color: #facc15; }
+
+/* Format tabs: one row, equal width, labels never wrap (the long name sits in the hint under the tabs) */
+.ls-fmt .seg-btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding: 10px 4px; }
+.ls-fmt-hint { margin-top: 6px; text-align: center; }
