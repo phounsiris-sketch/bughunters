@@ -120,10 +120,11 @@ function _boSegHtml() {
   }).join("") + '</div>';
 }
 
-/** Like the folding table scoreboard: a dark card with the games won, then a small card per finished game with this team's points */
+/** Match score as small text under the score: games won, then this team's points in each finished game (the game it won in bold) */
 function flipBoardHtml(side, sw, gl) {
-  var o = side === "A" ? "B" : "A", html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span>';
-  (gl || []).forEach(function (g) { html += '<span class="fc pt' + (g[side.toLowerCase()] > g[o.toLowerCase()] ? ' win' : '') + '">' + g[side.toLowerCase()] + '</span>'; });
+  var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
+  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="ls-won-n">' + t("lsGamesWon").replace("{n}", sw[side]) + '</span>';
+  (gl || []).forEach(function (g) { html += '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '">' + g[k] + '</span>'; });
   return html + '</div>';
 }
 

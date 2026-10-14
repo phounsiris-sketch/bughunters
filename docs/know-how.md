@@ -1013,3 +1013,6 @@ The splash scene plays 1.6x faster (`SPEED` in js/splash.js) and `SPLASH_MIN_MS`
 
 ## Login never fails silently (v102)
 iPad: Log in button greys out then returns, nothing opens. Sign-in itself worked, the step after it (profile / groups / opening the app) threw or hung with no message. `_enterApp` now catches errors and shows "Sign-in stopped (step): message"; a 12 s watchdog warns if the app never opened. Use the message to find the real cause.
+
+## Match score as small text again (v103)
+Flip cards dropped (user: a small number is enough). Under the score: "Games won N" then each finished game's points as small numbers, the game that team won in bold. Same data (`sw`, `gl`), only `flipBoardHtml` and its CSS changed.
