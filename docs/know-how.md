@@ -1031,3 +1031,8 @@ Match score: a dark flip card with the games won (yellow, big), and under it eac
 
 ## iPad keeps asking to sign in (v108)
 Symptom: iPad shows the password autofill sheet every time, sign-in "fails" or the session is gone on next open. Likely cause: iOS Safari IndexedDB (Firestore offline cache + auth storage) hanging or being wiped; Safari also purges site data of tabs not opened for 7 days (home-screen apps are exempt). Fix: `auth.setPersistence(LOCAL)` explicitly, and no Firestore `enablePersistence` on iOS (`IS_IOS` in firebase-config.js). Tip: install to Home Screen (Share, Add to Home Screen). Unconfirmed on a real iPad: if it still happens, read the "Sign-in stopped (step)" message from v102.
+
+## Best of 3 only, clearer result numbers (v109)
+- Best of 5 removed (single game or best of 3). An old saved best-of-5 is read as best of 3.
+- When a best of 3 is decided, Save asks first: "Save the match result? Team A wins 2–1" plus every game ("Game 1 21–18 · ...").
+- Number labels: game-over screen says "Game N result" above the points and "Match score 2–1 · Best of 3" under it; the flip card is captioned "Games won", points below read "Game 1 21" per finished game.
