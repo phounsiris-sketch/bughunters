@@ -6,6 +6,7 @@ run it. App version at the time of writing: **v88**.
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
 - Code: plain JavaScript PWA, with no build step. `index.html` loads `js/*.js` in order.
+- Architecture and design decisions: [system-design.md](system-design.md)
 
 ---
 
