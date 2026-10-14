@@ -5181,3 +5181,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   .ls-serve-big { width: clamp(72px, 19.8vh, 171px); height: clamp(72px, 19.8vh, 171px); }
 }
 @media (orientation: landscape) and (max-height: 480px) { .ls-score { font-size: min(63.8vh, 28.6vw, 242px); } }
+
+/* Match score (games won) as a small line under the big score */
+.ls-won { margin-top: 2px; font-size: clamp(13px, 2.6vh, 24px); font-weight: 600; letter-spacing: .5px; opacity: .92; text-align: center; }
