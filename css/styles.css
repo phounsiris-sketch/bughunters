@@ -5207,3 +5207,26 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-pt i { font-style: normal; font-size: .85em; opacity: .7; margin-right: 2px; }
 .ls-over-cap { margin-top: 6px; font-size: 13px; font-weight: 600; opacity: .7; letter-spacing: .4px; }
 .ls-over-series { font-size: 14px; font-weight: 600; opacity: .85; }
+
+/* Celebration: the side that won the game glows, the score pops, confetti falls; the other side fades. The match leader's number card is gold. */
+.fc.won.lead { box-shadow: 0 0 0 2px #facc15, 0 0 18px rgba(250, 204, 21, .55), 0 3px 8px rgba(0, 0, 0, .4); }
+.ls-half.ls-loser { filter: saturate(.5) brightness(.7); transition: filter .4s; }
+.ls-half.ls-winner { animation: ls-glow 1.1s ease-in-out infinite alternate; }
+.ls-half.ls-winner .ls-score { animation: ls-pop .6s cubic-bezier(.2, 1.6, .4, 1) both; text-shadow: 0 0 28px rgba(255, 255, 255, .65); }
+.ls-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 6; }
+.ls-confetti i { position: absolute; top: -12px; width: 9px; height: 16px; border-radius: 2px; opacity: 0; animation: ls-fall 2.6s linear infinite; }
+.ls-confetti i:nth-child(4n+1) { background: #facc15; } .ls-confetti i:nth-child(4n+2) { background: #fff; }
+.ls-confetti i:nth-child(4n+3) { background: #f472b6; } .ls-confetti i:nth-child(4n) { background: #34d399; }
+.ls-confetti i:nth-child(1) { left: 5%; animation-delay: 0s; } .ls-confetti i:nth-child(2) { left: 11%; animation-delay: .7s; }
+.ls-confetti i:nth-child(3) { left: 18%; animation-delay: 1.3s; } .ls-confetti i:nth-child(4) { left: 25%; animation-delay: .3s; }
+.ls-confetti i:nth-child(5) { left: 32%; animation-delay: 1.9s; } .ls-confetti i:nth-child(6) { left: 39%; animation-delay: 1s; }
+.ls-confetti i:nth-child(7) { left: 46%; animation-delay: .15s; } .ls-confetti i:nth-child(8) { left: 53%; animation-delay: 1.6s; }
+.ls-confetti i:nth-child(9) { left: 60%; animation-delay: .5s; } .ls-confetti i:nth-child(10) { left: 67%; animation-delay: 2.1s; }
+.ls-confetti i:nth-child(11) { left: 74%; animation-delay: .9s; } .ls-confetti i:nth-child(12) { left: 80%; animation-delay: 1.45s; }
+.ls-confetti i:nth-child(13) { left: 86%; animation-delay: .25s; } .ls-confetti i:nth-child(14) { left: 91%; animation-delay: 1.15s; }
+.ls-confetti i:nth-child(15) { left: 96%; animation-delay: .6s; } .ls-confetti i:nth-child(16) { left: 2%; animation-delay: 2.3s; }
+@keyframes ls-fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(540deg); opacity: .9; } }
+@keyframes ls-glow { from { box-shadow: inset 0 0 0 0 rgba(250, 204, 21, 0); } to { box-shadow: inset 0 0 60px 6px rgba(250, 204, 21, .55); } }
+@keyframes ls-pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
+.ls-scrim.dark { background: rgba(0, 0, 0, .35); }   /* lighter so the celebration shows behind the result */
+@media (prefers-reduced-motion: reduce) { .ls-half.ls-winner, .ls-half.ls-winner .ls-score, .ls-confetti i { animation: none; } .ls-confetti { display: none; } }

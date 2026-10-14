@@ -1036,3 +1036,9 @@ Symptom: iPad shows the password autofill sheet every time, sign-in "fails" or t
 - Best of 5 removed (single game or best of 3). An old saved best-of-5 is read as best of 3.
 - When a best of 3 is decided, Save asks first: "Save the match result? Team A wins 2–1" plus every game ("Game 1 21–18 · ...").
 - Number labels: game-over screen says "Game N result" above the points and "Match score 2–1 · Best of 3" under it; the flip card is captioned "Games won", points below read "Game 1 21" per finished game.
+
+## Rematch (2 games) and celebration (v110)
+- New format "Rematch (2 games)" (`bo: 2`): both games always played with the same pairs; 2–0 wins, 1–1 is a draw ("Match drawn 1–1", confirm "Save the match result? Draw 1–1"). `lsMatchDecided`: someone reached `lsNeed` OR all `bo` games played. `_boLabel(n)` names the formats.
+- "Games won" caption removed: the card number is enough. The card of the side leading the match gets a gold ring (`.fc.won.lead`).
+- Game over: the winning half glows, the score pops, confetti falls (`.ls-winner`, `_lsConfetti`); the other half fades (`.ls-loser`). Also on the iPad watch screen. Reduced motion: no animation.
+- Save and finish clears the live state (`live = null`, `liveMode = "count"`), so the next open starts from the game picker.
