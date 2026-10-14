@@ -5190,3 +5190,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-won-n { font-size: clamp(13px, 2.6vh, 24px); font-weight: 600; letter-spacing: .5px; opacity: .92; }
 .ls-pt { font-size: clamp(13px, 2.6vh, 24px); font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
 .ls-pt.win { font-weight: 800; opacity: 1; }
+
+/* Phones: no match count / per-game results on the score screen (iPad and wide screens keep them) */
+@media (max-width: 767px), (max-height: 500px) { .ls-flip { display: none; } }

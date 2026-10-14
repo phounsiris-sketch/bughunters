@@ -1016,3 +1016,6 @@ iPad: Log in button greys out then returns, nothing opens. Sign-in itself worked
 
 ## Match score as small text again (v103)
 Flip cards dropped (user: a small number is enough). Under the score: "Games won N" then each finished game's points as small numbers, the game that team won in bold. Same data (`sw`, `gl`), only `flipBoardHtml` and its CSS changed.
+
+## Phones hide the match count (v104)
+Match score line (`.ls-flip`) is iPad/wide-screen only: hidden at width <= 767px or height <= 500px (phones, also landscape). Data still tracked; match-win title and Rematch on the game-over screen are unchanged.
