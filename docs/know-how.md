@@ -957,3 +957,10 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 - **Pushes can be up to about 5 minutes late**, because the job is started on a
   schedule rather than by events.
 - **Time zone:** all dates and times are Vientiane/Bangkok time (UTC+7).
+
+
+## Splash screen v89 (cinematic)
+- `js/splash.js` draws the whole scene on one canvas (`#sp3fx`); every frame is a pure function of time, so `spSeek(ms)` freezes it. Logo + name are plain HTML above the canvas: they never move.
+- Beats: loom (shadow) 0.26 s, gauntlet swing, shuttle hit at 1.0 s, 130 ms slow motion, white flash, shock ring (split colour), debris + dust, decaying camera shake, fractures grow, floor breaks into shards at 1.65 s over the glow, embers. About 2.4 s (`SPLASH_MIN_MS`).
+- Red/blue alternates by `localStorage godsmash_splash`. Cracks and shards are random every launch (`?seed=7` fixes them in `docs/splash-preview.html?theme=red&t=<ms>`).
+- Reduced motion: one still frame (broken floor + glow), 600 ms.
