@@ -126,6 +126,12 @@ function _boSegHtml() {
 }
 
 /** Match score: a flip card with the games won, and under it the points of each finished game as "G1 21" (the game this team won in bold) */
+/** Games won and finished games to show: once a game is over it already counts (1–1 after a drawn rematch), before it is saved */
+function _lsShown(st) {
+  var sw = st.sw || { A: 0, B: 0 }, gl = st.gl || [];
+  if (!st.over) return { sw: sw, gl: gl };
+  return { sw: lsSeriesAfter(st, st.over), gl: gl.concat([{ a: st.sa, b: st.sb }]) };
+}
 function flipBoardHtml(side, sw, gl) {
   var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
   var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won' + (sw[side] > sw[o] ? ' lead' : '') + '">' + sw[side] + '</span>';
@@ -237,7 +243,7 @@ function _lsCountHtml() {
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
       '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
-      ((live.bo || 1) > 1 ? flipBoardHtml(side, live.sw, live.gl) : '') + '</div></div>';
+      ((live.bo || 1) > 1 ? flipBoardHtml(side, _lsShown(live).sw, _lsShown(live).gl) : '') + '</div></div>';
   };
   var html = half("A") + half("B");
   html += '<button type="button" class="ls-exit ls-exit-count" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
@@ -586,7 +592,7 @@ function _lsWatchHtml() {
   var th = LS_THEMES[g.theme >= 0 && g.theme < LS_THEMES.length ? g.theme : 0];
   var cap = maxPoints(), gp = lsGamePoint(g.sa, g.sb, cap);
   var bo = g.bo || 1, need = Math.ceil(bo / 2), sw = g.sw || { A: 0, B: 0 };
-  var won = function (side) { return bo > 1 ? flipBoardHtml(side, sw, g.gl) : ''; };
+  var won = function (side) { return bo > 1 ? flipBoardHtml(side, _lsShown(g).sw, _lsShown(g).gl) : ''; };
   var half = function (side) {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);

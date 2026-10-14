@@ -1069,3 +1069,6 @@ The big medal/trophy used to sit above the score in the layout, so the score shr
 
 ## Serve shuttle does not shift the score (v118)
 The team row (`.ls-team`) holds the serve shuttle on the counting screen; with no shuttle (and the "Team A" text hidden on phones) the row was empty, so the score jumped each time the serve changed. The row now always has `min-height: 34px`. The watch screen already had a fixed `.ls-serve-slot`.
+
+## Games count updates when the game ends + pulsing medal/trophy (v119)
+The games-won card and the small points row used the saved state, so a finished game only counted after Save (a drawn rematch still showed 0–0 under the celebration). `_lsShown(st)` now counts the game that just ended (1–1 right away, its points in the row) on the counting and watch screens. Medal and trophy keep a slow zoom in/out (`ls-crown-pulse`, off for reduced motion).

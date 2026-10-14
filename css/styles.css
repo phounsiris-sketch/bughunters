@@ -5278,3 +5278,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 
 /* The serving shuttle must not move the score: the team row always keeps the shuttle's height, serving or not */
 .ls-team { min-height: 34px; box-sizing: border-box; }
+
+/* Medal / trophy: appear, then keep breathing (slow zoom in and out) */
+.ls-crown { animation: ls-crown-in .6s cubic-bezier(.2, 1.4, .4, 1) both, ls-crown-pulse 1.8s ease-in-out .6s infinite; }
+@keyframes ls-crown-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.14); } }
+@media (prefers-reduced-motion: reduce) { .ls-crown { animation: none; } }
