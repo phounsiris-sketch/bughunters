@@ -245,6 +245,20 @@ function _enterApp() {
   if (typeof subGate === "function" && subGate()) return;
   // Find my groups first (before the migration the app runs as one group)
   loadGroupContext().then(function () {
+    try { _enterAppBody(); } catch (e) { _authFail("enter", e); }
+  }).catch(function (e) { _authFail("groups", e); });
+}
+
+/** Never fail silently: say where it stopped (login looked dead on iPad) */
+function _authFail(step, e) {
+  try { console.error("[godsmash] sign-in stopped at " + step, e); } catch (x) {}
+  var msg = (e && (e.message || e.code)) || String(e);
+  showToast("Sign-in stopped (" + step + "): " + msg);
+  try { showAuthPage(); } catch (x) {}
+}
+
+function _enterAppBody() {
+  {
     if (!GROUPS_ON) seedFirestoreData();
     startGroupListeners();
     initApp();       // starts the shared data cache
@@ -255,7 +269,7 @@ function _enterApp() {
     if (GROUPS_ON) startInviteListeners();  // sessions feed badges, notifications and My payments
     if (GROUPS_ON && joinFromHash()) return; // invite link
     if (typeof openFromHash === "function") setTimeout(openFromHash, 400); // link from a push
-  });
+  }
 }
 
 /* ---------- Show the sign-in form (not the profile form) ---------- */
@@ -363,6 +377,11 @@ function initAuth() {
 
 function _afterSignIn(user) {
   currentUser = user;
+  // Watchdog: if nothing opened after 12 s, say so instead of showing a dead form
+  setTimeout(function () {
+    var lp = document.getElementById("login-page");
+    if (currentUser && lp && lp.style.display !== "none" && lp.offsetParent !== null) showToast("Signed in, but the app did not open. Check the connection and reopen.");
+  }, 12000);
   fsdb.collection("users").doc(user.uid).get()
     .then(function (doc) {
       if (doc.exists) {
