@@ -30,7 +30,7 @@
   /* timeline, real milliseconds */
   var T_LOOM = 260, T_SWING = 640, T_CONTACT = 900, T_IMPACT = 1000, SLOW_MS = 150, SLOW_K = 0.4;   // a soft hit-stop (v120: the hard 0.16 stop looked like a stutter)
   var T_BREAK = 1650, T_HOLD = 2300;
-  var SPEED = 1.6;   // the scene is played this much faster than its timeline (v101): about 1.5 s on screen
+  var SPEED = 2.2;   // the scene is played this much faster than its timeline (v101, v121): about 1 s on screen
 
   var ctx = cv.getContext("2d");
   var W = 0, H = 0, DPR = 1, C = { x: 0, y: 0 }, floor = null, vign = null;
