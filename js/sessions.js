@@ -189,6 +189,7 @@ function loadSessions() {
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (currentPage === "payments" && typeof renderPayments === "function") renderPayments();
       if (typeof updateNotifications === "function") updateNotifications();
+      if (currentPage === "home" && typeof renderHome === "function") renderHome();   // a finished game takes its live board off Home
     });
   }
   renderSessionsList(lastSessions);

@@ -204,7 +204,7 @@ function _lsCountHtml() {
   if (liveMode === "menu") {
     html += '<div class="ls-scrim" onclick="lsMenu(false)"></div><div class="ls-menu">' +
       '<button type="button" onclick="lsExit()">' + icon("back", 32) + '<span>' + t("lsExit") + '</span></button>' +
-      '<button type="button" onclick="lsReset()">' + icon("history", 32) + '<span>' + t("lsReset") + '</span></button>' +
+      '<button type="button" onclick="lsReset()">' + icon("trash", 32) + '<span>' + t("lsReset") + '</span></button>' +
       '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button>' +
       (document.documentElement.requestFullscreen ? '<button type="button" onclick="lsFullscreen()">' + icon("scoreboard", 32) + '<span>' + t("lsFullscreen") + '</span></button>' : '') + '</div>' +
       '<button type="button" class="ls-menu-x" aria-label="' + t("close") + '" onclick="lsMenu(false)">' + icon("close", 26) + '</button>';
@@ -357,9 +357,11 @@ function lsAdd(uid) {
 function lsRemove(side, uid) { var k = side === "A" ? "a" : "b"; live[k] = live[k].filter(function (u) { return u !== uid; }); lsSave(); lsRender(); }
 function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; lsSave(); liveMode = "count"; lsRender(); }
 
+/** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
-  if (!live.test && live.sa + live.sb > 0 && !confirm(t("lsResetConfirm"))) return;
-  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A";
+  var series = live.sw && (live.sw.A + live.sw.B) > 0;
+  if (!live.test && (live.sa + live.sb > 0 || series) && !confirm(t("lsResetConfirm"))) return;
+  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 };
   lsSave(); liveMode = "count"; lsRender();
 }
 
@@ -413,7 +415,17 @@ function lsCancelSaved() {
 }
 
 /** A game is still being counted on this phone (for the Home banner) */
-function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb > 0) && _lsSession(s.sid) ? s : null; }
+function lsInProgress() {
+  var s = lsLoad();
+  if (!s || s.over || !(s.sa + s.sb > 0) || !_lsSession(s.sid)) return null;
+  if (_liveEnded(s)) {   // the game was ended or cancelled: nothing left to count, drop the banner and the board
+    try { localStorage.removeItem(LS_KEY); } catch (e) {}
+    if (live && live.sid === s.sid) live = null;
+    lsUnshare();
+    return null;
+  }
+  return s;
+}
 
 
 /* ============================================================
@@ -422,7 +434,7 @@ function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb 
    stand, a friend's phone) open it read-only and see it change.
    ============================================================ */
 
-var LIVE_STALE_MS = 6 * 3600e3;   // a board nobody touched for 6 h is ignored
+var LIVE_STALE_MS = 3 * 3600e3;   // a board nobody touched for 3 h is ignored
 var liveNow = [];                  // other people's live games in my group
 /** A random id kept on this device, so the board of my OWN phone is not offered to my own iPad logged in with the same account */
 function _lsDev() {
@@ -446,9 +458,15 @@ function lsShare() {
 }
 function lsUnshare() {
   clearTimeout(_shareTimer);
-  if (!_shared || !currentUser) return;
+  if (!currentUser) return;   // always ask for the delete: after a reload this page no longer knows it shared
   _shared = false;
   fsdb.collection("liveGames").doc(currentUser.uid).delete().catch(function () {});
+}
+
+/** The game (session) this board belongs to was ended or cancelled: the board must go too (practice boards have no session) */
+function _liveEnded(x) {
+  var ses = x.test ? null : _lsSession(x.sid);
+  return !!ses && (ses.status === "completed" || ses.status === "cancelled" || sessionStep(ses) === 3);
 }
 
 /** Which games are being counted now by others in my group (for the Home banner) */
@@ -456,7 +474,12 @@ function liveWatchStart() {
   if (_liveListUnsub || !currentUser || !currentGroupId) return;
   _liveListUnsub = groupScoped(fsdb.collection("liveGames")).onSnapshot(function (snap) {
     var list = [];
-    snap.forEach(function (d) { var x = d.data(); x.id = d.id; if (x.dev !== _lsDev() && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x); });
+    snap.forEach(function (d) {
+      var x = d.data(); x.id = d.id;
+      var ended = _liveEnded(x);
+      if (ended && x.hostId === currentUser.uid && !live) d.ref.delete().catch(function () {});
+      if (x.dev !== _lsDev() && !ended && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x);
+    });
     liveNow = list;
     if (typeof refreshCurrentPage === "function" && currentPage === "home") refreshCurrentPage("live");
   }, function (e) { dbOnError(e, "liveGames"); });
@@ -469,7 +492,7 @@ function liveWatchStop() {
 
 /** Home banner: one tap on a running game of the group */
 function liveNowHtml() {
-  return liveNow.map(function (g) {
+  return liveNow.filter(function (g) { return !_liveEnded(g); }).map(function (g) {
     return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="lsWatch(\'' + g.id + '\')">' + icon("scoreboard", 22) +
       '<span><b>' + t("lsLiveNow") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + '</b><small>' + g.sa + ' \u2013 ' + g.sb + ' \u00B7 ' + (g.a || []).concat(g.b || []).map(getUserName).join(", ") + '</small></span><i>' + t("lsWatch") + '</i></button></div>';
   }).join("");
