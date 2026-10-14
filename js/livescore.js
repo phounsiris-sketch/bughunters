@@ -95,7 +95,7 @@ function _lsSession(id) {
   return null;
 }
 function _lsBlank(sid, type) {
-  return { sid: sid, type: type || "md", a: [], b: [], sa: 0, sb: 0, serve: "A", hist: [], over: null, startedAt: Date.now(), saved: 0, bo: 1, sw: { A: 0, B: 0 } };
+  return { sid: sid, type: type || "md", a: [], b: [], sa: 0, sb: 0, serve: "A", hist: [], over: null, startedAt: Date.now(), saved: 0, bo: 1, sw: { A: 0, B: 0 }, gl: [] };
 }
 
 /* ---------- Match format: single game, best of 3, best of 5 (the same pairs play on) ---------- */
@@ -110,7 +110,7 @@ function lsSeriesAfter(st, winner) {
 function lsMatchDecided(st, winner) { return (st.bo || 1) > 1 && lsSeriesAfter(st, winner)[winner] >= lsNeed(st); }
 function lsBo(n) {
   if (!live) return;
-  live.bo = n; live.sw = { A: 0, B: 0 };
+  live.bo = n; live.sw = { A: 0, B: 0 }; live.gl = [];
   lsSave(); lsRender();
 }
 function _boSegHtml() {
@@ -118,6 +118,13 @@ function _boSegHtml() {
   return '<div class="seg seg-wrap">' + [1, 3, 5].map(function (n) {
     return '<button type="button" class="seg-btn' + (cur === n ? ' active' : '') + '" onclick="lsBo(' + n + ')">' + (n === 1 ? t("lsSingleGame") : t("lsBestOf").replace("{n}", n)) + '</button>';
   }).join("") + '</div>';
+}
+
+/** Like the folding table scoreboard: a dark card with the games won, then a small card per finished game with this team's points */
+function flipBoardHtml(side, sw, gl) {
+  var o = side === "A" ? "B" : "A", html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span>';
+  (gl || []).forEach(function (g) { html += '<span class="fc pt' + (g[side.toLowerCase()] > g[o.toLowerCase()] ? ' win' : '') + '">' + g[side.toLowerCase()] + '</span>'; });
+  return html + '</div>';
 }
 
 /* ---------- Open / close ---------- */
@@ -192,7 +199,7 @@ function _lsCountHtml() {
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
       '<div class="ls-info"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
-      ((live.bo || 1) > 1 ? '<div class="ls-won">' + t("lsGamesWon").replace("{n}", live.sw[side]) + '</div>' : '') + '</div></div>';
+      ((live.bo || 1) > 1 ? flipBoardHtml(side, live.sw, live.gl) : '') + '</div></div>';
   };
   var html = half("A") + half("B");
   html += '<button type="button" class="ls-exit" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
@@ -361,12 +368,13 @@ function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
   if (!confirm(t("lsResetConfirm"))) return;   // always ask: the button sits next to the ones you tap all game
-  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 };
+  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
   lsSave(); liveMode = "count"; lsRender();
 }
 
 function lsTestAgain() {
   var w = live.over || "A", decided = lsMatchDecided(live, w);
+  live.gl = decided ? [] : (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
   live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, w);
   live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = w;
   lsShare(); lsRender();
@@ -396,6 +404,7 @@ function lsSaveGame(next) {
       showToast(t("gameSaved") + " ✔");
       if (next) {
         var winner = live.over, decided = lsMatchDecided(live, winner);
+        live.gl = decided ? [] : (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
         live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, winner);   // a decided match starts again from 0\u20130
         live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now();
         lsSave(); liveMode = "count"; lsRender();   // the same pairs play on; Settings \u2192 change teams to swap players
@@ -450,7 +459,7 @@ function lsShare() {
     _shared = true;
     fsdb.collection("liveGames").doc(currentUser.uid).set({
       hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
-      test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
+      test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, gl: live.gl || [], sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
       theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now()
     }).catch(function () {});   // watching is a bonus: counting never fails because of it
   }, 250);
@@ -521,7 +530,7 @@ function _lsWatchHtml() {
   var th = LS_THEMES[g.theme >= 0 && g.theme < LS_THEMES.length ? g.theme : 0];
   var cap = maxPoints(), gp = lsGamePoint(g.sa, g.sb, cap);
   var bo = g.bo || 1, need = Math.ceil(bo / 2), sw = g.sw || { A: 0, B: 0 };
-  var won = function (side) { return bo > 1 ? '<div class="ls-won">' + t("lsGamesWon").replace("{n}", sw[side]) + '</div>' : ''; };
+  var won = function (side) { return bo > 1 ? flipBoardHtml(side, sw, g.gl) : ''; };
   var half = function (side) {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);

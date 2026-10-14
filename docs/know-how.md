@@ -1004,3 +1004,6 @@ Score font +10% (portrait, landscape, short landscape); the watch screen's serve
 
 ## Match score as small text (v99)
 The games won in a best-of match show as a small line under each team's big score ("Games won: 1") on the count screen and the watch screen, replacing the pips on the watch screen. The pill still shows Best of N.
+
+## Flip-card match score (v100)
+Best-of matches show a folding-scoreboard strip under each team's score (`flipBoardHtml`): a dark card with the games won in yellow, then a small card per finished game with that team's points (yellow when it won that game). `live.gl` keeps the finished games' scores of the running match ([{a,b}]), cleared on a decided match, Reset all and format change; shared to the watch screen as `gl`. Replaces the "Games won" text of v99.
