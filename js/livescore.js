@@ -131,7 +131,7 @@ function flipBoardHtml(side, sw, gl) {
   var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won' + (sw[side] > sw[o] ? ' lead' : '') + '">' + sw[side] + '</span>';
   if ((gl || []).length) {
     html += '<div class="ls-pts">' + gl.map(function (g, i) {
-      return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '"><i>' + t("lsGameShort").replace("{n}", i + 1) + '</i> ' + g[k] + '</span>';
+      return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '"><i>' + t("lsGameShort").replace("{n}", i + 1) + '</i> ' + g[k] + (g[k] > g[q] ? ' ' + icon("medal", 12) : '') + '</span>';
     }).join("") + '</div>';
   }
   return html + '</div>';
@@ -197,6 +197,8 @@ function lsRender() {
 function _lsTheme() { return LS_THEMES[lsThemeIdx()]; }
 /** The side that won the game celebrates (glow, pop, confetti); the other one fades */
 function _lsWinCls(side, over) { return over ? (over === side ? " ls-winner" : " ls-loser") : ""; }
+/** Medal on the side that won the GAME (the number card is the MATCH) */
+function _lsCrown(side, over) { return over === side ? '<div class="ls-crown">' + icon("medal", 52) + '</div>' : ""; }
 function _lsConfetti(side, over) {
   if (over !== side) return "";
   var h = '<div class="ls-confetti" aria-hidden="true">';
@@ -215,7 +217,7 @@ function _lsCountHtml() {
     return '<div class="ls-half' + _lsWinCls(side, live.over) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, live.over) +
       '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 18) + '</span></button>' +
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
-      '<div class="ls-info"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
+      '<div class="ls-info">' + _lsCrown(side, live.over) + '<div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, live.sw, live.gl) : '') + '</div></div>';
   };
@@ -561,7 +563,7 @@ function _lsWatchHtml() {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);
     return '<div class="ls-half ls-watch' + _lsWinCls(side, g.over) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, g.over) +
-      '<div class="ls-info"><div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
+      '<div class="ls-info">' + _lsCrown(side, g.over) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
       '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' + won(side) + '</div></div>';
   };

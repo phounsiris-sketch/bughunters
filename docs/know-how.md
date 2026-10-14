@@ -1042,3 +1042,6 @@ Symptom: iPad shows the password autofill sheet every time, sign-in "fails" or t
 - "Games won" caption removed: the card number is enough. The card of the side leading the match gets a gold ring (`.fc.won.lead`).
 - Game over: the winning half glows, the score pops, confetti falls (`.ls-winner`, `_lsConfetti`); the other half fades (`.ls-loser`). Also on the iPad watch screen. Reduced motion: no animation.
 - Save and finish clears the live state (`live = null`, `liveMode = "count"`), so the next open starts from the game picker.
+
+## Medal = game winner, card = match (v111)
+The side that wins a GAME shows a gold medal above its score (also on the iPad watch screen); the number card stays the MATCH count. Finished games in the small points row get a small medal when that team won them. The score counter resets to 0–0 on Save and next / Rematch.
