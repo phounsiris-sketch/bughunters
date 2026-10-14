@@ -19,7 +19,8 @@ var LS_THEMES = [
   ["Sunset", "#f97316", "#fb923c", "#7c3aed", "#a78bfa"],
   ["Forest", "#16a34a", "#4ade80", "#0f766e", "#2dd4bf"],
   ["Ocean", "#0891b2", "#22d3ee", "#4338ca", "#818cf8"],
-  ["Night", "#db2777", "#f472b6", "#1e293b", "#475569"]
+  ["Night", "#db2777", "#f472b6", "#1e293b", "#475569"],
+  ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"]
 ];
 var LS_START_POINTS = 21;
 
@@ -176,7 +177,8 @@ function _lsCountHtml() {
     html += '<div class="ls-scrim" onclick="lsMenu(false)"></div><div class="ls-menu">' +
       '<button type="button" onclick="lsExit()">' + icon("back", 32) + '<span>' + t("lsExit") + '</span></button>' +
       '<button type="button" onclick="lsReset()">' + icon("history", 32) + '<span>' + t("lsReset") + '</span></button>' +
-      '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button></div>' +
+      '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button>' +
+      (document.documentElement.requestFullscreen ? '<button type="button" onclick="lsFullscreen()">' + icon("scoreboard", 32) + '<span>' + t("lsFullscreen") + '</span></button>' : '') + '</div>' +
       '<button type="button" class="ls-menu-x" aria-label="' + t("close") + '" onclick="lsMenu(false)">' + icon("close", 26) + '</button>';
   }
   if (live.over) html += _lsOverHtml();
@@ -298,6 +300,10 @@ function lsTap(side, delta) {
   lsRender();
 }
 function lsUndo() { if (!live) return; live = lsUndoLast(live); lsSave(); lsRender(); }
+function lsFullscreen() {
+  try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) {}
+  lsMenu(false);
+}
 function lsMenu(on) { liveMode = on === false ? "count" : "menu"; lsRender(); }
 function lsOpenSettings() { liveMode = "settings"; lsRender(); }
 function lsEditTeams() { live.a = []; live.b = []; lsSave(); liveMode = "setup"; lsRender(); }

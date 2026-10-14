@@ -87,8 +87,9 @@ function pushSettingsRows() {
     html += '<div class="nav-row"><span class="nav-row-ico">' + icon("bell", 20) + '</span>' +
       '<span class="nav-row-text"><b>' + t("pushTitle") + '</b><small>' + t(on ? "pushOn" : "pushHintShort") + '</small></span>' +
       '<button type="button" class="tgl' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" aria-label="' + t("pushTitle") + '" onclick="' + (on ? 'disablePush()' : 'enablePush()') + '"><i></i></button></div>';
-    if (on) html += '<button type="button" class="nav-row" onclick="localTestPush()"><span class="nav-row-ico">' + icon("check", 20) + '</span>' +
-      '<span class="nav-row-text"><b>' + t("pushLocalTest") + '</b><small id="pushLocalResult">' + t("pushHintShort") + '</small></span>' + icon("chevron", 16) + '</button>';
+    if (on) html += '<div class="nav-row push-test"><span class="nav-row-ico">' + icon("bell", 20) + '</span>' +
+      '<span class="nav-row-text"><b>' + t("pushLocalTest") + '</b><small id="pushLocalResult">' + t("pushHintShort") + '</small></span>' +
+      '<button type="button" class="btn-primary" onclick="localTestPush()">' + icon("check", 16) + ' ' + t("pushTestBtn") + '</button></div>';
     else html += '<pre id="pushLog" class="push-log" style="display:none"></pre>';
   } else {
     html += '<div class="nav-row"><span class="nav-row-ico">' + icon("warning", 20) + '</span><span class="nav-row-text"><b>' + t("pushTitle") + '</b><small>' +

@@ -957,3 +957,9 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 - **Pushes can be up to about 5 minutes late**, because the job is started on a
   schedule rather than by events.
 - **Time zone:** all dates and times are Vientiane/Bangkok time (UTC+7).
+
+
+## v90 batch
+- Public game: host card now has Edit (same form, `newGame._editId`, saves with `update`), Cancel game (tells players) and Delete (removes the card, rules already allow host delete).
+- Home strip: Rating card now before Badges. Live score: 6th colour theme "Royal"; landscape layout (teams side by side, controls along the bottom, big numbers) for tablets; menu has Full screen when the browser supports it.
+- Settings notification test: centred tile with a visible "Send test" button.
