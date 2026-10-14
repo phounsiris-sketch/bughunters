@@ -1066,3 +1066,6 @@ No "(2 games)" anywhere: the format is just "Rematch" / ແຂ່ງແກ້ມ
 
 ## Trophy / medal centred behind the score (v117)
 The big medal/trophy used to sit above the score in the layout, so the score shrank and dropped when a game ended. Now `.ls-crown` is absolutely centred behind the score (opacity .55, gold glow), the score keeps its size and place, no layout shift, nothing touches the screen edge. The v115 portrait score-shrink rule is gone. Same on the watch screen.
+
+## Serve shuttle does not shift the score (v118)
+The team row (`.ls-team`) holds the serve shuttle on the counting screen; with no shuttle (and the "Team A" text hidden on phones) the row was empty, so the score jumped each time the serve changed. The row now always has `min-height: 34px`. The watch screen already had a fixed `.ls-serve-slot`.

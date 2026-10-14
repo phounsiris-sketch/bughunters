@@ -5275,3 +5275,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-half.ls-winner .ls-info > :not(.ls-crown), .ls-half.ls-draw .ls-info > :not(.ls-crown) { position: relative; z-index: 1; }
 .ls-half.ls-winner .ls-score, .ls-half.ls-draw .ls-score { text-shadow: 0 2px 10px rgba(0, 0, 0, .55), 0 0 2px rgba(0, 0, 0, .5); }
 @keyframes ls-crown-in { from { transform: translate(-50%, -50%) scale(.6); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: .55; } }
+
+/* The serving shuttle must not move the score: the team row always keeps the shuttle's height, serving or not */
+.ls-team { min-height: 34px; box-sizing: border-box; }
