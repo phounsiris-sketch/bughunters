@@ -5167,3 +5167,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-pips { display: flex; gap: 10px; justify-content: center; margin: 6px 0 2px; }
 .ls-pips i { width: clamp(14px, 3.2vh, 30px); height: clamp(14px, 3.2vh, 30px); border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, .85); background: transparent; }
 .ls-pips i.on { background: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, .6); }
+
+/* Sizes (v98): score 10% bigger everywhere, serve shuttle 10% smaller, watch screen centred */
+.ls-score { font-size: min(39.6vh, 44vw, 209px); text-align: center; }
+.ls-info { text-align: center; }
+.ls-watch { padding: 20px 16px; }
+.ls-serve-slot { height: clamp(50px, 13.5vh, 135px); }
+.ls-serve-big { width: clamp(47px, 12.6vh, 126px); height: clamp(47px, 12.6vh, 126px); }
+@media (orientation: landscape) and (min-width: 560px) {
+  .ls-score { font-size: min(70vh, 28.6vw, 396px); }
+  .ls-watch { padding: 20px 24px; }
+  .ls-serve-slot { height: clamp(81px, 21.6vh, 180px); }
+  .ls-serve-big { width: clamp(72px, 19.8vh, 171px); height: clamp(72px, 19.8vh, 171px); }
+}
+@media (orientation: landscape) and (max-height: 480px) { .ls-score { font-size: min(63.8vh, 28.6vw, 242px); } }

@@ -529,7 +529,7 @@ function _lsWatchHtml() {
   var half = function (side) {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);
-    return '<div class="ls-half" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
+    return '<div class="ls-half ls-watch" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
       '<div class="ls-info"><div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
       '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' + pips(side) +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div></div></div>';

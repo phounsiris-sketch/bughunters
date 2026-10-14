@@ -998,3 +998,6 @@ The watch screen shows who serves as a large shuttle above the team name (up to 
 
 ## Confirm on reset and quit (v97)
 Live score: "Reset all" and "Quit" now always show a confirmation, also at 0 - 0 and in practice games (`lsReset`, `lsExit`; texts `lsResetConfirm`, `lsExitConfirm`, `lsExitTestConfirm`). Before, they asked only when points had been counted.
+
+## Live score sizes (v98)
+Score font +10% (portrait, landscape, short landscape); the watch screen's serve shuttle -10%; watch halves have equal padding so the whole stack (shuttle, team, pips, names, score) is centred.
