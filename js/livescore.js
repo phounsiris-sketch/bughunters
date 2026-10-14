@@ -77,7 +77,11 @@ function lsUndoLast(st) {
 
 /* ---------- Storage ---------- */
 
-function lsSave() { if (live && live.test) return; /* a practice game is never kept */ try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {} }
+function lsSave() {
+  if (live && live.test) { lsUnshare(); return; }   /* a practice game is never kept, never shared */
+  try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {}
+  if (live) lsShare(); else lsUnshare();
+}
 function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); return s && s.sid ? s : null; } catch (e) { return null; } }
 function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
 
@@ -143,6 +147,7 @@ function _lsWake(on) {
 function lsRender() {
   var el = document.getElementById("liveScreen");
   if (!el) return;
+  if (liveMode === "watch") { el.innerHTML = _lsWatchHtml(); return; }
   if (liveMode === "pick") { el.innerHTML = _lsPickHtml(); return; }
   if (!live) return;
   if (liveMode === "setup") el.innerHTML = _lsSetupHtml();
@@ -331,6 +336,7 @@ function lsTestAgain() { live.sa = 0; live.sb = 0; live.hist = []; live.over = n
 
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
+  if (liveMode === "watch") { lsWatchStop(); return; }
   var started = live && !live.test && (live.sa + live.sb > 0 || live.saved > 0 || live.a.length || live.b.length);
   if (started && !confirm(t("lsExitConfirm"))) return;
   live = null; lsSave();
@@ -371,3 +377,97 @@ function lsCancelSaved() {
 
 /** A game is still being counted on this phone (for the Home banner) */
 function lsInProgress() { var s = lsLoad(); return s && !s.over && (s.sa + s.sb > 0) && _lsSession(s.sid) ? s : null; }
+
+
+/* ============================================================
+   Share and watch: the phone that counts publishes the score to
+   liveGames/{hostUid}; other devices of the group (an iPad on a
+   stand, a friend's phone) open it read-only and see it change.
+   ============================================================ */
+
+var LIVE_STALE_MS = 6 * 3600e3;   // a board nobody touched for 6 h is ignored
+var liveNow = [];                  // other people's live games in my group
+var _liveListUnsub = null, _watchUnsub = null, _watch = null, _shareTimer = null, _shared = false;
+
+/** Publish the running game (a short wait collects fast taps into one write) */
+function lsShare() {
+  if (!live || !currentUser || !currentGroupId || !_lsReady(live)) return;
+  clearTimeout(_shareTimer);
+  _shareTimer = setTimeout(function () {
+    if (!live || live.test) return;
+    _shared = true;
+    fsdb.collection("liveGames").doc(currentUser.uid).set({
+      hostId: currentUser.uid, groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
+      sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
+      theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now()
+    }).catch(function () {});   // watching is a bonus: counting never fails because of it
+  }, 250);
+}
+function lsUnshare() {
+  clearTimeout(_shareTimer);
+  if (!_shared || !currentUser) return;
+  _shared = false;
+  fsdb.collection("liveGames").doc(currentUser.uid).delete().catch(function () {});
+}
+
+/** Which games are being counted now by others in my group (for the Home banner) */
+function liveWatchStart() {
+  if (_liveListUnsub || !currentUser || !currentGroupId) return;
+  _liveListUnsub = groupScoped(fsdb.collection("liveGames")).onSnapshot(function (snap) {
+    var list = [];
+    snap.forEach(function (d) { var x = d.data(); x.id = d.id; if (x.hostId !== currentUser.uid && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x); });
+    liveNow = list;
+    if (typeof refreshCurrentPage === "function" && currentPage === "home") refreshCurrentPage("live");
+  }, function (e) { dbOnError(e, "liveGames"); });
+}
+function liveWatchStop() {
+  if (_liveListUnsub) { _liveListUnsub(); _liveListUnsub = null; }
+  liveNow = [];
+  lsWatchStop(true);
+}
+
+/** Home banner: one tap on a running game of the group */
+function liveNowHtml() {
+  return liveNow.map(function (g) {
+    return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="lsWatch(\'' + g.id + '\')">' + icon("scoreboard", 22) +
+      '<span><b>' + t("lsLiveNow") + '</b><small>' + g.sa + ' \u2013 ' + g.sb + ' \u00B7 ' + (g.a || []).concat(g.b || []).map(getUserName).join(", ") + '</small></span><i>' + t("lsWatch") + '</i></button></div>';
+  }).join("");
+}
+
+function lsWatch(id) {
+  var g = liveNow.filter(function (x) { return x.id === id; })[0];
+  if (!g) return;
+  _watch = g; live = null; liveMode = "watch";
+  if (_watchUnsub) _watchUnsub();
+  _watchUnsub = fsdb.collection("liveGames").doc(id).onSnapshot(function (doc) {
+    if (!doc.exists) { showToast(t("lsEnded")); lsWatchStop(); return; }
+    _watch = doc.data(); _watch.id = doc.id;
+    if (liveMode === "watch") lsRender();
+  }, function () { lsWatchStop(); });
+  _lsShow();
+}
+function lsWatchStop(quiet) {
+  if (_watchUnsub) { _watchUnsub(); _watchUnsub = null; }
+  _watch = null;
+  if (liveMode === "watch") { liveMode = "count"; if (!quiet) lsClose(); else { var el = document.getElementById("liveScreen"); if (el) { el.classList.remove("on"); el.innerHTML = ""; } document.body.classList.remove("live-on"); _lsWake(false); } }
+}
+
+function _lsWatchHtml() {
+  var g = _watch;
+  if (!g) return "";
+  var th = LS_THEMES[g.theme >= 0 && g.theme < LS_THEMES.length ? g.theme : 0];
+  var cap = maxPoints(), gp = lsGamePoint(g.sa, g.sb, cap);
+  var half = function (side) {
+    var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
+    var ids = byNameAZ(side === "A" ? g.a : g.b);
+    return '<div class="ls-half" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' +
+      '<div class="ls-info"><div class="ls-team">' + (g.serve === side ? icon("shuttle", 26) + ' ' : '') + t("lsTeam") + ' ' + side + '</div>' +
+      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div></div></div>';
+  };
+  var html = half("A") + half("B");
+  html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
+  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + t("lsWatching") + ' \u00B7 ' + t("lsGameN").replace("{n}", (g.saved || 0) + 1) + '</span></div>';
+  if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
+  if (g.over) html += '<div class="ls-gp"><span>' + icon("medal", 14) + ' ' + t("lsWins").replace("{team}", t("lsTeam") + " " + g.over) + '</span></div>';
+  return html;
+}

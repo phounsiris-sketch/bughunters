@@ -270,6 +270,17 @@ service cloud.firestore {
       allow write: if isSuper();
     }
 
+    // ── Live score board: one document per counting phone (id = its uid) ──
+    // Members of the group read it (an iPad or a friend's phone watching);
+    // only that phone writes or removes it.
+    match /liveGames/{uid} {
+      allow read: if isSuper() || isMember(gidOf(resource.data));
+      allow create, update: if isAuth() && uid == request.auth.uid
+        && request.resource.data.hostId == request.auth.uid
+        && isMember(gidOf(request.resource.data));
+      allow delete: if isAuth() && (uid == request.auth.uid || isSuper());
+    }
+
     // ── Public open games (anyone can find and join) ─────────
     match /openGames/{id} {
       allow read: if isAuth();

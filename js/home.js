@@ -188,6 +188,8 @@ function renderHome() {
     '<span><b>' + t("lsResume") + '</b><small>' + running.sa + ' \u2013 ' + running.sb + '</small></span><i>' + t("lsContinue") + '</i></button>' +
     '<button type="button" class="home-live-x" aria-label="' + t("cancel") + '" onclick="lsCancelSaved()">' + icon("close", 16) + '</button></div>';
 
+  if (typeof liveWatchStart === "function") { liveWatchStart(); html += liveNowHtml(); }
+
   // 1. My stat cards, swipe sideways
   var cards = [];
   if (groups) cards.push(_homePlayCard(me));

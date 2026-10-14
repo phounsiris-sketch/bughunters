@@ -305,6 +305,7 @@ function switchGroup(gid) {
   _applyGroupMoney();
   if (typeof stopPolls === "function") stopPolls();
   if (typeof stopSessions === "function") stopSessions();
+  if (typeof liveWatchStop === "function") liveWatchStop();
   if (typeof stopMatches === "function") stopMatches();
   lastPolls = [];
   lastSessions = [];

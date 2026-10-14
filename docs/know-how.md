@@ -969,3 +969,8 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 - Public game: host card now has Edit (same form, `newGame._editId`, saves with `update`), Cancel game (tells players) and Delete (removes the card, rules already allow host delete).
 - Home strip: Rating card now before Badges. Live score: 6th colour theme "Royal"; landscape layout (teams side by side, controls along the bottom, big numbers) for tablets; menu has Full screen when the browser supports it.
 - Settings notification test: centred tile with a visible "Send test" button.
+
+## Live score: watch from another device (v91)
+- The counting phone publishes `liveGames/{its uid}` (score, teams, serve, theme) through `lsShare()` (250 ms debounce; practice games never). Removed on exit/finish/cancel (`lsUnshare`). Counting never fails if sharing fails.
+- Other group members get a "Live now · Watch" banner on Home (`liveWatchStart`, listener scoped to the group, boards stale after 6 h ignored) and open `lsWatch(uid)`: read-only, same landscape layout, follows the score, closes itself when the game ends.
+- **Needs the Firestore rule `match /liveGames/{uid}` in `firestore.rules` published by hand**, else sharing silently does nothing and the banner never appears.
