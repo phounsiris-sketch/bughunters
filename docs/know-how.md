@@ -1048,3 +1048,6 @@ The side that wins a GAME shows a gold medal above its score (also on the iPad w
 
 ## Format tabs (v112)
 Match format is one tab row, equal width, no wrapping: Single · Rematch · Best of 3 (Lao: ເກມດຽວ · ແຂ່ງແກ້ມື · ໃຜຊະນະ 3 ເກມ). The full name ("Rematch (2 games)") shows as a small hint under the tabs.
+
+## Rematch label (v113)
+No "(2 games)" anywhere: the format is just "Rematch" / ແຂ່ງແກ້ມື, and the hint under the tabs is gone.

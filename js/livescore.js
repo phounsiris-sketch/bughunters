@@ -122,7 +122,7 @@ function _boSegHtml() {
   var cur = live.bo || 1, tabs = [[1, "lsTabSingle"], [2, "lsTabRematch"], [3, "lsTabBo3"]];
   return '<div class="seg ls-fmt" role="tablist">' + tabs.map(function (x) {
     return '<button type="button" role="tab" aria-selected="' + (cur === x[0]) + '" class="seg-btn' + (cur === x[0] ? ' active' : '') + '" onclick="lsBo(' + x[0] + ')">' + t(x[1]) + '</button>';
-  }).join("") + '</div><div class="form-hint ls-fmt-hint">' + _boLabel(cur) + '</div>';
+  }).join("") + '</div>';
 }
 
 /** Match score: a flip card with the games won, and under it the points of each finished game as "G1 21" (the game this team won in bold) */
