@@ -5201,3 +5201,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 
 /* Live score: fast taps must never zoom the page (double-tap / pinch), and text must not be selected */
 .live-screen, .live-screen * { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* Clear labels: what is the match, what is a game */
+.ls-cap { font-size: clamp(10px, 1.9vh, 16px); letter-spacing: .6px; text-transform: uppercase; opacity: .7; margin-top: -2px; }
+.ls-pt i { font-style: normal; font-size: .85em; opacity: .7; margin-right: 2px; }
+.ls-over-cap { margin-top: 6px; font-size: 13px; font-weight: 600; opacity: .7; letter-spacing: .4px; }
+.ls-over-series { font-size: 14px; font-weight: 600; opacity: .85; }

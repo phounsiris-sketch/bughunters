@@ -82,7 +82,7 @@ function lsSave() {
   try { if (live) localStorage.setItem(LS_KEY, JSON.stringify(live)); else localStorage.removeItem(LS_KEY); } catch (e) {}
   if (live) lsShare(); else lsUnshare();
 }
-function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); return s && s.sid ? s : null; } catch (e) { return null; } }
+function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s && s.bo > 3) s.bo = 3; return s && s.sid ? s : null; } catch (e) { return null; } }
 function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
 
 function _lsSessions() {
@@ -115,17 +115,19 @@ function lsBo(n) {
 }
 function _boSegHtml() {
   var cur = live.bo || 1;
-  return '<div class="seg seg-wrap">' + [1, 3, 5].map(function (n) {
+  return '<div class="seg seg-wrap">' + [1, 3].map(function (n) {
     return '<button type="button" class="seg-btn' + (cur === n ? ' active' : '') + '" onclick="lsBo(' + n + ')">' + (n === 1 ? t("lsSingleGame") : t("lsBestOf").replace("{n}", n)) + '</button>';
   }).join("") + '</div>';
 }
 
-/** Match score: a flip card with the games won, and under it the points of each finished game as small text (the game this team won in bold) */
+/** Match score: a flip card with the games won (captioned), and under it the points of each finished game as "G1 21" (the game this team won in bold) */
 function flipBoardHtml(side, sw, gl) {
   var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
-  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span>';
+  var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won">' + sw[side] + '</span><span class="ls-cap">' + t("lsGamesWonCap") + '</span>';
   if ((gl || []).length) {
-    html += '<div class="ls-pts">' + gl.map(function (g) { return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '">' + g[k] + '</span>'; }).join("") + '</div>';
+    html += '<div class="ls-pts">' + gl.map(function (g, i) {
+      return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '"><i>' + t("lsGameShort").replace("{n}", i + 1) + '</i> ' + g[k] + '</span>';
+    }).join("") + '</div>';
   }
   return html + '</div>';
 }
@@ -230,16 +232,17 @@ function _lsOverHtml() {
   var title = decided
     ? t("lsMatchWins").replace("{team}", t("lsTeam") + " " + w).replace("{a}", after.A).replace("{b}", after.B)
     : t("lsWins").replace("{team}", t("lsTeam") + " " + w);
-  var series = multi && !decided ? '<div class="form-hint">' + t("lsBestOf").replace("{n}", live.bo) + ' \u00B7 ' + after.A + '\u2013' + after.B + '</div>' : '';
+  var series = multi ? '<div class="ls-over-series">' + t("lsMatchScore").replace("{a}", after.A).replace("{b}", after.B) + ' \u00B7 ' + t("lsBestOf").replace("{n}", live.bo) + '</div>' : '';
+  var gcap = '<div class="ls-over-cap">' + t("lsGameResult").replace("{n}", multi ? live.sw.A + live.sw.B + 1 : live.saved + 1) + '</div>';
   if (live.test) {
     return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
-      '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="form-hint">' + t("lsTestBadge") + '</div>' +
+      gcap + '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="form-hint">' + t("lsTestBadge") + '</div>' +
       '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t(decided ? "lsRematch" : "lsTestAgain") + '</button>' +
       '<button class="btn-secondary" onclick="lsExit()">' + t("lsExit") + '</button>' +
       '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
   }
   return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
-    '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
+    gcap + '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
     '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t(decided ? "lsRematch" : "lsSaveNext") + '</button>' +
     '<button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>' +
     '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
@@ -399,6 +402,11 @@ function lsSaveGame(next) {
   if (!s || !live.over) return;
   var a = live.sa, b = live.sb, p = scoreProblem(a, b);
   if (p) { showToast(p); return; }
+  if (lsMatchDecided(live, live.over)) {   // the match is over: show the whole result and ask before saving
+    var af = lsSeriesAfter(live, live.over), all = (live.gl || []).concat([{ a: a, b: b }]);
+    if (!confirm(t("lsSaveMatchConfirm").replace("{team}", t("lsTeam") + " " + live.over).replace("{a}", af.A).replace("{b}", af.B) + "\n" +
+      all.map(function (g, i) { return t("lsGameShort").replace("{n}", i + 1) + " " + g.a + "\u2013" + g.b; }).join("  \u00B7  "))) return;
+  }
   var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
     minutes: Math.max(1, Math.min(180, Math.round((Date.now() - (live.startedAt || Date.now())) / 60000))) };
   fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
