@@ -359,8 +359,7 @@ function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live
 
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
-  var series = live.sw && (live.sw.A + live.sw.B) > 0;
-  if (!live.test && (live.sa + live.sb > 0 || series) && !confirm(t("lsResetConfirm"))) return;
+  if (!confirm(t("lsResetConfirm"))) return;   // always ask: the button sits next to the ones you tap all game
   live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 };
   lsSave(); liveMode = "count"; lsRender();
 }
@@ -375,8 +374,7 @@ function lsTestAgain() {
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
   if (liveMode === "watch") { lsWatchStop(); return; }
-  var started = live && !live.test && (live.sa + live.sb > 0 || live.saved > 0 || live.a.length || live.b.length);
-  if (started && !confirm(t("lsExitConfirm"))) return;
+  if (!confirm(t(live && live.test ? "lsExitTestConfirm" : "lsExitConfirm"))) return;   // always ask, whatever the score: an accidental tap must not end the game
   live = null; lsSave();
   liveMode = "count";
   lsClose();

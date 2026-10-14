@@ -101,6 +101,8 @@ that payment, so two people marking at the same time no longer overwrite each ot
   a poll. With nothing planned it offers *Vote*.
 
 **Rule used everywhere:** a person always shows a round photo and a name together
+
+**Rule used everywhere (v97): confirm before anything that cannot be taken back by accident.** Reset, quit/exit and cancel always ask first ("Are you sure?"), whatever the score, because those buttons sit next to the ones tapped all game. In the live score: Reset all, Quit (button, menu and the phone's back press) and cancel of a half-counted game. Practice games ask too. Watching a board (iPad) does not ask: leaving it loses nothing. Any new destructive button must follow this rule.
 (session cards, who-pays-whom rows, poll voters, game rows, Home). A group shows
 three people and "+N". The small shared pieces (person chip, status pill, vote bar,
 Plan/Play/Pay/Done tracker, date block) live in `js/ui.js`.
@@ -992,3 +994,7 @@ The watch screen shows who serves as a large shuttle above the team name (up to 
 ## Reset all, and ended games drop their live board (v96)
 - Menu "Reset all" (trash icon, so it is not mistaken for Undo) sets score, games won in the match and serve back to 0; the pairs stay.
 - A board (and the phone's own "continue counting" banner) disappears when its game is completed or cancelled (`_liveEnded`); the Home list re-renders when sessions change; `lsUnshare` always sends the delete (after a reload the page forgets it shared). Boards untouched for 3 h are ignored. Tests: /tmp/end_test.js.
+
+
+## Confirm on reset and quit (v97)
+Live score: "Reset all" and "Quit" now always show a confirmation, also at 0 - 0 and in practice games (`lsReset`, `lsExit`; texts `lsResetConfirm`, `lsExitConfirm`, `lsExitTestConfirm`). Before, they asked only when points had been counted.
