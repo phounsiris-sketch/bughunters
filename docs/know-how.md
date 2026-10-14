@@ -1010,3 +1010,6 @@ Best-of matches show a folding-scoreboard strip under each team's score (`flipBo
 
 ## Faster splash (v101)
 The splash scene plays 1.6x faster (`SPEED` in js/splash.js) and `SPLASH_MIN_MS` is 1500 (was 2400): about 1.5 s. While the splash is up it takes the taps, so a first tap on the login form only skips the splash; the shorter time makes that rarer.
+
+## Login never fails silently (v102)
+iPad: Log in button greys out then returns, nothing opens. Sign-in itself worked, the step after it (profile / groups / opening the app) threw or hung with no message. `_enterApp` now catches errors and shows "Sign-in stopped (step): message"; a 12 s watchdog warns if the app never opened. Use the message to find the real cause.
