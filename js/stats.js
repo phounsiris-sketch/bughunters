@@ -881,7 +881,7 @@ var BADGES = [
   { key: "streak10", icon: "ranking", need: 10, val: function (p) { return p.maxStreak || 0; } },
   { key: "courts5", icon: "court", need: 5, val: function (p) { return _courtsPlayed(p.uid); } },
   { key: "min1000", icon: "clock", need: 1000, val: function (p) { return p.minutes; } },
-  { key: "scorer", icon: "scoreboard", need: 10, val: function (p) { return _gamesCounted(p.uid); } }
+  { key: "scorer", icon: "scoreboard", need: 50, val: function (p) { return _gamesCounted(p.uid); } }
 ];
 
 function _courtsPlayed(uid) {
@@ -890,9 +890,9 @@ function _courtsPlayed(uid) {
   return Object.keys(seen).length;
 }
 
-/** Games this player counted with Live score (saved by them) */
+/** Games this player added: counted with Live score or typed in (the person who created the game) */
 function _gamesCounted(uid) {
-  return (lastMatches || []).filter(function (m) { return m.live && m.createdBy === uid; }).length;
+  return (lastMatches || []).filter(function (m) { return m.createdBy === uid; }).length;
 }
 
 function badgesFor(uid) {

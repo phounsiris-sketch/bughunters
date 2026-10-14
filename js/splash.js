@@ -28,7 +28,7 @@
   function ease(x) { return x * x * (3 - 2 * x); }
 
   /* timeline, real milliseconds */
-  var T_LOOM = 260, T_SWING = 640, T_CONTACT = 900, T_IMPACT = 1000, SLOW_MS = 130, SLOW_K = 0.16;
+  var T_LOOM = 260, T_SWING = 640, T_CONTACT = 900, T_IMPACT = 1000, SLOW_MS = 150, SLOW_K = 0.4;   // a soft hit-stop (v120: the hard 0.16 stop looked like a stutter)
   var T_BREAK = 1650, T_HOLD = 2300;
   var SPEED = 1.6;   // the scene is played this much faster than its timeline (v101): about 1.5 s on screen
 
@@ -38,8 +38,10 @@
   var arm = { px: 0, py: 0, L: 0, s: 1, thC: 0 }, K = { x: 0, y: 0 };
 
   function size() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = splash.clientWidth || window.innerWidth; H = splash.clientHeight || window.innerHeight;
+    // sharp on phones, but a tablet must not push 4 million pixels per frame: keep the canvas under ~1.6 megapixels
+    DPR = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(1.6e6 / (W * H)));
+    if (DPR < 1) DPR = 1;
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.width = W + "px"; cv.style.height = H + "px";
     var r = logo.getBoundingClientRect(), s = splash.getBoundingClientRect();
@@ -260,7 +262,7 @@
     // god's gauntlet, with motion blur on the swing
     var aa = armAlpha(st);
     if (aa > 0) {
-      if (st > T_SWING - 20 && st < T_IMPACT + 260) for (var k = 5; k >= 1; k--) drawArm(ctx, st - k * 15, aa * .2 * (1 - k / 6), true);
+      if (st > T_SWING - 20 && st < T_IMPACT + 260) for (var k = 3; k >= 1; k--) drawArm(ctx, st - k * 22, aa * .26 * (1 - k / 4), true);
       drawArm(ctx, st, aa, false);
     }
     // the shuttle
