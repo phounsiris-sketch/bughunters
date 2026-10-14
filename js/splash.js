@@ -30,6 +30,7 @@
   /* timeline, real milliseconds */
   var T_LOOM = 260, T_SWING = 640, T_CONTACT = 900, T_IMPACT = 1000, SLOW_MS = 130, SLOW_K = 0.16;
   var T_BREAK = 1650, T_HOLD = 2300;
+  var SPEED = 1.6;   // the scene is played this much faster than its timeline (v101): about 1.5 s on screen
 
   var ctx = cv.getContext("2d");
   var W = 0, H = 0, DPR = 1, C = { x: 0, y: 0 }, floor = null, vign = null;
@@ -313,7 +314,7 @@
   function frame(now) {
     if (stopped) return;
     if (!t0) t0 = now;
-    draw(now - t0);
+    draw((now - t0) * SPEED);
     if (splash.classList.contains("hide") && now - t0 > 400) { setTimeout(function () { stopped = true; }, 700); }
     raf = requestAnimationFrame(frame);
   }
