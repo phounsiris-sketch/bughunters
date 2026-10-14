@@ -1001,3 +1001,6 @@ Live score: "Reset all" and "Quit" now always show a confirmation, also at 0 - 0
 
 ## Live score sizes (v98)
 Score font +10% (portrait, landscape, short landscape); the watch screen's serve shuttle -10%; watch halves have equal padding so the whole stack (shuttle, team, pips, names, score) is centred.
+
+## Match score as small text (v99)
+The games won in a best-of match show as a small line under each team's big score ("Games won: 1") on the count screen and the watch screen, replacing the pips on the watch screen. The pill still shows Best of N.
