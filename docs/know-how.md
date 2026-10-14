@@ -974,3 +974,6 @@ Blaze plan. Anything server-side runs as a GitHub Action instead.
 - The counting phone publishes `liveGames/{its uid}` (score, teams, serve, theme) through `lsShare()` (250 ms debounce; practice games never). Removed on exit/finish/cancel (`lsUnshare`). Counting never fails if sharing fails.
 - Other group members get a "Live now · Watch" banner on Home (`liveWatchStart`, listener scoped to the group, boards stale after 6 h ignored) and open `lsWatch(uid)`: read-only, same landscape layout, follows the score, closes itself when the game ends.
 - **Needs the Firestore rule `match /liveGames/{uid}` in `firestore.rules` published by hand**, else sharing silently does nothing and the banner never appears.
+
+## Practice games are watchable (v92)
+Practice ("Try it") games publish to `liveGames` with `test: true` (never saved on the phone), so the iPad watch screen can be tried without a session. Banner and watch screen show the Practice badge.
