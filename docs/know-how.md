@@ -1022,3 +1022,9 @@ Match score line (`.ls-flip`) is iPad/wide-screen only: hidden at width <= 767px
 
 ## Minimal phone score screen (v105)
 Phones (width <= 767px or height <= 500px) show only: player names, big score, serve shuttle, Undo / "Game N" / Settings. Hidden: "Team A/B" text, "to 21 · best of 3 (1–0)" part of the pill, top-left Exit (Exit is in the Settings menu), match-count line. Watch screen keeps its Exit button. iPad/wide unchanged.
+
+## No zoom on fast taps (v106)
+Spamming + / - zoomed the page (iOS double-tap zoom). `.live-screen` and children get `touch-action: manipulation` (no double-tap zoom, taps still all fire) plus no text selection; `gesturestart/gesturechange` are blocked while `body.live-on`. Deliberately NOT cancelling the 2nd touchend: that would swallow the tap and lose points.
+
+## Games won as a card, points small below (v107)
+Match score: a dark flip card with the games won (yellow, big), and under it each finished game's points as small text (game this team won in bold). Replaces the text-only line of v103. Still hidden on phones (v104/v105).
