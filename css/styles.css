@@ -5268,3 +5268,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   .ls-scrim.sum { background: rgba(0, 0, 0, .12); }
   .ls-over.ls-sum { top: auto; bottom: 18px; left: 50%; right: auto; width: min(460px, 92vw); transform: translateX(-50%); max-height: 46vh; overflow: auto; }
 }
+
+/* Match row: the scorekeeper (photo + name) */
+.match-by { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.match-by .person-chip { font-size: 12px; font-weight: 600; color: var(--text); }

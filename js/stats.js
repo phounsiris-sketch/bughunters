@@ -833,7 +833,8 @@ function matchRowHtml(m, no) {
     '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + (m.teamB && m.teamB.length ? teamHtml(m.teamB, 24) : _teamName([], "B")) + '</div><div class="ms-pts">' + (g.b != null ? g.b : '–') + '</div></div></div>';
   if (more) html += '<div class="form-hint" style="text-align:center">' + more + '</div>';
   // Who saved it, and who changed it last
-  html += '<div class="match-by">' + t("addedBy").replace("{name}", escapeHtml(getUserName(m.createdBy))) + (m.createdAt ? ' ' + _whenShort(m.createdAt) : '') +
+  // Counted with Live score: show the scorekeeper (photo + name); otherwise who added it
+  html += '<div class="match-by">' + (m.live ? '<span class="match-by-lbl">' + t("countedBy") + '</span> ' + personHtml(m.createdBy, 20) : t("addedBy").replace("{name}", escapeHtml(getUserName(m.createdBy)))) + (m.createdAt ? ' ' + _whenShort(m.createdAt) : '') +
     (m.updatedBy ? ' \u00B7 ' + t("editedBy").replace("{name}", escapeHtml(getUserName(m.updatedBy))) + (m.updatedAt ? ' ' + _whenShort(m.updatedAt) : '') : '') + '</div>';
   return html + '</div>';
 }
@@ -880,7 +881,7 @@ var BADGES = [
   { key: "streak10", icon: "ranking", need: 10, val: function (p) { return p.maxStreak || 0; } },
   { key: "courts5", icon: "court", need: 5, val: function (p) { return _courtsPlayed(p.uid); } },
   { key: "min1000", icon: "clock", need: 1000, val: function (p) { return p.minutes; } },
-  { key: "pairMonth", icon: "users", need: 1, val: function (p) { return _isPairOfMonth(p.uid) ? 1 : 0; } }
+  { key: "scorer", icon: "scoreboard", need: 10, val: function (p) { return _gamesCounted(p.uid); } }
 ];
 
 function _courtsPlayed(uid) {
@@ -889,15 +890,9 @@ function _courtsPlayed(uid) {
   return Object.keys(seen).length;
 }
 
-/** Best pair this month (at least 3 Competition matches together this month) */
-function _isPairOfMonth(uid) {
-  var st = computeStats(), best = null;
-  Object.keys(st.pairs).forEach(function (k) {
-    var p = st.pairs[k];
-    if (p.monthWins + p.monthLosses < 3) return;
-    if (!best || p.rating > best.rating) best = p;
-  });
-  return !!(best && best.key.split("+").indexOf(uid) >= 0);
+/** Games this player counted with Live score (saved by them) */
+function _gamesCounted(uid) {
+  return (lastMatches || []).filter(function (m) { return m.live && m.createdBy === uid; }).length;
 }
 
 function badgesFor(uid) {
