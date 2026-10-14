@@ -1,7 +1,7 @@
 # Godsmash — Know-how
 
 How the app works, how to use each feature, where its data lives and how to
-run it. App version at the time of writing: **v87**.
+run it. App version at the time of writing: **v88**.
 
 - App: https://phounsiris-sketch.github.io/bughunters/
 - Backend: Firebase project `godsmash-badminton` (Firestore + Auth, free Spark plan)
@@ -378,12 +378,16 @@ longer shows the "Badminton Club" line or the "Hi, name" greeting; the rating ca
 When you add a clickable element prefer `<button>`; when you add a colour that carries white text check it is
 at least 4.5:1.
 
-**Splash screen (v86).** The app opens with a short smash: a shuttle drops in from the top left,
-hits the court, a green ring and yellow rays burst out, then **GOD** slides in and **SMASH** lands
-with a bounce, the group tagline fades in and a thin bar fills. It stays about 1.6 seconds (0.5 s
-when the phone is set to reduce motion, which also shows the finished screen without the movement).
-It is plain HTML and CSS (`#splash` in `index.html`, `.sp-*` in `css/styles.css`, no images).
-To see it without opening the app, open `docs/splash-preview.html` in a browser; *Replay* runs it again.
+**Splash screen (v88): Mars and the breaking earth.** The app logo never moves. Mars, a dark silhouette with a
+crested helmet and a rim light, rises at the top left (0.2 s), swings a racket (0.7 s) and drives the shuttlecock
+into the middle of the logo (contact 0.93 s, impact 1.15 s: flash, ring, sparks, a small shake of the ground). Glowing
+cracks run out from the logo across the whole screen, the ground breaks into seven shards that fly away (1.95 s) and
+the app appears (about 2.7 s). **Each launch switches between a red (lava) and a blue (ice and lightning) version.**
+**Tap the splash to skip** the rest. With reduced motion you get the logo, the name and the ground, nothing moving
+(0.6 s). It is one inline SVG plus CSS (`#splash` in `index.html`, `.sp2-*` in `css/styles.css`); the logo is
+`icons/icon-512.png`. Open `docs/splash-preview.html` in a browser to see it: *Replay red / blue*, or add
+`?t=1200&theme=blue` to freeze it at 1.2 s. To change the colours edit the `--bgc / --bge / --hot / --hot2 / --cape`
+variables of `.sp-red` and `.sp-blue`.
 
 **E-mail limits (v85).** *Forgot password?* and *Resend email* can be used **once a minute** per phone:
 the link shows a countdown ("Forgot password? (45s)") and a second press says how long to wait. The
