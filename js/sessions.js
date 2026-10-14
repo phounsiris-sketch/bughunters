@@ -782,7 +782,7 @@ function _renderSplitResult(s) {
     if (ps.other) parts.push(icon('other', 12) + fmtLAK(ps.other));
     if (ps.dinner) parts.push(icon('dinner', 12) + fmtLAK(ps.dinner));
     var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
-    var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:10px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
+    var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:11px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
     html += '<div class="person-row"><div class="person-left">';
     html += avatarHtml(uid, 36);
@@ -1034,11 +1034,11 @@ function renderEditForm() {
   html += '</fieldset>' + lockBill;
 
   // Shuttlecocks
-  html += '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecocks") + ' <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
+  html += '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecocks") + ' <span style="font-size:11px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
   for (var si = 0; si < edit.shuttlecocks.length; si++) {
     var sc = edit.shuttlecocks[si];
     html += '<div class="item-row">';
-    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:10px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
+    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:11px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
     html += '<div class="qty-controls"><button onclick="editShuttleQty(' + si + ',-1)">−</button>';
     html += '<input type="number" class="qty-num" min="0" value="' + sc.qty + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
     html += '<button onclick="editShuttleQty(' + si + ',1)">+</button></div>';
