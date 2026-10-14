@@ -5230,3 +5230,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @keyframes ls-pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
 .ls-scrim.dark { background: rgba(0, 0, 0, .35); }   /* lighter so the celebration shows behind the result */
 @media (prefers-reduced-motion: reduce) { .ls-half.ls-winner, .ls-half.ls-winner .ls-score, .ls-confetti i { animation: none; } .ls-confetti { display: none; } }
+
+/* Medal = this side won the GAME (number card = the MATCH) */
+.ls-crown { display: flex; justify-content: center; color: #facc15; margin-bottom: 4px; animation: ls-pop .6s cubic-bezier(.2, 1.6, .4, 1) both; filter: drop-shadow(0 0 12px rgba(250, 204, 21, .8)); }
+.ls-crown .si { width: clamp(40px, 9vh, 84px); height: clamp(40px, 9vh, 84px); }
+.ls-pt .si { vertical-align: -2px; color: #facc15; }
