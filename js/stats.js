@@ -32,7 +32,7 @@ function loadMatches() {
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
     lastMatches = list.sort(function (a, b) { return String(a.date || "").localeCompare(String(b.date || "")) || ((a.createdAt || 0) - (b.createdAt || 0)); });
     _statsCache = null;
-    if (/^(stats|matches|dashboard|user)$/.test(currentPage)) refreshCurrentPage("matches");
+    if (/^(stats|matches|dashboard|user|home)$/.test(currentPage)) refreshCurrentPage("matches");   // the Home badge count follows the games (not Settings or forms: a re-render would wipe typing)
     if (currentPage === "session-detail") { refreshSessionGames(); var tn = document.getElementById("sessionTabGamesN"); if (tn && currentSession) tn.textContent = sessionMatches(currentSession.id).length; }
     if (typeof updateNotifications === "function") updateNotifications();
   }, function (e) { dbOnError(e, "matches"); });

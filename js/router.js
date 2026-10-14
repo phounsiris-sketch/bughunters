@@ -175,7 +175,7 @@ function _defaultCrumbs(page) {
  * Show the authentication container, hide the app
  */
 var _splashStart = Date.now();
-var SPLASH_MIN_MS = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? 600 : 1500;
+var SPLASH_MIN_MS = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? 500 : 1000;
 
 /** Fade the splash out once the smash has played (about 1.5 s). A tap skips it. */
 var _splashReady = false, _splashSkipped = false, _splashTimer = null;

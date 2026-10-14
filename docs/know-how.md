@@ -1076,3 +1076,6 @@ The games-won card and the small points row used the saved state, so a finished 
 ## Smoother splash, Scorekeeper = 50 games added (v120)
 - Splash: canvas kept under ~1.6 megapixels (iPad was drawing ~4 MP a frame at DPR 2), softer hit-stop (0.4 over 150 ms instead of 0.16 over 130 ms: it read as a stutter), 3 motion-blur ghost arms instead of 5, own compositor layer. Timeline unchanged (about 1.5 s).
 - Scorekeeper badge now counts every game the player created (`createdBy`, Live score or typed in, old games included) and needs 50 (was 10 Live-score games). `_gamesCounted(uid)`.
+
+## Faster splash again, Home follows the games (v121)
+Splash plays 2.2x (about 1 s) and the minimum is 1 s (0.5 s with reduced motion): the app felt slow to open. The Home page now refreshes when the games load, so its badge count is not stale. Scorekeeper still counts every game the player created (50 needed); the live site had v120 (50) when checked, an old open app shows the old badge until it is opened twice.
