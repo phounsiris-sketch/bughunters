@@ -1072,3 +1072,7 @@ The team row (`.ls-team`) holds the serve shuttle on the counting screen; with n
 
 ## Games count updates when the game ends + pulsing medal/trophy (v119)
 The games-won card and the small points row used the saved state, so a finished game only counted after Save (a drawn rematch still showed 0–0 under the celebration). `_lsShown(st)` now counts the game that just ended (1–1 right away, its points in the row) on the counting and watch screens. Medal and trophy keep a slow zoom in/out (`ls-crown-pulse`, off for reduced motion).
+
+## Smoother splash, Scorekeeper = 50 games added (v120)
+- Splash: canvas kept under ~1.6 megapixels (iPad was drawing ~4 MP a frame at DPR 2), softer hit-stop (0.4 over 150 ms instead of 0.16 over 130 ms: it read as a stutter), 3 motion-blur ghost arms instead of 5, own compositor layer. Timeline unchanged (about 1.5 s).
+- Scorekeeper badge now counts every game the player created (`createdBy`, Live score or typed in, old games included) and needs 50 (was 10 Live-score games). `_gamesCounted(uid)`.
