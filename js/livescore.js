@@ -135,11 +135,10 @@ function _lsShown(st) {
 function flipBoardHtml(side, sw, gl) {
   var o = side === "A" ? "B" : "A", k = side.toLowerCase(), q = o.toLowerCase();
   var html = '<div class="ls-flip" aria-label="' + t("lsGamesWon").replace("{n}", sw[side]) + '"><span class="fc won' + (sw[side] > sw[o] ? ' lead' : '') + '">' + sw[side] + '</span>';
-  if ((gl || []).length) {
-    html += '<div class="ls-pts">' + gl.map(function (g, i) {
-      return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '"><i>' + t("lsGameShort").replace("{n}", i + 1) + '</i> ' + g[k] + (g[k] > g[q] ? ' ' + icon("medal", 12) : '') + '</span>';
-    }).join("") + '</div>';
-  }
+  // Always drawn (empty before the first game ends): the names must not jump when the first points appear
+  html += '<div class="ls-pts">' + (gl || []).map(function (g, i) {
+    return '<span class="ls-pt' + (g[k] > g[q] ? ' win' : '') + '"><i>' + t("lsGameShort").replace("{n}", i + 1) + '</i> ' + g[k] + (g[k] > g[q] ? ' ' + icon("medal", 12) : '') + '</span>';
+  }).join("") + '</div>';
   return html + '</div>';
 }
 

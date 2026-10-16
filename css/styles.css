@@ -5287,3 +5287,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Splash: its own compositor layer, so the canvas and the fade stay smooth while the app loads */
 #splash { will-change: opacity; }
 #sp3fx { transform: translateZ(0); }
+
+/* Names stay put. Side by side (landscape) both teams get the same top padding: only the first one used to get the
+   safe-area bump, so on an iPad Home Screen app one team's names sat lower than the other's. */
+@media (orientation: landscape) and (min-width: 560px) {
+  .live-screen.on > .ls-half, .live-screen.on > .ls-half:first-of-type { padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+}
+/* The points row keeps its height even before the first game ends, so the names do not jump when it appears */
+.ls-pts { min-height: calc(clamp(12px, 2.4vh, 22px) * 1.5); align-items: center; }

@@ -1088,3 +1088,7 @@ Splash plays 2.2x (about 1 s) and the minimum is 1 s (0.5 s with reduced motion)
 
 ## Poll closes one day after it is made (v123)
 `defaultCloseAt(date, time, createdMs)`: voting closes 24 h after the poll is created, but never later than the session start time. (Before: start of the play day.) Edit poll recomputes it from the edit time. Recurring public games: first one uses the new rule, later weeks close at the start of their play day. Polls that already have `closesAt` keep it. Auto-confirm (v122) fires at this new cut-off.
+
+## Team names stay level and still (v124)
+- Side by side (landscape) only the first team half got the safe-area top padding (`.live-screen > .ls-half:first-of-type`), so on an iPad Home Screen app Team A's names sat lower than Team B's. Both halves now share `padding-top: 20px + safe-area` there (measured in headless Chrome: both names at the same y).
+- The points row (`.ls-pts`) is always drawn in Best of 3 / Rematch and keeps a minimum height, so the names no longer move when the first game's points appear.
