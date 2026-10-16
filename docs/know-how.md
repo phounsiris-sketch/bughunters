@@ -1080,3 +1080,11 @@ The games-won card and the small points row used the saved state, so a finished 
 
 ## Faster splash again, Home follows the games (v121)
 Splash plays 2.2x (about 1 s) and the minimum is 1 s (0.5 s with reduced motion): the app felt slow to open. The Home page now refreshes when the games load, so its badge count is not stale. Scorekeeper still counts every game the player created (50 needed); the live site had v120 (50) when checked, an old open app shows the old badge until it is opened twice.
+
+## Edit session first, edit poll, poll auto-confirm (v122)
+- Session before the bill: the organiser no longer lands straight in the bill editor. The page shows the players plus two buttons, "Edit session" (date, time, court, duration, players) and "Enter bill". Nothing is published until the bill is saved. The Details modal now also edits players (`sessionDetailKeys` already allows `players`).
+- Poll "Edit poll" (organiser, while not confirmed or cancelled, also after the cut-off): date, time, court, duration; `closesAt` is recomputed with `defaultCloseAt`, so a new later date reopens voting.
+- Poll auto-confirm: when `closesAt` has passed and enough players said Join, the organiser's own device creates the session (`confirmPoll(id, true)`, silent, no jump to the session). Checked on every poll snapshot and every 60 s. Not enough players: the poll stays open for the organiser. Needs the app open on the organiser's (or a manager's) device; the transaction stops double confirm.
+
+## Poll closes one day after it is made (v123)
+`defaultCloseAt(date, time, createdMs)`: voting closes 24 h after the poll is created, but never later than the session start time. (Before: start of the play day.) Edit poll recomputes it from the edit time. Recurring public games: first one uses the new rule, later weeks close at the start of their play day. Polls that already have `closesAt` keep it. Auto-confirm (v122) fires at this new cut-off.

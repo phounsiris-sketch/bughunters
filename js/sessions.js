@@ -329,7 +329,22 @@ function _monthLabel(ym) {
   return monthYear(d.getFullYear(), d.getMonth());
 }
 
-/** Edit date / time / court / duration from the session card */
+/** Players picked in the edit-session window */
+var _sesEditPlayers = [];
+function _sesEditChips() {
+  return DB_CACHE.users.map(function (u) {
+    var on = _sesEditPlayers.indexOf(u.id) >= 0;
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="sesEditToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
+  }).join('');
+}
+function sesEditToggle(uid) {
+  var i = _sesEditPlayers.indexOf(uid);
+  if (i >= 0) _sesEditPlayers.splice(i, 1); else _sesEditPlayers.push(uid);
+  document.getElementById("mSesPlayers").innerHTML = _sesEditChips();
+  document.getElementById("mSesCount").textContent = _sesEditPlayers.length;
+}
+
+/** Edit date / time / court / duration / players from the session card */
 function showSessionDetailsModal(sessionId) {
   var s = null;
   for (var i = 0; i < lastSessions.length; i++) if (lastSessions[i].id === sessionId) s = lastSessions[i];
@@ -340,7 +355,8 @@ function showSessionDetailsModal(sessionId) {
     opts += '<option value="' + c.id + '"' + (c.id === s.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(courtPrice(c)) + '/h)</option>';
   });
 
-  document.getElementById("modalTitle").textContent = t("editDetails");
+  _sesEditPlayers = (s.players || []).slice();
+  document.getElementById("modalTitle").textContent = t("editSession");
   document.getElementById("modalBody").innerHTML =
     '<div class="form-row">' +
       '<div class="form-group"><label class="form-label">' + t("date") + '</label><input type="date" class="form-input" id="mSesDate" value="' + (s.date || '') + '"></div>' +
@@ -349,7 +365,8 @@ function showSessionDetailsModal(sessionId) {
     '<div class="form-row">' +
       '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" id="mSesCourt" data-cs-type="court">' + opts + '</select></div>' +
       '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" id="mSesDur" min="0.5" step="0.5" value="' + (s.duration || 2) + '"></div>' +
-    '</div>';
+    '</div>' +
+    '<div class="form-group"><label class="form-label">' + t("players") + ' (<span id="mSesCount">' + _sesEditPlayers.length + '</span>)</label><div class="chips" id="mSesPlayers">' + _sesEditChips() + '</div></div>';
 
   modalCallback = function () {
     var court = dbFindById(courts, document.getElementById("mSesCourt").value);
@@ -363,8 +380,10 @@ function showSessionDetailsModal(sessionId) {
       courtId: court.id,
       courtName: court.name,
       courtLocation: court.location || null,
-      pricePerHour: courtPrice(court)
+      pricePerHour: courtPrice(court),
+      players: _sesEditPlayers.slice()
     };
+    if (!data.players.length) { showToast(t("fillAllFields")); return; }
     // Court cost follows the new court / duration if the bill was already entered
     if (s.calculated && canEditBill(s)) {
       data.courtCost = Math.round(data.pricePerHour * duration);
@@ -565,7 +584,11 @@ function renderSessionDetail() {
   if (sessionTab === "games" && _hasGamesTab()) { renderSessionGamesTab(); return; }
 
   if (!s.calculated && !sessionEditing) {
-    if (canEditBill(s) || canEditSessionDetails(s)) { startEditSession(); return; }
+    if (canEditBill(s) || canEditSessionDetails(s)) {
+      // Edit the plan first; the bill editor opens only from its own button
+      container.innerHTML = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderPendingSession(s) + _sessionActionBar(s);
+      return;
+    }
     container.innerHTML = _renderSessionHeader(s) + _sessionTabsHtml(s) + (typeof dinnerPollHtml === "function" ? dinnerPollHtml(s) : "") + _renderWaitingForBill(s) + _sessionActionBar(s);
     return;
   }
@@ -658,6 +681,16 @@ function renderSessionGamesTab() {
   if (!container || !currentSession) return;
   if (currentPage === "session-detail") setBreadcrumb([{ label: t("navGames"), action: "showPage('games')" }, { label: fmtDate(currentSession.date) }, { label: t("sessionTabGames") }]);
   container.innerHTML = _renderSessionHeader(currentSession) + _sessionTabsHtml(currentSession) + sessionGamesTabHtml(currentSession);
+}
+
+/** Organiser view before the bill: the players, "Edit session" and "Enter bill" */
+function _renderPendingSession(s) {
+  var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
+  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
+  html += '</div></div><div class="session-actions" style="margin:12px 0">';
+  if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
+  if (canEditBill(s)) html += '<button class="btn-primary" onclick="startEditSession()">' + icon("bill", 16) + ' ' + t("enterBill") + '</button>';
+  return html + '</div>';
 }
 
 /** Read-only view for players while the organiser hasn't entered the bill */

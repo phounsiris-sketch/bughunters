@@ -427,7 +427,7 @@ function submitGame() {
     if (ref) data.photo = ref;
     var jobs = [];
     for (var k = 0; k < weeks; k++) {
-      var one = Object.assign({}, data, { date: _addDays(g.date, 7 * k), closesAt: defaultCloseAt(_addDays(g.date, 7 * k), g.time, Date.now()) });
+      var one = Object.assign({}, data, { date: _addDays(g.date, 7 * k), closesAt: defaultCloseAt(_addDays(g.date, 7 * k), g.time, k ? 0 : Date.now()) });
       if (series) one.seriesId = series;
       jobs.push(fsdb.collection("openGames").add(one));
     }
