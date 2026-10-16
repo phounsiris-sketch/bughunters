@@ -106,7 +106,8 @@ function defaultCloseAt(date, time, createdMs) {
   var d = date.split("-").map(Number), tm = (time || "00:00").split(":").map(Number);
   var midnight = Date.UTC(d[0], d[1] - 1, d[2]) - BKK_MS;
   var start = Date.UTC(d[0], d[1] - 1, d[2], tm[0] || 0, tm[1] || 0) - BKK_MS;
-  return createdMs && createdMs > midnight - 3600e3 ? start : midnight;
+  // Voting stays open one more day after the poll is made, never past the start time
+  return createdMs ? Math.min(createdMs + 24 * 3600e3, start) : midnight;
 }
 function _msOf(x) { return !x ? 0 : typeof x === "number" ? x : x.toMillis ? x.toMillis() : x.toDate ? x.toDate().getTime() : 0; }
 function pollClosesAt(p) {
