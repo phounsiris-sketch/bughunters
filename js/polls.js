@@ -26,15 +26,39 @@ function loadPolls() {
   if (!pollsUnsubscribe) {
     pollsUnsubscribe = dbGetPolls(function (polls) {
       lastPolls = polls;
+      _autoConfirmPolls();
       if (currentPage === "polls") renderPolls(polls);
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (typeof updateNotifications === "function") updateNotifications();
     });
   }
+  // The cut-off can pass while the app is open: look again every minute
+  if (!_pollTimer) _pollTimer = setInterval(_autoConfirmPolls, 60e3);
   renderPolls(lastPolls);
 }
 
+var _pollTimer = null;
+var _autoTried = {};
+/** At the cut-off, an open poll with enough players becomes a session by itself.
+    Only the organiser's device does it; not enough players: stays open for them. */
+function _autoConfirmPolls() {
+  if (!currentUser || typeof canManagePoll !== "function") return;
+  var now = Date.now();
+  lastPolls.forEach(function (p) {
+    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers) return;
+    if (now < pollClosesAt(p) || !canManagePoll(p)) return;
+    var np = normalizePoll(p);
+    if (np.date && np.date < _todayIso()) return;
+    if (_pollAnswerUids(np, 0).length < (p.minPlayers || minPlayersSetting())) return;
+    _autoTried[p.id] = true;
+    confirmPoll(p.id, true);
+  });
+}
+
 function stopPolls() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollTimer = null;
+  _autoTried = {};
   if (pollsUnsubscribe) pollsUnsubscribe();
   pollsUnsubscribe = null;
   lastPolls = [];
@@ -276,6 +300,10 @@ function _renderPollCard(poll) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + poll.sessionId + '\')">' + t('openSession') + ' →</button>';
   }
 
+  if (isOpen && isCreator && poll.answers) {
+    html += '<button class="edit-btn" style="margin-top:10px" onclick="showEditPoll(\'' + poll.id + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>';
+  }
+
   if (isOpen && isCreator) {
     html += '<button class="btn-danger" style="margin-top:10px;padding:8px;font-size:12px" onclick="cancelPoll(\'' + poll.id + '\')">' + t('cancelPoll') + '</button>';
   }
@@ -433,7 +461,7 @@ function _proxyPick(btn, idx) {
 }
 
 /* ---------- Confirm poll (creator only, needs >= minPlayers joining) ---------- */
-function confirmPoll(pollId) {
+function confirmPoll(pollId, auto) {
   if (!currentUser) return;
   var pollRef = fsdb.collection("polls").doc(pollId);
   var newSessionId = null;
@@ -478,9 +506,44 @@ function confirmPoll(pollId) {
   })
     .then(function () {
       showToast(t("planConfirmed") + " ✔");
-      if (newSessionId) showSessionDetail(newSessionId);
+      if (newSessionId && !auto) showSessionDetail(newSessionId);
     })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { if (!auto) showToast(error.message); });
+}
+
+/* ---------- Edit poll (organiser; also after the cut-off, while it is not confirmed) ---------- */
+function showEditPoll(pollId) {
+  var poll = _findPoll(pollId);
+  if (!poll || !canManagePoll(poll)) return;
+  var np = normalizePoll(poll);
+  var opts = '';
+  DB_CACHE.courts.forEach(function (c) {
+    opts += '<option value="' + c.id + '"' + (c.id === np.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(courtPrice(c)) + '/h)</option>';
+  });
+  document.getElementById("modalTitle").textContent = t("editPoll");
+  document.getElementById("modalBody").innerHTML =
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">' + t("date") + '</label><input type="date" class="form-input" id="mPolDate" value="' + (np.date || '') + '"></div>' +
+      '<div class="form-group"><label class="form-label">' + t("startTime") + '</label><input type="time" class="form-input" id="mPolTime" value="' + (np.time || '') + '"></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" id="mPolCourt" data-cs-type="court">' + opts + '</select></div>' +
+      '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" id="mPolDur" min="0.5" step="0.5" value="' + (np.duration || 2) + '"></div>' +
+    '</div>';
+  modalCallback = function () {
+    var court = dbFindById(DB_CACHE.courts, document.getElementById("mPolCourt").value);
+    var duration = parseFloat(document.getElementById("mPolDur").value) || 0;
+    var date = document.getElementById("mPolDate").value;
+    var time = document.getElementById("mPolTime").value;
+    if (!date || duration <= 0 || !court) { showToast(t("fillAllFields")); return; }
+    delete _autoTried[pollId];
+    dbUpdatePoll(pollId, {
+      date: date, time: time, duration: duration, courtId: court.id, courtName: court.name,
+      closesAt: defaultCloseAt(date, time, Date.now())
+    }).then(function () { closeModal(); showToast(t("save") + " ✔"); })
+      .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); });
+  };
+  openModal();
 }
 
 /* ---------- Cancel poll ---------- */
