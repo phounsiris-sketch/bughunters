@@ -38,6 +38,11 @@ function mapsUrl(lat, lng) {
   return "https://www.google.com/maps/search/?api=1&query=" + lat.toFixed(6) + "," + lng.toFixed(6);
 }
 
+/** Google Maps turn-by-turn directions to a place */
+function mapsDirUrl(lat, lng) {
+  return "https://www.google.com/maps/dir/?api=1&destination=" + lat.toFixed(6) + "," + lng.toFixed(6);
+}
+
 /** Small "Map" link for a court (empty when it has no pin) */
 function courtMapLink(court, label) {
   if (!hasPin(court)) return "";

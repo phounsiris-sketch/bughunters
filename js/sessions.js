@@ -674,13 +674,13 @@ function _tsMs(v) {
 function _sessionLocationHtml(court) {
   if (!court) return "";
   if (hasPin(court)) {
-    var url = mapsUrl(court.lat, court.lng);
-    return '<div class="loc-actions"><a class="btn-primary loc-btn" href="' + url + '" target="_blank" rel="noopener">' + icon("pin", 15) + ' ' + t("openLocation") + '</a>' +
-      '<button class="btn-secondary loc-btn" onclick="shareLocation(\'' + court.id + '\')">' + icon("link", 15) + ' ' + t("shareLocation") + '</button></div>';
+    return '<span class="loc-mini">' +
+      '<a class="loc-ic" href="' + mapsDirUrl(court.lat, court.lng) + '" target="_blank" rel="noopener" title="' + t("openLocation") + '" aria-label="' + t("openLocation") + '">' + icon("route", 18) + '</a>' +
+      '<button class="loc-ic" onclick="shareLocation(\'' + court.id + '\')" title="' + t("shareLocation") + '" aria-label="' + t("shareLocation") + '">' + icon("share", 18) + '</button></span>';
   }
   if (typeof can === "function" && (can("editConfig") || (typeof isGroupAdminMe === "function" && isGroupAdminMe())))
-    return '<div class="loc-actions"><button class="btn-secondary loc-btn" onclick="pinSessionCourt(\'' + court.id + '\')">' + icon("pin", 15) + ' ' + t("pinCourtLocation") + '</button></div>';
-  return '<div class="form-hint" style="margin-top:6px">' + t("noPinYet") + '</div>';
+    return '<span class="loc-mini"><button class="loc-ic" onclick="pinSessionCourt(\'' + court.id + '\')" title="' + t("pinCourtLocation") + '" aria-label="' + t("pinCourtLocation") + '">' + icon("pin", 18) + '</button></span>';
+  return '';
 }
 
 function shareLocation(courtId) {
@@ -766,16 +766,15 @@ function _renderWaitingForBill(s) {
 function _renderSessionHeader(s) {
   var html = '<div style="text-align:center;margin-bottom:16px">';
   html += '<div style="font-size:16px;font-weight:700">' + fmtDate(s.date) + '</div>';
-  html += '<div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
-    ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>';
+  var court = s.courtId ? findCourt(s.courtId) : null;
+  html += '<div class="sess-where"><div style="font-size:13px;color:var(--text-secondary)">' + escapeHtml(s.time || "") + (s.duration ? ' • ' + fmtHours(s.duration) : '') +
+    ' • ' + escapeHtml(s.courtName || "") + (s.courtLocation ? ' (' + escapeHtml(s.courtLocation) + ')' : '') + '</div>' + _sessionLocationHtml(court) + '</div>';
   // Who made this session, and when
   var src = s.createdBy ? s : (currentSession || {});
   var made = _tsMs(src.createdAt);
   if (src.createdBy || made) html += '<div class="session-made">' + t("createdByAt").replace("{name}", escapeHtml(src.createdBy ? getUserName(src.createdBy) : "?"))
     .replace("{when}", made && typeof _whenShort === "function" ? _whenShort(made) : "") + '</div>';
   if (s.courtNos && s.courtNos.length) html += '<div class="court-nos-line">' + icon("court", 13) + ' ' + t(s.courtNos.length > 1 ? "courtsWord" : "courtWord") + ' ' + s.courtNos.map(escapeHtml).join(", ") + '</div>';
-  var court = s.courtId ? findCourt(s.courtId) : null;
-  html += _sessionLocationHtml(court);
   html += '</div>';
   return html;
 }
