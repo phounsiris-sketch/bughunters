@@ -189,6 +189,7 @@ function renderHome() {
     '<button type="button" class="home-live-x" aria-label="' + t("cancel") + '" onclick="lsCancelSaved()">' + icon("close", 16) + '</button></div>';
 
   if (typeof liveWatchStart === "function") { liveWatchStart(); html += liveNowHtml(); }
+  if (typeof payBoxHtml === "function") html += payBoxHtml();
 
   // 1. My stat cards, swipe sideways
   var cards = [];
