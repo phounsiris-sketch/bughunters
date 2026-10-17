@@ -5308,5 +5308,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-sync.warn { background: #b45309; }
 .ls-sync.bad { background: #b91c1c; }
 
+<<<<<<< Updated upstream
 /* Live menu: the watch remote button is green while it is on */
 .ls-menu button.on { background: #14532d; }
+=======
+/* Wide screens (iPad on its side): the two players of a team sit on ONE line, not one under the other */
+@media (orientation: landscape) and (min-width: 560px) {
+  .ls-half .ls-chips { flex-direction: row; flex-wrap: wrap; max-width: 92%; }
+}
+/* Watch screen on a tablet: bigger score, a smaller serve shuttle to make room */
+@media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
+  .ls-watch .ls-score { font-size: min(80vh, 38vw, 560px); }
+  .ls-watch .ls-chip { font-size: clamp(15px, 2.6vh, 24px); min-height: 40px; }
+  .ls-watch .ls-team { min-height: 40px; }
+  .ls-watch .ls-serve-slot { height: clamp(64px, 15vh, 140px); }
+  .ls-watch .ls-serve-big { width: clamp(56px, 13vh, 120px); height: clamp(56px, 13vh, 120px); }
+}
+>>>>>>> Stashed changes
