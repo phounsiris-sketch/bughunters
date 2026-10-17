@@ -514,24 +514,3 @@ function _marketListHtml() {
 }
 
 var _gearBoard = null;
-
-function gearBoardCardHtml() {
-  if (!GROUPS_ON || !currentGroupId) return "";
-  if (_gearBoard === null) {
-    _gearBoard = [];
-    fsdb.collection("gear").where("forSale", "==", true).get().then(function (snap) {
-      var list = [];
-      snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
-      _gearBoard = list;
-      if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
-    }).catch(function () {});
-  }
-  var mine = _gearBoard.filter(function (g) { return dbFindById(DB_CACHE.users, g.uid) && !isBlockedPair(g.uid); });
-  if (!mine.length) return "";
-  return '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("gearForSale") + ' (' + mine.length + ')</div>' + mine.map(function (g) {
-    return '<div class="gear-row" onclick="showUserProfile(\'' + g.uid + '\',event)">' +
-      (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="">' : '<span class="gear-photo empty">' + icon("shuttle", 18) + '</span>') +
-      '<span class="gear-text"><b>' + escapeHtml(g.name) + '</b><small>' + getUserName(g.uid) + ' · ' + _salePrice(g) +
-      (g.note ? ' · ' + escapeHtml(g.note) : '') + '</small></span></div>';
-  }).join('') + '</div>';
-}

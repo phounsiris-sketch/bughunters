@@ -1133,3 +1133,6 @@ The "Tips to improve" list under Best / Hardest pair (My stats) used one fixed s
 - **No duplicates:** one tip per case, one per person, the same sentence never twice, at most 4, most useful first (worst/both, losing run → hard rival → best → blowout/close …). Fewer than 3 tips: topped up from the general pool.
 - **No numbers in the tips** (W–L, %): the cards above already show them. Old keys `tipBest/tipWorst/tipRival/tipClose/tipRest/tipGreat/tipMix` removed.
 - Lao wording is unreviewed.
+
+## Dashboard no longer shows the gear-for-sale card (v133)
+The "Gear for sale in your group" card at the top of the Dashboard (Rankings tab) is removed (`gearBoardCardHtml` and its `gearForSale` text deleted). Gear for sale is shown only on the Market page.
