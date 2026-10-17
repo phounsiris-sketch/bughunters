@@ -479,9 +479,36 @@ function showCourtDirectoryPicker() {
  *  copied in first). opts.directoryOnly (Public tab) or before groups: the
  *  public directory court in courts/{id}.
  */
+/** Price periods being edited in the court window: [{from, to, price}] */
+var _courtBands = [];
+function _bandRowsHtml() {
+  return _courtBands.map(function (b, i) {
+    return '<div class="band-row"><input type="time" class="form-input" step="900" aria-label="' + t("timeFrom") + '" value="' + escapeHtml(b.from || "") + '" onchange="_courtBands[' + i + '].from=this.value">' +
+      '<span class="time-range-dash">\u2013</span><input type="time" class="form-input" step="900" aria-label="' + t("timeTo") + '" value="' + escapeHtml(b.to || "") + '" onchange="_courtBands[' + i + '].to=this.value">' +
+      moneyInput('', b.price, '_courtBands[' + i + '].price=parseMoney(this.value)') +
+      '<button type="button" class="delete-btn" aria-label="' + t("removePhoto") + '" onclick="courtBandRemove(' + i + ')">' + icon("trash", 16) + '</button></div>';
+  }).join('');
+}
+function courtBandAdd() { _courtBands.push({ from: "", to: "", price: 0 }); document.getElementById("mBands").innerHTML = _bandRowsHtml(); }
+function courtBandRemove(i) { _courtBands.splice(i, 1); document.getElementById("mBands").innerHTML = _bandRowsHtml(); }
+/** Rows that are filled in; null when a row is wrong (empty time, end before start, overlap) */
+function _readBands() {
+  var out = [];
+  for (var i = 0; i < _courtBands.length; i++) {
+    var b = _courtBands[i];
+    if (!b.from && !b.to && !(b.price > 0)) continue;           // empty row: ignore
+    if (!b.from || !b.to || !(b.price > 0) || _hm(b.to) <= _hm(b.from)) return null;
+    out.push({ from: b.from, to: b.to, price: Math.round(b.price) });
+  }
+  out.sort(function (a, b) { return _hm(a.from) - _hm(b.from); });
+  for (var j = 1; j < out.length; j++) if (_hm(out[j].from) < _hm(out[j - 1].to)) return null;
+  return out;
+}
+
 function showCourtModal(courtId, onSaved, opts) {
   opts = opts || {};
   var c = courtId ? (opts.directoryOnly ? dbFindById(DB_CACHE.allCourts || [], courtId) : findCourt(courtId)) : null;
+  _courtBands = ((c && c.priceBands) || []).map(function (b) { return { from: b.from, to: b.to, price: b.price }; });
   var groupMode = GROUPS_ON && !!currentGroupId && !opts.directoryOnly;
   var copying = groupMode && c && !c.groupId;           // a directory court becomes the group's own
   var withPrice = groupMode || !GROUPS_ON;
@@ -512,6 +539,10 @@ function showCourtModal(courtId, onSaved, opts) {
         timeRangeHtml(hrs[0] && /^\d\d:\d\d$/.test(hrs[0]) ? hrs[0] : "", hrs[1] && /^\d\d:\d\d$/.test(hrs[1]) ? hrs[1] : "", "", "").replace('<input type="time"', '<input type="time" id="mCourtOpen"').replace(/(<span class="time-range-dash">.*?<\/span>)<input type="time"/, '$1<input type="time" id="mCourtClose"') + '</div>' +
       '<label class="perm-row"><input type="checkbox" id="mCourtAc"' + (c && c.aircon ? ' checked' : '') + '><div>' + t("aircon") + '</div></label>' +
     '</details>' +
+    // Price by time of day (optional): e.g. 13:00-18:00 cheaper than the normal price
+    (withPrice && !copying ? '<div class="form-group" id="mBandsBox"><label class="form-label">' + icon("clock", 12) + ' ' + t("priceByTime") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
+      '<div class="form-hint" style="margin-bottom:6px">' + t("priceByTimeHint") + '</div><div id="mBands">' + _bandRowsHtml() + '</div>' +
+      '<button type="button" class="edit-btn" onclick="courtBandAdd()">+ ' + t("addPeriod") + '</button></div>' : '') +
     (groupMode && !c ? '<label class="perm-row"><input type="checkbox" id="mCourtShare"><div><b>' + t("alsoPublicDirectory") + '</b><div class="form-hint">' + t("alsoPublicDirectoryHint") + '</div></div></label>' : '');
 
   modalCallback = function () {
@@ -534,6 +565,11 @@ function showCourtModal(courtId, onSaved, opts) {
     if (withPrice && price <= 0) { showToast(t("pricePerHour")); return; }
     if (data.courtsCount && (data.courtsCount < 1 || data.courtsCount > 30)) { showToast(t("numCourts") + " 1–30"); return; }
     if (!timeRangeOk(document.getElementById("mCourtOpen").value, document.getElementById("mCourtClose").value)) { showToast(t("timeRangeInvalid")); return; }
+    if (withPrice && !copying) {
+      var bands = _readBands();
+      if (!bands) { showToast(t("periodInvalid")); return; }
+      data.priceBands = bands;
+    }
     var op;
     if (groupMode) {
       Object.assign(data, { price: price });

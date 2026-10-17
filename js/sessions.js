@@ -27,6 +27,53 @@ var edit = null; // form state while entering costs
 /** Payments are rounded to the nearest 1,000 ₭ (smallest note in common use) */
 var ROUND_TO = 1000;
 
+/* ---------- Court price by time of day ---------- */
+function _hm(v) { var p = String(v || "").split(":"); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
+function _hmStr(m) { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+
+/** Court cost for a booking: each stretch of the booking is charged at the price of the period it falls in
+    (court.priceBands = [{from, to, price}]), the court's normal price elsewhere.
+    Returns { cost, parts: [{from, to, hours, rate}] | null } (parts only for courts that have periods). */
+function courtCostFor(court, time, duration) {
+  var base = courtPrice(court), hours = duration || 0;
+  var bands = ((court && court.priceBands) || []).filter(function (b) { return b && b.from && b.to && b.price > 0; });
+  if (!bands.length || !time || hours <= 0) return { cost: Math.round(base * hours), parts: null };
+  var start = _hm(time), end = start + Math.round(hours * 60), spans = [], cuts = [start, end];
+  bands.forEach(function (b) {
+    var f = _hm(b.from), e = _hm(b.to);
+    if (e <= f) e += 1440;
+    [-1440, 0, 1440].forEach(function (o) {
+      spans.push({ f: f + o, e: e + o, price: b.price });
+      [f + o, e + o].forEach(function (x) { if (x > start && x < end) cuts.push(x); });
+    });
+  });
+  cuts.sort(function (a, b) { return a - b; });
+  var parts = [], cost = 0;
+  for (var i = 0; i < cuts.length - 1; i++) {
+    var a = cuts[i], b2 = cuts[i + 1];
+    if (b2 <= a) continue;
+    var rate = base;
+    spans.forEach(function (sp) { if (sp.f <= a && a < sp.e) rate = sp.price; });
+    cost += rate * (b2 - a) / 60;
+    var last = parts[parts.length - 1];
+    if (last && last.rate === rate) { last.to = _hmStr(b2); last.hours += (b2 - a) / 60; }
+    else parts.push({ from: _hmStr(a), to: _hmStr(b2), hours: (b2 - a) / 60, rate: rate });
+  }
+  return { cost: Math.round(cost), parts: parts };
+}
+/** "17:00–18:00 × 100,000 + 18:00–19:00 × 120,000" (only when the price changes during the booking) */
+function courtPartsText(parts) {
+  return (parts || []).map(function (p) { return p.from + '\u2013' + p.to + ' \u00d7 ' + fmtLAK(p.rate); }).join(' + ');
+}
+function _partsUseful(parts, base) { return !!parts && (parts.length > 1 || (parts[0] && parts[0].rate !== base)); }
+
+/** Discount on the whole bill: { type: "amount" | "percent", value } on a gross total */
+function discountOf(d, gross) {
+  if (!d || !(d.value > 0) || !(gross > 0)) return 0;
+  var v = d.type === "percent" ? gross * Math.min(100, d.value) / 100 : d.value;
+  return Math.min(gross, Math.round(v));
+}
+
 function computeLedger(s) {
   var players = (s.players || []).slice();
   var n = players.length;
@@ -61,15 +108,21 @@ function computeLedger(s) {
     }
   }
 
+  // Discount on the whole bill: every cost is lowered by the same share, so everyone's part drops in proportion
+  var gross = (s.courtCost || 0) + (s.shuttleTotal || 0) + (s.dinner && s.dinner.totalBill > 0 && s.dinner.diners && s.dinner.diners.length ? s.dinner.totalBill : 0);
+  (s.otherCosts || []).forEach(function (oc) { if (oc.amount > 0) gross += oc.amount; });
+  var discount = discountOf(s.discount, gross);
+  var f = gross > 0 ? (gross - discount) / gross : 1;
+
   // Court
-  var courtCost = s.courtCost || 0;
+  var courtCost = (s.courtCost || 0) * f;
   if (courtCost > 0 && n > 0) {
     charge(players, courtCost, "court", s.courtPayer, "");
     totals.court = courtCost;
   }
 
   // Shuttlecocks
-  var shuttleTotal = s.shuttleTotal || 0;
+  var shuttleTotal = (s.shuttleTotal || 0) * f;
   if (shuttleTotal > 0 && n > 0) {
     charge(players, shuttleTotal, "shuttle", s.shuttlePayer, "");
     totals.shuttle = shuttleTotal;
@@ -79,7 +132,7 @@ function computeLedger(s) {
   var others = s.otherCosts || [];
   for (var o = 0; o < others.length; o++) {
     var oc = others[o];
-    var amt = oc.amount || 0;
+    var amt = (oc.amount || 0) * f;
     if (amt <= 0) continue;
     charge(oc.forUid ? [oc.forUid] : players, amt, "other", oc.paidBy, oc.desc || "");
     totals.other += amt;
@@ -88,11 +141,13 @@ function computeLedger(s) {
   // Dinner
   var dinner = s.dinner;
   if (dinner && dinner.totalBill > 0 && dinner.diners && dinner.diners.length) {
-    charge(dinner.diners, dinner.totalBill, "dinner", dinner.paidBy, "");
-    totals.dinner = dinner.totalBill;
+    charge(dinner.diners, dinner.totalBill * f, "dinner", dinner.paidBy, "");
+    totals.dinner = dinner.totalBill * f;
   }
 
   totals.grand = totals.court + totals.shuttle + totals.other + totals.dinner;
+  totals.gross = gross;
+  totals.discount = discount;
   var uids = Object.keys(shares);
   for (var u = 0; u < uids.length; u++) {
     var sh = shares[uids[u]];
@@ -386,8 +441,14 @@ function showSessionDetailsModal(sessionId) {
     if (!data.players.length) { showToast(t("fillAllFields")); return; }
     // Court cost follows the new court / duration if the bill was already entered
     if (s.calculated && canEditBill(s)) {
-      data.courtCost = Math.round(data.pricePerHour * duration);
-      data.grandTotal = (s.grandTotal || 0) - (s.courtCost || 0) + data.courtCost;
+      var cc = courtCostFor(court, data.time, duration);
+      data.courtCost = cc.cost;
+      data.courtParts = _partsUseful(cc.parts, data.pricePerHour) ? cc.parts : null;
+      var gross = data.courtCost + (s.shuttleTotal || 0) + (s.otherTotal || 0) + (s.dinner ? s.dinner.totalBill || 0 : 0);
+      var disc = discountOf(s.discount, gross);
+      data.discountAmount = disc;
+      if (!disc && s.discount) data.discount = null;
+      data.grandTotal = gross - disc;
     }
     dbUpdateSession(sessionId, data)
       .then(function () { closeModal(); showToast(t("save") + " ✔"); })
@@ -739,13 +800,17 @@ function _renderSplitResult(s) {
   html += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
   html += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
   html += '</div>';
+  if (L.totals.discount > 0) {
+    html += '<div class="item-row" style="margin:4px 0 8px"><div class="item-name">' + icon("percent", 16) + ' ' + t("discount") + (s.discount && s.discount.type === "percent" ? ' ' + s.discount.value + '%' : '') +
+      ' <span class="form-hint">(' + fmtLAK(L.totals.gross) + ' \u2192 ' + fmtLAK(L.totals.grand) + ')</span></div><div class="item-price" style="color:var(--green,#16a34a)">\u2212' + fmtLAK(L.totals.discount) + '</div></div>';
+  }
 
   // 1) Pay by type: one card per cost, with the payer's QR and each player's part
   html += '<div class="section-title">' + icon("card", 14) + ' ' + t("payByType") + '</div>';
   var n = players.length;
   if (L.totals.court > 0) {
     html += _payTypeCard(s, icon("court", 18), t("court"),
-      escapeHtml(s.courtName || "") + ' — ' + fmtHours(s.duration || 0) + ' × ' + fmtLAK(s.pricePerHour),
+      escapeHtml(s.courtName || "") + ' — ' + (s.courtParts && s.courtParts.length ? courtPartsText(s.courtParts) : fmtHours(s.duration || 0) + ' × ' + fmtLAK(s.pricePerHour)),
       L.totals.court, s.courtPayer, "court", _even(players, L.totals.court));
   }
   if (L.totals.shuttle > 0) {
@@ -955,6 +1020,7 @@ function startEditSession() {
     courtId: (court && court.id) || s.courtId || (DB_CACHE.courts[0] ? DB_CACHE.courts[0].id : ""),
     courtNos: (s.courtNos || []).slice(),
     pricePerHour: court ? courtPrice(court) : (s.pricePerHour || 0),
+    discount: s.discount ? { type: s.discount.type, value: s.discount.value } : { type: "none", value: 0 },
     players: (s.players || []).slice(),
     courtPayer: s.courtPayer || _defaultPayer("defaultCourtPayer", s.players),
     shuttlecocks: (s.shuttlecocks || []).map(function (x) {
@@ -1123,6 +1189,16 @@ function renderEditForm() {
   }
   html += '</div>';
 
+  // Discount on the whole bill (optional)
+  var dt = (edit.discount && edit.discount.type) || "none";
+  html += '<div class="card"><div class="card-title">' + icon("percent", 14) + ' ' + t("discount") + ' <span class="form-hint">(' + t("optional") + ')</span></div>';
+  html += '<div class="seg" role="tablist">' + [["none", t("discountNone")], ["amount", curSymbol()], ["percent", "%"]].map(function (o) {
+    return '<button type="button" role="tab" aria-selected="' + (dt === o[0]) + '" class="seg-btn' + (dt === o[0] ? ' active' : '') + '" onclick="editSetDiscType(\'' + o[0] + '\')">' + o[1] + '</button>';
+  }).join('') + '</div>';
+  if (dt === "amount") html += '<div class="form-group" style="margin-top:10px">' + moneyInput('', edit.discount.value, 'edit.discount.value=parseMoney(this.value);_updateEditTotals()') + '</div>';
+  if (dt === "percent") html += '<div class="form-group" style="margin-top:10px"><input type="number" class="form-input" min="0" max="100" step="0.5" inputmode="decimal" value="' + (edit.discount.value || '') + '" placeholder="0" oninput="edit.discount.value=parseFloat(this.value)||0;_updateEditTotals()"></div>';
+  if (dt !== "none") html += '<div class="form-hint" style="margin-top:6px">' + t("discountHint") + '</div>';
+  html += '</div>';
   html += '</fieldset>';
 
   // Summary + save
@@ -1145,7 +1221,8 @@ function renderEditForm() {
 function _editToSessionData() {
   var court = findCourt(edit.courtId);
   var pricePerHour = court ? courtPrice(court) : edit.pricePerHour;
-  var courtCost = Math.round(pricePerHour * (edit.duration || 0));
+  var cc = court ? courtCostFor(court, edit.time, edit.duration) : { cost: Math.round(pricePerHour * (edit.duration || 0)), parts: null };
+  var courtCost = cc.cost;
 
   var shuttlecocks = [];
   var shuttleTotal = 0;
@@ -1172,6 +1249,10 @@ function _editToSessionData() {
     if (edit.dinner.restaurantId) { dinner.restaurantId = edit.dinner.restaurantId; dinner.restaurantName = edit.dinner.restaurantName || ""; }
   }
 
+  var dinnerAmt = dinner ? dinner.totalBill : 0;
+  var gross = courtCost + shuttleTotal + otherTotal + dinnerAmt;
+  var disc = edit.discount && edit.discount.type !== "none" ? discountOf(edit.discount, gross) : 0;
+
   return {
     date: edit.date,
     time: edit.time,
@@ -1183,6 +1264,7 @@ function _editToSessionData() {
     pricePerHour: pricePerHour,
     players: edit.players.slice(),
     courtCost: courtCost,
+    courtParts: _partsUseful(cc.parts, pricePerHour) ? cc.parts : null,
     courtPayer: edit.courtPayer || null,
     shuttlecocks: shuttlecocks,
     shuttleTotal: shuttleTotal,
@@ -1190,7 +1272,9 @@ function _editToSessionData() {
     otherCosts: edit.otherCosts.slice(),
     otherTotal: otherTotal,
     dinner: dinner,
-    grandTotal: courtCost + shuttleTotal + otherTotal + (dinner ? dinner.totalBill : 0)
+    discount: disc > 0 ? { type: edit.discount.type, value: edit.discount.value } : null,
+    discountAmount: disc,
+    grandTotal: gross - disc
   };
 }
 
@@ -1199,7 +1283,7 @@ function _updateEditTotals() {
   var data = _editToSessionData();
 
   var courtEl = document.getElementById("courtCostDisplay");
-  if (courtEl) courtEl.innerHTML = fmtHours(edit.duration || 0) + ' × ' + fmtLAK(data.pricePerHour) + ' = <b style="color:var(--accent)">' + fmtLAK(data.courtCost) + '</b>';
+  if (courtEl) courtEl.innerHTML = (data.courtParts ? courtPartsText(data.courtParts) : fmtHours(edit.duration || 0) + ' × ' + fmtLAK(data.pricePerHour)) + ' = <b style="color:var(--accent)">' + fmtLAK(data.courtCost) + '</b>';
 
   for (var i = 0; i < edit.shuttlecocks.length; i++) {
     var sc = edit.shuttlecocks[i];
@@ -1217,8 +1301,9 @@ function _updateEditTotals() {
       '<div class="item-row"><div class="item-name">' + icon("shuttle", 16) + ' ' + t("shuttlecocks") + '</div><div class="item-price">' + fmtLAK(data.shuttleTotal) + '</div></div>' +
       '<div class="item-row"><div class="item-name">' + icon("other", 16) + ' ' + t("otherCosts") + '</div><div class="item-price">' + fmtLAK(data.otherTotal) + '</div></div>' +
       '<div class="item-row"><div class="item-name">' + icon("dinner", 16) + ' ' + t("dinnerBill") + '</div><div class="item-price">' + fmtLAK(data.dinner ? data.dinner.totalBill : 0) + '</div></div>' +
+      (data.discountAmount > 0 ? '<div class="item-row"><div class="item-name">' + icon("percent", 16) + ' ' + t("discount") + (data.discount.type === "percent" ? ' ' + data.discount.value + '%' : '') + '</div><div class="item-price" style="color:var(--green,#16a34a)">\u2212' + fmtLAK(data.discountAmount) + '</div></div>' : '') +
       '<div class="subtotal-row"><span>' + t("total") + '</span><span style="color:var(--accent)">' + fmtLAK(data.grandTotal) + '</span></div>' +
-      (n ? '<div style="font-size:12px;color:var(--text-muted);text-align:right">' + t("courtAndCocksEach").replace("{n}", n) + ' ' + fmtLAK((data.courtCost + data.shuttleTotal) / n) + '</div>' : '');
+      (n ? '<div style="font-size:12px;color:var(--text-muted);text-align:right">' + t("courtAndCocksEach").replace("{n}", n) + ' ' + fmtLAK((data.grandTotal - (data.dinner ? data.dinner.totalBill : 0) - data.otherTotal) / n) + '</div>' : '');
   }
 }
 
@@ -1235,6 +1320,12 @@ function editToggleCourtNo(n) {
   if (i >= 0) l.splice(i, 1); else l.push(n);
   var order = courtNumbers(findCourt(edit.courtId));
   l.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+  renderEditForm();
+}
+
+function editSetDiscType(type) {
+  if (!edit) return;
+  edit.discount = { type: type, value: type === (edit.discount && edit.discount.type) ? edit.discount.value : 0 };
   renderEditForm();
 }
 
