@@ -5307,3 +5307,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-sync.ok::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #34d399; vertical-align: 0; }
 .ls-sync.warn { background: #b45309; }
 .ls-sync.bad { background: #b91c1c; }
+
+/* Live menu: the watch remote button is green while it is on */
+.ls-menu button.on { background: #14532d; }

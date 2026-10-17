@@ -169,6 +169,7 @@ function _lsShow() {
   document.body.classList.add("live-on");
   lsRender();
   _lsWake(true);
+  if (liveMode !== "watch") _lsRemoteStart();   // the iPad watch screen is not counted from a watch
 }
 
 function lsClose() {
@@ -176,6 +177,7 @@ function lsClose() {
   if (el) { el.classList.remove("on"); el.innerHTML = ""; }
   document.body.classList.remove("live-on");
   _lsWake(false);
+  _lsRemoteStop();
   if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
 }
 
@@ -196,7 +198,7 @@ function lsRender() {
   if (!live) return;
   if (liveMode === "setup") el.innerHTML = _lsSetupHtml();
   else if (liveMode === "settings") el.innerHTML = _lsSettingsHtml();
-  else { el.innerHTML = _lsCountHtml(); lsSyncUpdate(); }
+  else { el.innerHTML = _lsCountHtml(); lsSyncUpdate(); lsRemoteMeta(); }
 }
 
 function _lsTheme() { return LS_THEMES[lsThemeIdx()]; }
@@ -257,7 +259,8 @@ function _lsCountHtml() {
       '<button type="button" onclick="lsExit()">' + icon("back", 32) + '<span>' + t("lsExit") + '</span></button>' +
       '<button type="button" onclick="lsReset()">' + icon("trash", 32) + '<span>' + t("lsReset") + '</span></button>' +
       '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button>' +
-      (document.documentElement.requestFullscreen ? '<button type="button" onclick="lsFullscreen()">' + icon("scoreboard", 32) + '<span>' + t("lsFullscreen") + '</span></button>' : '') + '</div>' +
+      (document.documentElement.requestFullscreen ? '<button type="button" onclick="lsFullscreen()">' + icon("scoreboard", 32) + '<span>' + t("lsFullscreen") + '</span></button>' : '') +
+      (_lsRemoteOk() ? '<button type="button" class="' + (_remoteOn ? 'on' : '') + '" onclick="lsRemoteToggle()">' + icon("watch", 32) + '<span>' + t("lsRemote") + ' \u00B7 ' + t(_remoteOn ? "lsOn" : "lsOff") + '</span></button>' : '') + '</div>' +
       '<button type="button" class="ls-menu-x" aria-label="' + t("close") + '" onclick="lsMenu(false)">' + icon("close", 26) + '</button>';
   }
   if (live.over) html += _lsOverHtml();
@@ -395,8 +398,9 @@ function _lsSettingsHtml() {
 
 /* ---------- Actions ---------- */
 
-function lsTap(side, delta) {
+function lsTap(side, delta, fromRemote) {
   if (!live || live.over) return;
+  if (!fromRemote) _lsRemoteResume();   // a tap is the user gesture iOS needs to start the silent audio
   var before = live.sa + live.sb;
   live = lsApply(live, side, delta, maxPoints());
   if (delta > 0 && live.sa + live.sb !== before) { try { if (navigator.vibrate) navigator.vibrate(live.over ? [60, 40, 60] : 25); } catch (e) {} }
@@ -496,6 +500,84 @@ function lsInProgress() {
   return s;
 }
 
+
+/* ============================================================
+   Watch remote (Apple Watch / Wear OS / Bluetooth earbuds or clicker).
+   A web app cannot run on a watch, but a watch shows the Now Playing
+   controls of whatever the phone plays. The app plays a silent track and
+   listens to those buttons through the Media Session API:
+     previous track = point for Team A (left)   next track = point for Team B (right)
+     play / pause   = undo the last point
+   The title on the watch shows the score.
+   ============================================================ */
+var LS_REMOTE_KEY = "godsmash_ls_remote";
+var _remoteOn = false, _remoteAudio = null, _remoteUndoAt = 0;
+function _lsRemoteOk() { return typeof navigator !== "undefined" && "mediaSession" in navigator && typeof Audio !== "undefined"; }
+try { _remoteOn = localStorage.getItem(LS_REMOTE_KEY) === "1"; } catch (e) {}
+
+/** 10 s of silence as a WAV (Chrome only shows media controls for media of a few seconds or more) */
+function _silentWavUri() {
+  var rate = 8000, n = rate * 10, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+  var str = function (o, x) { for (var i = 0; i < x.length; i++) b[o + i] = x.charCodeAt(i); };
+  str(0, "RIFF"); v.setUint32(4, 36 + n, true); str(8, "WAVE"); str(12, "fmt "); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+  v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, "data"); v.setUint32(40, n, true);
+  for (var i = 44; i < b.length; i++) b[i] = 128;
+  var bin = "", step = 8192;
+  for (var k = 0; k < b.length; k += step) bin += String.fromCharCode.apply(null, b.subarray(k, k + step));
+  return "data:audio/wav;base64," + btoa(bin);
+}
+function _lsRemoteStart() {
+  if (!_lsRemoteOk() || !_remoteOn) return;
+  try {
+    if (!_remoteAudio) { _remoteAudio = new Audio(_silentWavUri()); _remoteAudio.loop = true; }
+    var ms = navigator.mediaSession, act = function (name, fn) { try { ms.setActionHandler(name, fn); } catch (e) {} };
+    var ok = function () { return liveMode === "count" && live && !live.over; };
+    act("previoustrack", function () { if (ok()) lsTap("A", 1, true); });
+    act("nexttrack", function () { if (ok()) lsTap("B", 1, true); });
+    var undo = function () {
+      if (ok() && Date.now() - _remoteUndoAt > 500) { _remoteUndoAt = Date.now(); lsUndo(); }
+      _lsRemoteResume();
+    };
+    act("play", undo); act("pause", undo);
+    var p = _remoteAudio.play();
+    if (p && p.catch) p.catch(function () {});   // needs a tap first; the next score tap starts it
+    ms.playbackState = "playing";
+    lsRemoteMeta();
+  } catch (e) {}
+}
+function _lsRemoteResume() {
+  if (!_remoteOn || !_remoteAudio || !_remoteAudio.paused) { if (_remoteOn && !_remoteAudio) _lsRemoteStart(); return; }
+  var p = _remoteAudio.play(); if (p && p.catch) p.catch(function () {});
+}
+function _lsRemoteStop() {
+  try {
+    if (_remoteAudio) _remoteAudio.pause();
+    if (_lsRemoteOk()) {
+      ["previoustrack", "nexttrack", "play", "pause"].forEach(function (n) { try { navigator.mediaSession.setActionHandler(n, null); } catch (e) {} });
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+    }
+  } catch (e) {}
+}
+/** What the watch shows: "A 12 – 10 B" */
+function lsRemoteMeta() {
+  if (!_remoteOn || !live || !_lsRemoteOk() || typeof MediaMetadata === "undefined") return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: "A " + live.sa + " \u2013 " + live.sb + " B",
+      artist: live.over ? t("lsWins").replace("{team}", t("lsTeam") + " " + live.over) : t("lsRemoteHint"),
+      album: "Godsmash"
+    });
+  } catch (e) {}
+}
+function lsRemoteToggle() {
+  _remoteOn = !_remoteOn;
+  try { localStorage.setItem(LS_REMOTE_KEY, _remoteOn ? "1" : "0"); } catch (e) {}
+  if (_remoteOn) _lsRemoteStart(); else _lsRemoteStop();
+  lsMenu(false);   // this tap is the gesture that lets the audio start
+  if (_remoteOn) showToast(t("lsRemoteHint"));
+}
 
 /* ============================================================
    Share and watch: the phone that counts publishes the score to
