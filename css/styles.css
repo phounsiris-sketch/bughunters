@@ -5295,3 +5295,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 }
 /* The points row keeps its height even before the first game ends, so the names do not jump when it appears */
 .ls-pts { min-height: calc(clamp(12px, 2.4vh, 22px) * 1.5); align-items: center; }
+
+/* Court price periods: from – to, price, remove */
+.band-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.band-row .form-input { min-width: 0; flex: 1; padding-left: 8px; padding-right: 8px; }
+.band-row .money-input { flex: 1.3; }
+.band-row .time-range-dash { flex: none; }
+
+/* Live score sync badge: "Live" / "Delayed" on the watching screen, "Not synced" on the counting phone */
+.ls-sync { position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 4; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .3px; color: #fff; background: rgba(15, 27, 45, .75); pointer-events: none; white-space: nowrap; }
+.ls-sync.ok::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #34d399; vertical-align: 0; }
+.ls-sync.warn { background: #b45309; }
+.ls-sync.bad { background: #b91c1c; }

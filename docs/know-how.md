@@ -1092,3 +1092,18 @@ Splash plays 2.2x (about 1 s) and the minimum is 1 s (0.5 s with reduced motion)
 ## Team names stay level and still (v124)
 - Side by side (landscape) only the first team half got the safe-area top padding (`.live-screen > .ls-half:first-of-type`), so on an iPad Home Screen app Team A's names sat lower than Team B's. Both halves now share `padding-top: 20px + safe-area` there (measured in headless Chrome: both names at the same y).
 - The points row (`.ls-pts`) is always drawn in Best of 3 / Rematch and keeps a minimum height, so the names no longer move when the first game's points appear.
+
+## Court price by time + bill discount (v125)
+- **Price periods** (court window, optional, group's own courts): rows `from – to + price` stored as `court.priceBands = [{from,to,price}]`. Hours outside any period use the court's normal price. `courtCostFor(court, time, duration)` (sessions.js) splits the booking at the period edges (handles a period that crosses midnight) and returns `{cost, parts}`; e.g. 13–18 at 100K, else 120K: 17:00 for 2 h = 100K + 120K = 220K. The session stores `courtParts` only when the price really changes inside the booking; the bill shows "17:00–18:00 × 100,000 + 18:00–19:00 × 120,000". Courts without periods behave as before (hours × price). Directory courts copied into a group have no periods (price override stays flat).
+- **Discount** (bill form, optional card before the total): None / LAK / %. Stored as `session.discount {type,value}` + `discountAmount`; `grandTotal` is the net. `computeLedger` lowers every cost (court, shuttles, other, dinner) by the same factor `(gross - discount) / gross`, so each person's part drops in proportion and all dashboards/payments follow without changes; `totals.gross` and `totals.discount` are new. The bill result shows "Discount −X (gross → net)". Editing the court/time/duration later recomputes court cost, parts and the discount.
+- `firestore.rules` `billKeys()` now lists `discount`, `discountAmount`, `courtParts` — publish the rules (the organiser can save without it, other editBill roles cannot).
+- New icon `percent`.
+
+## Live score sync you can trust (v126)
+Problem: the iPad watch screen could show an old score (slow or buffered connection) and nothing said so.
+- **Transport** (`firebase-config.js`): on iPad/iPhone Firestore uses `experimentalForceLongPolling` (Safari can buffer the streaming connection, so updates arrived late or in bursts); other devices use `experimentalAutoDetectLongPolling`. Set before any other Firestore call. App-wide, so watch for side effects on iOS.
+- **Phone sends faster** (`lsShare` / `_lsSend`): the first tap writes at once; fast taps right after are bundled into one write 250 ms later (was always +250 ms).
+- **Heartbeat**: while counting, the phone writes `hb` every 15 s (screen visible only) and pushes the score again when the page comes back to the front.
+- **Badge** (`#lsSync`, `lsSyncUpdate`): counting phone shows a red "Not synced" only when a write is stuck more than 3 s, failed, or the phone is offline. The watching screen shows green "Live", amber "Delayed N s" (nothing arrived from the server for 40 s; the iPad's own arrival time is used, so clock differences do not matter) or red "Offline".
+- **Order**: the watcher ignores an update older than the one it shows (`updatedAt`), and heartbeat-only changes do not redraw the board (no animation restart).
+- Not done on purpose: iPad as the score owner, and the watch remote (next step, own branch).

@@ -28,6 +28,14 @@ var auth = firebase.auth();
 // Firestore (named fsdb to avoid conflict with the db helper module)
 var fsdb = firebase.firestore();
 
+// Live connection: iPad / iPhone Safari can hold Firestore's streaming connection in a buffer, so a score update (live score
+// watch screen) arrives late or in bursts. Plain long-polling answers each update at once there; elsewhere the SDK picks the
+// better transport by itself. Must run before any other Firestore call.
+(function () {
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  try { fsdb.settings(ios ? { experimentalForceLongPolling: true, merge: true } : { experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+})();
+
 // Keep the sign-in across restarts (LOCAL = survives closing the tab); falls back by itself if storage is blocked
 try {
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
