@@ -5340,3 +5340,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
   .ls-watch .ls-serve-slot { height: clamp(96px, 16vh, 160px); }
   .ls-watch .ls-serve-big { width: clamp(96px, 16vh, 160px); height: clamp(96px, 16vh, 160px); }
 }
+
+/* Payments page: each payment has its own button */
+.pay-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.pay-item-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; background: var(--primary); white-space: nowrap; }
+.pay-item-btn .si { color: #fff; }
+.pay-item-btn.alt { background: var(--accent); }

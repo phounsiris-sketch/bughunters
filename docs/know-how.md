@@ -1120,3 +1120,5 @@ Order is Team name first, the players under it on one line (reverts the same-lin
 
 ## "Payments to settle" is one summary card (v130, simplified in v131)
 v130 put a row with I paid / Received buttons per person on Home and Dashboard; that was too much. Now it is one card (same look as the Live now banner) at the top of Home and Dashboard: "Payments to settle — You owe X · Owed to you Y — Open". One tap opens the Payments page, where each person is marked paid / received (`markGroupPaid`). No card when nothing is open. `payBoxHtml()` in payments.js, from `myPaymentSummary()`.
+
+- (v131) Payments page: every payment has its own **I paid** / **Received** button and its own confirmation (amount, name, date, court). `markPaymentOne(side, uid, sessionId, key)` settles exactly that one session's transfer. The old "mark all" buttons per person are gone, so a tap can never confirm several payments at once.

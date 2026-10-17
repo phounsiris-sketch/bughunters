@@ -76,7 +76,6 @@ function renderPayments() {
       '<div class="pay-person-total">' + fmtLAK(g.total) + '</div></div>';
     html += '<div class="qr-strip" data-qr-uid="' + g.uid + '"><div class="qr-missing">' + t("loading") + '</div></div>';
     html += _paymentItems(g, "owe");
-    html += '<button class="btn-primary" onclick="markGroupPaid(\'owe\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markAllPaidTo").replace("{name}", getUserName(g.uid)) + '</button>';
     html += '</div>';
   });
 
@@ -90,7 +89,6 @@ function renderPayments() {
         '<div style="flex:1;min-width:0"><div class="pay-person-name">' + getUserName(g.uid) + '</div></div>' +
         '<div class="pay-person-total" style="color:var(--accent)">' + fmtLAK(g.total) + '</div></div>';
       html += _paymentItems(g, "owed");
-      html += '<button class="btn-secondary" onclick="markGroupPaid(\'owed\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markReceived") + '</button>';
       html += '</div>';
     });
   }
@@ -105,7 +103,9 @@ function _paymentItems(g, side) {
     html += '<div class="pay-item" onclick="showSessionDetail(\'' + it.session.id + '\')">' +
       '<div style="min-width:0"><div class="pay-item-date">' + fmtDate(it.session.date) + ' • ' + escapeHtml(it.session.courtName || "") + '</div>' +
       '<div class="person-breakdown">' + transferBreakdownHtml(it.transfer) + '</div></div>' +
-      '<div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div></div>';
+      '<div class="pay-item-right"><div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div>' +
+      '<button type="button" class="pay-item-btn' + (side === "owe" ? '' : ' alt') + '" onclick="event.stopPropagation();markPaymentOne(\'' + side + '\',\'' + g.uid + '\',\'' + it.session.id + '\',\'' + it.transfer.key + '\')">' +
+        icon("check", 14) + ' ' + t(side === "owe" ? "payItemPaid" : "payItemReceived") + '</button></div></div>';
   });
   return html + '</div>';
 }
@@ -127,16 +127,16 @@ function _fillQrStrips(root) {
   });
 }
 
-/** Mark every open transfer between me and `uid` as paid */
-function markGroupPaid(side, uid) {
+/** Confirm ONE payment (one session between me and `uid`) as paid / received — never several at once */
+function markPaymentOne(side, uid, sessionId, key) {
   var g = myPaymentSummary()[side][uid];
   if (!g) return;
-  if (!confirm(t("confirmMarkPaid").replace("{amount}", fmtLAK(g.total)).replace("{name}", getUserName(uid)))) return;
-  var bySession = {};
-  g.items.forEach(function (it) {
-    (bySession[it.session.id] = bySession[it.session.id] || { s: it.session, keys: [] }).keys.push(it.transfer.key);
-  });
-  Promise.all(Object.keys(bySession).map(function (id) { return settleTransfers(bySession[id].s, bySession[id].keys, true); }))
-    .then(function () { showToast(t("paid") + " ✔"); })
+  var it = g.items.filter(function (x) { return x.session.id === sessionId && x.transfer.key === key; })[0];
+  if (!it) return;
+  var msg = t(side === "owe" ? "confirmMarkPaid" : "confirmMarkReceived").replace("{amount}", fmtLAK(it.transfer.amount)).replace("{name}", getUserName(uid)) +
+    "\n" + fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : "");
+  if (!confirm(msg)) return;
+  settleTransfers(it.session, [key], true)
+    .then(function () { showToast(t("paid") + " \u2714"); })
     .catch(function (error) { showToast(_permError(error)); });
 }
