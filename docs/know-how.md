@@ -1125,3 +1125,11 @@ v130 put a row with I paid / Received buttons per person on Home and Dashboard; 
 
 ## Payment notice that is noticed (v132)
 The Home / Dashboard card (`payBoxHtml`, class `.paynote`) now reads as "you still have a payment": warm orange card, a pulsing ring and a red count badge on the icon, "You still have N to pay", the total in big type, "to Bob, Amy +1 · owed to you 30K", and a solid "Pay now ›" button. When you only have money coming in (nothing to pay) it is a calmer green card "Waiting for payment … Check ›". Dark theme: bright fills with dark text; light theme (`[data-theme="light"]`): deeper fills with white text for contrast. One tap opens the Payments page (payments are confirmed one by one there). Ring animation is off with reduced motion.
+
+## Improvement tips: a script per case, no duplicates (v133)
+The "Tips to improve" list under Best / Hardest pair (My stats) used one fixed sentence per case and repeated what the two cards above already show (the best pair's 100%, the worst pair's 1–2, then the same person again as "hard rival").
+- **46 scripts, 13 cases** (`TIP_COUNT` in stats.js; i18n keys `tip_<case>_<n>`, EN + Lao): best partner, worst partner, same person worst partner AND hardest rival (`both`, one combined tip), hard rival, easy rival, close games, heavy losses (`blowout`), losing run, winning run (`streak`), great form, few games, no clear partner (`mix`), and a pool of 8 general tips (`gen`).
+- **Several wordings per case.** The wording is picked from a seed made of the player, the number of games and the last game, so it changes as games are added but stays the same on every reload while nothing changes. Different cases use different offsets.
+- **No duplicates:** one tip per case, one per person, the same sentence never twice, at most 4, most useful first (worst/both, losing run → hard rival → best → blowout/close …). Fewer than 3 tips: topped up from the general pool.
+- **No numbers in the tips** (W–L, %): the cards above already show them. Old keys `tipBest/tipWorst/tipRival/tipClose/tipRest/tipGreat/tipMix` removed.
+- Lao wording is unreviewed.

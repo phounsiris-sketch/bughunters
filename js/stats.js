@@ -545,6 +545,66 @@ function _renderProgress() {
   return html;
 }
 
+/* ---------- Tips: one script per case, several wordings each ----------
+   Each case (best partner, hard rival, close games …) has TIP_COUNT[case] wordings in i18n as tip_<case>_<n>.
+   The wording shown changes with the player's games (so it is not the same sentence every time) but stays the same
+   while nothing changes. Rules: one tip per person, one per case, the same sentence never twice, at most 4, and a
+   partner who is also the hardest rival gets ONE combined tip. Tips never repeat the numbers of the cards above them. */
+var TIP_COUNT = { best: 4, worst: 4, both: 3, rival: 4, easy: 3, close: 3, blowout: 3, rest: 3, streak: 3, great: 3, few: 2, mix: 3, gen: 8 };
+var TIP_MAX = 4;
+
+function _tipSeed(uid, games) {
+  var last = games.length ? games[games.length - 1].m : null;
+  var str = uid + "|" + games.length + "|" + (last ? (last.id || last.date || "") : ""), h = 0;
+  for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+/** The wording of a case for this seed; `salt` makes two cases pick different positions */
+function _tipText(kind, seed, salt, name) {
+  var n = TIP_COUNT[kind], i = (seed + salt * 7) % n;
+  return t("tip_" + kind + "_" + (i + 1)).replace("{name}", name ? escapeHtml(getUserName(name)) : "");
+}
+
+function _pairTips(uid, games, best, worst, hard, rate, rivals, partner) {
+  var seed = _tipSeed(uid, games), cands = [], salt = 0;
+  var add = function (kind, p, person, group) { cands.push({ kind: kind, p: p, uid: person || null, group: group || kind, text: _tipText(kind, seed, ++salt, person) }); };
+  var w = games.filter(function (x) { return x.won; }).length;
+  var avg = games.reduce(function (s, x) { return s + x.pts; }, 0) / games.length;
+  var lossRun = 0; for (var i = games.length - 1; i >= 0 && !games[i].won; i--) lossRun++;
+  var winRun = 0; for (var j = games.length - 1; j >= 0 && games[j].won; j--) winRun++;
+
+  if (worst && hard && worst.uid === hard.uid) add("both", 1, worst.uid);   // same person is the worst partner AND the hardest rival: one tip
+  else {
+    if (worst) add("worst", 1, worst.uid);
+    if (hard) add("rival", 2, hard.uid);
+  }
+  if (best && rate(best) >= 0.5) add("best", 3, best.uid);
+  var easy = rivals.filter(function (x) { return x.n >= 3 && rate(x) >= 0.75; }).sort(function (a, b) { return rate(b) - rate(a) || b.n - a.n; })[0];
+  if (easy) add("easy", 5, easy.uid);
+  if (lossRun >= 2) add("rest", 1);
+  else if (winRun >= 3) add("streak", 4);
+  if (games.length >= 3 && avg <= -5) add("blowout", 3);
+  else if (games.length >= 3 && avg < 0) add("close", 4);
+  if (games.length >= 5 && w / games.length >= 0.7) add("great", 4);
+  if (!best) add(games.length < 3 ? "few" : "mix", 5);
+
+  // One per case, one per person, no repeated sentence; the most useful first
+  var out = [], usedKind = {}, usedUid = {}, usedText = {};
+  cands.sort(function (a, b) { return a.p - b.p; }).forEach(function (c) {
+    if (out.length >= TIP_MAX || usedKind[c.group] || (c.uid && usedUid[c.uid]) || usedText[c.text]) return;
+    usedKind[c.group] = usedUid[c.uid || ""] = usedText[c.text] = true;
+    out.push(c.text);
+  });
+  // Too few tips: top up with general ones (a different one each, never twice)
+  var g = 0;
+  while (out.length < 3 && g < TIP_COUNT.gen) {
+    var tx = t("tip_gen_" + (((seed + out.length * 3 + g) % TIP_COUNT.gen) + 1));
+    g++;
+    if (!usedText[tx]) { usedText[tx] = true; out.push(tx); }
+  }
+  return out;
+}
+
 /** Best / worst pair (partners) of a player in the period, and gentle tips from the numbers */
 var INSIGHT_MIN_GAMES = 2;
 function _pairInsightsHtml(uid, games) {
@@ -561,7 +621,6 @@ function _pairInsightsHtml(uid, games) {
   if (worst && rate(worst) >= rate(best)) worst = null;  // everyone equal: nothing to call "worst"
   var hard = list(rival).sort(function (a, b) { return rate(a) - rate(b) || b.n - a.n; })[0];
   if (hard && rate(hard) >= 0.5) hard = null;
-  var fill = function (str, x) { return str.replace("{name}", escapeHtml(getUserName(x.uid))).replace("{w}", x.w).replace("{l}", x.n - x.w).replace("{pct}", Math.round(rate(x) * 100)); };
   var row = function (x, cls, label) {
     return '<div class="ins-row ' + cls + '"><span class="rank-avatars">' + avatarHtml(uid, 28) + avatarHtml(x.uid, 28) + '</span>' +
       '<span class="rank-text"><small>' + label + '</small><b>' + escapeHtml(getUserName(uid)) + ' &amp; ' + escapeHtml(getUserName(x.uid)) + '</b>' +
@@ -571,20 +630,10 @@ function _pairInsightsHtml(uid, games) {
   if (!best) html += '<div class="form-hint">' + t("insNeedMore").replace("{n}", INSIGHT_MIN_GAMES) + '</div>';
   else html += row(best, "good", t("bestPair")) + (worst ? row(worst, "low", t("worstPair")) : '');
 
-  // Gentle tips, at most 4
-  var tips = [];
-  var w = games.filter(function (x) { return x.won; }).length, l = games.length - w;
-  var avg = games.reduce(function (s, x) { return s + x.pts; }, 0) / games.length;
-  var streak = 0; for (var i = games.length - 1; i >= 0 && !games[i].won; i--) streak++;
-  if (best) tips.push(fill(t("tipBest"), best));
-  if (worst) tips.push(fill(t("tipWorst"), worst));
-  if (hard) tips.push(fill(t("tipRival"), hard));
-  if (games.length >= 3 && avg < 0) tips.push(t("tipClose"));
-  if (streak >= 2) tips.push(t("tipRest"));
-  if (games.length >= 5 && w / games.length >= 0.7) tips.push(t("tipGreat"));
-  if (!best) tips.push(t("tipMix"));
+  // Gentle tips: a script per case, several wordings each, never the same person or sentence twice, no numbers (the cards above show them)
+  var tips = _pairTips(uid, games, best, worst, hard, rate, list(rival), partner);
   html += '<div class="ins-tips-title">' + icon("chart", 13) + ' ' + t("insTipsTitle") + '</div><ul class="ins-tips">' +
-    tips.slice(0, 4).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
+    tips.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>';
   return html;
 }
 
