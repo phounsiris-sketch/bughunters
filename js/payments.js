@@ -25,23 +25,18 @@ function myPaymentSummary() {
   return out;
 }
 
-/** A box for Home and Dashboard (like the Live now banner): everyone I still owe or who still owes me, one tap to mark it paid / received.
-    Empty string when nothing is open. */
+/** One summary card for Home and Dashboard (same look as the Live now banner): what I owe and what is owed to me.
+    One tap opens the Payments page, where each person is marked paid / received. Empty string when nothing is open. */
 function payBoxHtml() {
   if (typeof myPaymentSummary !== "function" || typeof lastSessions === "undefined") return "";
   var sum = myPaymentSummary();
-  var owe = _groupsSorted(sum.owe), owed = _groupsSorted(sum.owed);
-  if (!owe.length && !owed.length) return "";
-  var row = function (g, side) {
-    var mine = side === "owe";
-    return '<div class="paybox-row">' + avatarHtml(g.uid, 36) +
-      '<div class="paybox-who"><b>' + getUserName(g.uid) + '</b><small>' + t(mine ? "payBoxYouPay" : "payBoxPaysYou") + '</small></div>' +
-      '<div class="paybox-amt' + (mine ? ' owe' : '') + '">' + fmtShort(g.total) + '</div>' +
-      '<button type="button" class="paybox-btn' + (mine ? '' : ' alt') + '" onclick="markGroupPaid(\'' + side + '\',\'' + g.uid + '\')">' + icon("check", 14) + ' ' + t(mine ? "payBoxPaid" : "payBoxReceived") + '</button></div>';
-  };
-  return '<div class="card paybox"><div class="paybox-head" onclick="showMyPayments()">' + icon("wallet", 18) + '<b>' + t("payBoxTitle") + '</b>' +
-    '<span>' + (sum.oweTotal ? t("youOwe") + ' ' + fmtShort(sum.oweTotal) : '') + (sum.oweTotal && sum.owedTotal ? ' \u00B7 ' : '') + (sum.owedTotal ? t("owedToYou") + ' ' + fmtShort(sum.owedTotal) : '') + '</span><i>' + t("payBoxAll") + ' \u203A</i></div>' +
-    owe.map(function (g) { return row(g, "owe"); }).join("") + owed.map(function (g) { return row(g, "owed"); }).join("") + '</div>';
+  var nOwe = Object.keys(sum.owe).length, nOwed = Object.keys(sum.owed).length;
+  if (!nOwe && !nOwed) return "";
+  var parts = [];
+  if (nOwe) parts.push(t("youOwe") + ' ' + fmtShort(sum.oweTotal));
+  if (nOwed) parts.push(t("owedToYou") + ' ' + fmtShort(sum.owedTotal));
+  return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showMyPayments()">' + icon("wallet", 22) +
+    '<span><b>' + t("payBoxTitle") + '</b><small>' + parts.join(' \u00B7 ') + '</small></span><i>' + t("payBoxOpen") + '</i></button></div>';
 }
 
 function showMyPayments() {
