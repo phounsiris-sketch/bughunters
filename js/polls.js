@@ -28,6 +28,7 @@ function loadPolls() {
       lastPolls = polls;
       _autoConfirmPolls();
       if (currentPage === "polls") renderPolls(polls);
+      if (currentPage === "home" && typeof renderHome === "function") renderHome();   // a new vote / answer shows in Moments
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (typeof updateNotifications === "function") updateNotifications();
     });
