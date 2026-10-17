@@ -1150,3 +1150,6 @@ The "Gear for sale in your group" card at the top of the Dashboard (Rankings tab
 
 ## Moments card removed from Home too (v136)
 User did not want the Moments card anywhere. `renderHome` no longer calls `momentsHtml()`. The "Playing now" live card and its 20 s elapsed-time pulse stay. `_moments()` / `momentsHtml()` are kept in home.js but unused.
+
+## Compact session location (v137)
+The two wide buttons "Open map" / "Share location" under the session header are replaced by two small round icon buttons on the same line as time and court (`.sess-where`, `.loc-mini`, `.loc-ic`): **directions** (new icon `route`, opens Google Maps turn-by-turn via new `mapsDirUrl(lat,lng)` in maps.js) and **share** (new icon `share`, `shareLocation()` unchanged: native share sheet, else copy). Labels stay as `title`/`aria-label`. A court without a pin shows one small pin button for admins (`pinSessionCourt`), nothing for others. Saves about 60 px of height. `.loc-actions` CSS kept but unused.

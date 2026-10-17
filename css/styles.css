@@ -5432,3 +5432,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @media (prefers-reduced-motion: reduce) {
   .dash-anim > *, .dash-anim .pod, .dash-anim .pod-block, .dash-anim .leader-row, .dash-anim .stat-tile, .dash-anim .spend-row, .dash-anim .stat-bar span, .dash-anim .vbar-stack { animation: none; }
 }
+
+/* Compact session location: two small round icon buttons beside the time / court line */
+.sess-where { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.loc-mini { display: inline-flex; gap: 6px; }
+.loc-ic { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; margin: 0; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--accent); cursor: pointer; text-decoration: none; transition: transform .15s ease, background-color .2s ease; }
+.loc-ic:active { transform: scale(.92); }
+@media (hover: hover) { .loc-ic:hover { background: var(--chip-bg); } }
