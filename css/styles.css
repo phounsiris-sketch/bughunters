@@ -5346,3 +5346,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .pay-item-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff; background: var(--primary); white-space: nowrap; }
 .pay-item-btn .si { color: #fff; }
 .pay-item-btn.alt { background: var(--accent); }
+
+/* "You still have a payment" notice (Home, Dashboard): warm, big amount, count badge, one clear button */
+.paynote { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 12px; border-radius: 16px; text-align: left; color: var(--text);
+  background: linear-gradient(135deg, rgba(249, 115, 22, .16), rgba(249, 115, 22, .04)), var(--card); border: 1.5px solid var(--orange, #f97316); box-shadow: var(--card-shadow); }
+.paynote-ic { position: relative; flex: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--orange, #f97316); }
+.paynote-ic .si { color: #1f1300; }
+.paynote-ic::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--orange, #f97316); opacity: 0; animation: paynote-ring 2.4s ease-out infinite; }
+.paynote-ic em { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #dc2626; color: #fff; font-style: normal; font-size: 11px; font-weight: 800; line-height: 20px; text-align: center; box-shadow: 0 0 0 2px var(--card); }
+.paynote-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.paynote-main small { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paynote-main small:first-child { font-weight: 700; color: var(--text); }
+.paynote-main b { font-size: 24px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--orange, #ea580c); }
+.paynote-cta { flex: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 800; color: #1f1300; background: var(--orange, #f97316); white-space: nowrap; }
+.paynote.in { background: linear-gradient(135deg, rgba(16, 185, 129, .13), rgba(16, 185, 129, .03)), var(--card); border-color: var(--accent); }
+.paynote.in .paynote-ic, .paynote.in .paynote-cta { background: var(--accent); }
+.paynote.in .paynote-ic::after { border-color: var(--accent); }
+.paynote.in .paynote-main b { color: var(--accent); }
+@keyframes paynote-ring { 0% { transform: scale(.9); opacity: .55; } 80%, 100% { transform: scale(1.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .paynote-ic::after { animation: none; } }
+/* Dark text sits on the bright dark-theme fills; the light theme uses deeper fills with white text (contrast) */
+[data-theme="light"] .paynote-ic, [data-theme="light"] .paynote-cta { background: #c2410c; color: #fff; }
+[data-theme="light"] .paynote-ic .si { color: #fff; }
+[data-theme="light"] .paynote-ic::after { border-color: #c2410c; }
+[data-theme="light"] .paynote { border-color: #c2410c; }
+[data-theme="light"] .paynote-main b { color: #c2410c; }
+[data-theme="light"] .paynote.in { border-color: #15803d; }
+[data-theme="light"] .paynote.in .paynote-ic, [data-theme="light"] .paynote.in .paynote-cta { background: #15803d; }
+[data-theme="light"] .paynote.in .paynote-ic::after { border-color: #15803d; }
+[data-theme="light"] .paynote.in .paynote-main b { color: #15803d; }
