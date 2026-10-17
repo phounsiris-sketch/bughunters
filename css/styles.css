@@ -5307,3 +5307,37 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .ls-sync.ok::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #34d399; vertical-align: 0; }
 .ls-sync.warn { background: #b45309; }
 .ls-sync.bad { background: #b91c1c; }
+
+/* Live menu: the watch remote button is green while it is on */
+.ls-menu button.on { background: #14532d; }
+
+/* Wide screens (iPad on its side): the two players of a team sit on ONE line, not one under the other */
+@media (orientation: landscape) and (min-width: 560px) {
+  .ls-half .ls-chips { flex-direction: row; flex-wrap: wrap; max-width: 92%; }
+}
+/* Watch screen on a tablet: bigger score, a smaller serve shuttle to make room */
+@media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
+  .ls-watch .ls-score { font-size: min(80vh, 38vw, 560px); }
+  .ls-watch .ls-chip { font-size: clamp(15px, 2.6vh, 24px); min-height: 40px; }
+  .ls-watch .ls-team { min-height: 40px; }
+  .ls-watch .ls-serve-slot { height: clamp(64px, 15vh, 140px); }
+  .ls-watch .ls-serve-big { width: clamp(56px, 13vh, 120px); height: clamp(56px, 13vh, 120px); }
+}
+
+/* Team name and its players share one line (wide landscape); the pair wraps only when the names are long */
+.ls-head { display: flex; flex-direction: column; align-items: center; max-width: 100%; }
+@media (orientation: landscape) and (min-width: 560px) {
+  .ls-head { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; min-height: 40px; }
+  .ls-head .ls-chips { margin-top: 0; max-width: none; flex-wrap: wrap; }
+  .ls-head .ls-team { min-height: 0; }
+}
+/* Watch screen on a tablet: one digit gets a very big number, two digits the widest that fits the half; games row is compact */
+@media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
+  /* the box keeps one height for 1 and 2 digits, so the names above never move when 9 becomes 10 */
+  .ls-watch .ls-score { display: flex; align-items: center; justify-content: center; height: min(59vh, 57vw, 640px); }
+  .ls-watch .ls-score[data-d="1"] { font-size: min(59vh, 57vw, 640px); }
+  .ls-watch .ls-score[data-d="2"] { font-size: min(59vh, 31vw, 440px); }
+  .ls-watch .ls-flip { flex-direction: row; gap: 14px; margin-top: 4px; }
+  .ls-watch .ls-serve-slot { height: clamp(56px, 9vh, 90px); }
+  .ls-watch .ls-serve-big { width: clamp(48px, 8vh, 80px); height: clamp(48px, 8vh, 80px); }
+}
