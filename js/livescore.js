@@ -242,8 +242,8 @@ function _lsCountHtml() {
     return '<div class="ls-half' + _lsWinCls(side, live) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, live) +
       '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 18) + '</span></button>' +
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
-      '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
-      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
+      '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-head"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
+      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, _lsShown(live).sw, _lsShown(live).gl) : '') + '</div></div>';
   };
   var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
@@ -730,8 +730,8 @@ function _lsWatchHtml() {
     var ids = byNameAZ(side === "A" ? g.a : g.b);
     return '<div class="ls-half ls-watch' + _lsWinCls(side, g) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, g) +
       '<div class="ls-info">' + _lsCrown(side, g) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
-      '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
-      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' + won(side) + '</div></div>';
+      '<div class="ls-head"><div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
+      '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' + won(side) + '</div></div>';
   };
   var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
