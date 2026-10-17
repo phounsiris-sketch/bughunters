@@ -191,12 +191,12 @@ function _lsWake(on) {
 function lsRender() {
   var el = document.getElementById("liveScreen");
   if (!el) return;
-  if (liveMode === "watch") { el.innerHTML = _lsWatchHtml(); return; }
+  if (liveMode === "watch") { el.innerHTML = _lsWatchHtml(); lsSyncUpdate(); return; }
   if (liveMode === "pick") { el.innerHTML = _lsPickHtml(); return; }
   if (!live) return;
   if (liveMode === "setup") el.innerHTML = _lsSetupHtml();
   else if (liveMode === "settings") el.innerHTML = _lsSettingsHtml();
-  else el.innerHTML = _lsCountHtml();
+  else { el.innerHTML = _lsCountHtml(); lsSyncUpdate(); }
 }
 
 function _lsTheme() { return LS_THEMES[lsThemeIdx()]; }
@@ -244,7 +244,7 @@ function _lsCountHtml() {
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, _lsShown(live).sw, _lsShown(live).gl) : '') + '</div></div>';
   };
-  var html = half("A") + half("B");
+  var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit ls-exit-count" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   if (live.test) html += '<div class="ls-test">' + icon("warning", 14) + ' ' + t("lsTestBadge") + '</div>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
@@ -510,27 +510,72 @@ function _lsDev() {
   try { var d = localStorage.getItem("godsmash_dev"); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem("godsmash_dev", d); } return d; } catch (e) { return "nodev"; }
 }
 var _liveListUnsub = null, _watchUnsub = null, _watch = null, _shareTimer = null, _shared = false;
+var _shareLast = 0, _syncPendingSince = 0, _syncFailed = false, _hbTimer = null, _watchSeenAt = 0, _syncTick = null;
+var LS_HB_MS = 15000, LS_DELAY_MS = 40000;
 
-/** Publish the running game (a short wait collects fast taps into one write) */
+/** Publish the running game. The first tap goes out at once; fast taps after it are bundled into one write 250 ms later. */
 function lsShare() {
   if (!live || !currentUser || !currentGroupId || !_lsReady(live)) return;
   clearTimeout(_shareTimer);
-  _shareTimer = setTimeout(function () {
-    if (!live) return;
-    _shared = true;
-    fsdb.collection("liveGames").doc(currentUser.uid).set({
-      hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
-      test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, gl: live.gl || [], sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
-      theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now()
-    }).catch(function () {});   // watching is a bonus: counting never fails because of it
-  }, 250);
+  var wait = Math.max(0, 250 - (Date.now() - _shareLast));
+  _shareTimer = setTimeout(_lsSend, wait);
+}
+function _lsSend() {
+  if (!live || !currentUser || !currentGroupId) return;
+  _shared = true;
+  _shareLast = Date.now();
+  if (!_syncPendingSince) _syncPendingSince = Date.now();
+  fsdb.collection("liveGames").doc(currentUser.uid).set({
+    hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
+    test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, gl: live.gl || [], sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
+    theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now(), hb: Date.now()
+  }).then(function () { _syncPendingSince = 0; _syncFailed = false; lsSyncUpdate(); })
+    .catch(function () { _syncFailed = true; lsSyncUpdate(); });   // watching is a bonus: counting never fails because of it
+  _lsHbStart();
+  setTimeout(lsSyncUpdate, 3200);   // still waiting after 3 s: show "Not synced"
+}
+/** While counting, a tiny write every 15 s tells the watchers the phone is alive (a quiet minute is normal, a dead link is not) */
+function _lsHbStart() {
+  if (_hbTimer) return;
+  _hbTimer = setInterval(function () {
+    if (!live || !currentUser || document.hidden) return;
+    fsdb.collection("liveGames").doc(currentUser.uid).update({ hb: Date.now() }).catch(function () {});
+  }, LS_HB_MS);
 }
 function lsUnshare() {
   clearTimeout(_shareTimer);
+  if (_hbTimer) { clearInterval(_hbTimer); _hbTimer = null; }
+  _syncPendingSince = 0; _syncFailed = false;
   if (!currentUser) return;   // always ask for the delete: after a reload this page no longer knows it shared
   _shared = false;
   fsdb.collection("liveGames").doc(currentUser.uid).delete().catch(function () {});
 }
+
+/** The small badge at the top: on the counting phone only a warning ("Not synced"), on the watching screen "Live" or "Delayed" */
+function lsSyncUpdate() {
+  var el = document.getElementById("lsSync");
+  if (!el) return;
+  var cls = "", txt = "";
+  if (liveMode === "watch") {
+    var ago = _watchSeenAt ? Date.now() - _watchSeenAt : 0;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) { cls = "bad"; txt = t("lsSyncOffline"); }
+    else if (ago > LS_DELAY_MS) { cls = "warn"; txt = t("lsSyncDelayed").replace("{s}", Math.round(ago / 1000)); }
+    else { cls = "ok"; txt = t("lsSyncLive"); }
+  } else if (live && _shared) {
+    var stuck = _syncPendingSince && Date.now() - _syncPendingSince > 3000;
+    if (_syncFailed || stuck || (typeof navigator !== "undefined" && navigator.onLine === false)) { cls = "bad"; txt = t("lsSyncNot"); }
+  }
+  el.hidden = !txt;
+  el.className = "ls-sync" + (cls ? " " + cls : "");
+  el.textContent = txt;
+  if ((txt || liveMode === "watch") && !_syncTick) _syncTick = setInterval(lsSyncUpdate, 3000);
+  if (!txt && liveMode !== "watch" && _syncTick) { clearInterval(_syncTick); _syncTick = null; }
+}
+["online", "offline"].forEach(function (n) { window.addEventListener(n, function () { if (document.body.classList.contains("live-on")) lsSyncUpdate(); }); });
+document.addEventListener("visibilitychange", function () {
+  // Back on the screen: push the current score so the watchers catch up at once
+  if (!document.hidden && live && _shared && document.body.classList.contains("live-on")) _lsSend();
+});
 
 /** The game (session) this board belongs to was ended or cancelled: the board must go too (practice boards have no session) */
 function _liveEnded(x) {
@@ -570,17 +615,23 @@ function liveNowHtml() {
 function lsWatch(id) {
   var g = liveNow.filter(function (x) { return x.id === id; })[0];
   if (!g) return;
-  _watch = g; live = null; liveMode = "watch";
+  _watch = g; live = null; liveMode = "watch"; _watchSeenAt = Date.now();
   if (_watchUnsub) _watchUnsub();
   _watchUnsub = fsdb.collection("liveGames").doc(id).onSnapshot(function (doc) {
     if (!doc.exists) { showToast(t("lsEnded")); lsWatchStop(); return; }
-    _watch = doc.data(); _watch.id = doc.id;
-    if (liveMode === "watch") lsRender();
+    if (!doc.metadata.fromCache) _watchSeenAt = Date.now();
+    var nd = doc.data();
+    // An older update that arrives late must not roll the score back
+    if (_watch && _watch.id === doc.id && (nd.updatedAt || 0) < (_watch.updatedAt || 0)) { lsSyncUpdate(); return; }
+    var changed = !_watch || nd.updatedAt !== _watch.updatedAt;
+    _watch = nd; _watch.id = doc.id;
+    if (liveMode === "watch") { if (changed) lsRender(); else lsSyncUpdate(); }
   }, function () { lsWatchStop(); });
   _lsShow();
 }
 function lsWatchStop(quiet) {
   if (_watchUnsub) { _watchUnsub(); _watchUnsub = null; }
+  if (_syncTick) { clearInterval(_syncTick); _syncTick = null; }
   _watch = null;
   if (liveMode === "watch") { liveMode = "count"; if (!quiet) lsClose(); else { var el = document.getElementById("liveScreen"); if (el) { el.classList.remove("on"); el.innerHTML = ""; } document.body.classList.remove("live-on"); _lsWake(false); } }
 }
@@ -600,7 +651,7 @@ function _lsWatchHtml() {
       '<div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div><div class="ls-score">' + score + '</div>' + won(side) + '</div></div>';
   };
-  var html = half("A") + half("B");
+  var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '') + '</span></div>';
   if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
