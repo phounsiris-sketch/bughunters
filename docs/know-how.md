@@ -1110,3 +1110,6 @@ Problem: the iPad watch screen could show an old score (slow or buffered connect
 
 ## Watch remote prototype (v127)
 Count from a smart watch (Apple Watch, Wear OS) or Bluetooth earbuds / clicker, no native app. Live score menu → "Watch remote" (green when on; remembered). The app plays 10 s of looping silence and registers Media Session handlers: **previous track = point Team A (left)**, **next track = point Team B (right)**, **play/pause = undo** (500 ms debounce; the audio always resumes). The title on the watch shows `A 12 – 10 B` (`lsRemoteMeta`). Only while counting (not on the watch screen, not after a game ends: the summary needs the screen). iOS needs a tap to start audio: toggling the button is that tap, and any score tap restarts it. Prototype: unproven on real watches (iOS may stop the silent audio when the phone locks; keep the screen awake — Live score already holds a wake lock). Stops when Live score closes.
+
+## Watch screen: names on one line, bigger score (v128)
+Landscape screens 560 px and wider: the two players of a team now sit on one line (chips in a row, wrapping only if the names are very long) instead of one under the other. On a tablet the watch screen shows a bigger score (`min(80vh, 38vw, 560px)` instead of 360 px max), larger name chips and a smaller serve shuttle slot to make room. Phones in portrait are unchanged.
