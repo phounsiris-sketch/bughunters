@@ -25,23 +25,18 @@ function myPaymentSummary() {
   return out;
 }
 
-/** A box for Home and Dashboard (like the Live now banner): everyone I still owe or who still owes me, one tap to mark it paid / received.
-    Empty string when nothing is open. */
+/** One summary card for Home and Dashboard (same look as the Live now banner): what I owe and what is owed to me.
+    One tap opens the Payments page, where each person is marked paid / received. Empty string when nothing is open. */
 function payBoxHtml() {
   if (typeof myPaymentSummary !== "function" || typeof lastSessions === "undefined") return "";
   var sum = myPaymentSummary();
-  var owe = _groupsSorted(sum.owe), owed = _groupsSorted(sum.owed);
-  if (!owe.length && !owed.length) return "";
-  var row = function (g, side) {
-    var mine = side === "owe";
-    return '<div class="paybox-row">' + avatarHtml(g.uid, 36) +
-      '<div class="paybox-who"><b>' + getUserName(g.uid) + '</b><small>' + t(mine ? "payBoxYouPay" : "payBoxPaysYou") + '</small></div>' +
-      '<div class="paybox-amt' + (mine ? ' owe' : '') + '">' + fmtShort(g.total) + '</div>' +
-      '<button type="button" class="paybox-btn' + (mine ? '' : ' alt') + '" onclick="markGroupPaid(\'' + side + '\',\'' + g.uid + '\')">' + icon("check", 14) + ' ' + t(mine ? "payBoxPaid" : "payBoxReceived") + '</button></div>';
-  };
-  return '<div class="card paybox"><div class="paybox-head" onclick="showMyPayments()">' + icon("wallet", 18) + '<b>' + t("payBoxTitle") + '</b>' +
-    '<span>' + (sum.oweTotal ? t("youOwe") + ' ' + fmtShort(sum.oweTotal) : '') + (sum.oweTotal && sum.owedTotal ? ' \u00B7 ' : '') + (sum.owedTotal ? t("owedToYou") + ' ' + fmtShort(sum.owedTotal) : '') + '</span><i>' + t("payBoxAll") + ' \u203A</i></div>' +
-    owe.map(function (g) { return row(g, "owe"); }).join("") + owed.map(function (g) { return row(g, "owed"); }).join("") + '</div>';
+  var nOwe = Object.keys(sum.owe).length, nOwed = Object.keys(sum.owed).length;
+  if (!nOwe && !nOwed) return "";
+  var parts = [];
+  if (nOwe) parts.push(t("youOwe") + ' ' + fmtShort(sum.oweTotal));
+  if (nOwed) parts.push(t("owedToYou") + ' ' + fmtShort(sum.owedTotal));
+  return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showMyPayments()">' + icon("wallet", 22) +
+    '<span><b>' + t("payBoxTitle") + '</b><small>' + parts.join(' \u00B7 ') + '</small></span><i>' + t("payBoxOpen") + '</i></button></div>';
 }
 
 function showMyPayments() {
@@ -81,7 +76,6 @@ function renderPayments() {
       '<div class="pay-person-total">' + fmtLAK(g.total) + '</div></div>';
     html += '<div class="qr-strip" data-qr-uid="' + g.uid + '"><div class="qr-missing">' + t("loading") + '</div></div>';
     html += _paymentItems(g, "owe");
-    html += '<button class="btn-primary" onclick="markGroupPaid(\'owe\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markAllPaidTo").replace("{name}", getUserName(g.uid)) + '</button>';
     html += '</div>';
   });
 
@@ -95,7 +89,6 @@ function renderPayments() {
         '<div style="flex:1;min-width:0"><div class="pay-person-name">' + getUserName(g.uid) + '</div></div>' +
         '<div class="pay-person-total" style="color:var(--accent)">' + fmtLAK(g.total) + '</div></div>';
       html += _paymentItems(g, "owed");
-      html += '<button class="btn-secondary" onclick="markGroupPaid(\'owed\',\'' + g.uid + '\')">' + icon("check", 16) + ' ' + t("markReceived") + '</button>';
       html += '</div>';
     });
   }
@@ -110,7 +103,9 @@ function _paymentItems(g, side) {
     html += '<div class="pay-item" onclick="showSessionDetail(\'' + it.session.id + '\')">' +
       '<div style="min-width:0"><div class="pay-item-date">' + fmtDate(it.session.date) + ' • ' + escapeHtml(it.session.courtName || "") + '</div>' +
       '<div class="person-breakdown">' + transferBreakdownHtml(it.transfer) + '</div></div>' +
-      '<div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div></div>';
+      '<div class="pay-item-right"><div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div>' +
+      '<button type="button" class="pay-item-btn' + (side === "owe" ? '' : ' alt') + '" onclick="event.stopPropagation();markPaymentOne(\'' + side + '\',\'' + g.uid + '\',\'' + it.session.id + '\',\'' + it.transfer.key + '\')">' +
+        icon("check", 14) + ' ' + t(side === "owe" ? "payItemPaid" : "payItemReceived") + '</button></div></div>';
   });
   return html + '</div>';
 }
@@ -132,16 +127,16 @@ function _fillQrStrips(root) {
   });
 }
 
-/** Mark every open transfer between me and `uid` as paid */
-function markGroupPaid(side, uid) {
+/** Confirm ONE payment (one session between me and `uid`) as paid / received — never several at once */
+function markPaymentOne(side, uid, sessionId, key) {
   var g = myPaymentSummary()[side][uid];
   if (!g) return;
-  if (!confirm(t("confirmMarkPaid").replace("{amount}", fmtLAK(g.total)).replace("{name}", getUserName(uid)))) return;
-  var bySession = {};
-  g.items.forEach(function (it) {
-    (bySession[it.session.id] = bySession[it.session.id] || { s: it.session, keys: [] }).keys.push(it.transfer.key);
-  });
-  Promise.all(Object.keys(bySession).map(function (id) { return settleTransfers(bySession[id].s, bySession[id].keys, true); }))
-    .then(function () { showToast(t("paid") + " ✔"); })
+  var it = g.items.filter(function (x) { return x.session.id === sessionId && x.transfer.key === key; })[0];
+  if (!it) return;
+  var msg = t(side === "owe" ? "confirmMarkPaid" : "confirmMarkReceived").replace("{amount}", fmtLAK(it.transfer.amount)).replace("{name}", getUserName(uid)) +
+    "\n" + fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : "");
+  if (!confirm(msg)) return;
+  settleTransfers(it.session, [key], true)
+    .then(function () { showToast(t("paid") + " \u2714"); })
     .catch(function (error) { showToast(_permError(error)); });
 }
