@@ -25,18 +25,35 @@ function myPaymentSummary() {
   return out;
 }
 
-/** One summary card for Home and Dashboard (same look as the Live now banner): what I owe and what is owed to me.
-    One tap opens the Payments page, where each person is marked paid / received. Empty string when nothing is open. */
+/** The "you still have a payment" notice for Home and Dashboard. It must be seen: orange, big amount, count badge, "Pay now".
+    Only money owed TO me (nothing to pay) gets a calmer green version. One tap opens the Payments page, where each payment is
+    confirmed one by one. Empty string when nothing is open. */
 function payBoxHtml() {
   if (typeof myPaymentSummary !== "function" || typeof lastSessions === "undefined") return "";
   var sum = myPaymentSummary();
-  var nOwe = Object.keys(sum.owe).length, nOwed = Object.keys(sum.owed).length;
-  if (!nOwe && !nOwed) return "";
-  var parts = [];
-  if (nOwe) parts.push(t("youOwe") + ' ' + fmtShort(sum.oweTotal));
-  if (nOwed) parts.push(t("owedToYou") + ' ' + fmtShort(sum.owedTotal));
-  return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showMyPayments()">' + icon("wallet", 22) +
-    '<span><b>' + t("payBoxTitle") + '</b><small>' + parts.join(' \u00B7 ') + '</small></span><i>' + t("payBoxOpen") + '</i></button></div>';
+  var owe = _groupsSorted(sum.owe), owed = _groupsSorted(sum.owed);
+  if (!owe.length && !owed.length) return "";
+  var names = function (list) {
+    var n = list.slice(0, 2).map(function (g) { return getUserName(g.uid); }).join(", ");
+    return list.length > 2 ? n + " +" + (list.length - 2) : n;
+  };
+  var count = function (list) { return list.reduce(function (a, g) { return a + g.items.length; }, 0); };
+  if (owe.length) {
+    var n = count(owe);
+    return '<button type="button" class="paynote" onclick="showMyPayments()">' +
+      '<span class="paynote-ic">' + icon("wallet", 24) + '<em>' + n + '</em></span>' +
+      '<span class="paynote-main"><small>' + t("payNoteOwe").replace("{n}", n) + '</small>' +
+      '<b>' + fmtShort(sum.oweTotal) + '</b>' +
+      '<small>' + t("payNoteTo").replace("{names}", names(owe)) + (owed.length ? ' \u00B7 ' + t("payNoteAlso").replace("{amount}", fmtShort(sum.owedTotal)) : '') + '</small></span>' +
+      '<span class="paynote-cta">' + t("payNoteCta") + ' \u203A</span></button>';
+  }
+  var m = count(owed);
+  return '<button type="button" class="paynote in" onclick="showMyPayments()">' +
+    '<span class="paynote-ic">' + icon("users", 24) + '<em>' + m + '</em></span>' +
+    '<span class="paynote-main"><small>' + t("payNoteWaiting") + '</small>' +
+    '<b>' + fmtShort(sum.owedTotal) + '</b>' +
+    '<small>' + t("payNoteFrom").replace("{names}", names(owed)) + '</small></span>' +
+    '<span class="paynote-cta">' + t("payNoteCtaOwed") + ' \u203A</span></button>';
 }
 
 function showMyPayments() {
