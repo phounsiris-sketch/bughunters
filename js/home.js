@@ -330,7 +330,6 @@ function renderHome() {
     '<div class="hs-dots-nav" id="homeStripDots">' + cards.map(function (c, i) { return '<i class="' + (i === 0 ? 'on' : '') + '"></i>'; }).join("") + '</div>';
 
   // Moments: what just happened in the group
-  html += momentsHtml();
 
   // 2. Shortcuts: find court, find friends, market
   if (groups) {

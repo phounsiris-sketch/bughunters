@@ -1147,3 +1147,6 @@ The "Gear for sale in your group" card at the top of the Dashboard (Rankings tab
 - `_dashMotion(container)` in dashboard.js adds `.dash-anim` when the view really changed (tab, period or person; key `_dashMotionKey`), never on a data refresh, so nothing flickers while Firestore updates. Effects: cards rise one after another (stagger via `--i`), podium rises and its blocks grow, leader/stat/spend rows follow (`--j`), progress bars and monthly bars grow, numbers count up (`_countUp`, ease-out 0.7 s, skips values under 3 and tiles with markup). Press feedback on rows/tabs, hover lift on desktop.
 - Reduced motion: no animation and no count-up.
 - Technical words: micro-interactions, motion design, staggered reveal (entrance animation), count-up (number tweening).
+
+## Moments card removed from Home too (v136)
+User did not want the Moments card anywhere. `renderHome` no longer calls `momentsHtml()`. The "Playing now" live card and its 20 s elapsed-time pulse stay. `_moments()` / `momentsHtml()` are kept in home.js but unused.
