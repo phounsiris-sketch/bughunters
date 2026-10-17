@@ -58,6 +58,48 @@ function _periodLabel() {
 
 /* ---------- Main render ---------- */
 
+/* Motion: cards rise in one after another, bars grow, numbers count up.
+   Only when the view really changed (tab / period / person), never on a data refresh. */
+var _dashMotionKey = "";
+function _dashMotion(container) {
+  var key = dashTab + "|" + dashPeriod + "|" + (dashActivityUser || "");
+  if (key === _dashMotionKey) return;
+  _dashMotionKey = key;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  container.classList.remove("dash-anim");
+  void container.offsetWidth;
+  var kids = container.children;
+  for (var i = 0; i < kids.length; i++) kids[i].style.setProperty("--i", Math.min(i, 8));
+  var rows = container.querySelectorAll(".leader-row, .stat-tile, .pod, .spend-row");
+  for (var r = 0; r < rows.length; r++) rows[r].style.setProperty("--j", Math.min(r, 12));
+  container.classList.add("dash-anim");
+  var nums = container.querySelectorAll(".pod-value, .leader-value, .stat-value");
+  for (var n = 0; n < nums.length; n++) _countUp(nums[n]);
+}
+
+function _countUp(el) {
+  if (el.children.length) return;                       // tiles with <small> keep their markup
+  var m = /^(\d[\d,]*)(\.\d+)?(.*)$/.exec(el.textContent.trim());
+  if (!m) return;
+  var target = parseFloat(m[1].replace(/,/g, "") + (m[2] || ""));
+  if (!isFinite(target) || target < 3) return;
+  var dec = m[2] ? m[2].length - 1 : 0, comma = m[1].indexOf(",") >= 0, suffix = m[3] || "";
+  var t0 = null, dur = 700;
+  function show(v) {
+    var txt = dec ? v.toFixed(dec) : String(Math.round(v));
+    if (comma) txt = txt.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    el.textContent = txt + suffix;
+  }
+  show(0);
+  function step(ts) {
+    if (t0 === null) t0 = ts;
+    var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    show(target * e);
+    if (k < 1) requestAnimationFrame(step); else show(target);
+  }
+  requestAnimationFrame(step);
+}
+
 function _renderDashboard() {
   var container = document.getElementById("dashboardContent");
   if (!container) return;
@@ -65,8 +107,7 @@ function _renderDashboard() {
   if (dashTab !== "activity" || !dashActivityUser) setBreadcrumb([{ label: t("navHome"), action: "showPage('home')" }, { label: t("navDashboard") }]);
 
   // My rating card lives on Rankings and Home; gear for sale lives only on the Market.
-  var html = (typeof payBoxHtml === "function" ? payBoxHtml() : '') + (typeof momentsHtml === "function" ? momentsHtml() : '');
-  if (typeof _homePulseStart === "function") _homePulseStart();
+  var html = typeof payBoxHtml === "function" ? payBoxHtml() : '';
   html += '<div class="dashboard-tabs">';
   var tabs = [["leaders", t("leaderboard")], ["activity", t("activity")], ["spending", t("spending")]];
   for (var ti = 0; ti < tabs.length; ti++) {
@@ -88,14 +129,17 @@ function _renderDashboard() {
   if (dashTab === "leaders") {
     html += _renderLeaderboard();
     container.innerHTML = html;
+    _dashMotion(container);
   } else if (dashTab === "spending") {
     var filtered = calculated.filter(function (s) { return _inPeriod(_sessionDate(s), dashPeriod); });
     html += _renderSpendingTab(filtered, calculated);
     container.innerHTML = html;
+    _dashMotion(container);
     setTimeout(function () { var vs = document.getElementById("vbarScroll"); if (vs) vs.scrollLeft = vs.scrollWidth; }, 0);
   } else {
     html += _renderActivityTab();
     container.innerHTML = html;
+    _dashMotion(container);
   }
 }
 

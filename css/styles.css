@@ -5410,3 +5410,25 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @keyframes mom-glow { 0% { background: rgba(var(--accent-rgb), .22); } 100% { background: transparent; } }
 .moments-more { display: block; width: 100%; padding: 8px 0 4px; font-size: 12px; font-weight: 700; color: var(--accent); text-align: center; }
 @media (prefers-reduced-motion: reduce) { .live-dot, .mom-item.fresh, .mom-item.pop { animation: none; } }
+
+/* ── Dashboard motion: staggered rise, growing bars, count-up numbers, press feedback ── */
+@keyframes dashRise { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes dashPod { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@keyframes dashGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes dashBlock { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes dashGrowY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.dash-anim > * { animation: dashRise .5s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+.dash-anim .pod { animation: dashPod .6s cubic-bezier(.22, 1.2, .36, 1) both; animation-delay: calc(120ms + var(--j, 0) * 90ms); }
+.dash-anim .pod-block { transform-origin: bottom; animation: dashBlock .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(200ms + var(--j, 0) * 90ms); }
+.dash-anim .leader-row, .dash-anim .stat-tile, .dash-anim .spend-row { animation: dashRise .45s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(260ms + var(--j, 0) * 45ms); }
+.dash-anim .stat-bar span { transform-origin: left; animation: dashGrow .8s cubic-bezier(.22, 1, .36, 1) both; animation-delay: .35s; }
+.dash-anim .vbar-stack { transform-origin: bottom; animation: dashGrowY .7s cubic-bezier(.22, 1, .36, 1) both; animation-delay: .3s; }
+.leader-row, .pod, .stat-tile, .dash-tab, .period-btn { transition: transform .15s ease, box-shadow .2s ease, background-color .2s ease; }
+.leader-row:active, .pod:active, .dash-tab:active, .period-btn:active { transform: scale(.97); }
+@media (hover: hover) {
+  .leader-row:hover, .stat-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, .12); }
+  .pod:hover { transform: translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-anim > *, .dash-anim .pod, .dash-anim .pod-block, .dash-anim .leader-row, .dash-anim .stat-tile, .dash-anim .spend-row, .dash-anim .stat-bar span, .dash-anim .vbar-stack { animation: none; }
+}
