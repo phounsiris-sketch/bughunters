@@ -134,7 +134,35 @@ function homeAddScore() {
   showSessionDetail(best.id, "games");
 }
 
-/** Soonest game I can still act on: an open vote or a session coming up */
+/** When a session starts / ends (ms). No time set: the whole day counts as "upcoming". Bangkok time, like the poll deadlines. */
+function _sesWindow(s) {
+  if (!s.date) return null;
+  var d = s.date.split("-").map(Number), tm = (s.time || "").split(":").map(Number), has = !!s.time;
+  var start = Date.UTC(d[0], d[1] - 1, d[2], has ? tm[0] || 0 : 0, has ? tm[1] || 0 : 0) - BKK_MS;
+  return { start: start, end: has ? start + (s.duration || 2) * 3600e3 : start + 24 * 3600e3, timed: has };
+}
+/** "live" while the slot runs (or a score is being counted), "soon" before it, "over" after it */
+function _sesPhase(s) {
+  if (s.status === "cancelled" || s.status === "completed") return "over";
+  var w = _sesWindow(s), now = Date.now();
+  if (!w) return "over";
+  if (_liveBoardFor(s.id)) return "live";
+  if (!w.timed) return now < w.end ? "soon" : "over";
+  return now < w.start ? "soon" : now < w.end ? "live" : "over";
+}
+/** The score being counted for this session: mine on this phone, or someone else's in the group */
+function _liveBoardFor(sid) {
+  var mine = typeof lsInProgress === "function" ? lsInProgress() : null;
+  if (mine && mine.sid === sid) return { mine: true, sa: mine.sa, sb: mine.sb, a: mine.a || [], b: mine.b || [], sid: sid };
+  var g = (typeof liveNow !== "undefined" ? liveNow : []).filter(function (x) { return x.sid === sid && !x.test && !(typeof _liveEnded === "function" && _liveEnded(x)); })[0];
+  return g ? { mine: false, id: g.id, sa: g.sa, sb: g.sb, a: g.a || [], b: g.b || [], sid: sid } : null;
+}
+function _elapsedText(ms) {
+  var m = Math.max(0, Math.floor(ms / 60000));
+  return m < 60 ? m + " " + t("minShort") : Math.floor(m / 60) + t("hShort") + " " + String(m % 60).padStart(2, "0");
+}
+
+/** Soonest game I can still act on: a game being played now, an open vote or a session coming up. A finished session is not "next". */
 function _homeNextGame() {
   var today = _todayIso(), list = [];
   lastPolls.forEach(function (p) {
@@ -143,23 +171,32 @@ function _homeNextGame() {
     list.push({ kind: "poll", id: p.id, date: np.date, time: np.time || "", court: np.courtName || "", np: np });
   });
   lastSessions.forEach(function (s) {
-    if (s.status === "cancelled" || !s.date || s.date < today) return;
-    list.push({ kind: "session", id: s.id, date: s.date, time: s.time || "", court: s.courtName || "", s: s });
+    if (!s.date) return;
+    var ph = _sesPhase(s);
+    if (ph === "over") return;
+    list.push({ kind: "session", id: s.id, date: s.date, time: s.time || "", court: s.courtName || "", s: s, phase: ph, win: _sesWindow(s) });
   });
-  list.sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); });
+  list.sort(function (a, b) {
+    var la = a.phase === "live" ? 0 : 1, lb = b.phase === "live" ? 0 : 1;
+    return la - lb || (a.date + a.time).localeCompare(b.date + b.time);
+  });
   return list[0] || null;
 }
+var _homeNextKey = "";
 
 function _homeNextCard() {
   var g = _homeNextGame();
+  _homeNextKey = g ? g.kind + g.id + (g.phase || "") : "";
   if (!g) {
     return '<div class="home-next empty"><div class="hs-title">' + icon("sessions", 16) + ' ' + t("homeNextGame") + '</div>' +
       '<div class="hs-muted" style="margin:6px 0 12px">' + t("homeNoNext") + '</div>' +
       '<button class="btn-next" onclick="showCreatePoll()">' + icon("vote", 18) + ' ' + t("homeVote") + '</button></div>';
   }
-  var d = new Date(g.date + "T00:00:00");
-  var inner = '<div class="home-next-top"><div class="hs-title">' + icon("sessions", 16) + ' ' + t("homeNextGame") + '</div>' +
-    '<span class="home-next-tag">' + icon(g.kind === "poll" ? "vote" : "court", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span></div>' +
+  var d = new Date(g.date + "T00:00:00"), live = g.phase === "live";
+  var tag = live
+    ? '<span class="home-live-tag"><i class="live-dot"></i>' + t("momLive") + (g.win && g.win.timed ? ' \u00B7 <span id="homeElapsed" data-start="' + g.win.start + '">' + _elapsedText(Date.now() - g.win.start) + '</span>' : '') + '</span>'
+    : '<span class="home-next-tag">' + icon(g.kind === "poll" ? "vote" : "court", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span>';
+  var inner = '<div class="home-next-top"><div class="hs-title">' + icon("sessions", 16) + ' ' + t(live ? "momPlayingNow" : "homeNextGame") + '</div>' + tag + '</div>' +
     '<div class="home-next-body"><div class="home-next-date"><span>' + weekdayShort(d.getDay()) + '</span><b>' + d.getDate() + '</b></div>' +
     '<div class="home-next-info"><div>' + icon("clock", 18) + ' ' + escapeHtml(g.time || "–") + '</div><div>' + icon("pin", 18) + ' ' + escapeHtml(g.court || "–") + '</div></div></div>';
   if (g.kind === "poll") {
@@ -168,13 +205,104 @@ function _homeNextCard() {
     inner += '<div class="home-next-vote">' + voteBarHtml(inN, maybe, out, 0) + '</div>' +
       '<div class="home-next-people">' + peopleHtml(inUids, 24, 6) + '</div>' +
       '<button class="btn-next" onclick="showPage(\'polls\')">' + t("homeVoteNow") + '</button>';
+  } else if (live) {
+    var pl = g.s.players || [], bd = _liveBoardFor(g.id);
+    if (bd) inner += '<div class="home-next-score"><b>' + bd.sa + '</b><span>\u2013</span><b>' + bd.sb + '</b></div>' +
+      '<div class="home-next-teams">' + (bd.a || []).map(getUserName).join(" & ") + '  <i>vs</i>  ' + (bd.b || []).map(getUserName).join(" & ") + '</div>';
+    else inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 6) + '</div>';
+    inner += '<div class="home-next-btns">' +
+      (bd ? '<button class="btn-next" onclick="' + (bd.mine ? "showLiveScore(\'" + g.id + "\')" : "lsWatch(\'" + bd.id + "\')") + '">' + icon("scoreboard", 16) + ' ' + t(bd.mine ? "lsContinue" : "lsWatch") + '</button>'
+          : '<button class="btn-next" onclick="showLiveScore(\'' + g.id + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>') +
+      '<button class="btn-next alt" onclick="showSessionDetail(\'' + g.id + '\',\'games\')">' + icon("add", 16) + ' ' + t("homeAddScore") + '</button></div>';
   } else {
-    var pl = g.s.players || [];
-    inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 6) + '</div>' +
+    var pl2 = g.s.players || [];
+    inner += '<div class="home-next-people">' + iconStatHtml("users", pl2.length) + peopleHtml(pl2, 24, 6) + '</div>' +
       '<button class="btn-next" onclick="showSessionDetail(\'' + g.id + '\')">' + t("homeOpen") + '</button>';
   }
-  return '<div class="home-next">' + inner + '</div>';
+  return '<div class="home-next' + (live ? ' live' : '') + '">' + inner + '</div>';
 }
+
+/* ---------- Moments: what just happened in the group ---------- */
+var _momentsOpen = false, _momSeen = {}, _momInit = false;
+function _agoText(ms) {
+  var m = Math.floor((Date.now() - ms) / 60000);
+  if (m < 1) return t("momNow");
+  if (m < 60) return t("momMin").replace("{n}", m);
+  if (m < 1440) return t("momHour").replace("{n}", Math.floor(m / 60));
+  return t("momDay").replace("{n}", Math.floor(m / 1440));
+}
+function _momNames(uids) { return (uids || []).map(getUserName).join(" & "); }
+
+/** The latest events of the last 7 days from data the app already has, newest first */
+function _moments() {
+  var ev = [], cutoff = Date.now() - 7 * 864e5;
+  (typeof lastMatches !== "undefined" ? lastMatches : []).forEach(function (m) {
+    var at = m.createdAt;
+    if (!at || at < cutoff || !m.teamA || !m.teamB || !matchWinner(m)) return;
+    var w = matchWinner(m), win = w === "A" ? m.teamA : m.teamB, lose = w === "A" ? m.teamB : m.teamA;
+    var score = (m.games || []).filter(function (g) { return g && (g.a != null || g.b != null); })
+      .map(function (g) { return w === "A" ? (g.a || 0) + "\u2013" + (g.b || 0) : (g.b || 0) + "\u2013" + (g.a || 0); }).join(", ");
+    ev.push({ id: "m" + m.id, at: at, kind: "game", icon: "scoreboard", text: t("momGame").replace("{w}", _momNames(win)).replace("{l}", _momNames(lose)).replace("{score}", score) });
+  });
+  lastSessions.forEach(function (s) {
+    if (s.billAt && s.billAt >= cutoff && s.calculated) ev.push({ id: "b" + s.id, at: s.billAt, kind: "bill", icon: "bill", text: t("momBill").replace("{court}", escapeHtml(s.courtName || "")) });
+    var st = s.settled || {}, sat = s.settledAt || {}, L = null;
+    Object.keys(st).forEach(function (k) {
+      var ms = sat[k];
+      if (!st[k] || !ms || ms < cutoff) return;
+      var parts = k.split("__"); L = L || computeLedger(s);
+      var tr = L.transfers.filter(function (x) { return x.key === k; })[0];
+      ev.push({ id: "p" + s.id + k, at: ms, kind: "pay", icon: "wallet", text: t("momPay").replace("{from}", getUserName(parts[0])).replace("{to}", getUserName(parts[1])).replace("{amount}", tr ? fmtShort(tr.amount) : "") });
+    });
+  });
+  lastPolls.forEach(function (p) {
+    var np = normalizePoll(p), date = np.date ? fmtDate(np.date) : "";
+    var made = typeof _msOf === "function" ? _msOf(p.createdAt) : 0;
+    if (made && made >= cutoff) ev.push({ id: "c" + p.id, at: made, kind: "poll", icon: "vote", text: t("momPoll").replace("{name}", getUserName(p.createdBy)).replace("{date}", date) });
+    var log = p.voteLog || {};
+    Object.keys(log).forEach(function (u) {
+      var x = log[u];
+      if (x && x.a === 0 && x.at && x.at >= cutoff) ev.push({ id: "v" + p.id + u + x.at, at: x.at, kind: "join", icon: "check", text: t("momJoin").replace("{name}", getUserName(u)).replace("{date}", date) });
+    });
+  });
+  ev.sort(function (a, b) { return b.at - a.at; });
+  return ev.slice(0, 10);
+}
+
+/** The card: a live dot, the latest 3 events (10 when opened), times that keep counting, new ones slide in */
+function momentsHtml() {
+  var ev = _moments();
+  if (!ev.length) return "";
+  var shown = _momentsOpen ? ev : ev.slice(0, 3), now = Date.now();
+  var rows = shown.map(function (e) {
+    var fresh = now - e.at < 10 * 60000, pop = _momInit && !_momSeen[e.id];
+    return '<div class="mom-item ' + e.kind + (fresh ? ' fresh' : '') + (pop ? ' pop' : '') + '"><span class="mom-ic">' + icon(e.icon, 16) + '</span>' +
+      '<span class="mom-text">' + e.text + '</span><small class="mom-ago" data-ago="' + e.at + '">' + _agoText(e.at) + '</small></div>';
+  }).join("");
+  ev.forEach(function (e) { _momSeen[e.id] = true; });
+  _momInit = true;
+  return '<div class="card moments"><div class="moments-head"><i class="live-dot green"></i><b>' + t("momTitle") + '</b></div>' + rows +
+    (ev.length > 3 ? '<button type="button" class="moments-more" onclick="toggleMoments()">' + t(_momentsOpen ? "momLess" : "momMore") + '</button>' : '') + '</div>';
+}
+function toggleMoments() {
+  _momentsOpen = !_momentsOpen;
+  if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
+  else renderHome();
+}
+
+/** Every 20 s on Home / Dashboard: the clock times and the elapsed minutes keep moving; a game that starts or ends changes the card */
+var _homePulse = null;
+function _homePulseTick() {
+  if (currentPage !== "home" && currentPage !== "dashboard") return;
+  if (currentPage === "home") {
+    var g = _homeNextGame();
+    if ((g ? g.kind + g.id + (g.phase || "") : "") !== _homeNextKey) { renderHome(); return; }
+  }
+  var el = document.getElementById("homeElapsed");
+  if (el) el.textContent = _elapsedText(Date.now() - parseInt(el.getAttribute("data-start"), 10));
+  document.querySelectorAll(".mom-ago[data-ago]").forEach(function (x) { x.textContent = _agoText(parseInt(x.getAttribute("data-ago"), 10)); });
+}
+function _homePulseStart() { if (!_homePulse) _homePulse = setInterval(_homePulseTick, 20000); }
 
 function renderHome() {
   var el = document.getElementById("homeContent");
@@ -190,6 +318,8 @@ function renderHome() {
 
   if (typeof liveWatchStart === "function") { liveWatchStart(); html += liveNowHtml(); }
   if (typeof payBoxHtml === "function") html += payBoxHtml();
+  var nextCard = _homeNextCard(), nextLive = nextCard.indexOf('home-next live') >= 0;
+  if (nextLive) html += nextCard;   // a game being played goes to the top
 
   // 1. My stat cards, swipe sideways
   var cards = [];
@@ -198,6 +328,9 @@ function renderHome() {
   if (groups) cards.push(_homeRatingCard(me), _homeBadgeCard(me));
   html += '<div class="hs-strip" id="homeStrip" onscroll="_homeStripDots()">' + cards.join("") + '</div>' +
     '<div class="hs-dots-nav" id="homeStripDots">' + cards.map(function (c, i) { return '<i class="' + (i === 0 ? 'on' : '') + '"></i>'; }).join("") + '</div>';
+
+  // Moments: what just happened in the group
+  html += momentsHtml();
 
   // 2. Shortcuts: find court, find friends, market
   if (groups) {
@@ -214,9 +347,10 @@ function renderHome() {
     _homeCreateTile("add", t("homeAddScore"), "homeAddScore()", "n3") +
     _homeCreateTile("scoreboard", t("lsTitle"), "showLiveScore()", "n4") + '</div></div>';
 
-  // 4. Next game
-  html += _homeNextCard();
+  // 4. Next game (on top instead while it is being played)
+  if (!nextLive) html += nextCard;
   el.innerHTML = html;
+  _homePulseStart();
 }
 
 /** Highlight the dot of the card that is in view */
