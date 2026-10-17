@@ -5333,10 +5333,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 /* Watch screen on a tablet: big serve shuttle, big score (by digit count), compact games row */
 @media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
   .ls-watch.ls-half { padding-top: 8px; padding-bottom: 70px; }
-  /* the box keeps one height for 1 and 2 digits, so the names above never move when 9 becomes 10 */
-  .ls-watch .ls-score { display: flex; align-items: center; justify-content: center; height: min(50vh, 57vw, 560px); }
-  .ls-watch .ls-score[data-d="1"] { font-size: min(50vh, 57vw, 560px); }
-  .ls-watch .ls-score[data-d="2"] { font-size: min(50vh, 31vw, 440px); }
+  /* 1 and 2 digits share ONE size and box (balanced; no jump and the names never move when 9 becomes 10). 32vw is the widest a two-digit score fits in half the screen. */
+  .ls-watch .ls-score { display: flex; align-items: center; justify-content: center; font-size: min(50vh, 32vw, 460px); height: min(50vh, 32vw, 460px); }
+  .ls-watch .ls-score[data-d="2"] { letter-spacing: -.03em; }
   .ls-watch .ls-flip { flex-direction: row; gap: 14px; margin-top: 4px; }
   .ls-watch .ls-serve-slot { height: clamp(96px, 16vh, 160px); }
   .ls-watch .ls-serve-big { width: clamp(96px, 16vh, 160px); height: clamp(96px, 16vh, 160px); }
