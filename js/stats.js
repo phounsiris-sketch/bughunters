@@ -243,9 +243,9 @@ function _myStatsCard() {
   // Facts for the chosen period: icon + number chips (the words are in the tooltip)
   var progressBtn = '<button class="mh-go" aria-label="' + escapeHtml(t("seeMyProgress")) + '" title="' + escapeHtml(t("seeMyProgress")) + '" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + icon("chart", 18) + '</button>';
   html += '<div class="mh-facts">' +
-    '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 16) + '<b>' + pct(sf.wins, sf.decided) + '</b></span>' +
-    '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 16) + '<b>' + sf.played + '</b></span>' +
-    '<span class="mh-chip" title="' + escapeHtml(t("streak")) + '">' + icon("chart", 16) + '<b>' + (sf.streakNow > 0 ? sf.streakNow + t("winShort") : sf.streakNow < 0 ? (-sf.streakNow) + t("lossShort") : '\u2013') + '</b></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 18) + '<span><b>' + pct(sf.wins, sf.decided) + '</b><small>' + t("winRate") + '</small></span></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 18) + '<span><b>' + sf.played + '</b><small>' + t("gamesWord") + '</small></span></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("streak")) + '">' + icon("chart", 18) + '<span><b>' + (sf.streakNow > 0 ? sf.streakNow + t("winShort") : sf.streakNow < 0 ? (-sf.streakNow) + t("lossShort") : '\u2013') + '</b><small>' + t("streak") + '</small></span></span>' +
     progressBtn + '</div>';
   // One useful sentence + my rating line for the period
   var ins = insightFor(me, statsScope), tr = ratingTrend(me, statsScope);

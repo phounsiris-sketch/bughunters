@@ -269,7 +269,7 @@ function _renderPollCard(poll) {
 
   // Answers (radio)
   if (isVotable) {
-    html += '<div style="font-size:11px;color:var(--text-muted);margin:10px 0 8px">' + t('chooseAnswer') + '</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted);margin:10px 0 8px">' + t('chooseAnswer') + '</div>';
   }
   html += '<div class="poll-options"' + (isVotable ? '' : ' style="margin-top:10px"') + '>';
   for (var ai = 0; ai < np.answers.length; ai++) {
@@ -279,7 +279,7 @@ function _renderPollCard(poll) {
       (isVotable ? ' role="radio" aria-checked="' + mine + '" onclick="respondPoll(\'' + poll.id + '\',' + ai + ')"' : ' style="cursor:default"') + '>';
     html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
     html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(answerLabel(np.answers[ai])) +
-      (ai === 0 ? ' <span style="font-size:11px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
+      (ai === 0 ? ' <span style="font-size:12px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
     if (uids.length) html += '<div class="poll-voters">' + peopleHtml(uids, 20, 6) + '</div>';
     html += '</div>';
     html += '<div class="vote-count" style="font-weight:700;color:' + (ai === 0 && enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +
@@ -294,7 +294,7 @@ function _renderPollCard(poll) {
       html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
         t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
     } else {
-      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
+      html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
     }
   }
 
@@ -640,7 +640,7 @@ function renderPollCreateForm() {
     if (i >= 2) html += '<button class="remove-btn" onclick="newPoll.answers.splice(' + i + ',1);renderPollCreateForm()">&times;</button>';
     html += '</div>';
   }
-  html += '<div style="font-size:11px;color:var(--text-muted)">' + t('firstAnswerJoins').replace('{n}', minPlayersSetting()) + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + t('firstAnswerJoins').replace('{n}', minPlayersSetting()) + '</div>';
   if (newPoll.answers.length < 4) {
     html += '<button class="add-btn-dashed" onclick="newPoll.answers.push(\'\');renderPollCreateForm()">+ ' + t('addAnswer') + '</button>';
   }

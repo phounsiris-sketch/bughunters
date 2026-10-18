@@ -383,7 +383,7 @@ function loadGroupsPage() {
     ids.forEach(function (gid) {
       var g = myGroupsInfo[gid] || { name: gid }, m = myMemberships[gid];
       html += '<div class="settings-item"><div class="settings-left">' + groupLogoHtml(g, 36) +
-        '<div><div class="settings-label">' + escapeHtml(g.name || gid) + '</div><div style="font-size:11px;color:var(--text-muted)">' +
+        '<div><div class="settings-label">' + escapeHtml(g.name || gid) + '</div><div style="font-size:12px;color:var(--text-muted)">' +
         (m.status === "active" ? t("role_" + m.role) : t("requestPending")) + '</div></div></div>' +
         (m.status === "active" && gid !== currentGroupId ? '<button class="edit-btn" onclick="switchGroup(\'' + gid + '\')">' + t("open") + '</button>' : '') +
         (m.status !== "active" ? '<button class="edit-btn" onclick="cancelJoinRequest(\'' + gid + '\')">' + t("cancel") + '</button>' : '') + '</div>';
@@ -769,7 +769,7 @@ function loadGroupMembers() {
   active.forEach(function (m) {
     var isMe = m.uid === currentUser.uid;
     html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + m.uid + '\',event)">' + avatarHtml(m.uid, 34) +
-      '<div><div class="settings-label">' + getUserName(m.uid) + (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>' +
+      '<div><div class="settings-label">' + getUserName(m.uid) + (isMe ? ' <span style="font-size:12px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>' +
       '<div style="margin-top:4px">' + memberBadges(m) + '</div></div></div>' +
       (admin && m.role !== "owner" && !isMe ? '<button class="edit-btn" onclick="showMemberModal(\'' + m.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>' : '') + '</div>';
   });
@@ -813,7 +813,7 @@ function showMemberModal(mid) {
   PERMISSIONS.forEach(function (p) {
     rows += '<label class="perm-row"><input type="checkbox" data-perm="' + p.key + '"' + (perms[p.key] ? ' checked' : '') + '>' +
       '<div><div style="font-weight:600">' + icon(p.icon, 14) + ' ' + t("perm_" + p.key) + '</div>' +
-      '<div style="font-size:11px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
+      '<div style="font-size:12px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
   });
   rows += '<button class="btn-danger" style="margin-top:10px" onclick="removeMember(\'' + mid + '\')">' + t("removeMember") + '</button>';
   document.getElementById("modalTitle").textContent = t("permissions") + " — " + getUserName(m.uid);

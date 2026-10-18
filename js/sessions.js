@@ -529,7 +529,7 @@ function renderSessionCreateForm() {
   html += '<div class="card wiz-summary">' + iconStatHtml("calendar", fmtDate(newSes.date)) + iconStatHtml("clock", escapeHtml(newSes.time)) + iconStatHtml("pin", escapeHtml(court ? court.name : "")) + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (<span id="newSesCount">' + newSes.players.length + '</span>)</div>';
   html += '<div class="chips" id="newSesPlayers">' + _newSesChips() + '</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + t("newSessionHint") + '</div></div>';
   html += repeatFieldHtml("newSes", newSes, "renderSessionCreateForm");
   html += '<div class="wiz-actions"><button class="btn-secondary" onclick="sesStep(1)">' + icon("back", 16) + ' ' + t("wzBack") + '</button>' +
     '<button class="btn-primary" id="newSesSubmit" onclick="submitNewSession()">' + t("createSession") + '</button></div>';
@@ -833,7 +833,7 @@ function _renderSplitResult(s) {
   if (L.totals.dinner > 0) {
     var receipt = s.dinner.receiptUrl
       ? '<img ' + imgSrcAttrs(s.dinner.receiptUrl) + ' alt="' + t("receipt") + '" class="receipt-thumb" onclick="openImage(this.src)">' +
-        '<div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
+        '<div style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:4px">' + t("tapToEnlarge") + '</div>'
       : '';
     html += _payTypeCard(s, icon("dinner", 18), t("dinnerBill"), '÷' + s.dinner.diners.length + ' ' + t("diners"),
       L.totals.dinner, s.dinner.paidBy, "dinner", _even(s.dinner.diners, L.totals.dinner),
@@ -846,7 +846,7 @@ function _renderSplitResult(s) {
   if (L.transfers.length === 0) {
     calc += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
   } else {
-    calc += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + t("settlementHint") + '</div>';
+    calc += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">' + t("settlementHint") + '</div>';
     for (var ti = 0; ti < L.transfers.length; ti++) {
       var tr = L.transfers[ti];
       var gross = (tr.items || []).reduce(function (a, x) { return a + x.amount; }, 0);
@@ -885,8 +885,8 @@ function _renderSplitResult(s) {
     if (ps.shuttle) parts.push(icon('shuttle', 12) + fmtLAK(ps.shuttle));
     if (ps.other) parts.push(icon('other', 12) + fmtLAK(ps.other));
     if (ps.dinner) parts.push(icon('dinner', 12) + fmtLAK(ps.dinner));
-    var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
-    var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:11px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
+    var paidStr = L.paid[uid] > 0 ? '<div style="font-size:12px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
+    var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:12px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
     calc += '<div class="person-row"><div class="person-left">';
     calc += avatarHtml(uid, 36);
@@ -955,7 +955,7 @@ function _canMarkTransfer(s, tr) {
 
 function _detailLine(label, amount, payerUid) {
   return '<div class="item-row"><div class="item-name" style="font-size:13px">' + label +
-    (payerUid ? '<div style="font-size:11px;color:var(--text-muted)">' + icon("card", 12) + ' ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
+    (payerUid ? '<div style="font-size:12px;color:var(--text-muted)">' + icon("card", 12) + ' ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
     '</div><div class="item-price">' + fmtLAK(amount) + '</div></div>';
 }
 
@@ -1166,17 +1166,17 @@ function renderEditForm() {
     html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + avatarHtml(pickable[ui], 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(pickable[ui]) + '</div>';
   }
   html += '</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("payerHint") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + t("payerHint") + '</div>';
   html += '</div>';
 
   html += '</fieldset>' + lockBill;
 
   // Shuttlecocks
-  html += '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecocks") + ' <span style="font-size:11px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
+  html += '<div class="card"><div class="card-title">' + icon("shuttle", 14) + ' ' + t("shuttlecocks") + ' <span style="font-size:12px;color:var(--text-muted);text-transform:none;letter-spacing:0">' + t("splitEqually") + '</span></div>';
   for (var si = 0; si < edit.shuttlecocks.length; si++) {
     var sc = edit.shuttlecocks[si];
     html += '<div class="item-row">';
-    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:11px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
+    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:12px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
     html += '<div class="qty-controls"><button onclick="editShuttleQty(' + si + ',-1)">−</button>';
     html += '<input type="number" class="qty-num" min="0" value="' + sc.qty + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
     html += '<button onclick="editShuttleQty(' + si + ',1)">+</button></div>';
@@ -1192,11 +1192,11 @@ function renderEditForm() {
 
   // Other costs
   html += '<div class="card"><div class="card-title">' + icon("other", 14) + ' ' + t("otherCosts") + '</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">' + t("otherCostHint") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">' + t("otherCostHint") + '</div>';
   for (var oi = 0; oi < edit.otherCosts.length; oi++) {
     var oc = edit.otherCosts[oi];
     html += '<div class="item-row"><div class="item-name">' + escapeHtml(oc.desc) +
-      '<div style="font-size:11px;color:var(--text-muted)">' + icon("card", 12) + ' ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
+      '<div style="font-size:12px;color:var(--text-muted)">' + icon("card", 12) + ' ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
       '<div class="item-price">' + fmtLAK(oc.amount) + '</div>' +
       '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">' + icon("close", 16) + '</button></div>';
   }

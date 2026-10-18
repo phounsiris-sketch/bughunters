@@ -297,8 +297,8 @@ function _renderPlayersTab() {
     html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + u.id + '\',event)">';
     html += avatarHtml(u.id, 34);
     html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
-      (isMe ? ' <span style="font-size:11px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' +
+      (isMe ? ' <span style="font-size:12px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted)">' +
       (u.manual ? icon("manual", 12) + ' ' + t("manualPlayer") : icon("mail", 12) + ' ' + t("registeredPlayer")) +
       (u.phone ? ' \u2022 ' + icon("phone", 12) + ' ' + escapeHtml(fmtPhone(u.phone)) : '') + '</div>';
     if (!u.manual) html += '<div style="margin-top:4px">' + (GROUPS_ON ? memberBadges(memberOf(u.id)) : _permBadges(userPerms(u))) + '</div>';
@@ -321,7 +321,7 @@ function _renderPlayersTab() {
   }
   if (can("editConfig")) {
     html += '<button class="add-btn-dashed" onclick="showPlayerModal(null)">+ ' + t("addPlayer") + '</button>';
-    html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("manualPlayerHint") + '</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">' + t("manualPlayerHint") + '</div>';
   }
   html += '</div>';
 
@@ -346,7 +346,7 @@ function showPermsModal(uid) {
   PERMISSIONS.forEach(function (p) {
     rows += '<label class="perm-row"><input type="checkbox" data-perm="' + p.key + '"' + (perms[p.key] ? ' checked' : '') + '>' +
       '<div><div style="font-weight:600">' + icon(p.icon, 14) + ' ' + t("perm_" + p.key) + '</div>' +
-      '<div style="font-size:11px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
+      '<div style="font-size:12px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
   });
   document.getElementById("modalTitle").textContent = t("permissions") + " \u2014 " + (u.displayName || "");
   document.getElementById("modalBody").innerHTML =
@@ -429,7 +429,7 @@ function _renderCourtsTab() {
     var c = courts[i], nums = courtNumbers(c);
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
+    html += '<div style="font-size:12px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
       (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') +
       (nums.length ? ' · ' + t("courtsN").replace("{n}", nums.length) + ' (' + nums[0] + '–' + nums[nums.length - 1] + ')' : '') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
@@ -632,7 +632,7 @@ function _renderShuttleTab() {
     var tube = b.pricePerTube || 0;
     html += '<div class="settings-item">';
     html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showShuttleModal(\'' + b.id + '\')"><div class="settings-label">' + escapeHtml(b.name) + '</div>';
-    html += '<div style="font-size:11px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtLAK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
+    html += '<div style="font-size:12px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtLAK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(tube) + '/' + t("tube") + '</div>';
     if (can("editConfig")) {
@@ -737,7 +737,7 @@ function _qrCardHtml(title, hint, extra) {
   var icons = { court: "court", shuttle: "shuttle", dinner: "dinner" };
   html += '<button class="link-btn qr-extras-toggle" id="qrExtrasToggle" onclick="toggleQrExtras()">' + (qrExtrasOpen ? '− ' : '+ ') + t("qrExtrasToggle") + '</button>';
   html += '<div id="qrExtras" class="qr-list" style="' + (qrExtrasOpen ? '' : 'display:none') + '">';
-  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("qrExtrasHint") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + t("qrExtrasHint") + '</div>';
   QR_TYPES.forEach(function (type) { html += _qrRowHtml(type, labels[type], icons[type], false); });
   html += '</div>';
   return html + '</div>';
@@ -821,12 +821,12 @@ function _renderGeneralTab() {
     '<div class="card"><div class="card-title">' + icon("settings", 14) + ' ' + t("tabGeneral") + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>';
   html += '<input type="number" class="form-input" id="gMinPlayers" min="2" max="30" value="' + minPlayersSetting() + '" onchange="saveAppSetting(\'minPlayers\', Math.max(2, parseInt(this.value, 10) || 4))">';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">' + t("minPlayersHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + icon("court", 14) + ' ' + t("defaultCourtPayer") + '</label>';
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultCourtPayer\', this.value)">' + opts(appSetting("defaultCourtPayer", "")) + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + icon("shuttle", 14) + ' ' + t("defaultShuttlePayer") + '</label>';
   html += '<select class="form-select" onchange="saveAppSetting(\'defaultShuttlePayer\', this.value)">' + opts(appSetting("defaultShuttlePayer", "")) + '</select></div>';
-  html += '<div style="font-size:11px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted)">' + t("defaultPayerHint") + '</div>';
   html += '</div></fieldset>';
 
   // Super Admin only: wipe polls + sessions before going live
