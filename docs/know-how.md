@@ -1169,3 +1169,9 @@ The two wide buttons "Open map" / "Share location" under the session header are 
 - The list below the map is nearest first, one compact row each, with a directions icon.
 - The map is rebuilt on each Public re-render but keeps its last centre and zoom (`_cm.view`). Session/settings pin pickers are unchanged.
 - New icon `target`; i18n keys `cm*` (Lao unreviewed). Stacked on nothing (main at v139).
+
+## Search places on the courts map (v141)
+- Search box on top of the Public › Courts map (`cmSearchInput`, `_cmSearch` in courtsmap.js): type 3+ letters (450 ms debounce), results list under the box, tap one: pin drops there (draggable), map flies in, bar offers "Add court here" (or "Pin court here" for a court with no pin). The court form then opens with **pin, name and address already filled** (`showCourtModal` opts `{pin, fill:{name, location}}`; for an existing court only an empty address is filled).
+- Engines, free, no key: **Photon** (photon.komoot.io, biased to my position / map centre) first, **Nominatim** (OSM) as fallback when Photon fails or finds nothing. Both return Lao names. A pasted Google Maps link or "lat, lng" is recognised (`parseLatLng`) and offered as "Pasted location". Small courts only appear if they exist in OpenStreetMap; otherwise search the street/area or tap the map.
+- sw.js: the two geocoder hosts are skipped by the service worker (never cached). Public re-render is skipped while typing in the search box so snapshots do not wipe it.
+- New icon `search`, i18n `cmSearchPh/cmNoResult/cmSearchErr/cmCoords` (Lao unreviewed). Photon/Nominatim fair use: debounce, abort of the previous request, no bulk calls.

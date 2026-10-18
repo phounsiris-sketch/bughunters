@@ -5509,3 +5509,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @keyframes cmPulse { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.2); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cm-pin, .cm-pin.sel, .cm-me::before, .cm-card { animation: none; } }
 .btn-primary .si path[stroke="#fff"] { stroke: var(--accent); }
+
+/* Court search on the map */
+.cm-search { position: absolute; top: 10px; left: 10px; right: 62px; z-index: 600; display: flex; align-items: center; height: 42px; border-radius: 21px; background: var(--card); box-shadow: 0 3px 10px rgba(0, 0, 0, .3); }
+.cm-sico { display: inline-flex; padding: 0 4px 0 13px; color: var(--accent); }
+.cm-q { flex: 1; min-width: 0; height: 100%; border: 0; background: none; color: var(--text); font: inherit; font-size: 15px; padding: 0 8px; outline: none; -webkit-appearance: none; }
+.cm-q::-webkit-search-cancel-button { display: none; }
+.cm-qx { border: 0; background: var(--chip-bg); color: var(--text-muted); width: 26px; height: 26px; border-radius: 50%; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.cm-res { position: absolute; top: 58px; left: 10px; right: 10px; z-index: 600; max-height: 240px; overflow-y: auto; border-radius: 16px; background: var(--card); box-shadow: 0 8px 24px rgba(0, 0, 0, .3); }
+.cm-res:empty { display: none; }
+.cm-res-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--border); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cm-res-row:last-child { border-bottom: 0; }
+.cm-res-row:active { background: var(--chip-bg); }
+.cm-res-msg { padding: 14px; font-size: 13px; color: var(--text-muted); }

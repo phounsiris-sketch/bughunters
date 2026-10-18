@@ -89,6 +89,7 @@ function _cityFilterHtml() {
 function renderPublic() {
   var box = document.getElementById("publicContent");
   if (!box) return;
+  if (publicTab === "courts" && document.activeElement && document.activeElement.id === "cmQ") return;   // typing in the map search
   if (publicTab === "buddies") box.innerHTML = _cityFilterHtml() + _renderBuddies();
   else if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();
   else if (publicTab === "market") box.innerHTML = _cityFilterHtml() + _renderMarket();
