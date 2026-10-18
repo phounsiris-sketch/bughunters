@@ -73,16 +73,16 @@ function _partnerSort(a, b) {
   return b.rate - a.rate || b.n - a.n || b.w - a.w || String(getUserName(a.uid)).localeCompare(String(getUserName(b.uid)));
 }
 
-/** Best partner = highest win rate with at least MIN_PARTNER_GAMES games together; null if nobody qualifies */
+/** Best partner = highest win rate with at least MIN_PARTNER_GAMES games together AND more wins than losses; null otherwise */
 function bestPartnerOf(uid, scope) {
-  var l = partnerList(uid, scope).filter(function (x) { return x.n >= MIN_PARTNER_GAMES; }).sort(_partnerSort);
+  var l = partnerList(uid, scope).filter(function (x) { return x.n >= MIN_PARTNER_GAMES && x.rate > 0.5; }).sort(_partnerSort);
   return l[0] || null;
 }
 /** Weakest partner (same rules); null when there is no one clearly worse than the best */
 function worstPartnerOf(uid, scope) {
   var l = partnerList(uid, scope).filter(function (x) { return x.n >= MIN_PARTNER_GAMES; }).sort(_partnerSort);
   var w = l.length > 1 ? l[l.length - 1] : null;
-  return w && w.rate < l[0].rate ? w : null;
+  return w && w.rate < 0.5 && w.rate < l[0].rate ? w : null;     // only a partner you really lose with
 }
 
 /** My pair with the highest pair rating (Elo, over all games): { key, rating, wins, losses, other } or null */
@@ -139,4 +139,15 @@ function pairRecordsFor(scope) {
     });
   });
   return out;
+}
+
+
+/** Partners with their record and the pair's own rating, most games first: [{uid, n, w, l, rate, pairRating|null}] */
+function partnersView(uid, scope) {
+  var st = computeStats();
+  return partnerList(uid, scope).map(function (x) {
+    var pr = st.pairs[pairKey([uid, x.uid])];
+    x.pairRating = pr && pr.comp > 0 ? Math.round(pr.rating) : null;
+    return x;
+  }).sort(function (a, b) { return b.n - a.n || b.rate - a.rate || String(getUserName(a.uid)).localeCompare(String(getUserName(b.uid))); });
 }

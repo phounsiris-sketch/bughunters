@@ -5535,3 +5535,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .mh-pv em { font-style: normal; font-size: 13px; color: var(--text-muted); font-weight: 600; }
 .mh-pv.none { font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: right; }
 .scope-note { display: flex; align-items: center; gap: 6px; margin: 4px 2px 8px; }
+
+/* Rankings card: my partners with a win bar and the pair rating */
+.mh-partners { margin-top: 12px; padding: 10px 10px 4px; border-radius: 14px; background: var(--chip-bg); }
+.mh-ptitle { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+.mh-ptitle .si { color: var(--accent); }
+.mh-prow { display: grid; grid-template-columns: 16px minmax(0, 1.3fr) minmax(40px, 1fr) auto; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--border); }
+.mh-prow:first-of-type { border-top: 0; }
+.mh-mk { font-size: 14px; text-align: center; line-height: 1; }
+.mh-mk.best { color: #f59e0b; }
+.mh-mk.low { color: #fff; background: #dc2626; border-radius: 50%; width: 16px; height: 16px; font-size: 11px; font-weight: 800; line-height: 16px; }
+.mh-pn { min-width: 0; overflow: hidden; }
+.mh-pbar { height: 8px; border-radius: 4px; background: rgba(120, 120, 120, .22); overflow: hidden; }
+.mh-pbar i { display: block; height: 100%; border-radius: 4px; }
+.mh-pbar i.up { background: #22c55e; }
+.mh-pbar i.down { background: #ef4444; }
+.mh-pw { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; min-width: 64px; }
+.mh-pw b { font-size: 14px; }
+.mh-pw small { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.mh-more > summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent); padding: 8px 0; list-style: none; }
+.mh-more > summary::-webkit-details-marker { display: none; }
+.dash-anim .mh-pbar i { transform-origin: left; animation: dashGrow .8s cubic-bezier(.22, 1, .36, 1) both; animation-delay: .5s; }

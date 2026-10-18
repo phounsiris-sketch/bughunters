@@ -1188,3 +1188,6 @@ Problem: Rankings said John was the best pair while Progress/Profile said Ton. F
 - Removed dead `_bestPartner`, `homeLevelCardHtml`, `statsPeriod`/`progressPeriod`.
 - **Test:** `tests/stats-core.test.js` (node, no deps) builds games where John is 3–0 long ago and Ton 9–3 recently and checks every page names Ton, the hero rank equals the list row, and month/all change together. `tools/release-guard.sh` now runs every `tests/*.test.js`.
 - Not done on purpose: the old share-card `makeRecap` (dead code) still has its own best partner; Lao wording is unreviewed.
+
+## Rankings card: Partners list instead of two pair lines (v144)
+The two lines "Best partner (wins)" and "Top pair (rating)" showed a partner with a losing record (2–3) and a pair rating under 1500, which means nothing alone. Replaced by a **Partners** list on the Rankings card (`partnersView` in stats-core.js): each partner with a win bar, win %, W–L and the pair's own rating (tooltip explains), most games first, 3 shown + "All partners". ★ = best partner, **! = toughest** (`bestPartnerOf` now also needs more wins than losses; `worstPartnerOf` only a partner under 50%). Same rule feeds Progress and the tips. The scope chips filter the list. Test extended: a 2–3 partner is never starred and is the toughest.

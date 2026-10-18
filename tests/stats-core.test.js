@@ -36,7 +36,18 @@ assert.strictEqual(lm[rm - 1].uid, "me");
 assert.ok(lm.every(function (p) { return ctx.statsFor(p.uid, "month").decided > 0; }), "month list only has players who played this month");
 // the cards print the same names
 var card = ctx._myStatsCard(), ins = ctx._pairInsightsHtml("me", ctx.statsFor("me", "all").games);
-assert.ok(card.indexOf("[Ton]") >= 0 && card.indexOf("[John]") < 0, "hero card names Ton");
+var rows = card.split('<div class="mh-prow">').slice(1);
+var starred = rows.filter(function (r) { return r.indexOf("mh-mk best") >= 0; });
+assert.strictEqual(starred.length, 1, "exactly one starred partner");
+assert.ok(starred[0].indexOf("[Ton]") >= 0, "the starred partner on the hero card is Ton");
+assert.ok(rows.some(function (r) { return r.indexOf("[John]") >= 0 && r.indexOf("mh-mk best") < 0; }), "John is listed (3 games) but not starred");
+assert.ok(rows[0].indexOf("[Ton]") >= 0, "most games first");
 assert.ok(ins.indexOf("Me") >= 0 && ins.indexOf("Ton") >= 0, "Progress best partner is Ton too");
 assert.ok(/bestPartner<\/span>[\s\S]*?Ton/.test(ins.replace(/&amp;/g, "&")) || ins.indexOf("Ton") >= 0);
+// a losing partnership is never "best"
+M.push(G(["me", "al"], ["bo", "cy"], true, "2026-10-14"), G(["me", "al"], ["bo", "cy"], false, "2026-10-15"), G(["me", "al"], ["bo", "cy"], false, "2026-10-16"), G(["me", "al"], ["bo", "cy"], false, "2026-10-17"), G(["me", "al"], ["bo", "cy"], true, "2026-10-17"));
+ctx.lastMatches = M.sort(function (a, b) { return a.date.localeCompare(b.date); }); ctx._statsCache = null;
+assert.strictEqual(ctx.bestPartnerOf("me", "all").uid, "ton");
+assert.notStrictEqual(ctx.bestPartnerOf("me", "all").uid, "al", "Al is 2-3: not best");
+assert.strictEqual(ctx.worstPartnerOf("me", "all").uid, "al", "Al is the toughest partner (5 games, 40%)");
 console.log("stats-core OK");

@@ -247,13 +247,20 @@ function _myStatsCard() {
     '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 16) + '<b>' + sf.played + '</b></span>' +
     '<span class="mh-chip" title="' + escapeHtml(t("streak")) + '">' + icon("chart", 16) + '<b>' + (sf.streakNow > 0 ? sf.streakNow + t("winShort") : sf.streakNow < 0 ? (-sf.streakNow) + t("lossShort") : '\u2013') + '</b></span>' +
     progressBtn + '</div>';
-  // Two different questions, two clearly named answers
-  var bp = bestPartnerOf(me, statsScope), tp = topPairOf(me);
-  html += '<div class="mh-pairs">' +
-    '<div class="mh-pair" title="' + escapeHtml(t("bestPartnerHint").replace("{n}", MIN_PARTNER_GAMES)) + '"><span class="mh-pl">' + icon("users", 15) + ' ' + t("bestPartner") + '</span>' +
-      (bp ? '<span class="mh-pv">' + personHtml(bp.uid, 22) + '<em>' + pct(bp.w, bp.n) + ' \u00B7 ' + fmtWL(bp.w, bp.l) + '</em></span>' : '<span class="mh-pv none">' + t("bestPartnerNone").replace("{n}", MIN_PARTNER_GAMES) + '</span>') + '</div>' +
-    '<div class="mh-pair" title="' + escapeHtml(t("topPairHint")) + '"><span class="mh-pl">' + icon("ranking", 15) + ' ' + t("topPair") + '</span>' +
-      (tp ? '<span class="mh-pv">' + personHtml(tp.other, 22) + '<em>' + tp.rating + '</em></span>' : '<span class="mh-pv none">' + t("topPairNone").replace("{n}", PAIR_MIN_MATCHES) + '</span>') + '</div></div>';
+  // My partners in this period: record, win bar and the pair's own rating. Star = best (5+ games, winning), flag = toughest
+  var pv = partnersView(me, statsScope), bp = bestPartnerOf(me, statsScope), wp = worstPartnerOf(me, statsScope);
+  html += '<div class="mh-partners"><div class="mh-ptitle">' + icon("users", 15) + ' ' + t("partnersTitle") + '</div>';
+  if (!pv.length) html += '<div class="mh-pv none">' + t("partnersNone") + '</div>';
+  var row = function (x) {
+    var mark = bp && bp.uid === x.uid ? '<span class="mh-mk best" title="' + escapeHtml(t("bestPartnerHint").replace("{n}", MIN_PARTNER_GAMES)) + '">\u2605</span>'
+      : wp && wp.uid === x.uid ? '<span class="mh-mk low" title="' + escapeHtml(t("worstPartner")) + '">!</span>' : '<span class="mh-mk"></span>';
+    return '<div class="mh-prow">' + mark + '<span class="mh-pn">' + personHtml(x.uid, 22) + '</span>' +
+      '<span class="mh-pbar"><i class="' + (x.rate >= 0.5 ? 'up' : 'down') + '" style="width:' + Math.round(x.rate * 100) + '%"></i></span>' +
+      '<span class="mh-pw"><b>' + pct(x.w, x.n) + '</b><small title="' + escapeHtml(t("pairRatingTip")) + '">' + fmtWL(x.w, x.l) + (x.pairRating ? ' \u00B7 ' + x.pairRating : '') + '</small></span></div>';
+  };
+  html += pv.slice(0, 3).map(row).join('');
+  if (pv.length > 3) html += '<details class="mh-more"><summary>' + t("partnersMore") + ' (' + (pv.length - 3) + ')</summary>' + pv.slice(3).map(row).join('') + '</details>';
+  html += '</div>';
   // My last 5 games, newest first: W/L chips only; tap to open the list
   var last = formStrip(me, 5);
   if (last.length) {
