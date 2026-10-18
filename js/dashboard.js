@@ -148,10 +148,12 @@ function _renderLeaderboard() {
     function (a, b) { return (played[b] || 0) - (played[a] || 0) || (dined[b] || 0) - (dined[a] || 0); });
   html += _topCard(icon("shuttle", 14), t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
   html += _topCard(icon("card", 14), t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
-  html += _topCard(icon("noshow", 14), t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
-  html += _topCard(icon("question", 14), t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
+  // The "no show" and "no vote" boards are folded: friendly by default, there for who wants them
+  html += '<details class="lb-more"><summary>' + t("lbMore") + '</summary>' +
+    _topCard(icon("noshow", 14), t("lbNoShow"), noShow, function (v) { return v + '×'; }, true) +
+    _topCard(icon("question", 14), t("lbNoVote"), noVote, function (v) { return v + '×'; }, true) + '</details>';
   html += '</div>';
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t("lbHint") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">' + t("lbHint") + '</div>';
   return html;
 }
 
@@ -471,7 +473,7 @@ function _renderActivityTab() {
       ' · ' + icon("manual", 12) + ' ' + t("pollsCreated") + ' ' + (created[u] || 0) + '</div>';
     html += '</div>';
   });
-  html += '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">' + t("showUpHint") + ' • ' + t("tapForDetails") + '</div>';
+  html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">' + t("showUpHint") + ' • ' + t("tapForDetails") + '</div>';
   html += '</div>';
   return html;
 }
@@ -550,7 +552,7 @@ function _renderPlayerActivity(uid, sessions, polls) {
     var owing = openTransfers(s).filter(function (tr) { return tr.from === uid; }).length;
     var st = sessionStatus(s);
     html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
-      '<div style="min-width:0"><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
+      '<div style="min-width:0"><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:12px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
       (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0 ? ' • ' + icon("dinner", 12) : '') + '</div></div>' +
       '<div style="text-align:right"><div class="settings-value">' + (share === null ? '—' : fmtLAK(share)) + '</div>' +
       '<span class="status-pill ' + (owing ? 'st-unpaid' : st.cls) + '">' + (owing ? t("unpaid") : st.label) + '</span></div></div>';

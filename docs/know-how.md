@@ -1191,3 +1191,25 @@ Problem: Rankings said John was the best pair while Progress/Profile said Ton. F
 
 ## Rankings card: Partners list instead of two pair lines (v144)
 The two lines "Best partner (wins)" and "Top pair (rating)" showed a partner with a losing record (2–3) and a pair rating under 1500, which means nothing alone. Replaced by a **Partners** list on the Rankings card (`partnersView` in stats-core.js): each partner with a win bar, win %, W–L and the pair's own rating (tooltip explains), most games first, 3 shown + "All partners". ★ = best partner, **! = toughest** (`bestPartnerOf` now also needs more wins than losses; `worstPartnerOf` only a partner under 50%). Same rule feeds Progress and the tips. The scope chips filter the list. Test extended: a 2–3 partner is never starred and is the toughest.
+
+## Rankings card: one smart line + rating trend (v145)
+The Partners list (v144) is removed from the Rankings card (the `.mh-partners` CSS is left unused; partner detail is in Progress and Head-to-head). In its place: **one sentence** from `insightFor(uid, scope)` (stats-core.js), first match wins: fewer than 3 games → "Play N more games"; winning streak of 3+; a toughest partner under 40% ("Only X% with Name, talk about positions"); a best partner ("You win X% with Name, play together more"); rating up / down in the period; else steady win rate. Under it a **rating trend** line for the chosen period (`ratingTrend`: start, peak, now, change) drawn with the existing `_sparkline`. Both follow the scope chips. Test extended (smart line names Ton, toughest partner beats best, trend has one point per game, new player gets the "play more" line). Lao wording unreviewed.
+
+## Bill result: "Your part" first (v146, from the CANVAS UX review)
+- `_renderSplitResult` now opens with `_yourPartHtml`: my amount (big), the split into court / shuttle / other / dinner, one row per person I pay (with a **Mark paid** button where `_canMarkTransfer`) or who owes me, "Paid" tick when settled, and "You owe nothing" / "All paid. Thank you!". The group total is one small line. The cost cards, settlement table and per-person list moved into **How this is calculated** (`details.how-calc`, closed for players, open for organisers). Pay-by-type cards (the QR codes) stay visible. The Messenger text preview is folded (`details.msg-prev`); the copy button stays.
+- `askConfirm({title,big,body,yes,danger}, onYes)` in motion.js: bottom-sheet confirm. Used by `markPaymentOne` (no more browser `confirm()` there; the other 28 `confirm()` calls are unchanged). QR strips show a shimmer skeleton and a retry button when loading fails; `.pay-item-btn` is 44 px high.
+- Stacked on v145. Lao wording unreviewed.
+
+## Design system layer (v147, from the CANVAS UX review)
+- **Tokens** in `:root` (end of styles.css): spacing `--s1..s5`, radius `--r-sm/md/lg/pill`, type `--t-xs..xl`, shadows, easing/duration. Used by the normalised components; older rules migrate gradually (`.card` uses `--r-lg` now).
+- **Buttons:** primary / secondary / danger / share / next share one radius and a 46 px minimum height; `.edit-btn` / `.delete-btn` / `.period-btn` have a 40 px minimum (plus the 44 px hit area); one focus ring for keyboard users. Flat accent buttons I added earlier (`.yp-btn`, `.mh-go`, `.mh-ii`, `.cm-fab.add`) now use `--primary` (white text on the light accent was low contrast).
+- **Text size floor 12 px:** all `font-size: 11px` in styles.css and `font-size:11px` in js/*.js became 12 px. Check tight chips and Lao on a phone.
+- **Light theme:** the base light block now sets `--accent: #0d9488` and `--orange: #b45309` so accent text on white passes contrast; the palette rules (higher specificity) still win.
+- **Rankings chips** show a visible word under each number (win rate, games, streak) and the scope chips are 36 px high.
+- Not done: the duplicated old rules (`.back-btn`, `.fab-btn`, `.period-btn`, `.btn-share` defined twice) and the many radius / padding values are not merged yet; the Audit/Batch/Wow override layers still exist. Stacked on v146.
+
+## Polls, Community, Dashboard clean-up (v148, from the CANVAS UX review)
+- **Poll card:** one big choice row (`.vote-seg`, one button per answer with its count; the chosen one is highlighted) replaces the radio list; **Who voted** folds under it (`details.poll-who`); closed polls show the list read-only. The Plan/Play/Pay tracker is gone from poll cards (it stays on the session). Organiser buttons: **Confirm plan** stays visible when there are enough players; Add votes, Edit and Cancel live in a **Manage** menu (`details.poll-manage`). The dangerous Cancel is never open by default.
+- **Community:** `#publicTabs` scrolls sideways instead of overflowing; the game card facts are two lines (court + distance, then price + level); a host sees Edit and a Manage menu (Cancel game, Delete); the city filter is a compact pill.
+- **Dashboard:** the "no show" and "no vote" boards are folded under "More boards"; the sheen sweep on cards is off (rise, bars and count-up stay).
+- Stacked on v147. Lao wording unreviewed.

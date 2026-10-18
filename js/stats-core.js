@@ -151,3 +151,29 @@ function partnersView(uid, scope) {
     return x;
   }).sort(function (a, b) { return b.n - a.n || b.rate - a.rate || String(getUserName(a.uid)).localeCompare(String(getUserName(b.uid))); });
 }
+
+
+/** Rating inside a scope: { start, end, delta, peak, vals:[start, after each game] } (history = one point per decided game) */
+function ratingTrend(uid, scope) {
+  var p = computeStats().players[uid], from = scopeFrom(scope);
+  if (!p || !p.history || !p.history.length) return null;
+  var start = RATING_START;
+  p.history.forEach(function (h) { if (from && (h.at || "") < from) start = h.r; });
+  var inP = p.history.filter(function (h) { return !from || (h.at || "") >= from; });
+  if (!inP.length) return null;
+  var vals = [start].concat(inP.map(function (h) { return h.r; })), end = vals[vals.length - 1];
+  return { start: Math.round(start), end: Math.round(end), delta: Math.round(end - start), peak: Math.round(Math.max.apply(null, vals)), vals: vals };
+}
+
+/** One useful sentence for the player, in order of what matters most: { key, vars } */
+function insightFor(uid, scope) {
+  var sf = statsFor(uid, scope);
+  if (sf.decided < 3) return { key: "insLineStart", n: 3 - sf.decided };
+  var bp = bestPartnerOf(uid, scope), wp = worstPartnerOf(uid, scope), tr = ratingTrend(uid, scope);
+  if (sf.streakNow >= 3) return { key: "insLineStreak", n: sf.streakNow };
+  if (wp && wp.rate <= 0.4) return { key: "insLineTough", uid: wp.uid, pct: pct(wp.w, wp.n) };
+  if (bp) return { key: "insLineBest", uid: bp.uid, pct: pct(bp.w, bp.n) };
+  if (tr && tr.delta > 0) return { key: "insLineUp", n: tr.delta };
+  if (tr && tr.delta < 0) return { key: "insLineDown", n: Math.abs(tr.delta) };
+  return { key: "insLineSteady", pct: pct(sf.wins, sf.decided) };
+}

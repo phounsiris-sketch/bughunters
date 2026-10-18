@@ -189,8 +189,8 @@ function gameCardHtml(g) {
   var html = '<div class="card game-card compact">';
   html += '<div class="gc2-row">' + (g.photo ? '<img class="gc2-thumb" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="openImage(this.src)">' : '') +
     '<div class="gc2-main"><div class="game-when">' + weekdayShort(new Date(g.date + "T00:00:00").getDay()) + ' ' + fmtDate(g.date) + ' \u00B7 ' + escapeHtml(g.time || "") + '</div>' +
-    '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' \u00B7 ' + dist : '') +
-    ' \u00B7 ' + escapeHtml(_moneyIn(g.price, g.currency)) + ' ' + t("each") + (levels ? ' \u00B7 ' + t("levelShort") + ' ' + levels : '') + '</div></div>' + chip + '</div>';
+    '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' \u00B7 ' + dist : '') + '</div>' +
+    '<div class="game-facts game-facts2">' + escapeHtml(_moneyIn(g.price, g.currency)) + ' ' + t("each") + (levels ? ' \u00B7 ' + t("levelShort") + ' ' + levels : '') + '</div></div>' + chip + '</div>';
   html += '<div class="game-tags"><span class="tag">' + t("gameType_" + (g.gameType || "any")) + '</span><span class="tag mode-' + (g.mode || "fun") + '">' + t("mode_" + (g.mode || "fun")) + '</span>' +
     (g.dinner ? '<span class="tag">' + icon("dinner", 12) + ' ' + t("dinnerAfterTag") + '</span>' : '') + (g.seriesId ? '<span class="tag">' + icon("history", 12) + ' ' + t("repeatWeekly") + '</span>' : '') + '</div>';
   if (g.note) html += '<div class="game-note">' + escapeHtml(g.note) + '</div>';
@@ -199,8 +199,9 @@ function gameCardHtml(g) {
   html += '<div class="game-actions">';
   if (host) {
     html += '<button class="btn-secondary" onclick="editPublicGame(\'' + g.id + '\')">' + icon("edit", 16) + ' ' + t("edit") + '</button>' +
-      '<button class="btn-secondary" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>' +
-      '<button class="btn-danger" onclick="deletePublicGame(\'' + g.id + '\')">' + icon("trash", 16) + ' ' + t("delete") + '</button>';
+      '<details class="poll-manage host-manage"><summary>' + icon("settings", 14) + ' ' + t("pollManage") + '</summary><div class="poll-manage-btns">' +
+      '<button class="edit-btn" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>' +
+      '<button class="edit-btn danger" onclick="deletePublicGame(\'' + g.id + '\')">' + icon("trash", 14) + ' ' + t("delete") + '</button></div></details>';
   } else if (inGame || onWait) {
     html += '<button class="btn-secondary" onclick="toggleGame(\'' + g.id + '\')"' + (closed ? ' disabled' : '') + '>' + t(onWait ? "leaveWaitlist" : "leaveGame") + '</button>';
   } else {

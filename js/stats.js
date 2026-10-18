@@ -243,24 +243,19 @@ function _myStatsCard() {
   // Facts for the chosen period: icon + number chips (the words are in the tooltip)
   var progressBtn = '<button class="mh-go" aria-label="' + escapeHtml(t("seeMyProgress")) + '" title="' + escapeHtml(t("seeMyProgress")) + '" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + icon("chart", 18) + '</button>';
   html += '<div class="mh-facts">' +
-    '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 16) + '<b>' + pct(sf.wins, sf.decided) + '</b></span>' +
-    '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 16) + '<b>' + sf.played + '</b></span>' +
-    '<span class="mh-chip" title="' + escapeHtml(t("streak")) + '">' + icon("chart", 16) + '<b>' + (sf.streakNow > 0 ? sf.streakNow + t("winShort") : sf.streakNow < 0 ? (-sf.streakNow) + t("lossShort") : '\u2013') + '</b></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 18) + '<span><b>' + pct(sf.wins, sf.decided) + '</b><small>' + t("winRate") + '</small></span></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 18) + '<span><b>' + sf.played + '</b><small>' + t("gamesWord") + '</small></span></span>' +
+    '<span class="mh-chip" title="' + escapeHtml(t("streak")) + '">' + icon("chart", 18) + '<span><b>' + (sf.streakNow > 0 ? sf.streakNow + t("winShort") : sf.streakNow < 0 ? (-sf.streakNow) + t("lossShort") : '\u2013') + '</b><small>' + t("streak") + '</small></span></span>' +
     progressBtn + '</div>';
-  // My partners in this period: record, win bar and the pair's own rating. Star = best (5+ games, winning), flag = toughest
-  var pv = partnersView(me, statsScope), bp = bestPartnerOf(me, statsScope), wp = worstPartnerOf(me, statsScope);
-  html += '<div class="mh-partners"><div class="mh-ptitle">' + icon("users", 15) + ' ' + t("partnersTitle") + '</div>';
-  if (!pv.length) html += '<div class="mh-pv none">' + t("partnersNone") + '</div>';
-  var row = function (x) {
-    var mark = bp && bp.uid === x.uid ? '<span class="mh-mk best" title="' + escapeHtml(t("bestPartnerHint").replace("{n}", MIN_PARTNER_GAMES)) + '">\u2605</span>'
-      : wp && wp.uid === x.uid ? '<span class="mh-mk low" title="' + escapeHtml(t("worstPartner")) + '">!</span>' : '<span class="mh-mk"></span>';
-    return '<div class="mh-prow">' + mark + '<span class="mh-pn">' + personHtml(x.uid, 22) + '</span>' +
-      '<span class="mh-pbar"><i class="' + (x.rate >= 0.5 ? 'up' : 'down') + '" style="width:' + Math.round(x.rate * 100) + '%"></i></span>' +
-      '<span class="mh-pw"><b>' + pct(x.w, x.n) + '</b><small title="' + escapeHtml(t("pairRatingTip")) + '">' + fmtWL(x.w, x.l) + (x.pairRating ? ' \u00B7 ' + x.pairRating : '') + '</small></span></div>';
-  };
-  html += pv.slice(0, 3).map(row).join('');
-  if (pv.length > 3) html += '<details class="mh-more"><summary>' + t("partnersMore") + ' (' + (pv.length - 3) + ')</summary>' + pv.slice(3).map(row).join('') + '</details>';
-  html += '</div>';
+  // One useful sentence + my rating line for the period
+  var ins = insightFor(me, statsScope), tr = ratingTrend(me, statsScope);
+  var line = t(ins.key).replace("{n}", ins.n).replace("{pct}", ins.pct || "").replace("{name}", ins.uid ? '<b>' + escapeHtml(getUserName(ins.uid)) + '</b>' : "");
+  html += '<div class="mh-insight ' + ins.key + '"><span class="mh-ii">' + icon(ins.key === "insLineTough" ? "chart" : ins.key === "insLineStart" ? "court" : "ranking", 18) + '</span><span>' + line + '</span></div>';
+  if (tr && tr.vals.length > 2) {
+    html += '<div class="mh-trend">' + _sparkline(tr.vals) +
+      '<div class="mh-tl"><span>' + t("startWord") + ' <b>' + tr.start + '</b></span><span>' + t("homeBest") + ' <b>' + tr.peak + '</b></span><span>' + t("nowWord") + ' <b>' + tr.end + '</b>' +
+      (tr.delta ? ' <em class="' + (tr.delta > 0 ? 'up' : 'down') + '">' + (tr.delta > 0 ? '\u25B2 +' : '\u25BC ') + tr.delta + '</em>' : '') + '</span></div></div>';
+  }
   // My last 5 games, newest first: W/L chips only; tap to open the list
   var last = formStrip(me, 5);
   if (last.length) {
