@@ -351,6 +351,8 @@ function refreshCurrentPage(reason) {
     _renderDashboard();
   } else if (currentPage === "stats" && typeof renderStats === "function") {
     renderStats();
+  } else if (currentPage === "public" && /^(courts|restaurants)$/.test(reason) && typeof renderPublic === "function") {
+    renderPublic();   // a new / edited court or restaurant shows on the maps
   } else if (currentPage === "matches" && typeof renderMatchesPage === "function") {
     renderMatchesPage();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
@@ -385,7 +387,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v149"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v150"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

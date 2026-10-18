@@ -5,18 +5,26 @@
    pinned from this page; the form opens with the pin already set.
    ============================================================ */
 
-var _cm = { map: null, markers: {}, me: null, draft: null, sel: null, mode: null, view: null, q: "", res: [], timer: null, abort: null };
+var _cm = { kind: "court", map: null, markers: {}, me: null, draft: null, sel: null, mode: null, view: null, q: "", res: [], timer: null, abort: null };
 
 function _cmPinIcon(sel) {
   var L = window.L;
   return L.divIcon({
     className: "cm-pin-wrap",
-    html: '<div class="cm-pin' + (sel ? ' sel' : '') + '"><svg viewBox="0 0 24 30" width="' + (sel ? 38 : 30) + '" height="' + (sel ? 46 : 37) + '"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.5 12 30 12 30s12-9.500 12-18.200C24 5.300 18.600 0 12 0z" fill="currentColor"/><circle cx="12" cy="11.800" r="4.500" fill="#fff"/></svg></div>',
+    html: '<div class="cm-pin' + (sel ? ' sel' : '') + (_cmRest() ? ' rest' : '') + '"><svg viewBox="0 0 24 30" width="' + (sel ? 38 : 30) + '" height="' + (sel ? 46 : 37) + '"><path d="M12 0C5.4 0 0 5.3 0 11.8 0 20.5 12 30 12 30s12-9.500 12-18.200C24 5.300 18.600 0 12 0z" fill="currentColor"/><circle cx="12" cy="11.800" r="4.500" fill="#fff"/></svg></div>',
     iconSize: sel ? [38, 46] : [30, 37], iconAnchor: sel ? [19, 46] : [15, 37]
   });
 }
 
-function _cmCourts() { return (DB_CACHE.allCourts || []).filter(hasPin); }
+function _cmRest() { return _cm.kind === "rest"; }
+function _cmAll() { return _cmRest() ? restaurantList() : (DB_CACHE.allCourts || []); }
+function _cmCourts() { return _cmAll().filter(hasPin); }
+function _cmFind(id) { return dbFindById(_cmAll(), id); }
+/** Switching between the courts map and the restaurants map starts clean */
+function _cmKind(k) {
+  if (_cm.kind === k) return;
+  _cm.kind = k; _cm.sel = null; _cm.mode = null; _cm.draft = null; _cm.view = null; _cm.q = ""; _cm.res = [];
+}
 
 function cmInit() {
   var el = document.getElementById("cmMap");
@@ -106,7 +114,9 @@ function cmConfirm() {
   var pin = { lat: _cm.draft.lat, lng: _cm.draft.lng }, id = _cm.mode && _cm.mode.pin ? _cm.mode.pin : null;
   var fill = { name: _cm.draft.name || "", location: _cm.draft.addr || "" };
   _cmClearDraft(); _cm.mode = null; _cm.q = ""; _cm.res = [];
-  showCourtModal(id, function () { if (currentPage === "public") renderPublic(); }, { directoryOnly: true, pin: pin, fill: fill });
+  var done = function () { if (currentPage === "public") renderPublic(); };
+  if (_cmRest()) showRestaurantForm(fill.name, id, done, pin, fill.location);
+  else showCourtModal(id, done, { directoryOnly: true, pin: pin, fill: fill });
   cmBar();
 }
 
@@ -115,13 +125,19 @@ function cmBar() {
   if (!el) return;
   var h = "";
   if (_cm.mode) {
-    var c = _cm.mode.pin ? dbFindById(DB_CACHE.allCourts || [], _cm.mode.pin) : null;
+    var c = _cm.mode.pin ? _cmFind(_cm.mode.pin) : null;
     h = '<div class="cm-card cm-mode"><div class="cm-t">' + icon("pin", 16) + ' <span>' + (c ? '<b>' + escapeHtml(c.name) + '</b> · ' : '') + t(_cm.draft ? "cmDropped" : "cmTapToDrop") + '</span></div>' +
       '<div class="cm-btns">' + (_cm.draft ? '<button class="btn-primary cm-go" onclick="cmConfirm()">' + icon("check", 15) + ' ' + t(c ? "cmPinHere" : "cmAddHere") + '</button>' : '') +
       '<button class="btn-secondary cm-go" onclick="cmCancel()">' + t("cancel") + '</button></div></div>';
   } else if (_cm.sel) {
-    var s = dbFindById(DB_CACHE.allCourts || [], _cm.sel);
-    if (s) {
+    var s = _cmFind(_cm.sel);
+    if (s && _cmRest()) {
+      var dr = _here && hasPin(s) ? fmtKm(distanceKm(_here, s)) : "";
+      h = '<div class="cm-card"><div class="cm-t"><b>' + escapeHtml(s.name) + '</b>' + (dr ? ' <span class="tag">' + dr + '</span>' : '') + ' ' + ratingHtml(s.id) + '</div>' +
+        '<div class="cm-sub">' + escapeHtml(s.location || "") + '</div>' +
+        '<div class="cm-btns"><a class="btn-primary cm-go" target="_blank" rel="noopener" href="' + mapsDirUrl(s.lat, s.lng) + '">' + icon("route", 16) + ' ' + t("directions") + '</a>' +
+        (_restCanManage(s) ? '<button class="btn-secondary cm-go" onclick="showRestaurantForm(null,\'' + s.id + '\',function(){renderPublic()})">' + icon("pen", 14) + ' ' + t("restEdit") + '</button>' : '') + '</div></div>';
+    } else if (s) {
       var dist = _here && hasPin(s) ? fmtKm(distanceKm(_here, s)) : "";
       var up = (typeof _publicGames !== "undefined" ? _publicGames : []).filter(function (g) { return g.courtId === s.id && gameStartMs(g) > Date.now(); }).length;
       h = '<div class="cm-card"><div class="cm-t"><b>' + escapeHtml(s.name) + '</b>' + (dist ? ' <span class="tag">' + dist + '</span>' : '') + (up ? ' <span class="tag">' + t("upcomingGamesN").replace("{n}", up) + '</span>' : '') + '</div>' +
@@ -134,11 +150,15 @@ function cmBar() {
 }
 
 function _cmListHtml() {
-  var list = typeof _gameCourts === "function" ? _gameCourts() : [];
+  var list = _cmRest() ? restaurantList().slice().sort(function (a, b) {
+    if (_here) return (hasPin(a) ? distanceKm(_here, a) : 1e9) - (hasPin(b) ? distanceKm(_here, b) : 1e9);
+    return String(a.name).localeCompare(String(b.name));
+  }) : (typeof _gameCourts === "function" ? _gameCourts() : []);
   var html = "";
+  if (!list.length && _cmRest()) return '<div class="empty-state" style="padding:12px">' + t("restEmpty") + '</div>';
   list.forEach(function (c) {
     var pinned = hasPin(c), dist = _here && pinned ? fmtKm(distanceKm(_here, c)) : "";
-    html += '<div class="cm-row" onclick="' + (pinned ? "cmSelect('" + c.id + "')" : "showCourtModal('" + c.id + "',null,{directoryOnly:true})") + '">' +
+    html += '<div class="cm-row" onclick="' + (pinned ? "cmSelect('" + c.id + "')" : (_cmRest() ? "cmStartPin('" + c.id + "')" : "showCourtModal('" + c.id + "',null,{directoryOnly:true})")) + '">' +
       '<span class="cm-ic' + (pinned ? '' : ' off') + '">' + icon("pin", 16) + '</span>' +
       '<span class="cm-name"><b>' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.location || "") + '</small></span>' +
       (dist ? '<span class="tag">' + dist + '</span>' : '') +
@@ -148,12 +168,13 @@ function _cmListHtml() {
   return html;
 }
 
-function cmHtml() {
+function cmHtml(kind) {
+  _cmKind(kind === "rest" ? "rest" : "court");
   return '<div class="cm-wrap"><div id="cmMap" class="cm-map"><div class="map-hint">' + t("loading") + '</div></div>' +
     '<div class="cm-search"><span class="cm-sico">' + icon("search", 18) + '</span><input id="cmQ" class="cm-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="' + escapeHtml(t("cmSearchPh")) + '" value="' + escapeHtml(_cm.q) + '" oninput="cmSearchInput(this.value)">' +
       '<button type="button" class="cm-qx" id="cmQx" onclick="cmSearchClear()" aria-label="' + t("clear") + '"' + (_cm.q ? '' : ' style="display:none"') + '>' + icon("close", 14) + '</button></div><div class="cm-res" id="cmRes"></div>' +
     '<div class="cm-tools"><button class="cm-fab" onclick="cmLocate()" aria-label="' + t("cmFindMe") + '" title="' + t("cmFindMe") + '">' + icon("target", 20) + '</button>' +
-    '<button class="cm-fab add" onclick="cmStartAdd()" aria-label="' + t("addCourt") + '" title="' + t("addCourt") + '">+</button></div></div>' +
+    '<button class="cm-fab add" onclick="cmStartAdd()" aria-label="' + t(_cmRest() ? "restNew" : "addCourt") + '" title="' + t(_cmRest() ? "restNew" : "addCourt") + '">+</button></div></div>' +
     '<div id="cmBar" class="cm-bar"></div><div class="card cm-list" id="cmList">' + _cmListHtml() + '</div>';
 }
 
@@ -181,43 +202,10 @@ function _cmSearch(q) {
   if (ll) { _cm.res = [{ name: t("cmCoords"), addr: ll.lat.toFixed(5) + ", " + ll.lng.toFixed(5), lat: ll.lat, lng: ll.lng, raw: true }]; _cmResDraw(); return; }
   if (_cm.abort) { try { _cm.abort.abort(); } catch (e) {} }
   var ctl = _cm.abort = window.AbortController ? new AbortController() : null;
-  var opt = ctl ? { signal: ctl.signal } : {};
-  var c = _cm.map ? _cm.map.getCenter() : null, bias = _here || (c ? { lat: c.lat, lng: c.lng } : MAP_DEFAULT);
   _cm.busy = true; _cmResDraw();
-  var photon = "https://photon.komoot.io/api/?limit=15&q=" + encodeURIComponent(q) + "&lat=" + bias.lat.toFixed(4) + "&lon=" + bias.lng.toFixed(4) + "&location_bias_scale=0.6";
-  var nomi = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=15&q=" + encodeURIComponent(q) +
-    (_here ? "&viewbox=" + (_here.lng - 0.6).toFixed(3) + "," + (_here.lat + 0.6).toFixed(3) + "," + (_here.lng + 0.6).toFixed(3) + "," + (_here.lat - 0.6).toFixed(3) : "");
-  var near = _here ? "&bbox=" + (_here.lng - 0.5).toFixed(3) + "," + (_here.lat - 0.5).toFixed(3) + "," + (_here.lng + 0.5).toFixed(3) + "," + (_here.lat + 0.5).toFixed(3) : "";
-  function ph(url) {
-    return fetch(url, opt).then(function (r) { if (!r.ok) throw new Error("photon"); return r.json(); }).then(function (j) {
-      return (j.features || []).map(function (f) {
-        var p = f.properties || {}, g = f.geometry && f.geometry.coordinates;
-        if (!g) return null;
-        var street = [p.street, p.housenumber].filter(Boolean).join(" ");
-        var addr = [street, p.district || p.suburb, p.city || p.county, p.state, p.country].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
-        return { name: p.name || street || addr, addr: addr, lat: g[1], lng: g[0] };
-      }).filter(function (r) { return r && r.name; });
-    });
-  }
-  // Location on: look around me first (about 55 km); if nothing is there, look everywhere
-  (near ? ph(photon + near).then(function (o) { return o.length ? o : ph(photon); }) : ph(photon)).then(function (out) {
-    if (!out.length) throw new Error("empty");
-    return out;
-  }).catch(function (e) {
-    if (e && e.name === "AbortError") throw e;
-    return fetch(nomi, opt).then(function (r) { return r.json(); }).then(function (a) {
-      return (a || []).map(function (x) {
-        var parts = String(x.display_name || "").split(", ");
-        return { name: x.name || parts[0], addr: parts.slice(1).join(", "), lat: parseFloat(x.lat), lng: parseFloat(x.lon) };
-      });
-    });
-  }).then(function (out) {
+  geoSearch(q, _here || null, ctl && ctl.signal).then(function (out) {
     if (q !== _cm.q.trim()) return;
-    if (_here) {                                     // location on: nearest first, with the distance
-      out.forEach(function (r) { r.km = distanceKm(_here, r); });
-      out.sort(function (a, b) { return a.km - b.km; });
-    }
-    _cm.res = out.slice(0, 8); _cm.busy = false; _cm.none = !out.length; _cmResDraw();
+    _cm.res = out; _cm.busy = false; _cm.none = !out.length; _cmResDraw();
   }).catch(function (e) {
     if (e && e.name === "AbortError") return;
     _cm.res = []; _cm.busy = false; _cm.err = true; _cmResDraw();
