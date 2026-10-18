@@ -137,10 +137,9 @@ function _renderProfileTab() {
     '<div class="profile-email">' + escapeHtml(email) + '</div><div class="pf-perms">' + _permBadges(isSuperAdmin() ? "super" : (prof.perms || {})) + '</div>' +
     (prof.avatarUrl ? '<button class="link-btn pf-rm" onclick="removeAvatar()">' + t("removePhoto") + '</button>' : '') + '</div></div>';
   if (GROUPS_ON && typeof computeStats === "function" && me) {
-    var st = computeStats().players[me];
-    var wr = st && st.wins + st.losses ? Math.round(st.wins / (st.wins + st.losses) * 100) + '%' : '\u2013';
+    var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
-    html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st ? st.played : 0, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
+    html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
   }
   html += '</div>';
 
