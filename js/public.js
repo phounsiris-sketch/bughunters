@@ -94,6 +94,7 @@ function renderPublic() {
   else if (publicTab === "market") box.innerHTML = _cityFilterHtml() + _renderMarket();
   else if (publicTab === "courts") box.innerHTML = _renderDirectory();
   else box.innerHTML = _cityFilterHtml() + _renderGames();
+  uiMotion(box, publicTab + "|" + (pubCal.sel || "") + "|" + (pubCal.month || ""));
 }
 
 /* ---------- Open games ---------- */

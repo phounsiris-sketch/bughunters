@@ -24,6 +24,7 @@ function updateMeBtn() {
 }
 
 function showPage(page, pushHistory) {
+  if (typeof uiMotionReset === "function" && page !== currentPage) uiMotionReset();
   if (typeof pushHistory === "undefined") pushHistory = true;
   if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && !currentGroupId && GROUP_PAGES.test(page)) page = "groups";
 

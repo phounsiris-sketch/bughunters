@@ -1153,3 +1153,12 @@ User did not want the Moments card anywhere. `renderHome` no longer calls `momen
 
 ## Compact session location (v137)
 The two wide buttons "Open map" / "Share location" under the session header are replaced by two small round icon buttons on the same line as time and court (`.sess-where`, `.loc-mini`, `.loc-ic`): **directions** (new icon `route`, opens Google Maps turn-by-turn via new `mapsDirUrl(lat,lng)` in maps.js) and **share** (new icon `share`, `shareLocation()` unchanged: native share sheet, else copy). Labels stay as `title`/`aria-label`. A court without a pin shows one small pin button for admins (`pinSessionCourt`), nothing for others. Saves about 60 px of height. `.loc-actions` CSS kept but unused.
+
+## Wow motion on Dashboard, Rankings and Public (v138)
+- New `js/motion.js` (in index.html before dashboard.js, in the sw.js precache): `uiMotion(container, key)` adds `.dash-anim` once per view (key = tab/period/person...), `uiMotionReset()` is called from `showPage` when the page changes, so every visit plays again but a Firestore refresh never replays. Count-up (`_countUp`) now also runs on `.rank-text small` (the rating). Moved out of dashboard.js.
+- Used by `_renderDashboard`, `renderStats` (key statsTab|statsPeriod|progressUser) and `renderPublic` (key publicTab|picked day|month).
+- Effects added in the "Wow layer" CSS block: light sheen sweeping over each card, medals pop in with a spin, round glow pulse on the #1 avatar (3 times), rank rows slide in from the left with their numbers popping, my own row flashes green once, public game cards flip up in 3D, highlight/insight rows slide in.
+- Reduced motion: all off, no count-up.
+
+## My rating card with less text (v139)
+`_myStatsCard()` (Rankings and Home): removed the grey "everyone starts at 1500" sentence (the ? button already explains it), the "see my progress" text link and the text labels. Now: name + badge, `#rank ▲change`, big rating, ? button; one row of icon+number chips (win rate, matches this month, best partner avatar) with a round chart button at the right (opens My progress; Home rewrites its onclick as before); last 5 games as W/L chips only, tap opens the list. Old wording kept as tooltips/aria-labels. CSS: `.mh-chip`, `.mh-go` at the end of styles.css. `.mh-explain`, `.mh-best`, `.my-stats-more` CSS now unused. Stacked on v138 (not merged yet).
