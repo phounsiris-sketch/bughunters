@@ -520,7 +520,7 @@ function showCourtModal(courtId, onSaved, opts) {
   document.getElementById("modalBody").innerHTML =
     (groupMode ? '<div class="form-hint" style="margin-bottom:10px">' + icon("lock", 12) + ' ' + t("courtGroupOnlyNote").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>' : '') +
     '<div class="form-group"><label class="form-label">' + t("courtName") + ' *</label>' +
-      '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : '') + '"></div>' +
+      '<input class="form-input" id="mCourtName" value="' + escapeHtml(c ? c.name : (opts.fill ? opts.fill.name : '')) + '"></div>' +
     (withPrice ? '<div class="form-group"><label class="form-label">' + t("pricePerHour") + ' (' + curSymbol() + ') *</label>' +
       moneyInput('mCourtPrice', c ? courtPrice(c) : 0, '') + '</div>' : '') +
     // How many courts, and are they numbered 1, 2, 3… or A, B, C…
@@ -533,7 +533,7 @@ function showCourtModal(courtId, onSaved, opts) {
       ' <span class="form-hint">(' + t("optional") + ')</span>' + (pinned ? ' <span class="tag">' + t("pinned") + '</span>' : '') + '</summary>' +
       '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("courtPin") + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
-        '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c ? c.location || '' : '') + '"></div>' +
+        '<input class="form-input" id="mCourtLoc" placeholder="' + t("addressHint") + '" value="' + escapeHtml(c && c.location ? c.location : (opts.fill ? opts.fill.location : '')) + '"></div>' +
       '<div class="form-group"><label class="form-label">' + t("phoneToBook") + '</label>' + phoneInputHtml("mCourtPhone", c && c.phone) + '</div>' +
       '<div class="form-group"><label class="form-label">' + t("openingHours") + '</label>' +
         timeRangeHtml(hrs[0] && /^\d\d:\d\d$/.test(hrs[0]) ? hrs[0] : "", hrs[1] && /^\d\d:\d\d$/.test(hrs[1]) ? hrs[1] : "", "", "").replace('<input type="time"', '<input type="time" id="mCourtOpen"').replace(/(<span class="time-range-dash">.*?<\/span>)<input type="time"/, '$1<input type="time" id="mCourtClose"') + '</div>' +

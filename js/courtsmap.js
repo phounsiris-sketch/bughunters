@@ -5,7 +5,7 @@
    pinned from this page; the form opens with the pin already set.
    ============================================================ */
 
-var _cm = { map: null, markers: {}, me: null, draft: null, sel: null, mode: null, view: null };
+var _cm = { map: null, markers: {}, me: null, draft: null, sel: null, mode: null, view: null, q: "", res: [], timer: null, abort: null };
 
 function _cmPinIcon(sel) {
   var L = window.L;
@@ -86,7 +86,7 @@ function cmSelect(id, pan) {
 
 function cmStartAdd() { _cmClearDraft(); _cm.mode = { add: true }; _cm.sel = null; cmSelect(null); }
 function cmStartPin(id) { _cmClearDraft(); _cm.mode = { pin: id }; cmSelect(null); var w = document.getElementById("cmMap"); if (w && w.scrollIntoView) w.scrollIntoView({ behavior: "smooth", block: "center" }); }
-function cmCancel() { _cmClearDraft(); _cm.mode = null; cmBar(); }
+function cmCancel() { _cmClearDraft(); _cm.mode = null; _cm.res = []; _cmResDraw(); cmBar(); }
 
 function _cmClearDraft() { if (_cm.draft && _cm.draft.marker && _cm.map) _cm.map.removeLayer(_cm.draft.marker); _cm.draft = null; }
 
@@ -104,8 +104,9 @@ function _cmDrop(lat, lng) {
 function cmConfirm() {
   if (!_cm.draft) return;
   var pin = { lat: _cm.draft.lat, lng: _cm.draft.lng }, id = _cm.mode && _cm.mode.pin ? _cm.mode.pin : null;
-  _cmClearDraft(); _cm.mode = null;
-  showCourtModal(id, function () { if (currentPage === "public") renderPublic(); }, { directoryOnly: true, pin: pin });
+  var fill = { name: _cm.draft.name || "", location: _cm.draft.addr || "" };
+  _cmClearDraft(); _cm.mode = null; _cm.q = ""; _cm.res = [];
+  showCourtModal(id, function () { if (currentPage === "public") renderPublic(); }, { directoryOnly: true, pin: pin, fill: fill });
   cmBar();
 }
 
@@ -149,7 +150,91 @@ function _cmListHtml() {
 
 function cmHtml() {
   return '<div class="cm-wrap"><div id="cmMap" class="cm-map"><div class="map-hint">' + t("loading") + '</div></div>' +
+    '<div class="cm-search"><span class="cm-sico">' + icon("search", 18) + '</span><input id="cmQ" class="cm-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="' + escapeHtml(t("cmSearchPh")) + '" value="' + escapeHtml(_cm.q) + '" oninput="cmSearchInput(this.value)">' +
+      '<button type="button" class="cm-qx" id="cmQx" onclick="cmSearchClear()" aria-label="' + t("clear") + '"' + (_cm.q ? '' : ' style="display:none"') + '>' + icon("close", 14) + '</button></div><div class="cm-res" id="cmRes"></div>' +
     '<div class="cm-tools"><button class="cm-fab" onclick="cmLocate()" aria-label="' + t("cmFindMe") + '" title="' + t("cmFindMe") + '">' + icon("target", 20) + '</button>' +
     '<button class="cm-fab add" onclick="cmStartAdd()" aria-label="' + t("addCourt") + '" title="' + t("addCourt") + '">+</button></div></div>' +
     '<div id="cmBar" class="cm-bar"></div><div class="card cm-list" id="cmList">' + _cmListHtml() + '</div>';
+}
+
+
+/* ---------- Search (like Google): type a place or court name, pick it, the pin is placed ---------- */
+
+function cmSearchInput(v) {
+  _cm.q = v;
+  clearTimeout(_cm.timer);
+  var q = v.trim();
+  var clr = document.getElementById("cmQx"); if (clr) clr.style.display = q ? "" : "none";
+  if (q.length < 3) { _cm.res = []; _cmResDraw(); return; }
+  _cm.timer = setTimeout(function () { _cmSearch(q); }, 450);
+}
+
+function cmSearchClear() {
+  _cm.q = ""; _cm.res = []; clearTimeout(_cm.timer);
+  var i = document.getElementById("cmQ"); if (i) { i.value = ""; i.focus(); }
+  var clr = document.getElementById("cmQx"); if (clr) clr.style.display = "none";
+  _cmResDraw();
+}
+
+function _cmSearch(q) {
+  var ll = typeof parseLatLng === "function" ? parseLatLng(q) : null;      // pasted coordinates or Google Maps link
+  if (ll) { _cm.res = [{ name: t("cmCoords"), addr: ll.lat.toFixed(5) + ", " + ll.lng.toFixed(5), lat: ll.lat, lng: ll.lng, raw: true }]; _cmResDraw(); return; }
+  if (_cm.abort) { try { _cm.abort.abort(); } catch (e) {} }
+  var ctl = _cm.abort = window.AbortController ? new AbortController() : null;
+  var opt = ctl ? { signal: ctl.signal } : {};
+  var c = _cm.map ? _cm.map.getCenter() : null, bias = _here || (c ? { lat: c.lat, lng: c.lng } : MAP_DEFAULT);
+  _cm.busy = true; _cmResDraw();
+  var photon = "https://photon.komoot.io/api/?limit=7&q=" + encodeURIComponent(q) + "&lat=" + bias.lat.toFixed(4) + "&lon=" + bias.lng.toFixed(4);
+  var nomi = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&q=" + encodeURIComponent(q);
+  fetch(photon, opt).then(function (r) { if (!r.ok) throw new Error("photon"); return r.json(); }).then(function (j) {
+    var out = (j.features || []).map(function (f) {
+      var p = f.properties || {}, g = f.geometry && f.geometry.coordinates;
+      if (!g) return null;
+      var street = [p.street, p.housenumber].filter(Boolean).join(" ");
+      var addr = [street, p.district || p.suburb, p.city || p.county, p.state, p.country].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
+      return { name: p.name || street || addr, addr: addr, lat: g[1], lng: g[0] };
+    }).filter(Boolean);
+    if (!out.length) throw new Error("empty");
+    return out;
+  }).catch(function (e) {
+    if (e && e.name === "AbortError") throw e;
+    return fetch(nomi, opt).then(function (r) { return r.json(); }).then(function (a) {
+      return (a || []).map(function (x) {
+        var parts = String(x.display_name || "").split(", ");
+        return { name: x.name || parts[0], addr: parts.slice(x.name ? 1 : 1).join(", "), lat: parseFloat(x.lat), lng: parseFloat(x.lon) };
+      });
+    });
+  }).then(function (out) {
+    if (q !== _cm.q.trim()) return;
+    _cm.res = out; _cm.busy = false; _cm.none = !out.length; _cmResDraw();
+  }).catch(function (e) {
+    if (e && e.name === "AbortError") return;
+    _cm.res = []; _cm.busy = false; _cm.err = true; _cmResDraw();
+  });
+}
+
+function _cmResDraw() {
+  var el = document.getElementById("cmRes");
+  if (!el) return;
+  if (_cm.busy) { el.innerHTML = '<div class="cm-res-msg">' + t("loading") + '</div>'; return; }
+  if (_cm.err && !_cm.res.length) { _cm.err = false; el.innerHTML = '<div class="cm-res-msg">' + t("cmSearchErr") + '</div>'; return; }
+  if (_cm.none && !_cm.res.length && _cm.q.trim().length >= 3) { _cm.none = false; el.innerHTML = '<div class="cm-res-msg">' + t("cmNoResult") + '</div>'; return; }
+  el.innerHTML = _cm.res.map(function (r, i) {
+    return '<button type="button" class="cm-res-row" onclick="cmPick(' + i + ')"><span class="cm-ic">' + icon("pin", 16) + '</span>' +
+      '<span class="cm-name"><b>' + escapeHtml(r.name || "") + '</b><small>' + escapeHtml(r.addr || "") + '</small></span></button>';
+  }).join("");
+}
+
+function cmPick(i) {
+  var r = _cm.res[i];
+  if (!r || !_cm.map) return;
+  if (!_cm.mode) _cm.mode = { add: true };
+  _cm.sel = null;
+  Object.keys(_cm.markers).forEach(function (k) { _cm.markers[k].setIcon(_cmPinIcon(false)); });
+  _cmDrop(r.lat, r.lng);
+  _cm.draft.name = r.raw ? "" : r.name; _cm.draft.addr = r.raw ? "" : r.addr;
+  _cm.map.flyTo([r.lat, r.lng], 17, { duration: .8 });
+  _cm.res = [];
+  _cmResDraw();
+  var inp = document.getElementById("cmQ"); if (inp) inp.blur();
 }

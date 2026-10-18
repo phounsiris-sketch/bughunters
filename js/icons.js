@@ -7,6 +7,7 @@
 var SOLAR = {
 "percent": "<g fill=\"currentColor\"><circle cx=\"7.5\" cy=\"7.5\" r=\"3\"/><circle cx=\"16.5\" cy=\"16.5\" r=\"3\"/></g><path d=\"M18 5L6 19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"/>",
 "watch": "<g fill=\"currentColor\"><path d=\"M8 2h8l.8 3.2H7.2z\"/><path d=\"M8 22h8l.8-3.2H7.2z\"/><rect x=\"5\" y=\"6\" width=\"14\" height=\"12\" rx=\"4\" opacity=\".9\"/></g><path d=\"M12 9v3.2l2 1.4\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",
+"search": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"M16 16l4.500 4.500\"/></g>",
 "target": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"7\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></g><circle cx=\"12\" cy=\"12\" r=\"2.4\" fill=\"currentColor\"/>",
 "share": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3\"/><path d=\"M7.5 7.5L12 3l4.5 4.5\"/><path d=\"M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12\"/></g>",
 "route": "<g fill=\"currentColor\"><path d=\"M21.7 11.3L12.7 2.3a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4z\" /></g><path d=\"M8.5 14v-2.5A1.5 1.5 0 0 1 10 10h5.5M13 7.5L15.5 10 13 12.5\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",

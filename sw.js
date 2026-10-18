@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v140';
+var CACHE_NAME = 'godsmash-v141';
 var ASSETS = [
   './',
   './index.html',
@@ -102,6 +102,7 @@ self.addEventListener('fetch', function(e) {
   // Our own files skip the browser's HTTP cache (GitHub Pages allows 10 min),
   // revalidating instead, so a new version shows on the next open.
   if (e.request.method !== 'GET') return;
+  if (/photon\.komoot\.io|nominatim\.openstreetmap\.org/.test(e.request.url)) return;   // place search: always live, never cached
   var own = new URL(e.request.url).origin === self.location.origin;
   e.respondWith(
     fetch(own ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(function(resp) {
