@@ -139,7 +139,8 @@ service cloud.firestore {
     }
     function billKeys() {
       return ['courtCost', 'courtPayer', 'shuttlecocks', 'shuttleTotal', 'shuttlePayer', 'otherCosts',
-              'otherTotal', 'dinner', 'grandTotal', 'calculated', 'discount', 'discountAmount', 'courtParts'];
+              'otherTotal', 'dinner', 'grandTotal', 'calculated', 'discount', 'discountAmount', 'courtParts',
+              'courtReceipt', 'shuttleReceipt'];
     }
 
     match /sessions/{sessionId} {

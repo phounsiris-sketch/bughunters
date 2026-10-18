@@ -77,6 +77,7 @@ function dinnerRestaurantFieldHtml(d) {
   if (d.restaurantId) {
     html += '<div class="rest-picked">' + restThumbHtml(r, 40) + '<div style="min-width:0"><b>' + escapeHtml(name) + '</b>' +
       (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
+      (r && _restCanManage(r) ? '<button type="button" class="btn-secondary" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderEditForm()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') +
       '<button type="button" class="btn-secondary" onclick="editChooseRestaurant()">' + t("change") + '</button>' +
       '<button type="button" class="btn-secondary" onclick="editClearRestaurant()" aria-label="' + t("removePin") + '">✕</button></div>';
   } else {
@@ -144,24 +145,29 @@ function _restPick(id) {
 
 /* ---------- New restaurant form (with map pin and validation) ---------- */
 
-function showRestaurantForm(prefillName) {
+var _restEditId = null, _restDone = null;   // editing this restaurant; what to do after saving
+
+function showRestaurantForm(prefillName, editId, onDone) {
   closeMapPicker("restPin");
-  document.getElementById("modalTitle").textContent = t("restNew");
+  _restEditId = typeof editId === "string" && editId ? editId : null;
+  _restDone = onDone || null;
+  var cur = _restEditId ? restaurantById(_restEditId) : null;
+  document.getElementById("modalTitle").textContent = t(cur ? "restEdit" : "restNew");
   document.getElementById("modalBody").innerHTML =
     '<div class="form-group"><label class="form-label">' + t("restName") + ' *</label>' +
-      '<input class="form-input" id="mRestName" maxlength="' + REST_NAME_MAX + '" value="' + escapeHtml(prefillName || "") + '"></div>' +
+      '<input class="form-input" id="mRestName" maxlength="' + REST_NAME_MAX + '" value="' + escapeHtml(cur ? cur.name : (prefillName || "")) + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
-      '<input class="form-input" id="mRestLoc" maxlength="' + REST_LOC_MAX + '" placeholder="' + escapeHtml(t("addressHint")) + '"></div>' +
+      '<input class="form-input" id="mRestLoc" maxlength="' + REST_LOC_MAX + '" placeholder="' + escapeHtml(t("addressHint")) + '" value="' + escapeHtml(cur ? cur.location || "" : "") + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("restPin") + '</div>' +
     '<div class="form-hint">' + t("restNeedPlaceHint") + '</div>' +
     '<div class="form-group" style="margin-top:12px"><label class="form-label">' + icon("camera", 12) + ' ' + t("restPhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
-      '<div id="restPhotoPreview"></div>' +
+      '<div id="restPhotoPreview">' + (cur && cur.photo ? '<img class="rest-photo" ' + imgSrcAttrs(cur.photo) + ' alt="">' : '') + '</div>' +
       '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="_restPhotoChosen(this)"></div>' +
     '<div id="restDup"></div>';
   _restPhoto = null;
   modalCallback = _restSave;
   openModal();
-  initMapPicker("restPin", null, null);
+  initMapPicker("restPin", cur && hasPin(cur) ? cur.lat : null, cur && hasPin(cur) ? cur.lng : null);
 }
 
 var _restPhoto = null;   // data URL of the photo picked in the form
@@ -184,7 +190,7 @@ function _restSave() {
     location: document.getElementById("mRestLoc").value.trim(),
     lat: pin.lat, lng: pin.lng
   };
-  var v = validateRestaurant(data, null);
+  var v = validateRestaurant(data, _restEditId);
   var dupEl = document.getElementById("restDup");
   if (dupEl) dupEl.innerHTML = "";
   if (v.dup) {
@@ -193,6 +199,22 @@ function _restSave() {
     return;
   }
   if (v.error) { showToast(t(v.error)); return; }
+  if (_restEditId) {
+    var old = restaurantById(_restEditId) || {};
+    var upd = { name: data.name, location: data.location, lat: data.lat, lng: data.lng, createdBy: old.createdBy || currentUser.uid, createdAt: old.createdAt || Date.now(), updatedAt: Date.now(), updatedBy: currentUser.uid };
+    var eid = _restEditId;
+    (_restPhoto ? dbSaveImage(_restPhoto, "restaurant") : Promise.resolve(null)).then(function (ref) {
+      upd.photo = ref || old.photo || null;
+      return fsdb.collection("restaurants").doc(eid).set(upd);
+    }).then(function () {
+      closeMapPicker("restPin");
+      var done = _restDone;
+      closeModal();
+      showToast(t("save") + " ✔");
+      setTimeout(function () { if (done) done(eid); else if (typeof renderSettings === "function") renderSettings(); }, 250);
+    }).catch(function (error) { showToast(_permError(error)); });
+    return;
+  }
   var doc = { name: data.name, location: data.location, lat: data.lat, lng: data.lng, createdBy: currentUser.uid, createdAt: Date.now() };
   // The photo (optional) is stored as images/{id}; the restaurant keeps "img:<id>"
   (_restPhoto ? dbSaveImage(_restPhoto, "restaurant") : Promise.resolve(null)).then(function (ref) {
@@ -226,7 +248,7 @@ function dinnerRestaurantViewHtml(s) {
   var html = '<div class="rest-view">' + (r && r.photo ? '<img class="rest-photo" ' + imgSrcAttrs(r.photo) + ' alt="' + escapeHtml(name) + '" onclick="openImage(this.src)">' : '') +
     '<div class="rest-view-head"><div style="min-width:0"><b>' + icon("dinner", 14) + ' ' + escapeHtml(name) + '</b>' +
     (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
-    '<div>' + ratingHtml(d.restaurantId) + '</div></div>';
+    '<div>' + ratingHtml(d.restaurantId) + (r && _restCanManage(r) ? ' <button type="button" class="edit-btn" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderSessionDetail()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') + '</div></div>';
   if (r && hasPin(r)) html += '<div style="margin-top:6px">' + courtMapLink(r, t("openMap")) + '</div>';
 
   var me = currentUser ? currentUser.uid : "";
@@ -276,4 +298,65 @@ function deleteMyReview(restId) {
   fsdb.collection("restaurantReviews").doc(restId + "_" + currentUser.uid).delete()
     .then(function () { delete _revDraft[restId]; })
     .catch(function (error) { showToast(_permError(error)); });
+}
+
+
+/* ---------- Master data: Settings > Restaurants (see, edit, delete) ---------- */
+
+/** The person who added it, a group admin who edits config, or the super admin */
+function _restCanManage(r) {
+  if (!r || !currentUser) return false;
+  return r.createdBy === currentUser.uid || (typeof can === "function" && can("editConfig")) || (typeof isSuperAdmin === "function" && isSuperAdmin());
+}
+
+/** Deleting is only for who added it or the super admin (the Firestore rule says the same) */
+function _restCanDelete(r) {
+  return !!(r && currentUser && (r.createdBy === currentUser.uid || (typeof isSuperAdmin === "function" && isSuperAdmin())));
+}
+
+function _restUsage(id) {
+  return (typeof lastSessions !== "undefined" ? lastSessions : []).filter(function (x) { return x.dinner && x.dinner.restaurantId === id; }).length;
+}
+
+var _restQ = "";
+function _renderRestaurantsTab() {
+  var key = _normName(_restQ);
+  var list = restaurantList().filter(function (r) { return !key || _normName(r.name).indexOf(key) >= 0 || _normName(r.location).indexOf(key) >= 0; })
+    .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+  var html = '<div class="card"><div class="card-title">' + icon("dinner", 14) + ' ' + t("tabRestaurants") + ' (' + restaurantList().length + ')</div>' +
+    '<div class="form-hint" style="margin-bottom:8px">' + t("restMasterHint") + '</div>' +
+    '<input class="form-input" id="restMasterQ" type="search" autocomplete="off" placeholder="' + escapeHtml(t("restSearch")) + '" value="' + escapeHtml(_restQ) + '" oninput="_restQ=this.value;_restMasterList()">' +
+    '<div id="restMasterList">' + _restMasterRows(list) + '</div>' +
+    '<button class="add-btn-dashed" onclick="showRestaurantForm(\'\',null,function(){renderSettings()})">+ ' + t("restNew") + '</button></div>';
+  return html;
+}
+
+function _restMasterList() {
+  var key = _normName(_restQ), el = document.getElementById("restMasterList");
+  if (!el) return;
+  el.innerHTML = _restMasterRows(restaurantList().filter(function (r) { return !key || _normName(r.name).indexOf(key) >= 0 || _normName(r.location).indexOf(key) >= 0; })
+    .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); }));
+}
+
+function _restMasterRows(list) {
+  if (!list.length) return '<div class="empty-state" style="padding:12px">' + t(restaurantList().length ? "restNoMatch" : "restEmpty") + '</div>';
+  return list.map(function (r) {
+    var used = _restUsage(r.id), can = _restCanManage(r);
+    return '<div class="settings-item rest-master"><div style="flex:1;min-width:0">' +
+      '<div style="display:flex;align-items:center;gap:10px">' + restThumbHtml(r, 40) + '<div style="min-width:0"><div class="settings-label">' + escapeHtml(r.name) + '</div>' +
+      '<div class="form-hint" style="margin:0">' + (r.location ? escapeHtml(r.location) : '') + (hasPin(r) ? ' ' + courtMapLink(r) : ' <span class="no-pin">' + t("noPinYet") + '</span>') + '</div>' +
+      '<div class="form-hint" style="margin:0">' + ratingHtml(r.id) + (used ? ' \u00B7 ' + t("restUsedN").replace("{n}", used) : '') + '</div></div></div></div>' +
+      (can ? '<div style="display:flex;gap:8px"><button class="edit-btn" aria-label="' + escapeHtml(t("restEdit")) + '" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderSettings()})">' + icon("pen", 16) + '</button>' +
+      (_restCanDelete(r) ? '<button class="delete-btn" aria-label="' + escapeHtml(t("delete")) + '" onclick="deleteRestaurant(\'' + r.id + '\')">' + icon("trash", 16) + '</button>' : '') + '</div>' : '') + '</div>';
+  }).join('');
+}
+
+function deleteRestaurant(id) {
+  var r = restaurantById(id);
+  if (!r || !_restCanDelete(r)) return;
+  var used = _restUsage(id);
+  askConfirm({ title: t("restDeleteTitle"), big: escapeHtml(r.name), body: escapeHtml(used ? t("restDeleteUsed").replace("{n}", used) : t("restDeleteHint")), yes: t("delete"), danger: true }, function () {
+    fsdb.collection("restaurants").doc(id).delete().then(function () { showToast(t("delete") + " ✔"); setTimeout(function () { if (typeof renderSettings === "function") renderSettings(); }, 250); })
+      .catch(function (error) { showToast(_permError(error)); });
+  });
 }
