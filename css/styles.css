@@ -5630,3 +5630,33 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .rank-row:focus-vi
 .mh-chip { height: auto; min-height: 48px; padding: 6px 14px; border-radius: var(--r-md); gap: 8px; }
 .mh-chip > span { display: flex; flex-direction: column; line-height: 1.15; }
 .mh-chip small { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+/* Polls: one big choice row, who voted folded, Manage menu for organisers */
+.vote-seg { display: flex; gap: 8px; margin-top: 12px; }
+.vote-seg-btn { flex: 1; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 8px; border-radius: var(--r-md); border: 2px solid var(--border); background: var(--poll-option-bg, var(--chip-bg)); color: inherit; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform var(--dur-fast) ease, background-color .2s ease, border-color .2s ease; }
+.vote-seg-btn em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.vote-seg-btn:active { transform: scale(.96); }
+.vote-seg-btn.on { border-color: var(--accent); background: rgba(var(--accent-rgb), .18); }
+.vote-seg-btn.on.a1, .vote-seg-btn.on.a2 { border-color: var(--orange); background: rgba(245, 158, 11, .16); }
+.vote-seg-btn .si { vertical-align: -3px; }
+.poll-who, .poll-manage { margin-top: 10px; }
+.poll-who > summary, .poll-manage > summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; padding: 8px 4px; min-height: 36px; }
+.poll-who > summary::-webkit-details-marker, .poll-manage > summary::-webkit-details-marker { display: none; }
+.poll-who-row { padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.poll-who-static { margin-top: 10px; }
+.poll-manage-btns { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 2px; }
+.edit-btn.danger { border-color: #ef4444; color: #ef4444; }
+.game-actions .host-manage { align-self: center; margin: 0; }
+/* Community: tabs scroll instead of overflowing, calmer game card, compact city filter */
+#publicTabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+#publicTabs::-webkit-scrollbar { display: none; }
+#publicTabs .dash-tab { flex: 0 0 auto; white-space: nowrap; }
+.game-facts2 { margin-top: 2px; font-weight: 600; color: var(--text-secondary); }
+.filter-bar { margin: 0 0 8px; }
+.filter-bar .form-group { margin: 0; }
+.filter-bar .form-select { width: auto; min-width: 150px; max-width: 100%; border-radius: var(--r-pill); padding: 8px 14px; font-size: 14px; }
+/* Dashboard: folded boards, one entrance effect (no sheen) */
+.lb-more { margin-top: 10px; }
+.lb-more > summary { cursor: pointer; list-style: none; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent); padding: 10px; border-radius: var(--r-md); background: var(--chip-bg); margin-bottom: 10px; }
+.lb-more > summary::-webkit-details-marker { display: none; }
+.dash-anim > .card:not(.paynote)::after { display: none; }

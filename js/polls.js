@@ -244,7 +244,6 @@ function _renderPollCard(poll) {
     '<div class="poll-stats">' + iconStatHtml("clock", escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '')) +
     iconStatHtml("users", inN + '/' + minPlayers) + '</div></div>' + pillHtml(kind, statusLabel) + '</div>';
   html += '<div class="poll-by">' + t('createdBy') + ' ' + personHtml(poll.createdBy, 22) + '</div>';
-  if (poll.status !== 'cancelled') html += '<div class="poll-trk">' + trackerHtml(poll.status === 'confirmed' ? 1 : 0) + '</div>';
 
   // The plan: mode tags and a note (the date, time and court are above)
   if ((typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) || poll.note) {
@@ -267,47 +266,42 @@ function _renderPollCard(poll) {
         : (isCreator ? t("votingClosedCreator") : t("votingClosedWait").replace("{name}", getUserName(poll.createdBy)))) + '</div>';
   }
 
-  // Answers (radio)
-  if (isVotable) {
-    html += '<div style="font-size:12px;color:var(--text-muted);margin:10px 0 8px">' + t('chooseAnswer') + '</div>';
-  }
-  html += '<div class="poll-options"' + (isVotable ? '' : ' style="margin-top:10px"') + '>';
+  // Answers: one big choice row to vote; who voted folds underneath
+  var whoHtml = '';
   for (var ai = 0; ai < np.answers.length; ai++) {
-    var uids = _pollAnswerUids(np, ai);
-    var mine = myAnswer === ai;
-    html += '<div class="poll-option poll-answer' + (mine ? ' voted' : '') + '"' +
-      (isVotable ? ' role="radio" aria-checked="' + mine + '" onclick="respondPoll(\'' + poll.id + '\',' + ai + ')"' : ' style="cursor:default"') + '>';
-    html += '<span class="radio-dot' + (mine ? ' on' : '') + '"></span>';
-    html += '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escapeHtml(answerLabel(np.answers[ai])) +
-      (ai === 0 ? ' <span style="font-size:12px;color:var(--text-muted);font-weight:500">' + t('countsAsJoining') + '</span>' : '') + '</div>';
-    if (uids.length) html += '<div class="poll-voters">' + peopleHtml(uids, 20, 6) + '</div>';
-    html += '</div>';
-    html += '<div class="vote-count" style="font-weight:700;color:' + (ai === 0 && enough ? 'var(--accent)' : 'var(--text-secondary)') + '">' +
-      uids.length + (ai === 0 ? '/' + minPlayers : '') + '</div>';
-    html += '</div>';
+    var vu = _pollAnswerUids(np, ai);
+    whoHtml += '<div class="poll-who-row"><b>' + escapeHtml(answerLabel(np.answers[ai])) + '</b> <span class="vote-count">' + vu.length + (ai === 0 ? '/' + minPlayers : '') + '</span>' +
+      (vu.length ? '<div class="poll-voters">' + peopleHtml(vu, 22, 8) + '</div>' : '') + '</div>';
   }
-  html += '</div>';
-
-  if (isOpen && isCreator) {
-    html += '<button class="edit-btn" style="margin-top:10px" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>';
-    if (enough) {
-      html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
-        t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
-    } else {
-      html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
+  if (isVotable) {
+    html += '<div class="vote-seg" role="radiogroup" aria-label="' + escapeHtml(t('chooseAnswer')) + '">';
+    for (var bi = 0; bi < np.answers.length; bi++) {
+      var mineB = myAnswer === bi, cnt = _pollAnswerUids(np, bi).length;
+      html += '<button type="button" class="vote-seg-btn' + (mineB ? ' on' : '') + ' a' + bi + '" role="radio" aria-checked="' + mineB + '" onclick="respondPoll(\'' + poll.id + '\',' + bi + ')">' +
+        (mineB ? icon("check", 16) + ' ' : '') + '<span>' + escapeHtml(answerLabel(np.answers[bi])) + '</span><em>' + cnt + (bi === 0 ? '/' + minPlayers : '') + '</em></button>';
     }
+    html += '</div>';
+    html += '<details class="poll-who"><summary>' + t('pollWho') + '</summary>' + whoHtml + '</details>';
+  } else {
+    html += '<div class="poll-who-static">' + whoHtml + '</div>';
+  }
+
+  if (isOpen && isCreator && enough) {
+    html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
+      t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
+  } else if (isOpen && isCreator) {
+    html += '<div style="font-size:13px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
   }
 
   if (poll.status === 'confirmed' && poll.sessionId) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + poll.sessionId + '\')">' + t('openSession') + ' →</button>';
   }
 
-  if (isOpen && isCreator && poll.answers) {
-    html += '<button class="edit-btn" style="margin-top:10px" onclick="showEditPoll(\'' + poll.id + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>';
-  }
-
   if (isOpen && isCreator) {
-    html += '<button class="btn-danger" style="margin-top:10px;padding:8px;font-size:12px" onclick="cancelPoll(\'' + poll.id + '\')">' + t('cancelPoll') + '</button>';
+    html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
+      '<button class="edit-btn" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>' +
+      (poll.answers ? '<button class="edit-btn" onclick="showEditPoll(\'' + poll.id + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
+      '<button class="edit-btn danger" onclick="cancelPoll(\'' + poll.id + '\')">' + t('cancelPoll') + '</button></div></details>';
   }
 
   html += '</div>';

@@ -1207,3 +1207,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Light theme:** the base light block now sets `--accent: #0d9488` and `--orange: #b45309` so accent text on white passes contrast; the palette rules (higher specificity) still win.
 - **Rankings chips** show a visible word under each number (win rate, games, streak) and the scope chips are 36 px high.
 - Not done: the duplicated old rules (`.back-btn`, `.fab-btn`, `.period-btn`, `.btn-share` defined twice) and the many radius / padding values are not merged yet; the Audit/Batch/Wow override layers still exist. Stacked on v146.
+
+## Polls, Community, Dashboard clean-up (v148, from the CANVAS UX review)
+- **Poll card:** one big choice row (`.vote-seg`, one button per answer with its count; the chosen one is highlighted) replaces the radio list; **Who voted** folds under it (`details.poll-who`); closed polls show the list read-only. The Plan/Play/Pay tracker is gone from poll cards (it stays on the session). Organiser buttons: **Confirm plan** stays visible when there are enough players; Add votes, Edit and Cancel live in a **Manage** menu (`details.poll-manage`). The dangerous Cancel is never open by default.
+- **Community:** `#publicTabs` scrolls sideways instead of overflowing; the game card facts are two lines (court + distance, then price + level); a host sees Edit and a Manage menu (Cancel game, Delete); the city filter is a compact pill.
+- **Dashboard:** the "no show" and "no vote" boards are folded under "More boards"; the sheen sweep on cards is off (rise, bars and count-up stay).
+- Stacked on v147. Lao wording unreviewed.

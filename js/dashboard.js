@@ -148,8 +148,10 @@ function _renderLeaderboard() {
     function (a, b) { return (played[b] || 0) - (played[a] || 0) || (dined[b] || 0) - (dined[a] || 0); });
   html += _topCard(icon("shuttle", 14), t("lbPlayedMost"), played, function (v) { return v + ' ' + t("sessionsWord").toLowerCase(); });
   html += _topCard(icon("card", 14), t("lbPaidMost"), paid, function (v) { return fmtShort(v); });
-  html += _topCard(icon("noshow", 14), t("lbNoShow"), noShow, function (v) { return v + '×'; }, true);
-  html += _topCard(icon("question", 14), t("lbNoVote"), noVote, function (v) { return v + '×'; }, true);
+  // The "no show" and "no vote" boards are folded: friendly by default, there for who wants them
+  html += '<details class="lb-more"><summary>' + t("lbMore") + '</summary>' +
+    _topCard(icon("noshow", 14), t("lbNoShow"), noShow, function (v) { return v + '×'; }, true) +
+    _topCard(icon("question", 14), t("lbNoVote"), noVote, function (v) { return v + '×'; }, true) + '</details>';
   html += '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">' + t("lbHint") + '</div>';
   return html;
