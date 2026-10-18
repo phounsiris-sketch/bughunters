@@ -184,16 +184,23 @@ function _cmSearch(q) {
   var opt = ctl ? { signal: ctl.signal } : {};
   var c = _cm.map ? _cm.map.getCenter() : null, bias = _here || (c ? { lat: c.lat, lng: c.lng } : MAP_DEFAULT);
   _cm.busy = true; _cmResDraw();
-  var photon = "https://photon.komoot.io/api/?limit=7&q=" + encodeURIComponent(q) + "&lat=" + bias.lat.toFixed(4) + "&lon=" + bias.lng.toFixed(4);
-  var nomi = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=7&q=" + encodeURIComponent(q);
-  fetch(photon, opt).then(function (r) { if (!r.ok) throw new Error("photon"); return r.json(); }).then(function (j) {
-    var out = (j.features || []).map(function (f) {
-      var p = f.properties || {}, g = f.geometry && f.geometry.coordinates;
-      if (!g) return null;
-      var street = [p.street, p.housenumber].filter(Boolean).join(" ");
-      var addr = [street, p.district || p.suburb, p.city || p.county, p.state, p.country].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
-      return { name: p.name || street || addr, addr: addr, lat: g[1], lng: g[0] };
-    }).filter(Boolean);
+  var photon = "https://photon.komoot.io/api/?limit=15&q=" + encodeURIComponent(q) + "&lat=" + bias.lat.toFixed(4) + "&lon=" + bias.lng.toFixed(4) + "&location_bias_scale=0.6";
+  var nomi = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=15&q=" + encodeURIComponent(q) +
+    (_here ? "&viewbox=" + (_here.lng - 0.6).toFixed(3) + "," + (_here.lat + 0.6).toFixed(3) + "," + (_here.lng + 0.6).toFixed(3) + "," + (_here.lat - 0.6).toFixed(3) : "");
+  var near = _here ? "&bbox=" + (_here.lng - 0.5).toFixed(3) + "," + (_here.lat - 0.5).toFixed(3) + "," + (_here.lng + 0.5).toFixed(3) + "," + (_here.lat + 0.5).toFixed(3) : "";
+  function ph(url) {
+    return fetch(url, opt).then(function (r) { if (!r.ok) throw new Error("photon"); return r.json(); }).then(function (j) {
+      return (j.features || []).map(function (f) {
+        var p = f.properties || {}, g = f.geometry && f.geometry.coordinates;
+        if (!g) return null;
+        var street = [p.street, p.housenumber].filter(Boolean).join(" ");
+        var addr = [street, p.district || p.suburb, p.city || p.county, p.state, p.country].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
+        return { name: p.name || street || addr, addr: addr, lat: g[1], lng: g[0] };
+      }).filter(function (r) { return r && r.name; });
+    });
+  }
+  // Location on: look around me first (about 55 km); if nothing is there, look everywhere
+  (near ? ph(photon + near).then(function (o) { return o.length ? o : ph(photon); }) : ph(photon)).then(function (out) {
     if (!out.length) throw new Error("empty");
     return out;
   }).catch(function (e) {
@@ -201,12 +208,16 @@ function _cmSearch(q) {
     return fetch(nomi, opt).then(function (r) { return r.json(); }).then(function (a) {
       return (a || []).map(function (x) {
         var parts = String(x.display_name || "").split(", ");
-        return { name: x.name || parts[0], addr: parts.slice(x.name ? 1 : 1).join(", "), lat: parseFloat(x.lat), lng: parseFloat(x.lon) };
+        return { name: x.name || parts[0], addr: parts.slice(1).join(", "), lat: parseFloat(x.lat), lng: parseFloat(x.lon) };
       });
     });
   }).then(function (out) {
     if (q !== _cm.q.trim()) return;
-    _cm.res = out; _cm.busy = false; _cm.none = !out.length; _cmResDraw();
+    if (_here) {                                     // location on: nearest first, with the distance
+      out.forEach(function (r) { r.km = distanceKm(_here, r); });
+      out.sort(function (a, b) { return a.km - b.km; });
+    }
+    _cm.res = out.slice(0, 8); _cm.busy = false; _cm.none = !out.length; _cmResDraw();
   }).catch(function (e) {
     if (e && e.name === "AbortError") return;
     _cm.res = []; _cm.busy = false; _cm.err = true; _cmResDraw();
@@ -221,7 +232,8 @@ function _cmResDraw() {
   if (_cm.none && !_cm.res.length && _cm.q.trim().length >= 3) { _cm.none = false; el.innerHTML = '<div class="cm-res-msg">' + t("cmNoResult") + '</div>'; return; }
   el.innerHTML = _cm.res.map(function (r, i) {
     return '<button type="button" class="cm-res-row" onclick="cmPick(' + i + ')"><span class="cm-ic">' + icon("pin", 16) + '</span>' +
-      '<span class="cm-name"><b>' + escapeHtml(r.name || "") + '</b><small>' + escapeHtml(r.addr || "") + '</small></span></button>';
+      '<span class="cm-name"><b>' + escapeHtml(r.name || "") + '</b><small>' + escapeHtml(r.addr || "") + '</small></span>' +
+      (typeof r.km === "number" ? '<span class="tag">' + fmtKm(r.km) + '</span>' : '') + '</button>';
   }).join("");
 }
 
