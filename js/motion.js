@@ -44,3 +44,24 @@ function _countUp(el) {
   }
   requestAnimationFrame(step);
 }
+
+
+/* Bottom-sheet confirm (replaces the browser's confirm() popup).
+   askConfirm({ title, big, body, yes, danger }, onYes) */
+function askConfirm(o, onYes) {
+  var old = document.getElementById("askSheet"); if (old) old.remove();
+  var el = document.createElement("div");
+  el.id = "askSheet"; el.className = "sheet-wrap";
+  el.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' +
+    '<div class="sheet-grab"></div>' +
+    (o.title ? '<div class="sheet-title">' + o.title + '</div>' : '') +
+    (o.big ? '<div class="sheet-big">' + o.big + '</div>' : '') +
+    (o.body ? '<div class="sheet-body">' + o.body + '</div>' : '') +
+    '<div class="sheet-btns"><button type="button" class="btn-secondary" data-no>' + (o.no || t("cancel")) + '</button>' +
+    '<button type="button" class="' + (o.danger ? 'btn-danger' : 'btn-primary') + '" data-yes>' + (o.yes || t("confirm")) + '</button></div></div>';
+  var close = function () { el.remove(); };
+  el.onclick = function (e) { if (e.target === el || e.target.hasAttribute("data-no")) close(); };
+  el.querySelector("[data-yes]").onclick = function () { close(); if (onYes) onYes(); };
+  document.body.appendChild(el);
+  var y = el.querySelector("[data-yes]"); if (y && y.focus) y.focus();
+}

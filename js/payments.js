@@ -91,7 +91,7 @@ function renderPayments() {
     html += '<div class="pay-person-head">' + avatarHtml(g.uid, 44) +
       '<div style="flex:1;min-width:0"><div class="pay-person-label">' + t("payTo") + '</div><div class="pay-person-name">' + getUserName(g.uid) + '</div></div>' +
       '<div class="pay-person-total">' + fmtLAK(g.total) + '</div></div>';
-    html += '<div class="qr-strip" data-qr-uid="' + g.uid + '"><div class="qr-missing">' + t("loading") + '</div></div>';
+    html += '<div class="qr-strip" data-qr-uid="' + g.uid + '"><div class="qr-skel"><i></i><i></i></div></div>';
     html += _paymentItems(g, "owe");
     html += '</div>';
   });
@@ -130,6 +130,7 @@ function _paymentItems(g, side) {
 /** All the receiver's QR codes, labelled by type */
 function _fillQrStrips(root) {
   root.querySelectorAll(".qr-strip[data-qr-uid]").forEach(function (strip) {
+    strip.innerHTML = '<div class="qr-skel"><i></i><i></i></div>';
     dbGetUserQr(strip.getAttribute("data-qr-uid")).then(function (qr) {
       var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
       var html = "";
@@ -140,6 +141,8 @@ function _fillQrStrips(root) {
           '<div>' + icon(COST_ICON[x.type], 12) + ' ' + labels[x.type] + '</div></div>';
       });
       strip.innerHTML = html || '<div class="qr-missing">' + t("noQr") + '</div>';
+    }).catch(function () {
+      strip.innerHTML = '<button type="button" class="qr-retry" onclick="_fillQrStrips(this.parentNode.parentNode)">' + icon("qr", 14) + ' ' + t("qrRetry") + '</button>';
     });
   });
 }
@@ -150,10 +153,14 @@ function markPaymentOne(side, uid, sessionId, key) {
   if (!g) return;
   var it = g.items.filter(function (x) { return x.session.id === sessionId && x.transfer.key === key; })[0];
   if (!it) return;
-  var msg = t(side === "owe" ? "confirmMarkPaid" : "confirmMarkReceived").replace("{amount}", fmtLAK(it.transfer.amount)).replace("{name}", getUserName(uid)) +
-    "\n" + fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : "");
-  if (!confirm(msg)) return;
-  settleTransfers(it.session, [key], true)
-    .then(function () { showToast(t("paid") + " \u2714"); })
-    .catch(function (error) { showToast(_permError(error)); });
+  askConfirm({
+    title: t(side === "owe" ? "sheetPaidTitle" : "sheetReceivedTitle").replace("{name}", escapeHtml(getUserName(uid))),
+    big: fmtLAK(it.transfer.amount),
+    body: escapeHtml(fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : "")),
+    yes: t(side === "owe" ? "payItemPaid" : "payItemReceived")
+  }, function () {
+    settleTransfers(it.session, [key], true)
+      .then(function () { showToast(t("paid") + " \u2714"); })
+      .catch(function (error) { showToast(_permError(error)); });
+  });
 }

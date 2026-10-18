@@ -786,21 +786,26 @@ function _renderSplitResult(s) {
   var players = s.players || [];
   var html = "";
 
-  html += '<div class="split-header">';
+  // What matters first: my part, who I pay, the button
+  html += _yourPartHtml(s, L);
+  html += '<div class="split-header compact">';
   html += '<div class="split-label">' + t("totalSession") + '</div>';
   html += '<div class="split-amount" title="' + fmtLAK(L.totals.grand) + '">' + fmtShort(L.totals.grand) + '</div>';
   html += '</div>';
+  var editor = canEditBill(s) || canEditSessionDetails(s);
+  var calc = "";
+  var howCalc = '<details class="how-calc"' + (editor ? ' open' : '') + '><summary>' + icon("calc", 14) + ' ' + t("howCalc") + '</summary>';
 
   // Cost breakdown
-  html += '<div class="cost-breakdown">';
+  calc += '<div class="cost-breakdown">';
   var nCocks = sessionCocks(s);
-  html += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer, s.duration ? fmtHours(s.duration) : '');
-  html += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer, nCocks ? nCocks + ' ' + t("cocks") : '');
-  html += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
-  html += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
-  html += '</div>';
+  calc += _costCard(icon("court", 22), t("court"), L.totals.court, s.courtPayer, s.duration ? fmtHours(s.duration) : '');
+  calc += _costCard(icon("shuttle", 22), t("shuttlecocks"), L.totals.shuttle, s.shuttlePayer, nCocks ? nCocks + ' ' + t("cocks") : '');
+  calc += _costCard(icon("other", 22), t("otherCosts"), L.totals.other, null);
+  calc += _costCard(icon("dinner", 22), t("dinnerBill"), L.totals.dinner, s.dinner ? s.dinner.paidBy : null);
+  calc += '</div>';
   if (L.totals.discount > 0) {
-    html += '<div class="item-row" style="margin:4px 0 8px"><div class="item-name">' + icon("percent", 16) + ' ' + t("discount") + (s.discount && s.discount.type === "percent" ? ' ' + s.discount.value + '%' : '') +
+    calc += '<div class="item-row" style="margin:4px 0 8px"><div class="item-name">' + icon("percent", 16) + ' ' + t("discount") + (s.discount && s.discount.type === "percent" ? ' ' + s.discount.value + '%' : '') +
       ' <span class="form-hint">(' + fmtLAK(L.totals.gross) + ' \u2192 ' + fmtLAK(L.totals.grand) + ')</span></div><div class="item-price" style="color:var(--green,#16a34a)">\u2212' + fmtLAK(L.totals.discount) + '</div></div>';
   }
 
@@ -835,41 +840,42 @@ function _renderSplitResult(s) {
       (typeof dinnerRestaurantViewHtml === "function" ? dinnerRestaurantViewHtml(s) : '') + receipt);
   }
 
+  // The maths, folded for players (open for organisers)
   // 2) Settlement after deduction: one row per pair of people
-  html += '<div class="card"><div class="card-title">' + icon("calc", 14) + ' ' + t("settlement") + '</div>';
+  calc += '<div class="card"><div class="card-title">' + icon("calc", 14) + ' ' + t("settlement") + '</div>';
   if (L.transfers.length === 0) {
-    html += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
+    calc += '<div style="font-size:13px;color:var(--text-muted)">' + t("nothingToPay") + '</div>';
   } else {
-    html += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + t("settlementHint") + '</div>';
+    calc += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">' + t("settlementHint") + '</div>';
     for (var ti = 0; ti < L.transfers.length; ti++) {
       var tr = L.transfers[ti];
       var gross = (tr.items || []).reduce(function (a, x) { return a + x.amount; }, 0);
       var minus = (tr.minus || []).reduce(function (a, x) { return a + x.amount; }, 0);
       var isDone = !!settled[tr.key];
       var canMark = _canMarkTransfer(s, tr);
-      html += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
-      html += '<div class="settle-head"><div class="settle-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</div><div>';
+      calc += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
+      calc += '<div class="settle-head"><div class="settle-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</div><div>';
       if (isDone) {
-        html += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
+        calc += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
                         : '<span class="person-status status-payer">' + t("paid") + '</span>';
       } else if (canMark) {
-        html += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
+        calc += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
       } else {
-        html += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
+        calc += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
       }
-      html += '</div></div>';
-      html += '<table class="settle-table"><thead><tr><th class="num">' + t("owes") + '</th><th class="num">− ' + t("deduct") + '</th><th class="num">= ' + t("toPay") + '</th></tr></thead><tbody><tr>' +
+      calc += '</div></div>';
+      calc += '<table class="settle-table"><thead><tr><th class="num">' + t("owes") + '</th><th class="num">− ' + t("deduct") + '</th><th class="num">= ' + t("toPay") + '</th></tr></thead><tbody><tr>' +
         '<td class="num">' + Math.round(gross).toLocaleString("en-US") + '</td>' +
         '<td class="num">' + (minus ? Math.round(minus).toLocaleString("en-US") : '—') + '</td>' +
         '<td class="num pay">' + fmtLAK(tr.amount) + '</td></tr></tbody></table>';
-      html += '<div class="person-breakdown">' + transferBreakdownHtml(tr) + '</div>';
-      html += '</div>';
+      calc += '<div class="person-breakdown">' + transferBreakdownHtml(tr) + '</div>';
+      calc += '</div>';
     }
   }
-  html += '</div>';
+  calc += '</div>';
 
   // Per person
-  html += '<div class="card"><div class="card-title">' + t("perPerson") + '</div>';
+  calc += '<div class="card"><div class="card-title">' + t("perPerson") + '</div>';
   var shareUids = Object.keys(L.shares).filter(function (u) { return L.shares[u].total > 0 || L.paid[u] > 0; });
   for (var pi = 0; pi < shareUids.length; pi++) {
     var uid = shareUids[pi];
@@ -882,17 +888,19 @@ function _renderSplitResult(s) {
     var paidStr = L.paid[uid] > 0 ? '<div style="font-size:11px;color:var(--accent)">' + t("paidOut") + ' ' + fmtLAK(L.paid[uid]) + '</div>' : '';
     var notPlaying = players.indexOf(uid) < 0 ? ' <span style="font-size:11px;color:var(--text-muted)">(' + t("notPlaying") + ')</span>' : '';
 
-    html += '<div class="person-row"><div class="person-left">';
-    html += avatarHtml(uid, 36);
-    html += '<div style="min-width:0"><div style="font-size:14px">' + getUserName(uid) + notPlaying + '</div>' + paidStr +
+    calc += '<div class="person-row"><div class="person-left">';
+    calc += avatarHtml(uid, 36);
+    calc += '<div style="min-width:0"><div style="font-size:14px">' + getUserName(uid) + notPlaying + '</div>' + paidStr +
       '<div class="person-breakdown">' + parts.join(' + ') + '</div></div></div>';
-    html += '<div class="person-right"><div class="person-amount">' + fmtLAK(ps.total) + '</div></div></div>';
+    calc += '<div class="person-right"><div class="person-amount">' + fmtLAK(ps.total) + '</div></div></div>';
   }
-  html += '</div>';
+  calc += '</div>';
+
+  html += howCalc + calc + '</details>';
 
   // Messenger copy & preview
   html += '<button class="btn-share" onclick="copyMessengerFromPreview()">' + t("copyMessenger") + '</button>';
-  html += '<div class="messenger-preview" id="messengerPreview">' + escapeHtml(buildMessengerText(s)) + '</div>';
+  html += '<details class="msg-prev"><summary>' + t("msgPreview") + '</summary><div class="messenger-preview" id="messengerPreview">' + escapeHtml(buildMessengerText(s)) + '</div></details>';
 
   if (canEditBill(s) || canEditSessionDetails(s)) {
     html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">' + icon("pen", 14) + ' ' + t("editCosts") + '</button>';
@@ -901,6 +909,37 @@ function _renderSplitResult(s) {
     html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
   }
   return html;
+}
+
+/** The first thing a player sees on a settled bill: my part, who I pay, the button */
+function _yourPartHtml(s, L) {
+  if (!currentUser) return "";
+  var me = currentUser.uid, my = L.shares[me], settled = s.settled || {};
+  var out = L.transfers.filter(function (tr) { return tr.from === me; });
+  var inn = L.transfers.filter(function (tr) { return tr.to === me; });
+  if (!my && !out.length && !inn.length) return "";
+  var h = '<div class="card yp"><div class="yp-label">' + t("yourPart") + '</div>';
+  h += '<div class="yp-amount" title="' + fmtLAK(my ? my.total : 0) + '">' + fmtLAK(my ? my.total : 0) + '</div>';
+  if (my) {
+    var parts = [];
+    if (my.court) parts.push(icon("court", 13) + ' ' + fmtShort(my.court));
+    if (my.shuttle) parts.push(icon("shuttle", 13) + ' ' + fmtShort(my.shuttle));
+    if (my.other) parts.push(icon("other", 13) + ' ' + fmtShort(my.other));
+    if (my.dinner) parts.push(icon("dinner", 13) + ' ' + fmtShort(my.dinner));
+    if (parts.length > 1) h += '<div class="yp-break">' + parts.join(' <i>+</i> ') + '</div>';
+  }
+  var row = function (tr, mine) {
+    var done = !!settled[tr.key], who = mine ? tr.to : tr.from, canMark = _canMarkTransfer(s, tr);
+    var label = (mine ? t("payTo") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
+    var act = done ? '<span class="yp-done">' + icon("check", 14) + ' ' + t("paid") + '</span>'
+      : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
+      : '<span class="yp-wait">' + t("unpaid") + '</span>';
+    return '<div class="yp-row' + (done ? ' done' : '') + '">' + avatarHtml(who, 30) + '<span class="yp-who"><span>' + label + '</span><small>' + fmtLAK(tr.amount) + '</small></span>' + act + '</div>';
+  };
+  h += out.map(function (tr) { return row(tr, true); }).join("") + inn.map(function (tr) { return row(tr, false); }).join("");
+  if (!out.length && !inn.length) h += '<div class="yp-ok">' + icon("check", 16) + ' ' + t("nothingOwed") + '</div>';
+  else if (out.length && out.every(function (tr) { return settled[tr.key]; }) && !inn.length) h += '<div class="yp-ok">' + icon("check", 16) + ' ' + t("allSettledYou") + '</div>';
+  return h + '</div>';
 }
 
 /** The payer, the receiver, the session creator, or anyone when a manual
