@@ -1162,3 +1162,10 @@ The two wide buttons "Open map" / "Share location" under the session header are 
 
 ## My rating card with less text (v139)
 `_myStatsCard()` (Rankings and Home): removed the grey "everyone starts at 1500" sentence (the ? button already explains it), the "see my progress" text link and the text labels. Now: name + badge, `#rank ▲change`, big rating, ? button; one row of icon+number chips (win rate, matches this month, best partner avatar) with a round chart button at the right (opens My progress; Home rewrites its onclick as before); last 5 games as W/L chips only, tap opens the list. Old wording kept as tooltips/aria-labels. CSS: `.mh-chip`, `.mh-go` at the end of styles.css. `.mh-explain`, `.mh-best`, `.my-stats-more` CSS now unused. Stacked on v138 (not merged yet).
+
+## Public › Courts is now a real map (v140)
+- New `js/courtsmap.js` (index.html, sw.js precache). The Courts tab shows a Leaflet / OpenStreetMap map (already vendored, no key): red pin per court with a pin-drop animation, blue pulsing "you are here" dot (`_here`), the view fits me + the 3 nearest courts. Tap a pin: it turns green and bounces, and a card shows name, distance, hours, upcoming games, **Directions** (`mapsDirUrl`) and **Details** (court modal). Round buttons on the map: find me (`cmLocate`) and **+** (add court).
+- **Add / pin from here:** **+** → tap the map (draggable pin, adjust) → "Add court here" opens the court form with the pin already set (`showCourtModal(null, cb, {directoryOnly:true, pin})`; new `opts.pin` presets the map picker and opens the section). Courts with no pin show "Pin on map" in the list: tap the map, "Pin court here" opens that court's edit form with the new pin.
+- The list below the map is nearest first, one compact row each, with a directions icon.
+- The map is rebuilt on each Public re-render but keeps its last centre and zoom (`_cm.view`). Session/settings pin pickers are unchanged.
+- New icon `target`; i18n keys `cm*` (Lao unreviewed). Stacked on nothing (main at v139).

@@ -5474,3 +5474,38 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .my-hero .form-strip { margin-top: 10px; }
 .my-hero .form-strip .wl { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
 .my-hero .form-strip .recent-chev { margin-left: auto; }
+
+/* Public › Courts map */
+.cm-wrap { position: relative; margin-bottom: 10px; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 6px 20px rgba(0, 0, 0, .12); }
+.cm-map { height: 330px; background: var(--chip-bg); z-index: 0; }
+.cm-tools { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 500; }
+.cm-fab { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--card); color: var(--accent); font-size: 26px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0, 0, 0, .3); cursor: pointer; transition: transform .15s ease; }
+.cm-fab.add { background: var(--accent); color: #fff; }
+.cm-fab:active { transform: scale(.9); }
+.cm-bar:empty { display: none; }
+.cm-card { margin: 0 0 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); animation: cmUp .35s cubic-bezier(.22, 1, .36, 1) both; }
+.cm-card.cm-mode { border-color: var(--accent); }
+.cm-t { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 15px; }
+.cm-sub { margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+.cm-btns { display: flex; gap: 8px; margin-top: 10px; }
+.cm-go { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; margin: 0; padding: 0 10px; font-size: 14px; text-decoration: none; }
+.cm-list { padding: 4px 12px; }
+.cm-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.cm-row:last-child { border-bottom: 0; }
+.cm-ic { width: 34px; height: 34px; border-radius: 50%; background: var(--chip-bg); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cm-ic.off { color: var(--text-muted); }
+.cm-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cm-name small { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-pinbtn { border: 1px dashed var(--accent); background: none; color: var(--accent); border-radius: 14px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.cm-pin-wrap, .cm-me-wrap { background: none; border: 0; }
+.cm-pin { color: #e11d48; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .35)); transform-origin: bottom center; animation: cmDrop .55s cubic-bezier(.3, 1.5, .5, 1) both; }
+.cm-pin.sel { color: var(--accent); animation: cmBounce 1.1s ease-in-out infinite; }
+.cm-me { position: relative; width: 22px; height: 22px; }
+.cm-me i { position: absolute; inset: 4px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.cm-me::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgba(37, 99, 235, .35); animation: cmPulse 2s ease-out infinite; }
+@keyframes cmUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes cmDrop { 0% { opacity: 0; transform: translateY(-40px) scale(.6); } 100% { opacity: 1; transform: none; } }
+@keyframes cmBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes cmPulse { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cm-pin, .cm-pin.sel, .cm-me::before, .cm-card { animation: none; } }
+.btn-primary .si path[stroke="#fff"] { stroke: var(--accent); }

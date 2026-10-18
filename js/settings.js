@@ -602,9 +602,9 @@ function showCourtModal(courtId, onSaved, opts) {
   more.addEventListener("toggle", function () {
     if (!more.open || mapReady) return;
     mapReady = true;
-    initMapPicker("courtPin", c ? c.lat : null, c ? c.lng : null);
+    initMapPicker("courtPin", opts.pin ? opts.pin.lat : c ? c.lat : null, opts.pin ? opts.pin.lng : c ? c.lng : null);
   });
-  if (opts.openMap) more.open = true;
+  if (opts.openMap || opts.pin) more.open = true;
 }
 
 function deleteSettingsCourt(id) {

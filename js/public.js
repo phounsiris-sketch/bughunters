@@ -94,6 +94,7 @@ function renderPublic() {
   else if (publicTab === "market") box.innerHTML = _cityFilterHtml() + _renderMarket();
   else if (publicTab === "courts") box.innerHTML = _renderDirectory();
   else box.innerHTML = _cityFilterHtml() + _renderGames();
+  if (publicTab === "courts" && typeof cmInit === "function") cmInit();
   uiMotion(box, publicTab + "|" + (pubCal.sel || "") + "|" + (pubCal.month || ""));
 }
 
@@ -467,19 +468,5 @@ function _renderPublicGroups() {
 /* ---------- Court directory ---------- */
 
 function _renderDirectory() {
-  var list = _gameCourts();
-  var html = '<button class="add-btn-dashed" onclick="showCourtModal(null,null,{directoryOnly:true})">+ ' + t("addCourt") + '</button>';
-  if (!_here) html += '<div class="form-hint" style="margin:6px 0">' + t("allowLocationHint") + '</div>';
-  list.forEach(function (c) {
-    var dist = _here && hasPin(c) ? fmtKm(distanceKm(_here, c)) : "";
-    var upcoming = _publicGames.filter(function (g) { return g.courtId === c.id && gameStartMs(g) > Date.now(); }).length;
-    html += '<div class="card game-card" onclick="showCourtModal(\'' + c.id + '\',null,{directoryOnly:true})" style="cursor:pointer">' +
-      '<div class="game-head"><div class="game-when" style="font-size:16px">' + escapeHtml(c.name) + '</div>' + (dist ? '<span class="tag">' + dist + '</span>' : '') + '</div>' +
-      '<div class="game-facts">' + icon("pin", 13) + ' ' + escapeHtml(c.location || "") + (c.courtsCount ? ' · ' + t("nCourts").replace("{n}", c.courtsCount) : '') +
-      (c.aircon ? ' · ' + t("aircon") : '') + (c.hours ? ' · ' + escapeHtml(c.hours) : '') + '</div>' +
-      '<div class="game-actions">' + (hasPin(c) ? courtMapLink(c, t("directions")) : '<span class="no-pin">' + t("noPinYet") + '</span>') +
-      (c.phone ? '<a class="map-link" href="tel:' + escapeHtml(c.phone) + '" onclick="event.stopPropagation()">' + icon("phone", 13) + ' ' + escapeHtml(fmtPhone(c.phone)) + '</a>' : '') +
-      (upcoming ? '<span class="tag">' + t("upcomingGamesN").replace("{n}", upcoming) + '</span>' : '') + '</div></div>';
-  });
-  return html;
+  return typeof cmHtml === "function" ? cmHtml() : "";
 }
