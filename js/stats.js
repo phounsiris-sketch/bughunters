@@ -241,17 +241,20 @@ function _myStatsCard() {
     '<div class="mh-sub">' + (idx >= 0 ? '<b>#' + (idx + 1) + '</b> ' + _rankTrend(st.rankChange.players[me], p.rating, p.monthStart) : t("notRankedYet").replace("{n}", 0).replace("{min}", RANK_MIN_MATCHES)) + '</div></div>' +
     '<div class="mh-rate"><small>' + t("homeRating") + '</small><b>' + (p && p.comp ? Math.round(p.rating) : '\u2013') + '</b>' + (p && p.comp ? _provTag(p.comp, RANK_MIN_MATCHES) : '') + '</div>' +
     '<button class="how-btn" aria-label="' + t("howRankingWorks") + '" onclick="showRankingHelp()">?</button></div>';
-  html += '<div class="mh-explain">' + t("rankExplain").replace("{start}", RATING_START) + '</div>';
+  // Facts: three small chips, icon + number (the words live in the tooltip), and the progress button
+  var wl = '', best = null;
   if (p) {
     var wr = p.wins + p.losses ? Math.round(p.wins / (p.wins + p.losses) * 100) : 0;
-    var best = _bestPartner(p);
-    html += '<div class="mh-facts">' + iconStatHtml("medal", wr + '% ' + t("winRate")) + iconStatHtml("court", p.monthPlayed + ' ' + t("matchesThisMonth")) + '</div>';
-    if (best) html += '<div class="mh-best">' + icon("users", 16) + ' ' + t("bestPartner") + ' ' + personHtml(best, 22) + '</div>';
+    best = _bestPartner(p);
+    wl = '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 16) + '<b>' + wr + '%</b></span>' +
+      '<span class="mh-chip" title="' + escapeHtml(t("matchesThisMonth")) + '">' + icon("court", 16) + '<b>' + p.monthPlayed + '</b></span>' +
+      (best ? '<span class="mh-chip" title="' + escapeHtml(t("bestPartner")) + '">' + icon("users", 16) + personHtml(best, 22) + '</span>' : '');
   }
-  // My last 5 games, newest first: the strip and the list run the same way
+  html += '<div class="mh-facts">' + wl + '<button class="mh-go" aria-label="' + escapeHtml(t("seeMyProgress")) + '" title="' + escapeHtml(t("seeMyProgress")) + '" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + icon("chart", 18) + '</button></div>';
+  // My last 5 games, newest first: W/L chips only; tap to open the list
   var last = _myGames(me).slice(-5).reverse();
   if (last.length) {
-    html += '<details class="recent-wrap"><summary class="form-strip"><span class="form-hint" style="margin:0">' + t("lastNGames").replace("{n}", last.length) + '</span>' +
+    html += '<details class="recent-wrap"><summary class="form-strip" title="' + escapeHtml(t("lastNGames").replace("{n}", last.length)) + '">' +
       last.map(function (x) { return '<span class="wl ' + (x.won ? 'w' : 'l') + '">' + (x.won ? t("winShort") : t("lossShort")) + '</span>'; }).join('') +
       '<span class="recent-chev">' + icon("chevron", 14) + '</span></summary>';
     html += '<div class="recent-games">' + last.map(function (x) {
@@ -261,7 +264,6 @@ function _myStatsCard() {
         '<div class="rg-line vs"><span class="rg-vs">' + t("vsWord") + '</span>' + byNameAZ(x.them).map(function (u) { return personHtml(u, 20); }).join('') + '</div></div></div>';
     }).join('') + '</div></details>';
   }
-  html += '<button class="link-btn my-stats-more" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + t("seeMyProgress") + ' ' + icon("chevron", 12) + '</button>';
   return html + '</div>';
 }
 
