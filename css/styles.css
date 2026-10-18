@@ -5522,3 +5522,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .cm-res-row:last-child { border-bottom: 0; }
 .cm-res-row:active { background: var(--chip-bg); }
 .cm-res-msg { padding: 14px; font-size: 13px; color: var(--text-muted); }
+
+/* One scope (All time / This month / 3m / 6m / 1y) and two clearly named pair answers */
+.mh-scope { margin-top: 10px; }
+.mh-scope .period-toggle { margin: 0; gap: 4px; flex-wrap: wrap; justify-content: flex-start; }
+.mh-scope .period-btn { flex: 0 0 auto; padding: 5px 10px; font-size: 12px; min-height: 0; }
+.mh-pairs { display: grid; gap: 6px; margin-top: 10px; }
+.mh-pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--chip-bg); }
+.mh-pl { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.mh-pl .si { color: var(--accent); }
+.mh-pv { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; min-width: 0; }
+.mh-pv em { font-style: normal; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+.mh-pv.none { font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: right; }
+.scope-note { display: flex; align-items: center; gap: 6px; margin: 4px 2px 8px; }

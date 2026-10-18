@@ -31,12 +31,13 @@ function _hsCard(cls, iconName, title, onclick, inner) {
 /** Play: games this month, my last results as dots, rating and win rate */
 function _homePlayCard(me) {
   var st = computeStats(), p = st.players[me];
-  var games = typeof _myGames === "function" ? _myGames(me).slice(-8) : [];
+  var games = formStrip(me, 5);
   var dots = games.map(function (g) {
     return '<span class="hs-dot' + (g.won ? ' w' : ' l') + '">' + (g.won ? t("winShort") : t("lossShort")) + '</span>';
   }).join("") || '<span class="hs-muted">' + t("gamesEmpty") + '</span>';
-  var played = p ? p.monthPlayed : 0;
-  var wr = p && p.wins + p.losses ? Math.round(p.wins / (p.wins + p.losses) * 100) : null;
+  var sm = statsFor(me, "month");                 // this card is "this month": games and win rate both
+  var played = sm.played;
+  var wr = sm.winRate;
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
   return _hsCard("hs-play", "court", t("homePlay"), "showPage('stats')",
     '<div class="hs-big">' + played + ' <small>' + t("homeGamesMonth") + '</small></div>' +
@@ -107,10 +108,10 @@ function _homeRatingCard(me) {
       '<circle class="ring" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="6"/><circle class="now" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="3.4"/></svg>';
   }
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
-  var best = vals.length ? Math.max.apply(null, vals) : ratingOf(me);
+  var best = p && p.history && p.history.length ? Math.max.apply(null, p.history.map(function (h) { return h.r; })) : ratingOf(me);   // real peak, not only the last 12
   return _hsCard("hs-rating", "ranking", t("homeRating"), "progressUser=currentUser.uid;statsTab='progress';showPage('stats')",
     '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
-    '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + (p ? p.played : 0) + ' ' + t("gamesWord") + '</span>' +
+    '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + statsFor(me, "all").played + ' ' + t("gamesWord") + '</span>' +
     '</div>');
 }
 
