@@ -2,7 +2,7 @@
 var fs = require("fs"), vm = require("vm"), assert = require("assert");
 var names = { me: "Me", john: "John", ton: "Ton", mike: "Mike", al: "Al", bo: "Bo", cy: "Cy" };
 var ctx = { console: console, GROUPS_ON: true, currentGroupId: "g", currentUser: { uid: "me" }, localStorage: { getItem: function () { return null; }, setItem: function () {} },
-  t: function (k) { return k; }, getUserName: function (u) { return names[u] || u; }, escapeHtml: function (x) { return String(x); }, icon: function () { return ""; },
+  t: function (k) { return { insLineBest: "You win {pct} with {name}.", insLineTough: "Only {pct} with {name}." }[k] || k; }, getUserName: function (u) { return names[u] || u; }, escapeHtml: function (x) { return String(x); }, icon: function () { return ""; },
   _todayIso: function () { return "2026-10-18"; }, avatarHtml: function () { return ""; }, personHtml: function (u) { return "[" + names[u] + "]"; },
   findUser: function () { return {}; }, memberOf: function () { return null; }, normLevel: function (x) { return x || ""; }, levelBadgeHtml: function () { return ""; },
   badgesHtml: function () { return ""; }, byNameAZ: function (a) { return a; }, fmtDate: function (d) { return d; }, plainUserName: function () { return ""; }, setBreadcrumb: function () {}, refreshCurrentPage: function () {}, document: {}, setTimeout: setTimeout };
@@ -36,12 +36,13 @@ assert.strictEqual(lm[rm - 1].uid, "me");
 assert.ok(lm.every(function (p) { return ctx.statsFor(p.uid, "month").decided > 0; }), "month list only has players who played this month");
 // the cards print the same names
 var card = ctx._myStatsCard(), ins = ctx._pairInsightsHtml("me", ctx.statsFor("me", "all").games);
-var rows = card.split('<div class="mh-prow">').slice(1);
-var starred = rows.filter(function (r) { return r.indexOf("mh-mk best") >= 0; });
-assert.strictEqual(starred.length, 1, "exactly one starred partner");
-assert.ok(starred[0].indexOf("[Ton]") >= 0, "the starred partner on the hero card is Ton");
-assert.ok(rows.some(function (r) { return r.indexOf("[John]") >= 0 && r.indexOf("mh-mk best") < 0; }), "John is listed (3 games) but not starred");
-assert.ok(rows[0].indexOf("[Ton]") >= 0, "most games first");
+var line = ctx.insightFor("me", "all");
+assert.strictEqual(line.key, "insLineBest", "one smart line: best partner"); assert.strictEqual(line.uid, "ton"); assert.strictEqual(line.pct, "75%");
+assert.ok(card.indexOf("<b>Ton</b>") >= 0 && card.indexOf("<b>John</b>") < 0, "hero line names Ton");
+assert.strictEqual(ctx.insightFor("me", "month").key, "insLineBest");
+var tr = ctx.ratingTrend("me", "all");
+assert.ok(tr && tr.vals.length === 16 && tr.peak >= tr.end && tr.start === 1500, "trend: start + one point per game");
+assert.strictEqual(ctx.insightFor("zed", "all").key, "insLineStart");
 assert.ok(ins.indexOf("Me") >= 0 && ins.indexOf("Ton") >= 0, "Progress best partner is Ton too");
 assert.ok(/bestPartner<\/span>[\s\S]*?Ton/.test(ins.replace(/&amp;/g, "&")) || ins.indexOf("Ton") >= 0);
 // a losing partnership is never "best"
@@ -50,4 +51,5 @@ ctx.lastMatches = M.sort(function (a, b) { return a.date.localeCompare(b.date); 
 assert.strictEqual(ctx.bestPartnerOf("me", "all").uid, "ton");
 assert.notStrictEqual(ctx.bestPartnerOf("me", "all").uid, "al", "Al is 2-3: not best");
 assert.strictEqual(ctx.worstPartnerOf("me", "all").uid, "al", "Al is the toughest partner (5 games, 40%)");
+assert.strictEqual(ctx.insightFor("me", "all").key, "insLineTough", "toughest partner under 40% comes first");
 console.log("stats-core OK");
