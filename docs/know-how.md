@@ -1153,3 +1153,9 @@ User did not want the Moments card anywhere. `renderHome` no longer calls `momen
 
 ## Compact session location (v137)
 The two wide buttons "Open map" / "Share location" under the session header are replaced by two small round icon buttons on the same line as time and court (`.sess-where`, `.loc-mini`, `.loc-ic`): **directions** (new icon `route`, opens Google Maps turn-by-turn via new `mapsDirUrl(lat,lng)` in maps.js) and **share** (new icon `share`, `shareLocation()` unchanged: native share sheet, else copy). Labels stay as `title`/`aria-label`. A court without a pin shows one small pin button for admins (`pinSessionCourt`), nothing for others. Saves about 60 px of height. `.loc-actions` CSS kept but unused.
+
+## Wow motion on Dashboard, Rankings and Public (v138)
+- New `js/motion.js` (in index.html before dashboard.js, in the sw.js precache): `uiMotion(container, key)` adds `.dash-anim` once per view (key = tab/period/person...), `uiMotionReset()` is called from `showPage` when the page changes, so every visit plays again but a Firestore refresh never replays. Count-up (`_countUp`) now also runs on `.rank-text small` (the rating). Moved out of dashboard.js.
+- Used by `_renderDashboard`, `renderStats` (key statsTab|statsPeriod|progressUser) and `renderPublic` (key publicTab|picked day|month).
+- Effects added in the "Wow layer" CSS block: light sheen sweeping over each card, medals pop in with a spin, round glow pulse on the #1 avatar (3 times), rank rows slide in from the left with their numbers popping, my own row flashes green once, public game cards flip up in 3D, highlight/insight rows slide in.
+- Reduced motion: all off, no count-up.

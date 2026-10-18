@@ -208,6 +208,7 @@ function renderStats() {
   var note = '<div class="private-note">' + icon("lock", 12) + ' ' + t("statsPrivate").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>';
   var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : _renderRanking();
   box.innerHTML = tabs + note + body;
+  uiMotion(box, statsTab + "|" + statsPeriod + "|" + (typeof progressUser !== "undefined" ? progressUser : ""));
 }
 
 function _trend(now, start) {

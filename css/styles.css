@@ -5439,3 +5439,26 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .loc-ic { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; margin: 0; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--accent); cursor: pointer; text-decoration: none; transition: transform .15s ease, background-color .2s ease; }
 .loc-ic:active { transform: scale(.92); }
 @media (hover: hover) { .loc-ic:hover { background: var(--chip-bg); } }
+
+/* ── Wow layer: sheen sweep, medal pop, rank rows slide in, top-1 glow, game cards flip up ── */
+@keyframes fxSheen { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+@keyframes fxMedal { 0% { transform: scale(0) rotate(-200deg); opacity: 0; } 65% { transform: scale(1.35) rotate(12deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+@keyframes fxSlide { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+@keyframes fxNo { 0% { transform: scale(0); } 70% { transform: scale(1.4); } 100% { transform: scale(1); } }
+@keyframes fxGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 190, 40, .55); } 50% { box-shadow: 0 0 0 9px rgba(245, 190, 40, 0); } }
+@keyframes fxFlip { from { opacity: 0; transform: perspective(700px) rotateX(-18deg) translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes fxMe { 0%, 100% { background-color: transparent; } 40% { background-color: rgba(34, 197, 94, .18); } }
+.dash-anim > .card { position: relative; }
+.dash-anim > .card:not(.paynote)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .22) 50%, transparent 62%) 160% 0 / 250% 100% no-repeat;
+  animation: fxSheen 1.2s ease-out .45s both; animation-delay: calc(.35s + var(--i, 0) * 70ms); }
+.dash-anim .pod-medal { animation: fxMedal .75s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(450ms + var(--j, 0) * 120ms); }
+.dash-anim .pod.r1 .pod-avatar .person-avatar { animation: fxGlow 2.4s ease-out 1.2s 3; }
+.dash-anim .rank-row { animation: fxSlide .5s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(240ms + var(--j, 0) * 55ms); }
+.dash-anim .rank-row .rank-no { animation: fxNo .5s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(360ms + var(--j, 0) * 55ms); }
+.dash-anim .rank-row.me { animation: fxSlide .5s cubic-bezier(.22, 1, .36, 1) both, fxMe 1.6s ease-in-out 1s 1; animation-delay: calc(240ms + var(--j, 0) * 55ms), 1s; }
+.dash-anim .game-card { animation: fxFlip .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(120ms + var(--j, 0) * 100ms); transform-origin: top center; }
+.dash-anim .hl-row, .dash-anim .ins-row { animation: fxSlide .5s cubic-bezier(.22, 1, .36, 1) both; animation-delay: calc(240ms + var(--j, 0) * 60ms); }
+@media (prefers-reduced-motion: reduce) {
+  .dash-anim > .card::after, .dash-anim .pod-medal, .dash-anim .pod.r1 .pod-avatar .person-avatar, .dash-anim .rank-row, .dash-anim .rank-row .rank-no, .dash-anim .rank-row.me, .dash-anim .game-card, .dash-anim .hl-row, .dash-anim .ins-row { animation: none; }
+}
