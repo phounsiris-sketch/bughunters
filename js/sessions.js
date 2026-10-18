@@ -815,20 +815,20 @@ function _renderSplitResult(s) {
   if (L.totals.court > 0) {
     html += _payTypeCard(s, icon("court", 18), t("court"),
       escapeHtml(s.courtName || "") + ' — ' + (s.courtParts && s.courtParts.length ? courtPartsText(s.courtParts) : fmtHours(s.duration || 0) + ' × ' + fmtLAK(s.pricePerHour)),
-      L.totals.court, s.courtPayer, "court", _even(players, L.totals.court));
+      L.totals.court, s.courtPayer, "court", _even(players, L.totals.court), _receiptThumbHtml(s.courtReceipt));
   }
   if (L.totals.shuttle > 0) {
     var cocksDesc = (s.shuttlecocks || []).map(function (c) {
       return c.qty + ' ' + escapeHtml(c.brand) + ' (' + fmtLAK(c.price) + '/' + c.cocksPerTube + ')';
     }).join(', ');
-    html += _payTypeCard(s, icon("shuttle", 18), t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle));
+    html += _payTypeCard(s, icon("shuttle", 18), t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle), _receiptThumbHtml(s.shuttleReceipt));
   }
   (s.otherCosts || []).forEach(function (oc) {
     if (!(oc.amount > 0)) return;
     var parts = oc.forUid ? (function () { var o = {}; o[oc.forUid] = oc.amount; return o; })() : _even(players, oc.amount);
     html += _payTypeCard(s, icon("other", 18), escapeHtml(oc.desc),
       oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone") + ' (÷' + n + ')',
-      oc.amount, oc.paidBy, "dinner", parts);
+      oc.amount, oc.paidBy, "dinner", parts, _receiptThumbHtml(oc.receipt));
   });
   if (L.totals.dinner > 0) {
     var receipt = s.dinner.receiptUrl
@@ -1066,8 +1066,10 @@ function startEditSession() {
     }),
     shuttlePayer: s.shuttlePayer || _defaultPayer("defaultShuttlePayer", s.players),
     otherCosts: (s.otherCosts || []).map(function (x) {
-      return { desc: x.desc, amount: x.amount, paidBy: x.paidBy, forUid: x.forUid || null };
+      return { desc: x.desc, amount: x.amount, paidBy: x.paidBy, forUid: x.forUid || null, receipt: x.receipt || null };
     }),
+    courtReceipt: s.courtReceipt || null,
+    shuttleReceipt: s.shuttleReceipt || null,
     dinner: s.dinner ? {
       totalBill: s.dinner.totalBill || 0,
       paidBy: s.dinner.paidBy || "",
@@ -1153,6 +1155,7 @@ function renderEditForm() {
   html += '</fieldset>' + lockBill;
   html += '<div class="form-group" style="margin-top:8px"><label class="form-label">' + icon("card", 12) + ' ' + t("courtPayer") + '</label>';
   html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickCourtPayer" onchange="edit.courtPayer=this.value">' + _payerOptions(edit.courtPayer, edit.players) + '</select></div>';
+  html += _receiptFieldHtml("court", -1, edit.courtReceipt);
   html += '</fieldset>' + lockDetails;
   html += '</div>';
 
@@ -1187,6 +1190,7 @@ function renderEditForm() {
   html += '<button class="add-btn-dashed" onclick="showAddShuttlecock()">+ ' + t("addBrand") + '</button>';
   html += '<div class="form-group" style="margin-top:10px"><label class="form-label">' + icon("card", 12) + ' ' + t("shuttlePayer") + '</label>';
   html += '<select class="form-select" data-cs-type="player" data-cs-onpick="editPickShuttlePayer" onchange="edit.shuttlePayer=this.value">' + _payerOptions(edit.shuttlePayer, edit.players) + '</select></div>';
+  html += _receiptFieldHtml("shuttle", -1, edit.shuttleReceipt);
   html += '<div class="subtotal-row"><span>' + t("shuttleTotal") + '</span><span id="shuttleTotal"></span></div>';
   html += '</div>';
 
@@ -1198,7 +1202,8 @@ function renderEditForm() {
     html += '<div class="item-row"><div class="item-name">' + escapeHtml(oc.desc) +
       '<div style="font-size:12px;color:var(--text-muted)">' + icon("card", 12) + ' ' + getUserName(oc.paidBy) + ' • ' + (oc.forUid ? t("for") + ' ' + getUserName(oc.forUid) : t("everyone")) + '</div></div>' +
       '<div class="item-price">' + fmtLAK(oc.amount) + '</div>' +
-      '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">' + icon("close", 16) + '</button></div>';
+      '<button class="remove-btn" onclick="edit.otherCosts.splice(' + oi + ',1);renderEditForm()">' + icon("close", 16) + '</button></div>' +
+      _receiptFieldHtml("other", oi, oc.receipt, true);
   }
   html += '<button class="add-btn-dashed" onclick="showAddOtherCost()">+ ' + t("addOtherCost") + '</button>';
   html += '</div>';
@@ -1307,6 +1312,8 @@ function _editToSessionData() {
     shuttlecocks: shuttlecocks,
     shuttleTotal: shuttleTotal,
     shuttlePayer: edit.shuttlePayer || null,
+    courtReceipt: edit.courtReceipt || null,
+    shuttleReceipt: edit.shuttleReceipt || null,
     otherCosts: edit.otherCosts.slice(),
     otherTotal: otherTotal,
     dinner: dinner,
@@ -1406,6 +1413,48 @@ function editAddDinner() {
   renderEditForm();
 }
 
+/* Bill photos (evidence) for the court, the shuttlecocks and each other cost, like the dinner receipt */
+var _ocPending = null;   // photo picked in the "add other cost" form
+function _receiptFieldHtml(kind, idx, url, small) {
+  var arg = "'" + kind + "'," + idx;
+  var h = '<div class="rc-field' + (small ? ' small' : '') + '">';
+  if (url) h += '<img ' + imgSrcAttrs(url) + ' class="receipt-thumb rc-thumb" alt="' + escapeHtml(t("receipt")) + '" onclick="openImage(this.src)">' +
+    '<button type="button" class="rc-x" onclick="editDetachReceipt(' + arg + ')" aria-label="' + escapeHtml(t("removeReceipt")) + '">' + icon("close", 14) + '</button>';
+  else h += '<label class="rc-add">' + icon("camera", 16) + ' <span>' + t("attachReceipt") + '</span><input type="file" accept="image/*" onchange="editAttachReceipt(' + arg + ',this)"></label>';
+  return h + '</div>';
+}
+function editAttachReceipt(kind, idx, input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  showToast(t("loading"));
+  readReceiptImage(file, function (err, dataUrl) {
+    if (err) { showToast(err.message); return; }
+    if (kind === "court") edit.courtReceipt = dataUrl;
+    else if (kind === "shuttle") edit.shuttleReceipt = dataUrl;
+    else if (edit.otherCosts[idx]) edit.otherCosts[idx].receipt = dataUrl;
+    renderEditForm();
+  });
+}
+function editDetachReceipt(kind, idx) {
+  if (kind === "court") edit.courtReceipt = null;
+  else if (kind === "shuttle") edit.shuttleReceipt = null;
+  else if (edit.otherCosts[idx]) edit.otherCosts[idx].receipt = null;
+  renderEditForm();
+}
+function _ocReceiptChosen(input) {
+  var file = input.files && input.files[0], box = document.getElementById("ocRcPrev");
+  if (!file) { _ocPending = null; if (box) box.innerHTML = ""; return; }
+  readReceiptImage(file, function (err, dataUrl) {
+    if (err) { showToast(err.message); input.value = ""; return; }
+    _ocPending = dataUrl;
+    if (box) box.innerHTML = '<img class="receipt-thumb" src="' + dataUrl + '" alt="">';
+  });
+}
+/** Thumbnail of a stored bill photo, for the result view */
+function _receiptThumbHtml(url) {
+  return url ? '<div class="rc-view"><img ' + imgSrcAttrs(url) + ' alt="' + escapeHtml(t("receipt")) + '" class="receipt-thumb" onclick="openImage(this.src)"><div class="form-hint" style="margin:4px 0 0;text-align:center">' + icon("camera", 12) + ' ' + t("receipt") + ' \u00B7 ' + t("tapToEnlarge") + '</div></div>' : '';
+}
+
 function editReceiptChosen(input) {
   var file = input.files && input.files[0];
   if (!file) return;
@@ -1483,7 +1532,10 @@ function showAddOtherCost() {
     '<div class="form-group"><label class="form-label">' + icon("card", 12) + ' ' + t("paidBy") + '</label>' +
     '<select class="form-select" id="modalPaidBy">' + _payerOptions(currentUser ? currentUser.uid : "", pickable) + '</select></div>' +
     '<div class="form-group"><label class="form-label">' + t("splitBetween") + '</label>' +
-    '<select class="form-select" id="modalFor">' + forOpts + '</select></div>';
+    '<select class="form-select" id="modalFor">' + forOpts + '</select></div>' +
+    '<div class="form-group"><label class="form-label">' + icon("camera", 12) + ' ' + t("attachReceipt") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
+    '<div id="ocRcPrev"></div><input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="_ocReceiptChosen(this)"></div>';
+  _ocPending = null;
 
   modalCallback = function () {
     var desc = document.getElementById("modalDesc").value.trim();
@@ -1492,7 +1544,8 @@ function showAddOtherCost() {
     var forUid = document.getElementById("modalFor").value || null;
 
     if (!desc || amount <= 0 || !paidBy) { showToast(t("fillAllFields")); return; }
-    edit.otherCosts.push({ desc: desc, amount: amount, paidBy: paidBy, forUid: forUid });
+    edit.otherCosts.push({ desc: desc, amount: amount, paidBy: paidBy, forUid: forUid, receipt: _ocPending || null });
+    _ocPending = null;
     closeModal();
     renderEditForm();
   };
@@ -1543,10 +1596,15 @@ function saveSessionCosts() {
 
   var doSave = function () {
     // A new receipt photo is stored on its own (images/), the session keeps a reference
-    var receipt = data.dinner && data.dinner.receiptUrl;
-    var saveReceipt = receipt && receipt.indexOf("data:") === 0
-      ? dbSaveImage(receipt, "receipt").then(function (ref) { data.dinner.receiptUrl = ref; if (edit && edit.dinner) edit.dinner.receiptUrl = ref; })
-      : Promise.resolve();
+    var jobs = [];
+    var up = function (url, apply) {
+      if (url && String(url).indexOf("data:") === 0) jobs.push(dbSaveImage(url, "receipt").then(apply));
+    };
+    if (data.dinner) up(data.dinner.receiptUrl, function (ref) { data.dinner.receiptUrl = ref; if (edit && edit.dinner) edit.dinner.receiptUrl = ref; });
+    up(data.courtReceipt, function (ref) { data.courtReceipt = ref; if (edit) edit.courtReceipt = ref; });
+    up(data.shuttleReceipt, function (ref) { data.shuttleReceipt = ref; if (edit) edit.shuttleReceipt = ref; });
+    (data.otherCosts || []).forEach(function (oc) { up(oc.receipt, function (ref) { oc.receipt = ref; }); });
+    var saveReceipt = Promise.all(jobs);
 
     saveReceipt.then(function () { return dbUpdateSession(currentSessionId, data); })
       .then(function () {

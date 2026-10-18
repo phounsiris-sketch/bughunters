@@ -10,7 +10,7 @@
                        escapeHtml, fmtLAK, fmtShort, COLORS)
    ============================================================ */
 
-var SETTINGS_TABS = [['players', 'tabPlayers'], ['courts', 'tabCourts'], ['shuttle', 'tabShuttle'], ['qr', 'tabPlayersQr'], ['general', 'tabGeneral']];
+var SETTINGS_TABS = [['players', 'tabPlayers'], ['courts', 'tabCourts'], ['restaurants', 'tabRestaurants'], ['shuttle', 'tabShuttle'], ['qr', 'tabPlayersQr'], ['general', 'tabGeneral']];
 var settingsTab = (function () {
   var v = null;
   try { v = localStorage.getItem('settingsTab'); } catch (e) {}
@@ -91,6 +91,7 @@ function _renderConfigPage() {
   var html = '';
   if (settingsTab === 'players') html = _renderPlayersTab();
   else if (settingsTab === 'courts') html = _renderCourtsTab();
+  else if (settingsTab === 'restaurants') html = _renderRestaurantsTab();
   else if (settingsTab === 'shuttle') html = _renderShuttleTab();
   else if (settingsTab === 'qr') html = _renderQrTab();
   else if (settingsTab === 'general') html = _renderGeneralTab();
