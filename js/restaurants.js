@@ -147,7 +147,7 @@ function _restPick(id) {
 
 var _restEditId = null, _restDone = null;   // editing this restaurant; what to do after saving
 
-function showRestaurantForm(prefillName, editId, onDone) {
+function showRestaurantForm(prefillName, editId, onDone, pin, prefillLoc) {
   closeMapPicker("restPin");
   _restEditId = typeof editId === "string" && editId ? editId : null;
   _restDone = onDone || null;
@@ -157,7 +157,7 @@ function showRestaurantForm(prefillName, editId, onDone) {
     '<div class="form-group"><label class="form-label">' + t("restName") + ' *</label>' +
       '<input class="form-input" id="mRestName" maxlength="' + REST_NAME_MAX + '" value="' + escapeHtml(cur ? cur.name : (prefillName || "")) + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("location") + '</label>' +
-      '<input class="form-input" id="mRestLoc" maxlength="' + REST_LOC_MAX + '" placeholder="' + escapeHtml(t("addressHint")) + '" value="' + escapeHtml(cur ? cur.location || "" : "") + '"></div>' +
+      '<input class="form-input" id="mRestLoc" maxlength="' + REST_LOC_MAX + '" placeholder="' + escapeHtml(t("addressHint")) + '" value="' + escapeHtml(cur && cur.location ? cur.location : (prefillLoc || "")) + '"></div>' +
     '<div class="form-group"><label class="form-label">' + t("mapPin") + '</label>' + mapPickerHtml("restPin") + '</div>' +
     '<div class="form-hint">' + t("restNeedPlaceHint") + '</div>' +
     '<div class="form-group" style="margin-top:12px"><label class="form-label">' + icon("camera", 12) + ' ' + t("restPhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
@@ -167,7 +167,7 @@ function showRestaurantForm(prefillName, editId, onDone) {
   _restPhoto = null;
   modalCallback = _restSave;
   openModal();
-  initMapPicker("restPin", cur && hasPin(cur) ? cur.lat : null, cur && hasPin(cur) ? cur.lng : null);
+  initMapPicker("restPin", pin ? pin.lat : cur && hasPin(cur) ? cur.lat : null, pin ? pin.lng : cur && hasPin(cur) ? cur.lng : null);
 }
 
 var _restPhoto = null;   // data URL of the photo picked in the form

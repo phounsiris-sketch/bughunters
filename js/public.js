@@ -47,7 +47,7 @@ function loadPublic() {
   setBreadcrumb(null);
   var tabs = document.getElementById("publicTabs");
   if (tabs) {
-    tabs.innerHTML = [["games", "openGames"], ["buddies", "playBuddies"], ["market", "market"], ["groups", "publicGroups"], ["courts", "courtDirectory"]].map(function (x) {
+    tabs.innerHTML = [["games", "openGames"], ["buddies", "playBuddies"], ["market", "market"], ["groups", "publicGroups"], ["courts", "courtDirectory"], ["restaurants", "tabRestaurants"]].map(function (x) {
       return '<button class="dash-tab' + (publicTab === x[0] ? ' active' : '') + '" onclick="setPublicTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
     }).join('');
   }
@@ -89,13 +89,14 @@ function _cityFilterHtml() {
 function renderPublic() {
   var box = document.getElementById("publicContent");
   if (!box) return;
-  if (publicTab === "courts" && document.activeElement && document.activeElement.id === "cmQ") return;   // typing in the map search
+  if ((publicTab === "courts" || publicTab === "restaurants") && document.activeElement && document.activeElement.id === "cmQ") return;   // typing in the map search
   if (publicTab === "buddies") box.innerHTML = _cityFilterHtml() + _renderBuddies();
   else if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();
   else if (publicTab === "market") box.innerHTML = _cityFilterHtml() + _renderMarket();
   else if (publicTab === "courts") box.innerHTML = _renderDirectory();
+  else if (publicTab === "restaurants") box.innerHTML = typeof cmHtml === "function" ? cmHtml("rest") : "";
   else box.innerHTML = _cityFilterHtml() + _renderGames();
-  if (publicTab === "courts" && typeof cmInit === "function") cmInit();
+  if ((publicTab === "courts" || publicTab === "restaurants") && typeof cmInit === "function") cmInit();
   uiMotion(box, publicTab + "|" + (pubCal.sel || "") + "|" + (pubCal.month || ""));
 }
 
@@ -470,5 +471,5 @@ function _renderPublicGroups() {
 /* ---------- Court directory ---------- */
 
 function _renderDirectory() {
-  return typeof cmHtml === "function" ? cmHtml() : "";
+  return typeof cmHtml === "function" ? cmHtml("court") : "";
 }

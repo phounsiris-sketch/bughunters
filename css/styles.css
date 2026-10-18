@@ -5670,3 +5670,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible, .rank-row:focus-vi
 .rc-x { width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .55); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .rc-view { margin-top: 10px; }
 .rc-view .receipt-thumb { display: block; margin: 0 auto; max-height: 160px; width: auto; max-width: 100%; border-radius: var(--r-md); cursor: zoom-in; }
+
+/* Place search inside the court / restaurant map picker */
+.pk-search { display: flex; align-items: center; height: 44px; border-radius: 22px; background: var(--input-bg); border: 1px solid var(--border); margin-bottom: 8px; }
+.pk-res { margin: -2px 0 8px; max-height: 220px; overflow-y: auto; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--border); }
+.pk-res:empty { display: none; }
+.cm-pin.rest { color: #f97316; }
+.cm-pin.sel.rest { color: #ea580c; }

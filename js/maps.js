@@ -88,11 +88,58 @@ function fmtKm(km) {
   return km < 1 ? Math.round(km * 1000) + " m" : (km < 10 ? km.toFixed(1) : Math.round(km)) + " km";
 }
 
+/* ---------- Place search (Photon first, OpenStreetMap Nominatim as fallback; free, no key) ---------- */
+
+/** Search places by name or address. Resolves [{name, addr, lat, lng, km?}] nearest first when `near` is given */
+function geoSearch(q, near, signal) {
+  var opt = signal ? { signal: signal } : {};
+  var bias = near || MAP_DEFAULT;
+  var photon = "https://photon.komoot.io/api/?limit=15&q=" + encodeURIComponent(q) + "&lat=" + bias.lat.toFixed(4) + "&lon=" + bias.lng.toFixed(4) + "&location_bias_scale=0.6";
+  var nomi = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=15&q=" + encodeURIComponent(q) +
+    (near ? "&viewbox=" + (near.lng - 0.6).toFixed(3) + "," + (near.lat + 0.6).toFixed(3) + "," + (near.lng + 0.6).toFixed(3) + "," + (near.lat - 0.6).toFixed(3) : "");
+  var box = near ? "&bbox=" + (near.lng - 0.5).toFixed(3) + "," + (near.lat - 0.5).toFixed(3) + "," + (near.lng + 0.5).toFixed(3) + "," + (near.lat + 0.5).toFixed(3) : "";
+  function ph(url) {
+    return fetch(url, opt).then(function (r) { if (!r.ok) throw new Error("photon"); return r.json(); }).then(function (j) {
+      return (j.features || []).map(function (f) {
+        var p = f.properties || {}, g = f.geometry && f.geometry.coordinates;
+        if (!g) return null;
+        var street = [p.street, p.housenumber].filter(Boolean).join(" ");
+        var addr = [street, p.district || p.suburb, p.city || p.county, p.state, p.country].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
+        return { name: p.name || street || addr, addr: addr, lat: g[1], lng: g[0] };
+      }).filter(function (r) { return r && r.name; });
+    });
+  }
+  // Location known: look around it first (about 55 km); if nothing is there, look everywhere
+  return (box ? ph(photon + box).then(function (o) { return o.length ? o : ph(photon); }) : ph(photon)).then(function (out) {
+    if (!out.length) throw new Error("empty");
+    return out;
+  }).catch(function (e) {
+    if (e && e.name === "AbortError") throw e;
+    return fetch(nomi, opt).then(function (r) { return r.json(); }).then(function (a) {
+      return (a || []).map(function (x) {
+        var parts = String(x.display_name || "").split(", ");
+        return { name: x.name || parts[0], addr: parts.slice(1).join(", "), lat: parseFloat(x.lat), lng: parseFloat(x.lon) };
+      });
+    });
+  }).then(function (out) {
+    if (near) {
+      out.forEach(function (r) { r.km = distanceKm(near, r); });
+      out.sort(function (a, b) { return a.km - b.km; });
+    }
+    return out.slice(0, 8);
+  });
+}
+
 /* ---------- Picker (inside a modal or form) ---------- */
+
+var _PICK_FILL = { restPin: ["mRestName", "mRestLoc"], courtPin: ["mCourtName", "mCourtLoc"] };   // form fields filled from a picked place
+var _pickSearch = {};   // picker id -> { timer, abort, res }
 
 /** Markup for a location picker; call initMapPicker(id, lat, lng) after it is in the page */
 function mapPickerHtml(id) {
   return '<div class="map-picker" id="' + id + '">' +
+    '<div class="pk-search"><span class="cm-sico">' + icon("search", 18) + '</span><input class="cm-q" type="search" id="' + id + '-q" autocomplete="off" enterkeyhint="search" placeholder="' + escapeHtml(t("cmSearchPh")) + '" oninput="pickSearchInput(\'' + id + '\', this.value)"></div>' +
+    '<div class="pk-res" id="' + id + '-res"></div>' +
     '<div class="map-box" id="' + id + '-map"><div class="map-hint">' + t("loading") + '</div></div>' +
     '<div class="map-actions">' +
       '<button type="button" class="btn-secondary map-btn" onclick="mapUseMyLocation(\'' + id + '\')">' + icon("pin", 15) + ' ' + t("useMyLocation") + '</button>' +
@@ -193,4 +240,53 @@ function closeMapPicker(id) {
   // Leaflet throw from its animation callback
   if (p && p.map) { try { p.map.stop(); p.map.off(); p.map.remove(); } catch (e) {} }
   delete _pickers[id];
+}
+
+
+/* Search a place from inside a map picker (court / restaurant form): pick a result, the pin moves there and empty name / address fields are filled */
+function pickSearchInput(id, v) {
+  var st = _pickSearch[id] || (_pickSearch[id] = {});
+  clearTimeout(st.timer);
+  var q = String(v || "").trim(), box = document.getElementById(id + "-res");
+  if (!box) return;
+  if (q.length < 3) { box.innerHTML = ""; return; }
+  st.timer = setTimeout(function () {
+    var ll = parseLatLng(q);
+    if (ll) { st.res = [{ name: t("cmCoords"), addr: ll.lat.toFixed(5) + ", " + ll.lng.toFixed(5), lat: ll.lat, lng: ll.lng, raw: true }]; _pickRes(id); return; }
+    if (st.abort) { try { st.abort.abort(); } catch (e) {} }
+    var ctl = st.abort = window.AbortController ? new AbortController() : null;
+    box.innerHTML = '<div class="cm-res-msg">' + t("loading") + '</div>';
+    var p = _pickers[id], near = typeof _here !== "undefined" && _here ? _here : (p && p.map ? { lat: p.map.getCenter().lat, lng: p.map.getCenter().lng } : null);
+    geoSearch(q, near, ctl && ctl.signal).then(function (out) {
+      if (!document.getElementById(id + "-res")) return;
+      st.res = out; if (!out.length) box.innerHTML = '<div class="cm-res-msg">' + t("cmNoResult") + '</div>'; else _pickRes(id);
+    }).catch(function (e) {
+      if (e && e.name === "AbortError") return;
+      var b = document.getElementById(id + "-res"); if (b) b.innerHTML = '<div class="cm-res-msg">' + t("cmSearchErr") + '</div>';
+    });
+  }, 450);
+}
+
+function _pickRes(id) {
+  var box = document.getElementById(id + "-res"), st = _pickSearch[id];
+  if (!box || !st) return;
+  box.innerHTML = (st.res || []).map(function (r, i) {
+    return '<button type="button" class="cm-res-row" onclick="pickSearchPick(\'' + id + '\',' + i + ')"><span class="cm-ic">' + icon("pin", 16) + '</span>' +
+      '<span class="cm-name"><b>' + escapeHtml(r.name || "") + '</b><small>' + escapeHtml(r.addr || "") + '</small></span>' +
+      (typeof r.km === "number" ? '<span class="tag">' + fmtKm(r.km) + '</span>' : '') + '</button>';
+  }).join("");
+}
+
+function pickSearchPick(id, i) {
+  var st = _pickSearch[id], r = st && st.res && st.res[i];
+  if (!r) return;
+  _mapSet(id, r.lat, r.lng, true);
+  var f = _PICK_FILL[id] || [], nameEl = f[0] && document.getElementById(f[0]), locEl = f[1] && document.getElementById(f[1]);
+  if (!r.raw) {
+    if (nameEl && !nameEl.value.trim()) nameEl.value = r.name;
+    if (locEl && !locEl.value.trim()) locEl.value = r.addr;
+  }
+  var box = document.getElementById(id + "-res"); if (box) box.innerHTML = "";
+  var q = document.getElementById(id + "-q"); if (q) q.blur();
+  st.res = [];
 }
