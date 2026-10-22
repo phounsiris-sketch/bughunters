@@ -1249,3 +1249,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Labels and headings (runtime):** the existing keyboard shim in app.js also gives every `label.form-label` without `for` the next field's id, and marks `.card-title` / `.settings-section` (level 2) and `.me-title` / `.modal-title` (level 1) as headings.
 - `<html lang>` is set from the saved language before first paint; Lao script gets no letter-spacing/uppercase on pills and labels.
 - Not done: merging the duplicated CSS rules and the override layers, arrow-key navigation on the poll choice row, 200% zoom and 320 px checks on real screens.
+
+## Speed and stacking (v154, from the frontend / infra reviews)
+- **Scripts no longer block the first paint:** every local script except `splash.js` and all four Firebase scripts have `defer` (they still run in order, after the page is parsed). The 173 KB `i18n.js` and the other modules are unchanged; lazy-loading rarely used modules and splitting `i18n.js` per language are still open.
+- **Service worker:** map tiles go to their own cache (`godsmash-tiles`, at most 250 tiles) instead of filling the app cache.
+- **Image loader** only looks at the nodes that were just added (it used to scan the whole page on every change); image elements get `decoding="async"`.
+- **Redraw bursts:** `refreshCurrentPage` runs the first call at once and folds the calls of the next 150 ms into one (each distinct reason still runs once). **`statsFor` is memoised** per player and scope until the games or the day change (the Rankings list used to scan all games once per row).
+- **CSS:** toasts (3000 / 3001) sit above sheets (2500) and the image viewer (2600); the map is `isolation: isolate`; `dvh` for the login page, modal and sheets on iOS; live screen respects the side safe areas; only the first 8 Rankings / leader rows animate.
+- **Not done (needs live numbers or a decision):** cutting the push worker's reads (`push/send.js`, 5 unfiltered collections every run, plus the double trigger), limiting what the app downloads on open (matches, users, restaurants, reviews), moving to the Blaze plan with a budget cap. Check real read counts in the Firebase usage page first.

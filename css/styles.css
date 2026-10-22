@@ -5707,3 +5707,21 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 .rc-x::after, .cm-qx::after, .remove-btn::after, .back-btn::after { content: ""; position: absolute; inset: -8px; }
 /* Lao script: letter-spacing breaks shaping */
 :lang(lo) .pill, :lang(lo) .yp-label, :lang(lo) .hs-title, :lang(lo) .mh-rate small { letter-spacing: 0; text-transform: none; }
+
+/* ── Stacking order and mobile viewport (frontend review) ── */
+:root { --z-nav: 100; --z-modal: 200; --z-sheet: 2500; --z-viewer: 2600; --z-toast: 3000; }
+.toast { z-index: 3000; }
+.undo-toast { z-index: 3001; }
+.image-viewer { z-index: 2600; }
+.cm-wrap { isolation: isolate; }                     /* the map's own controls (500-600) never sit above a modal */
+@supports (height: 100dvh) {                         /* iOS Safari: the visible height, not the height without the toolbar */
+  body { min-height: 100dvh; }
+  .modal-card { max-height: 80dvh; }
+  .login-page { min-height: 80dvh; }
+  .lg-sheet { max-height: 85dvh; }
+  .rest-list { max-height: 45dvh; }
+}
+/* the live-score screen: keep clear of the landscape notch */
+.live-screen { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
+/* entrance animation: only the first 8 rows move, the rest just appear */
+.dash-anim .rank-row:nth-child(n+9), .dash-anim .leader-row:nth-child(n+9) { animation: none; }

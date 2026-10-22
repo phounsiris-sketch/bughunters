@@ -346,8 +346,23 @@ function monthsOf(items, getDate) {
   return Object.keys(seen).sort().reverse();
 }
 
-/** Re-render whatever page is showing (after data or language changes) */
+/** Re-render whatever page is showing (after data or language changes).
+    A burst of snapshots (several listeners firing together) redraws once: the first call runs now, the rest are folded into one call a moment later. */
+var _rcpLast = 0, _rcpTimer = null, _rcpReasons = {};
 function refreshCurrentPage(reason) {
+  var now = Date.now();
+  if (now - _rcpLast < 150) {
+    _rcpReasons[reason || ""] = 1;
+    if (!_rcpTimer) _rcpTimer = setTimeout(function () {
+      var rs = Object.keys(_rcpReasons); _rcpReasons = {}; _rcpTimer = null; _rcpLast = Date.now();
+      rs.forEach(function (r) { _refreshCurrentPageNow(r || undefined); });
+    }, 160);
+    return;
+  }
+  _rcpLast = now;
+  _refreshCurrentPageNow(reason);
+}
+function _refreshCurrentPageNow(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
   if ((currentPage === "settings" || currentPage === "profile" || currentPage === "profile-sub" || currentPage === "config") && typeof renderSettings === "function") {
@@ -408,7 +423,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v153"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v154"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
