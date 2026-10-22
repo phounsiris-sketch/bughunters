@@ -136,14 +136,14 @@ function cmBar() {
       h = '<div class="cm-card"><div class="cm-t"><b>' + escapeHtml(s.name) + '</b>' + (dr ? ' <span class="tag">' + dr + '</span>' : '') + ' ' + ratingHtml(s.id) + '</div>' +
         '<div class="cm-sub">' + escapeHtml(s.location || "") + '</div>' +
         '<div class="cm-btns"><a class="btn-primary cm-go" target="_blank" rel="noopener" href="' + mapsDirUrl(s.lat, s.lng) + '">' + icon("route", 16) + ' ' + t("directions") + '</a>' +
-        (_restCanManage(s) ? '<button class="btn-secondary cm-go" onclick="showRestaurantForm(null,\'' + s.id + '\',function(){renderPublic()})">' + icon("pen", 14) + ' ' + t("restEdit") + '</button>' : '') + '</div></div>';
+        (_restCanManage(s) ? '<button class="btn-secondary cm-go" onclick="showRestaurantForm(null,\'' + jsq(s.id) + '\',function(){renderPublic()})">' + icon("pen", 14) + ' ' + t("restEdit") + '</button>' : '') + '</div></div>';
     } else if (s) {
       var dist = _here && hasPin(s) ? fmtKm(distanceKm(_here, s)) : "";
       var up = (typeof _publicGames !== "undefined" ? _publicGames : []).filter(function (g) { return g.courtId === s.id && gameStartMs(g) > Date.now(); }).length;
       h = '<div class="cm-card"><div class="cm-t"><b>' + escapeHtml(s.name) + '</b>' + (dist ? ' <span class="tag">' + dist + '</span>' : '') + (up ? ' <span class="tag">' + t("upcomingGamesN").replace("{n}", up) + '</span>' : '') + '</div>' +
         '<div class="cm-sub">' + escapeHtml(s.location || "") + (s.hours ? ' · ' + escapeHtml(s.hours) : '') + (s.aircon ? ' · ' + t("aircon") : '') + '</div>' +
         '<div class="cm-btns"><a class="btn-primary cm-go" target="_blank" rel="noopener" href="' + mapsDirUrl(s.lat, s.lng) + '">' + icon("route", 16) + ' ' + t("directions") + '</a>' +
-        '<button class="btn-secondary cm-go" onclick="showCourtModal(\'' + s.id + '\',null,{directoryOnly:true})">' + t("cmDetails") + '</button></div></div>';
+        '<button class="btn-secondary cm-go" onclick="showCourtModal(\'' + jsq(s.id) + '\',null,{directoryOnly:true})">' + t("cmDetails") + '</button></div></div>';
     }
   }
   el.innerHTML = h;
@@ -163,7 +163,7 @@ function _cmListHtml() {
       '<span class="cm-name"><b>' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.location || "") + '</small></span>' +
       (dist ? '<span class="tag">' + dist + '</span>' : '') +
       (pinned ? '<a class="loc-ic" target="_blank" rel="noopener" href="' + mapsDirUrl(c.lat, c.lng) + '" onclick="event.stopPropagation()" aria-label="' + t("directions") + '" title="' + t("directions") + '">' + icon("route", 18) + '</a>'
-              : '<button class="cm-pinbtn" onclick="event.stopPropagation();cmStartPin(\'' + c.id + '\')">' + t("cmPinOnMap") + '</button>') + '</div>';
+              : '<button class="cm-pinbtn" onclick="event.stopPropagation();cmStartPin(\'' + jsq(c.id) + '\')">' + t("cmPinOnMap") + '</button>') + '</div>';
   });
   return html;
 }

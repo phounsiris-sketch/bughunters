@@ -87,9 +87,11 @@ function dbSaveImage(dataUrl, kind) {
 /** src="…" for a data URL, or a placeholder that loads the referenced image */
 function imgSrcAttrs(v) {
   if (!v) return 'src="' + IMG_BLANK + '"';
-  if (!isImgRef(v)) return 'src="' + v + '"';
-  var id = v.slice(4);
-  return _imgCache[id] ? 'src="' + _imgCache[id] + '"' : 'src="' + IMG_BLANK + '" data-img="' + id + '"';
+  v = safeUrl(v);
+  if (!v) return 'src="' + IMG_BLANK + '"';
+  if (!isImgRef(v)) return 'src="' + escapeHtml(v) + '"';
+  var id = jsq(v.slice(4));
+  return _imgCache[id] ? 'src="' + _imgCache[id] + '" decoding="async"' : 'src="' + IMG_BLANK + '" decoding="async" data-img="' + id + '"';
 }
 
 function _loadImg(el) {
@@ -104,8 +106,18 @@ function _loadImg(el) {
 
 (function watchImages() {
   if (typeof MutationObserver === "undefined") return;
-  new MutationObserver(function () {
-    var els = document.querySelectorAll("img[data-img]");
-    for (var i = 0; i < els.length; i++) _loadImg(els[i]);
+  new MutationObserver(function (list) {
+    list.forEach(function (m) {
+      for (var k = 0; k < m.addedNodes.length; k++) {
+        var n = m.addedNodes[k];
+        if (!n || n.nodeType !== 1) continue;
+        if (n.matches && n.matches("img[data-img]")) _loadImg(n);
+        var els = n.querySelectorAll ? n.querySelectorAll("img[data-img]") : [];
+        for (var i = 0; i < els.length; i++) _loadImg(els[i]);
+      }
+    });
   }).observe(document.documentElement, { childList: true, subtree: true });
+  // images already on the page before the observer started
+  var first = document.querySelectorAll("img[data-img]");
+  for (var j = 0; j < first.length; j++) _loadImg(first[j]);
 })();

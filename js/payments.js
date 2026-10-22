@@ -117,11 +117,11 @@ function renderPayments() {
 function _paymentItems(g, side) {
   var html = '<div class="pay-items">';
   g.items.slice().sort(byLatest(function (x) { return x.session.date || ""; })).forEach(function (it) {
-    html += '<div class="pay-item" onclick="showSessionDetail(\'' + it.session.id + '\')">' +
+    html += '<div class="pay-item" onclick="showSessionDetail(\'' + jsq(it.session.id) + '\')">' +
       '<div style="min-width:0"><div class="pay-item-date">' + fmtDate(it.session.date) + ' • ' + escapeHtml(it.session.courtName || "") + '</div>' +
       '<div class="person-breakdown">' + transferBreakdownHtml(it.transfer) + '</div></div>' +
       '<div class="pay-item-right"><div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div>' +
-      '<button type="button" class="pay-item-btn' + (side === "owe" ? '' : ' alt') + '" onclick="event.stopPropagation();markPaymentOne(\'' + side + '\',\'' + g.uid + '\',\'' + it.session.id + '\',\'' + it.transfer.key + '\')">' +
+      '<button type="button" class="pay-item-btn' + (side === "owe" ? '' : ' alt') + '" onclick="event.stopPropagation();markPaymentOne(\'' + side + '\',\'' + jsq(g.uid) + '\',\'' + jsq(it.session.id) + '\',\'' + it.transfer.key + '\')">' +
         icon("check", 14) + ' ' + t(side === "owe" ? "payItemPaid" : "payItemReceived") + '</button></div></div>';
   });
   return html + '</div>';
@@ -135,9 +135,9 @@ function _fillQrStrips(root) {
       var labels = { court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
       var html = "";
       var main = qrFor(qr, null);
-      if (main) html += '<div class="qr-strip-item"><img src="' + main + '" alt="QR" onclick="openImage(this.src)"><div>' + icon("qr", 12) + ' ' + t("qrMainShort") + '</div></div>';
+      if (main) html += '<div class="qr-strip-item"><img src="' + escapeHtml(safeUrl(main)) + '" alt="QR" onclick="openImage(this.src)"><div>' + icon("qr", 12) + ' ' + t("qrMainShort") + '</div></div>';
       qrExtras(qr).forEach(function (x) {
-        html += '<div class="qr-strip-item"><img src="' + x.url + '" alt="QR" onclick="openImage(this.src)">' +
+        html += '<div class="qr-strip-item"><img src="' + escapeHtml(safeUrl(x.url)) + '" alt="QR" onclick="openImage(this.src)">' +
           '<div>' + icon(COST_ICON[x.type], 12) + ' ' + labels[x.type] + '</div></div>';
       });
       strip.innerHTML = html || '<div class="qr-missing">' + t("noQr") + '</div>';
@@ -154,9 +154,9 @@ function markPaymentOne(side, uid, sessionId, key) {
   var it = g.items.filter(function (x) { return x.session.id === sessionId && x.transfer.key === key; })[0];
   if (!it) return;
   askConfirm({
-    title: t(side === "owe" ? "sheetPaidTitle" : "sheetReceivedTitle").replace("{name}", escapeHtml(getUserName(uid))),
+    title: t(side === "owe" ? "sheetPaidTitle" : "sheetReceivedTitle").replace("{name}", plainUserName(findUser(uid))),
     big: fmtLAK(it.transfer.amount),
-    body: escapeHtml(fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : "")),
+    body: fmtDate(it.session.date) + (it.session.courtName ? " \u2022 " + it.session.courtName : ""),
     yes: t(side === "owe" ? "payItemPaid" : "payItemReceived")
   }, function () {
     settleTransfers(it.session, [key], true)

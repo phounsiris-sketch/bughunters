@@ -5,6 +5,20 @@ service cloud.firestore {
     // ── Who is asking ─────────────────────────────────────────
     function isAuth() { return request.auth != null; }
     function isOwner(uid) { return isAuth() && request.auth.uid == uid; }
+    // Public content (courts, restaurants, open games, photos) is created only by a verified email.
+    // Signing up itself (users/{uid}) stays with isAuth(): the profile is written before the mail is confirmed.
+    function isVerified() { return isAuth() && request.auth.token.get('email_verified', false) == true; }
+    // Document ids chosen by the app are plain letters, digits, _ and - (they end up inside onclick handlers)
+    function idOk(id) { return id.matches('^[A-Za-z0-9_-]{1,80}$'); }
+    // A photo field: an image data URL, an img:<id> reference or an https address (never anything with quotes or tags)
+    function photoOk(v) {
+      return v == null || v == ''
+        || (v is string && v.size() < 950000 && (
+             v.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$')
+          || v.matches('^img:[A-Za-z0-9_-]{1,60}$')
+          || v.matches('^https://[^ "<>`\\\\]+$')));
+    }
+    function avatarOk(d) { return !('avatarUrl' in d) || photoOk(d.avatarUrl); }
     function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
     function secretPath(gid) { return /databases/$(database)/documents/groupSecrets/$(gid); }
     function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
@@ -50,7 +64,7 @@ service cloud.firestore {
       // Names of groups are not secret (public groups are listed; a private
       // group's invite code lives in groupSecrets, which only admins read)
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.ownerId == request.auth.uid;
+      allow create: if isAuth() && idOk(gid) && request.resource.data.ownerId == request.auth.uid;
       allow update: if (isGroupAdmin(gid) && request.resource.data.ownerId == resource.data.ownerId)
         || (canIn('editConfig', gid) && changed().hasOnly(['courtPrices', 'minPlayers', 'defaultCourtPayer', 'defaultShuttlePayer']))
         || isSuper();
@@ -92,7 +106,8 @@ service cloud.firestore {
       allow update: if request.resource.data.uid == resource.data.uid && request.resource.data.gid == resource.data.gid && (
         isSuper()
         || (isGroupAdmin(resource.data.gid) && resource.data.role != 'owner' && request.resource.data.role != 'owner')
-        || (isAuth() && resource.data.uid == request.auth.uid && changed().hasOnly(['nick', 'level', 'message', 'lastSeen']))
+        || (isAuth() && resource.data.uid == request.auth.uid && changed().hasOnly(['nick', 'level', 'message', 'lastSeen'])
+            && request.resource.data.get('message', '').size() <= 120 && request.resource.data.get('nick', '').size() <= 40)
       );
       // Leave a group (not the owner), or an admin removes someone;
       // the owner's own membership goes only together with the group
@@ -105,12 +120,12 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       // Your own profile, without permissions; or a manual player of a group (editConfig)
-      allow create: if (isOwner(uid) && !('perms' in request.resource.data))
+      allow create: if (isOwner(uid) && !('perms' in request.resource.data) && avatarOk(request.resource.data))
         || (isManual(request.resource.data) && !('perms' in request.resource.data)
             && canIn('editConfig', request.resource.data.get('groupId', '')))
         || isSuper();
       // You may edit your profile but never your own permissions
-      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual', 'groupId']))
+      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual', 'groupId']) && avatarOk(request.resource.data))
         || (isManual(resource.data) && isManual(request.resource.data) && !changed().hasAny(['perms']) && sameGroup()
             && canIn('editConfig', gidOf(resource.data)))
         || isSuper();
@@ -121,12 +136,15 @@ service cloud.firestore {
     match /polls/{pollId} {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       // A member creates polls of their own in their group; createPoll may restore anyone's
-      allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
+      allow create: if idOk(pollId) && request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
         && (request.resource.data.get('createdBy', '') == request.auth.uid || canIn('createPoll', request.resource.data.groupId));
       // Members answer before the deadline (closesAt) while the plan is open;
       // the creator / createPoll can still enter answers, confirm or cancel later
       allow update: if sameGroup() && (
         (isMember(gidOf(resource.data)) && changed().hasOnly(['responses', 'votes', 'voteLog', 'reachedAt'])
+          // a member changes only their own answer and their own log line
+          && (!changed().hasAny(['responses']) || request.resource.data.responses.diff(resource.data.get('responses', {})).affectedKeys().hasOnly([request.auth.uid]))
+          && (!changed().hasAny(['voteLog']) || request.resource.data.voteLog.diff(resource.data.get('voteLog', {})).affectedKeys().hasOnly([request.auth.uid]))
           && resource.data.get('status', 'draft') in ['draft', 'open']
           && (!('closesAt' in resource.data) || request.time.toMillis() < resource.data.closesAt))
         || canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data))));
@@ -147,7 +165,7 @@ service cloud.firestore {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       // A member creates a session of their own (from their own poll, or
       // standalone); createPoll / editSession may create one for anyone
-      allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId) && (
+      allow create: if idOk(sessionId) && request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId) && (
         canIn('createPoll', request.resource.data.groupId) || canIn('editSession', request.resource.data.groupId)
         || (request.resource.data.get('createdBy', '') == request.auth.uid
             && (request.resource.data.get('pollId', null) == null
@@ -215,12 +233,19 @@ service cloud.firestore {
     }
 
     // ── Courts: one shared directory (prices live on each group) ──
+    function courtOk(d) {
+      return d.get('name', '') is string && d.get('name', '').size() >= 1 && d.get('name', '').size() <= 80
+        && d.get('location', '') is string && d.get('location', '').size() <= 160
+        && (!('lat' in d) || d.lat == null || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+        && (!('lng' in d) || d.lng == null || (d.lng is number && d.lng >= -180 && d.lng <= 180))
+        && photoOk(d.get('photo', null));
+    }
     match /courts/{courtId} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid;
-      // Anyone signed in can correct a court's details (like a map); the
-      // creator / app owner can delete it
-      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '');
+      allow create: if isVerified() && idOk(courtId) && request.resource.data.get('createdBy', '') == request.auth.uid && courtOk(request.resource.data);
+      // Anyone signed in can correct a court's details (like a map), but only with valid values;
+      // the creator / app owner can delete it
+      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && courtOk(request.resource.data);
       allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
 
@@ -230,11 +255,14 @@ service cloud.firestore {
     function restaurantOk(d) {
       return d.name is string && d.name.size() >= 2 && d.name.size() <= 60
         && d.get('location', '') is string && d.get('location', '').size() <= 120
-        && (d.get('location', '') != '' || (d.get('lat', null) is number && d.get('lng', null) is number));
+        && (d.get('location', '') != '' || (d.get('lat', null) is number && d.get('lng', null) is number))
+        && (!('lat' in d) || d.lat == null || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+        && (!('lng' in d) || d.lng == null || (d.lng is number && d.lng >= -180 && d.lng <= 180))
+        && photoOk(d.get('photo', null));
     }
     match /restaurants/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.get('createdBy', '') == request.auth.uid && restaurantOk(request.resource.data);
+      allow create: if isVerified() && idOk(id) && request.resource.data.get('createdBy', '') == request.auth.uid && restaurantOk(request.resource.data);
       allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && restaurantOk(request.resource.data);
       allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
@@ -285,7 +313,7 @@ service cloud.firestore {
     // ── Public open games (anyone can find and join) ─────────
     match /openGames/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.hostId == request.auth.uid
+      allow create: if isVerified() && idOk(id) && request.resource.data.hostId == request.auth.uid
         && request.resource.data.status == 'open'
         && request.resource.data.players.size() <= request.resource.data.slots;
       // The host edits / cancels; others only join or leave themselves (and
@@ -352,8 +380,9 @@ service cloud.firestore {
     // Big images (receipts) kept out of sessions; sessions store "img:<id>"
     match /images/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.data is string && request.resource.data.data.size() < 900000;
+      allow create: if isVerified() && idOk(id) && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.data is string && request.resource.data.data.size() < 900000
+        && request.resource.data.data.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$');
       allow delete: if isSuper() || (isAuth() && resource.data.createdBy == request.auth.uid);
     }
 

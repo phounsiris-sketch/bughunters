@@ -98,7 +98,7 @@ var _undoTimer = null;
 function showUndoToast(msg, trashId) {
   var el = document.getElementById("undoToast");
   if (!el) return showToast(msg);
-  el.innerHTML = '<span>' + escapeHtml(msg) + '</span><button onclick="undoLast(\'' + trashId + '\')">' + t("undo") + '</button>';
+  el.innerHTML = '<span>' + escapeHtml(msg) + '</span><button onclick="undoLast(\'' + jsq(trashId) + '\')">' + t("undo") + '</button>';
   el.classList.add("show");
   clearTimeout(_undoTimer);
   _undoTimer = setTimeout(function () { el.classList.remove("show"); }, 8000);
@@ -143,8 +143,8 @@ function _renderTrash(items) {
       '<small>' + t("trashKind_" + e.kind) + ' · ' + t("deletedByWhen").replace("{name}", getUserName(e.deletedBy)).replace("{when}", _timeAgo(e.deletedAt)) +
       ' · ' + t("daysLeft").replace("{n}", left) + '</small></span>' +
       '<span class="trash-actions">' +
-      '<button class="edit-btn" onclick="restoreTrash(\'' + e.id + '\').catch(function(er){showToast(_permError(er))})">' + t("restore") + '</button>' +
-      '<button class="delete-btn icon-btn" aria-label="' + t("deleteForever") + '" onclick="deleteTrashForever(\'' + e.id + '\')">' + icon("trash", 16) + '</button>' +
+      '<button class="edit-btn" onclick="restoreTrash(\'' + jsq(e.id) + '\').catch(function(er){showToast(_permError(er))})">' + t("restore") + '</button>' +
+      '<button class="delete-btn icon-btn" aria-label="' + t("deleteForever") + '" onclick="deleteTrashForever(\'' + jsq(e.id) + '\')">' + icon("trash", 16) + '</button>' +
       '</span></div>';
   });
   return html + '</div>';

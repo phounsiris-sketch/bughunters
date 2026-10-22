@@ -277,7 +277,7 @@ function _renderPollCard(poll) {
     html += '<div class="vote-seg" role="radiogroup" aria-label="' + escapeHtml(t('chooseAnswer')) + '">';
     for (var bi = 0; bi < np.answers.length; bi++) {
       var mineB = myAnswer === bi, cnt = _pollAnswerUids(np, bi).length;
-      html += '<button type="button" class="vote-seg-btn' + (mineB ? ' on' : '') + ' a' + bi + '" role="radio" aria-checked="' + mineB + '" onclick="respondPoll(\'' + poll.id + '\',' + bi + ')">' +
+      html += '<button type="button" class="vote-seg-btn' + (mineB ? ' on' : '') + ' a' + bi + '" role="radio" aria-checked="' + mineB + '" onclick="respondPoll(\'' + jsq(poll.id) + '\',' + bi + ')">' +
         (mineB ? icon("check", 16) + ' ' : '') + '<span>' + escapeHtml(answerLabel(np.answers[bi])) + '</span><em>' + cnt + (bi === 0 ? '/' + minPlayers : '') + '</em></button>';
     }
     html += '</div>';
@@ -287,21 +287,21 @@ function _renderPollCard(poll) {
   }
 
   if (isOpen && isCreator && enough) {
-    html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + poll.id + '\')">' + icon("check", 16) + ' ' +
+    html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + jsq(poll.id) + '\')">' + icon("check", 16) + ' ' +
       t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
   } else if (isOpen && isCreator) {
     html += '<div style="font-size:13px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
   }
 
   if (poll.status === 'confirmed' && poll.sessionId) {
-    html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + poll.sessionId + '\')">' + t('openSession') + ' →</button>';
+    html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + jsq(poll.sessionId) + '\')">' + t('openSession') + ' →</button>';
   }
 
   if (isOpen && isCreator) {
     html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
-      '<button class="edit-btn" onclick="showVoteForOthers(\'' + poll.id + '\')">+ ' + t('addVotesForOthers') + '</button>' +
-      (poll.answers ? '<button class="edit-btn" onclick="showEditPoll(\'' + poll.id + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
-      '<button class="edit-btn danger" onclick="cancelPoll(\'' + poll.id + '\')">' + t('cancelPoll') + '</button></div></details>';
+      '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' +
+      (poll.answers ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
+      '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button></div></details>';
   }
 
   html += '</div>';

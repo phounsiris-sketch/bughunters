@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v150';
+var CACHE_NAME = 'godsmash-v154';
 var ASSETS = [
   './',
   './index.html',
@@ -66,6 +66,15 @@ var ASSETS = [
   './icons/apple-touch-icon.png',
   './js/select.js',
   './js/datepicker.js',
+  './js/groups.js',
+  './js/maps.js',
+  './js/restaurants.js',
+  './js/public.js',
+  './js/stats.js',
+  './js/profile.js',
+  './js/social.js',
+  './js/vendor/leaflet/leaflet.js',
+  './js/vendor/leaflet/leaflet.css',
   './js/app.js'
 ];
 
@@ -105,6 +114,19 @@ self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
   if (/photon\.komoot\.io|nominatim\.openstreetmap\.org/.test(e.request.url)) return;   // place search: always live, never cached
   var own = new URL(e.request.url).origin === self.location.origin;
+  // Map tiles: their own small cache (at most 250 tiles), not the app cache
+  if (/tile\.openstreetmap\.org/.test(e.request.url)) {
+    e.respondWith(caches.open('godsmash-tiles').then(function (tc) {
+      return tc.match(e.request).then(function (hit) {
+        if (hit) return hit;
+        return fetch(e.request).then(function (resp) {
+          tc.put(e.request, resp.clone()).then(function () { return tc.keys(); }).then(function (ks) { if (ks.length > 250) tc.delete(ks[0]); });
+          return resp;
+        });
+      });
+    }).catch(function () { return Response.error(); }));
+    return;
+  }
   e.respondWith(
     fetch(own ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(function(resp) {
       var clone = resp.clone();

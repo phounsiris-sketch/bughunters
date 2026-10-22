@@ -44,8 +44,15 @@ function fmtWL(w, l) { return w + "–" + l; }
 /** Whole percent, or "–" when there is nothing to divide */
 function pct(w, n) { return n ? Math.round(w / n * 100) + "%" : "–"; }
 
-/** Everything about one player in one scope */
+var _sfMemo = { ref: null, day: "", map: {} };
+/** Everything about one player in one scope (memoised until the games or the day change) */
 function statsFor(uid, scope) {
+  var day = _todayIso();
+  if (_sfMemo.ref !== lastMatches || _sfMemo.day !== day) _sfMemo = { ref: lastMatches, day: day, map: {} };
+  var key = uid + "|" + (scope || "all");
+  return _sfMemo.map[key] || (_sfMemo.map[key] = _statsForNow(uid, scope));
+}
+function _statsForNow(uid, scope) {
   var from = scopeFrom(scope);
   var games = _myGames(uid, from);                    // decided games, oldest first
   var played = lastMatches.filter(function (m) {      // every saved game, decided or not

@@ -346,7 +346,7 @@ function renderSessionsList(sessions) {
     var st = sessionStatus(s);
 
     html += '<div class="session-card">';
-    html += '<div class="session-card-main" onclick="showSessionDetail(\'' + s.id + '\')">';
+    html += '<div class="session-card-main" onclick="showSessionDetail(\'' + jsq(s.id) + '\')">';
     html += '<div style="min-width:0;flex:1">';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
@@ -360,16 +360,16 @@ function renderSessionsList(sessions) {
     }
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0">' +
-      '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
-      (s.calculated && players.length ? '<div class="session-each">~' + fmtShort((s.grandTotal || 0) / players.length) + ' ' + t("each") + '</div>' : '') +
+      '<div class="session-total">' + (s.calculated ? fmtShort(_grandOf(s)) : '—') + '</div>' +
+      (s.calculated && players.length ? '<div class="session-each">~' + fmtShort(_grandOf(s) / players.length) + ' ' + t("each") + '</div>' : '') +
       '</div>';
     html += '</div>';
 
     if (canDetails || canBill) {
       html += '<div class="session-actions">';
-      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 14) + ' ' + t("editDetails") + '</button>';
-      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">' + icon("bill", 14) + ' ' + t("editBillShort") + '</button>';
-      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">' + icon("trash", 16) + '</button>';
+      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + jsq(s.id) + '\')">' + icon("pen", 14) + ' ' + t("editDetails") + '</button>';
+      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + jsq(s.id) + '\')">' + icon("bill", 14) + ' ' + t("editBillShort") + '</button>';
+      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + jsq(s.id) + '\')">' + icon("trash", 16) + '</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -389,7 +389,7 @@ var _sesEditPlayers = [];
 function _sesEditChips() {
   return DB_CACHE.users.map(function (u) {
     var on = _sesEditPlayers.indexOf(u.id) >= 0;
-    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="sesEditToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="sesEditToggle(\'' + jsq(u.id) + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
   }).join('');
 }
 function sesEditToggle(uid) {
@@ -448,7 +448,7 @@ function showSessionDetailsModal(sessionId) {
       var disc = discountOf(s.discount, gross);
       data.discountAmount = disc;
       if (!disc && s.discount) data.discount = null;
-      data.grandTotal = gross - disc;
+      data.grandTotal = computeLedger(Object.assign({}, s, data)).totals.grand;   // one number everywhere
     }
     dbUpdateSession(sessionId, data)
       .then(function () { closeModal(); showToast(t("save") + " ✔"); })
@@ -547,7 +547,7 @@ function sesPickCourt(id) {
 function _newSesChips() {
   return DB_CACHE.users.map(function (u) {
     var on = newSes.players.indexOf(u.id) >= 0;
-    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + jsq(u.id) + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
   }).join('');
 }
 
@@ -676,10 +676,10 @@ function _sessionLocationHtml(court) {
   if (hasPin(court)) {
     return '<span class="loc-mini">' +
       '<a class="loc-ic" href="' + mapsDirUrl(court.lat, court.lng) + '" target="_blank" rel="noopener" title="' + t("openLocation") + '" aria-label="' + t("openLocation") + '">' + icon("route", 18) + '</a>' +
-      '<button class="loc-ic" onclick="shareLocation(\'' + court.id + '\')" title="' + t("shareLocation") + '" aria-label="' + t("shareLocation") + '">' + icon("share", 18) + '</button></span>';
+      '<button class="loc-ic" onclick="shareLocation(\'' + jsq(court.id) + '\')" title="' + t("shareLocation") + '" aria-label="' + t("shareLocation") + '">' + icon("share", 18) + '</button></span>';
   }
   if (typeof can === "function" && (can("editConfig") || (typeof isGroupAdminMe === "function" && isGroupAdminMe())))
-    return '<span class="loc-mini"><button class="loc-ic" onclick="pinSessionCourt(\'' + court.id + '\')" title="' + t("pinCourtLocation") + '" aria-label="' + t("pinCourtLocation") + '">' + icon("pin", 18) + '</button></span>';
+    return '<span class="loc-mini"><button class="loc-ic" onclick="pinSessionCourt(\'' + jsq(court.id) + '\')" title="' + t("pinCourtLocation") + '" aria-label="' + t("pinCourtLocation") + '">' + icon("pin", 18) + '</button></span>';
   return '';
 }
 
@@ -721,7 +721,7 @@ function _sessionActionBar(s) {
   if (!s || typeof sessionStep !== "function" || sessionEditing) return "";
   var step = sessionStep(s), btns = "";
   if (step <= 1 && sessionTab !== "games" && _hasGamesTab() && typeof _canAddGames === "function" && _canAddGames(s)) {
-    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + s.id + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>' +
+    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>' +
       '<button type="button" class="btn-primary" onclick="quickAddGame()">' + icon("add", 16) + ' ' + t("addGameScore") + '</button>';
   } else if (step === 2 && typeof myOweOn === "function" && myOweOn(s) > 0) {
     btns = '<button type="button" class="btn-primary" onclick="showMyPayments()">' + icon("wallet", 16) + ' ' + t("homePay") + ' ' + fmtShort(myOweOn(s)) + '</button>';
@@ -749,7 +749,7 @@ function _renderPendingSession(s) {
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
   (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div><div class="session-actions" style="margin:12px 0">';
-  if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
+  if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + jsq(s.id) + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
   if (canEditBill(s)) html += '<button class="btn-primary" onclick="startEditSession()">' + icon("bill", 16) + ' ' + t("enterBill") + '</button>';
   return html + '</div>';
 }
@@ -780,6 +780,21 @@ function _renderSessionHeader(s) {
 }
 
 /* ---------- Result view (after costs are saved) ---------- */
+/** Rounding left over: who ends up with less (negative) or more (positive) than paid - share, because every payment is rounded to ROUND_TO */
+function ledgerRounding(s, L) {
+  var implied = {}, out = [];
+  L.transfers.forEach(function (tr) { implied[tr.from] = (implied[tr.from] || 0) - tr.amount; implied[tr.to] = (implied[tr.to] || 0) + tr.amount; });
+  var uids = {}; Object.keys(L.paid).forEach(function (u) { uids[u] = 1; }); Object.keys(L.shares).forEach(function (u) { uids[u] = 1; });
+  Object.keys(uids).forEach(function (u) {
+    var ideal = (L.paid[u] || 0) - ((L.shares[u] || {}).total || 0), d = Math.round((implied[u] || 0) - ideal);
+    if (Math.abs(d) >= 1) out.push({ uid: u, diff: d });
+  });
+  return out.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+}
+
+/** The total of a settled bill, always from the ledger (the stored grandTotal can be stale) */
+function _grandOf(s) { return computeLedger(s).totals.grand; }
+
 function _renderSplitResult(s) {
   var L = computeLedger(s);
   var settled = s.settled || {};
@@ -856,10 +871,10 @@ function _renderSplitResult(s) {
       calc += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
       calc += '<div class="settle-head"><div class="settle-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</div><div>';
       if (isDone) {
-        calc += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
+        calc += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
                         : '<span class="person-status status-payer">' + t("paid") + '</span>';
       } else if (canMark) {
-        calc += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
+        calc += '<button class="edit-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
       } else {
         calc += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
       }
@@ -896,6 +911,12 @@ function _renderSplitResult(s) {
   }
   calc += '</div>';
 
+  // Rounding: say who gets a little less / more, so nobody is surprised
+  var rnd = ledgerRounding(s, L).filter(function (x) { return Math.abs(x.diff) >= 1; });
+  if (rnd.length) {
+    calc += '<div class="form-hint rnd-note">' + icon("calc", 12) + ' ' + t("billRounded").replace("{n}", fmtLAK(ROUND_TO)) + ' ' +
+      rnd.slice(0, 3).map(function (x) { return escapeHtml(plainUserName(findUser(x.uid))) + ' ' + (x.diff > 0 ? '+' : '\u2212') + fmtLAK(Math.abs(x.diff)); }).join(' \u00B7 ') + '</div>';
+  }
   html += howCalc + calc + '</details>';
 
   // Messenger copy & preview
@@ -906,7 +927,7 @@ function _renderSplitResult(s) {
     html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">' + icon("pen", 14) + ' ' + t("editCosts") + '</button>';
   }
   if (canDeleteSession(s)) {
-    html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
+    html += '<button class="btn-danger" onclick="deleteSessionById(\'' + jsq(s.id) + '\')">' + t("deleteSession") + '</button>';
   }
   return html;
 }
@@ -930,9 +951,9 @@ function _yourPartHtml(s, L) {
   }
   var row = function (tr, mine) {
     var done = !!settled[tr.key], who = mine ? tr.to : tr.from, canMark = _canMarkTransfer(s, tr);
-    var label = (mine ? t("payTo") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
+    var label = (mine ? t("payToName") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
     var act = done ? '<span class="yp-done">' + icon("check", 14) + ' ' + t("paid") + '</span>'
-      : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
+      : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
       : '<span class="yp-wait">' + t("unpaid") + '</span>';
     return '<div class="yp-row' + (done ? ' done' : '') + '">' + avatarHtml(who, 30) + '<span class="yp-who"><span>' + label + '</span><small>' + fmtLAK(tr.amount) + '</small></span>' + act + '</div>';
   };
@@ -1025,7 +1046,7 @@ function _fillQrSlots(root) {
     dbGetUserQr(uid).then(function (qr) {
       var url = qrFor(qr, type);
       slot.innerHTML = url
-        ? '<img src="' + url + '" alt="QR" onclick="openImage(this.src)">'
+        ? '<img src="' + escapeHtml(safeUrl(url)) + '" alt="QR" onclick="openImage(this.src)">'
         : '<div class="qr-missing">' + t("noQr") + '</div>';
     });
   });
@@ -1035,7 +1056,9 @@ function _fillQrSlots(root) {
 function openImage(src) {
   var viewer = document.createElement("div");
   viewer.className = "image-viewer";
-  viewer.innerHTML = '<img src="' + src + '" alt=""><button class="image-viewer-close" aria-label="Close">' + icon("close", 26) + '</button>';
+  var shown = safeUrl(src);
+  if (!shown || shown.indexOf("img:") === 0) return;     // only real images (data URL or http) open here
+  viewer.innerHTML = '<img src="' + escapeHtml(shown) + '" alt=""><button class="image-viewer-close" aria-label="' + t("close") + '">' + icon("close", 26) + '</button>';
   viewer.addEventListener("click", function () { viewer.remove(); });
   document.body.appendChild(viewer);
 }
@@ -1249,7 +1272,7 @@ function renderEditForm() {
   html += '<button class="btn-primary" onclick="saveSessionCosts()">' + t("calculateSplit") + '</button>';
   html += '<button class="btn-secondary" style="margin-top:8px" onclick="cancelEditSession()">' + t("cancel") + '</button>';
   if (currentSession && !currentSession.calculated && canDeleteSession(currentSession)) {
-    html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + currentSession.id + '\')">' + t("deleteSession") + '</button>';
+    html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + jsq(currentSession.id) + '\')">' + t("deleteSession") + '</button>';
   }
 
   container.innerHTML = _renderSessionHeader({
@@ -1296,7 +1319,7 @@ function _editToSessionData() {
   var gross = courtCost + shuttleTotal + otherTotal + dinnerAmt;
   var disc = edit.discount && edit.discount.type !== "none" ? discountOf(edit.discount, gross) : 0;
 
-  return {
+  var out = {
     date: edit.date,
     time: edit.time,
     duration: edit.duration,
@@ -1321,6 +1344,9 @@ function _editToSessionData() {
     discountAmount: disc,
     grandTotal: gross - disc
   };
+  // The ledger is the one truth for the total (a dinner with nobody eating, a cost with no players... are not charged)
+  out.grandTotal = computeLedger(Object.assign({ settled: {} }, out)).totals.grand;
+  return out;
 }
 
 function _updateEditTotals() {
@@ -1592,8 +1618,6 @@ function saveSessionCosts() {
   data.settled = keep.settled;
   data.settledAt = keep.settledAt;
   data.status = computeLedger(data).transfers.filter(function (tr) { return !data.settled[tr.key]; }).length ? "active" : "completed";
-  if (keep.dropped > 0 && !confirm(t("billDropMarks").replace("{n}", keep.dropped))) return;
-
   var doSave = function () {
     // A new receipt photo is stored on its own (images/), the session keeps a reference
     var jobs = [];
@@ -1617,7 +1641,10 @@ function saveSessionCosts() {
       })
       .catch(function (error) { showToast(_permError(error)); });
   };
-  _billPreview(data, doSave);
+  var proceed = function () { _billPreview(data, doSave); };
+  // Changing a paid amount starts that payment again: say so, with the in-app sheet (not the browser popup)
+  if (keep.dropped > 0) askConfirm({ title: t("billDropMarks").replace("{n}", keep.dropped), yes: t("confirm") }, proceed);
+  else proceed();
 }
 
 /** Paid marks that are still true after an edit: same payment (from + to) and same amount */

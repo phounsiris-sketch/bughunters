@@ -1,6 +1,6 @@
 /* Run: node tests/restaurants.test.js — the Restaurants master tab renders, edit/delete only for who may */
 var fs = require("fs"), vm = require("vm"), assert = require("assert");
-var ctx = { console: console, DB_CACHE: { restaurants: [{ id: "r1", name: "Grill House", location: "Sisattanak", lat: 17.9, lng: 102.6, createdBy: "me" }, { id: "r2", name: "Noodle Bar", location: "Chanthabury", createdBy: "other" }] },
+var ctx = { console: console, jsq: function (v) { return String(v).replace(/[^A-Za-z0-9_\-]/g, ""); }, DB_CACHE: { restaurants: [{ id: "r1", name: "Grill House", location: "Sisattanak", lat: 17.9, lng: 102.6, createdBy: "me" }, { id: "r2", name: "Noodle Bar", location: "Chanthabury", createdBy: "other" }] },
   currentUser: { uid: "me" }, t: function (k) { return k; }, escapeHtml: function (x) { return String(x); }, icon: function () { return ""; },
   dbFindById: function (l, id) { return l.filter(function (x) { return x.id === id; })[0]; }, hasPin: function (c) { return typeof c.lat === "number"; },
   can: function () { return false; }, isSuperAdmin: function () { return false; }, imgSrcAttrs: function () { return ""; }, courtMapLink: function () { return ""; },

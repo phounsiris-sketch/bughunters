@@ -47,9 +47,9 @@ function showPersonMenu(uid) {
   var isBlocked = myBlocked().indexOf(uid) >= 0;
   document.getElementById("modalTitle").textContent = plainUserName(u);
   document.getElementById("modalBody").innerHTML =
-    '<button class="btn-secondary" onclick="toggleBlock(\'' + uid + '\')">' + icon("lock", 16) + ' ' + t(isBlocked ? "unblock" : "block") + '</button>' +
+    '<button class="btn-secondary" onclick="toggleBlock(\'' + jsq(uid) + '\')">' + icon("lock", 16) + ' ' + t(isBlocked ? "unblock" : "block") + '</button>' +
     '<div class="form-hint" style="margin:-4px 0 12px">' + t("blockHint") + '</div>' +
-    '<button class="btn-danger" onclick="showReportModal(\'' + uid + '\')">' + icon("warning", 16) + ' ' + t("report") + '</button>';
+    '<button class="btn-danger" onclick="showReportModal(\'' + jsq(uid) + '\')">' + icon("warning", 16) + ' ' + t("report") + '</button>';
   modalCallback = null;
   openModal();
 }
@@ -260,13 +260,13 @@ function canInvite(u) {
 function _buddyCard(u) {
   var bb = u.buddy || {}, lvl = u.selfLevel || (u.about || {}).selfLevel;
   var pending = _invOut.some(function (i) { return i.to === u.id && i.status === "pending"; });
-  var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + u.id + '\',event)">' + avatarHtml(u.id, 44) +
+  var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + jsq(u.id) + '\',event)">' + avatarHtml(u.id, 44) +
     '<div><div class="game-when" style="font-size:16px">' + escapeHtml(plainUserName(u)) + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
     (bb.intro ? '<div class="game-facts" style="margin-top:2px">' + escapeHtml(bb.intro) + '</div>' : '') + '</div></div>' +
     '<div class="game-tags">' + (bb.lookingFor || []).map(function (x) { return '<span class="tag">' + t("look_" + x) + '</span>'; }).join('') +
     (bb.times ? '<span class="tag">' + icon("clock", 12) + ' ' + escapeHtml(bb.times) + '</span>' : '') + '</div><div class="game-actions">';
   if (pending) html += '<span class="status-chip st-costs">' + t("inviteSent") + '</span>';
-  else if (canInvite(u)) html += '<button class="btn-primary" onclick="showInviteModal(\'' + u.id + '\')">' + t("inviteToPlay") + '</button>';
+  else if (canInvite(u)) html += '<button class="btn-primary" onclick="showInviteModal(\'' + jsq(u.id) + '\')">' + t("inviteToPlay") + '</button>';
   else html += '<span class="form-hint">' + t("invitesOnlyKnown") + '</span>';
   return html + '</div></div>';
 }
@@ -324,11 +324,11 @@ function _inviteCard(i, incoming) {
     else html += '<span class="form-hint">' + t("noPhoneShared") + '</span>';
     if (i.gameId) html += '<button class="btn-secondary" onclick="publicTab=\'games\';showPage(\'public\')">' + t("openGames") + '</button>';
   } else if (incoming) {
-    html += '<button class="btn-primary" onclick="answerInvite(\'' + i.id + '\',\'accepted\')">' + t("accept") + '</button>' +
-      '<button class="btn-secondary" onclick="answerInvite(\'' + i.id + '\',\'ignored\')">' + t("ignore") + '</button>';
+    html += '<button class="btn-primary" onclick="answerInvite(\'' + jsq(i.id) + '\',\'accepted\')">' + t("accept") + '</button>' +
+      '<button class="btn-secondary" onclick="answerInvite(\'' + jsq(i.id) + '\',\'ignored\')">' + t("ignore") + '</button>';
   } else {
     // The sender never learns about "Ignore"
-    html += '<span class="status-chip st-costs">' + t("inviteSent") + '</span><button class="btn-secondary" onclick="withdrawInvite(\'' + i.id + '\')">' + t("withdraw") + '</button>';
+    html += '<span class="status-chip st-costs">' + t("inviteSent") + '</span><button class="btn-secondary" onclick="withdrawInvite(\'' + jsq(i.id) + '\')">' + t("withdraw") + '</button>';
   }
   return html + '</div></div>';
 }
@@ -354,8 +354,8 @@ function dinnerPollHtml(s) {
   var going = Object.keys(answers).filter(function (u) { return answers[u] === true; });
   var mine = answers[currentUser.uid];
   var html = '<div class="card dinner-poll"><div class="card-title">' + icon("dinner", 14) + ' ' + t("dinnerAfterQ") + '</div>';
-  if (open) html += '<div class="seg"><button class="seg-btn' + (mine === true ? ' active' : '') + '" onclick="answerDinner(\'' + s.id + '\',true)">' + t("answerJoin") + '</button>' +
-    '<button class="seg-btn' + (mine === false ? ' active' : '') + '" onclick="answerDinner(\'' + s.id + '\',false)">' + t("answerSkip") + '</button></div>';
+  if (open) html += '<div class="seg"><button class="seg-btn' + (mine === true ? ' active' : '') + '" onclick="answerDinner(\'' + jsq(s.id) + '\',true)">' + t("answerJoin") + '</button>' +
+    '<button class="seg-btn' + (mine === false ? ' active' : '') + '" onclick="answerDinner(\'' + jsq(s.id) + '\',false)">' + t("answerSkip") + '</button></div>';
   html += '<div class="game-players" style="margin-top:8px">' + going.map(function (u) { return '<span title="' + escapeHtml(plainUserName(findUser(u))) + '">' + avatarHtml(u, 26) + '</span>'; }).join('') +
     '<span class="form-hint" style="align-self:center;margin-left:6px">' + t("dinnerGoingN").replace("{n}", going.length) + '</span></div>';
   if (going.length) html += '<div class="form-hint">' + t("dinnerSplitHint") + '</div>';
@@ -422,7 +422,7 @@ function _renderReports() {
       (r.details ? '<div class="report-details">\u201C' + escapeHtml(r.details) + '\u201D</div>' : '') +
       '<div class="form-hint" style="margin:6px 0 10px">' + t("reportedBy").replace("{name}", escapeHtml(getUserName(r.from))) + '</div>' +
       '<div class="game-actions"><button class="btn-secondary" onclick="showUserProfile(\'' + r.about + '\',event)">' + t("viewProfile") + '</button>' +
-      '<button class="btn-primary" onclick="resolveReport(\'' + r.id + '\')">' + icon("check", 14) + ' ' + t("markHandled") + '</button></div></div>';
+      '<button class="btn-primary" onclick="resolveReport(\'' + jsq(r.id) + '\')">' + icon("check", 14) + ' ' + t("markHandled") + '</button></div></div>';
   });
   box.innerHTML = html;
 }
@@ -504,10 +504,10 @@ function _marketListHtml() {
       '<div class="market-facts">' + t("gearKind_" + (g.kind || "other")) + (g.brand ? ' \u00B7 ' + escapeHtml(g.brand) : '') + (g.saleCity ? ' \u00B7 ' + icon("pin", 12) + ' ' + escapeHtml(cityLabel(g.saleCity)) : '') + '</div>' +
       (g.listedAt ? '<div class="market-posted">' + icon("clock", 12) + ' ' + t("postedAt").replace("{when}", _whenShort(g.listedAt)) + '</div>' : '') +
       (g.note ? '<div class="market-note">' + escapeHtml(g.note) + '</div>' : '') +
-      '<div class="market-seller" onclick="showUserProfile(\'' + g.uid + '\',event)">' + avatarHtml(g.uid, 24) + '<span>' + escapeHtml(seller) + (g.uid === me ? ' (' + t("you") + ')' : '') + '</span></div>' +
-      (g.uid === me ? '<div class="game-actions"><button class="btn-primary" onclick="markGearSold(\'' + g.id + '\')">' + t("markSold") + '</button><button class="btn-secondary" onclick="removeFromSale(\'' + g.id + '\')">' + t("removeSale") + '</button></div>' : '') +
+      '<div class="market-seller" onclick="showUserProfile(\'' + jsq(g.uid) + '\',event)">' + avatarHtml(g.uid, 24) + '<span>' + escapeHtml(seller) + (g.uid === me ? ' (' + t("you") + ')' : '') + '</span></div>' +
+      (g.uid === me ? '<div class="game-actions"><button class="btn-primary" onclick="markGearSold(\'' + jsq(g.id) + '\')">' + t("markSold") + '</button><button class="btn-secondary" onclick="removeFromSale(\'' + jsq(g.id) + '\')">' + t("removeSale") + '</button></div>' : '') +
       (g.uid !== me ? '<div class="game-actions">' + (phone ? '<a class="btn-primary contact-btn" href="https://wa.me/' + escapeHtml(phone) + '?text=' + encodeURIComponent(t("marketAskText").replace("{item}", g.name)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
-        '<button class="btn-secondary" onclick="showUserProfile(\'' + g.uid + '\',event)">' + t("viewSeller") + '</button></div>' : '') +
+        '<button class="btn-secondary" onclick="showUserProfile(\'' + jsq(g.uid) + '\',event)">' + t("viewSeller") + '</button></div>' : '') +
       '</div></div>';
   });
   return html;

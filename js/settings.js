@@ -105,7 +105,7 @@ var pfSub = "personal"; // which profile page is open: personal | gear | qr
 /** A row of the profile list: opens its own page (with a breadcrumb), no drop-down */
 function openPfSub(id) { pfSub = id; showPage("profile-sub"); }
 function _pfRow(id, iconName, title, hint) {
-  return '<button type="button" class="nav-row pf-row" onclick="openPfSub(\'' + id + '\')">' +
+  return '<button type="button" class="nav-row pf-row" onclick="openPfSub(\'' + jsq(id) + '\')">' +
     '<span class="nav-row-ico">' + icon(iconName, 20) + '</span>' +
     '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16) + '</button>';
 }
@@ -295,7 +295,7 @@ function _renderPlayersTab() {
   for (var i = 0; i < users.length; i++) {
     var u = users[i];
     var isMe = currentUser && u.id === currentUser.uid;
-    html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + u.id + '\',event)">';
+    html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + jsq(u.id) + '\',event)">';
     html += avatarHtml(u.id, 34);
     html += '<div><div class="settings-label">' + escapeHtml(u.displayName || '') +
       (isMe ? ' <span style="font-size:12px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>';
@@ -307,15 +307,15 @@ function _renderPlayersTab() {
     if (GROUPS_ON) {
       var mem = memberOf(u.id);
       if (!u.manual && mem && isGroupAdminMe() && mem.role !== "owner" && !isMe) {
-        html += '<button class="edit-btn" onclick="showMemberModal(\'' + mem.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
+        html += '<button class="edit-btn" onclick="showMemberModal(\'' + jsq(mem.id) + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
       }
     } else if (!u.manual && isSuperAdmin() && userPerms(u) !== "super") {
-      html += '<button class="edit-btn" onclick="showPermsModal(\'' + u.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
+      html += '<button class="edit-btn" onclick="showPermsModal(\'' + jsq(u.id) + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>';
     }
     if (u.manual && can("editConfig")) {
       html += '<div style="display:flex;gap:8px">';
-      html += '<button class="edit-btn" onclick="showPlayerModal(\'' + u.id + '\')">' + icon("pen", 16) + '</button>';
-      html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + u.id + '\')">' + icon("trash", 16) + '</button>';
+      html += '<button class="edit-btn" onclick="showPlayerModal(\'' + jsq(u.id) + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" onclick="deleteManualPlayer(\'' + jsq(u.id) + '\')">' + icon("trash", 16) + '</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -429,15 +429,15 @@ function _renderCourtsTab() {
   for (var i = 0; i < courts.length; i++) {
     var c = courts[i], nums = courtNumbers(c);
     html += '<div class="settings-item">';
-    html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + c.id + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
+    html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showCourtModal(\'' + jsq(c.id) + '\')"><div class="settings-label">' + escapeHtml(c.name) + '</div>';
     html += '<div style="font-size:12px;color:var(--text-muted)">' + icon("pin", 12) + ' ' + escapeHtml(c.location || (hasPin(c) ? '' : '—')) +
       (hasPin(c) ? ' ' + courtMapLink(c) : ' <span class="no-pin">' + t("noPinYet") + '</span>') +
       (nums.length ? ' · ' + t("courtsN").replace("{n}", nums.length) + ' (' + nums[0] + '–' + nums[nums.length - 1] + ')' : '') + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(courtPrice(c)) + '/h</div>';
     if (can("editConfig")) {
-      html += '<button class="edit-btn" onclick="showCourtModal(\'' + c.id + '\')">' + icon("pen", 16) + '</button>';
-      html += '<button class="delete-btn" aria-label="' + t(GROUPS_ON ? "removeFromGroup" : "delete") + '" onclick="deleteSettingsCourt(\'' + c.id + '\')">' + icon("trash", 16) + '</button>';
+      html += '<button class="edit-btn" onclick="showCourtModal(\'' + jsq(c.id) + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" aria-label="' + t(GROUPS_ON ? "removeFromGroup" : "delete") + '" onclick="deleteSettingsCourt(\'' + jsq(c.id) + '\')">' + icon("trash", 16) + '</button>';
     }
     html += '</div></div>';
   }
@@ -459,7 +459,7 @@ function showCourtDirectoryPicker() {
     var html = '<div class="form-hint" style="margin-bottom:8px">' + t("copyFromDirectoryHint") + '</div>';
     if (!list.length) html += '<div class="empty-state" style="padding:12px">' + t("directoryEmpty") + '</div>';
     list.forEach(function (c) {
-      html += '<button class="group-row" onclick="showCourtModal(\'' + c.id + '\')">' +
+      html += '<button class="group-row" onclick="showCourtModal(\'' + jsq(c.id) + '\')">' +
         '<span class="nav-card-icon">' + icon("court", 18) + '</span>' +
         '<span class="group-row-text"><b>' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.location || '') +
         (here && hasPin(c) ? ' · ' + fmtKm(distanceKm(here, c)) : '') + '</small></span>' + icon("add", 16) + '</button>';
@@ -632,13 +632,13 @@ function _renderShuttleTab() {
     var cocks = b.cocksPerTube || 12;
     var tube = b.pricePerTube || 0;
     html += '<div class="settings-item">';
-    html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showShuttleModal(\'' + b.id + '\')"><div class="settings-label">' + escapeHtml(b.name) + '</div>';
+    html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="showShuttleModal(\'' + jsq(b.id) + '\')"><div class="settings-label">' + escapeHtml(b.name) + '</div>';
     html += '<div style="font-size:12px;color:var(--text-muted)">' + cocks + ' ' + t("cocks") + ' / ' + t("tube") + ' • ' + fmtLAK(tube / cocks) + ' / ' + t("cock") + '</div></div>';
     html += '<div style="display:flex;align-items:center;gap:8px">';
     html += '<div class="settings-value">' + fmtLAK(tube) + '/' + t("tube") + '</div>';
     if (can("editConfig")) {
-      html += '<button class="edit-btn" onclick="showShuttleModal(\'' + b.id + '\')">' + icon("pen", 16) + '</button>';
-      html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + b.id + '\')">' + icon("trash", 16) + '</button>';
+      html += '<button class="edit-btn" onclick="showShuttleModal(\'' + jsq(b.id) + '\')">' + icon("pen", 16) + '</button>';
+      html += '<button class="delete-btn" onclick="deleteSettingsShuttlecock(\'' + jsq(b.id) + '\')">' + icon("trash", 16) + '</button>';
     }
     html += '</div></div>';
   }
@@ -772,7 +772,7 @@ function _fillQrCard() {
       var img = document.getElementById("qrImg_" + type);
       var del = document.getElementById("qrDel_" + type);
       if (!img) return;
-      img.innerHTML = qr[type] ? '<img src="' + qr[type] + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
+      img.innerHTML = qr[type] ? '<img src="' + escapeHtml(safeUrl(qr[type])) + '" alt="QR" onclick="openImage(this.src)">' : '<div class="qr-missing">' + icon("qr", 22) + '</div>';
       if (del) del.style.display = qr[type] ? "" : "none";
       var st = document.getElementById("qrStatus_" + type);
       if (st) {

@@ -508,7 +508,7 @@ function _renderPlayerActivity(uid, sessions, polls) {
   var html = '<div class="card profile-hero">' + avatarHtml(uid, 56) +
     '<div style="min-width:0"><div class="profile-hero-name">' + getUserName(uid) + (isMe ? ' <span class="perm-badge on">' + t("you") + '</span>' : '') + '</div>' +
     '<div class="profile-hero-sub">' + icon("calendar", 13) + ' ' + _periodLabel() + '</div></div>' +
-    '<button class="edit-btn" style="margin-left:auto;flex-shrink:0" onclick="showUserProfile(\'' + uid + '\',event)">' + icon("user", 14) + ' ' + t("viewProfile") + '</button></div>';
+    '<button class="edit-btn" style="margin-left:auto;flex-shrink:0" onclick="showUserProfile(\'' + jsq(uid) + '\',event)">' + icon("user", 14) + ' ' + t("viewProfile") + '</button></div>';
 
   // Four balanced stat tiles
   html += '<div class="stat-grid">';
@@ -551,7 +551,7 @@ function _renderPlayerActivity(uid, sessions, polls) {
     var share = s.calculated ? (computeLedger(s).shares[uid] || { total: 0 }).total : null;
     var owing = openTransfers(s).filter(function (tr) { return tr.from === uid; }).length;
     var st = sessionStatus(s);
-    html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + s.id + '\')">' +
+    html += '<div class="settings-item" style="cursor:pointer" onclick="showSessionDetail(\'' + jsq(s.id) + '\')">' +
       '<div style="min-width:0"><div class="settings-label">' + fmtDate(s.date) + '</div><div style="font-size:12px;color:var(--text-muted)">' + escapeHtml(s.courtName || "") +
       (s.dinner && (s.dinner.diners || []).indexOf(uid) >= 0 ? ' • ' + icon("dinner", 12) : '') + '</div></div>' +
       '<div style="text-align:right"><div class="settings-value">' + (share === null ? '—' : fmtLAK(share)) + '</div>' +

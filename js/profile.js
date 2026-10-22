@@ -277,7 +277,7 @@ function gearCardHtml(uid, editable) {
     (editable && selling ? ' <span class="badges-count">' + t("sellingN").replace("{n}", selling).replace("{max}", MAX_LISTINGS) + '</span>' : '') + '</div>';
   if (!shown.length) html += '<div class="form-hint">' + t(editable ? "noGearYet" : "noGear") + '</div>';
   shown.forEach(function (g) {
-    html += '<div class="gear-row"' + (editable ? ' onclick="showGearModal(\'' + g.id + '\')"' : '') + '>' +
+    html += '<div class="gear-row"' + (editable ? ' onclick="showGearModal(\'' + jsq(g.id) + '\')"' : '') + '>' +
       (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="event.stopPropagation();openImage(this.src)">' : '<span class="gear-photo empty">' + icon(g.kind === "shoes" ? "user" : g.kind === "other" ? "other" : "shuttle", 18) + '</span>') +
       '<span class="gear-text"><b>' + escapeHtml(g.name) + (g.main ? ' <span class="tag">' + t("mainItem") + '</span>' : '') + '</b>' +
       '<small>' + t("gearKind_" + g.kind) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') +
@@ -285,8 +285,8 @@ function gearCardHtml(uid, editable) {
       (g.shoeSize ? ' · EU ' + g.shoeSize : '') + '</small>' +
       (g.forSale ? '<small class="sale-line">' + icon("wallet", 12) + ' ' + t("forSale") + (g.salePrice ? ' ' + fmtMoneyIn(g.salePrice, g.saleCurrency) : '') + ' · ' + t(g.saleScope === "public" ? "saleScope_public" : "saleScope_groups") + '</small>'
         : g.sold ? '<small class="sale-line sold">' + icon("check", 12) + ' ' + t("soldWord") + '</small>' : '') + '</span>' +
-      (editable && g.forSale ? '<span class="sale-actions" onclick="event.stopPropagation()"><button class="edit-btn" onclick="markGearSold(\'' + g.id + '\')">' + t("markSold") + '</button>' +
-        '<button class="edit-btn" onclick="removeFromSale(\'' + g.id + '\')">' + t("removeSale") + '</button></span>' : '') + '</div>';
+      (editable && g.forSale ? '<span class="sale-actions" onclick="event.stopPropagation()"><button class="edit-btn" onclick="markGearSold(\'' + jsq(g.id) + '\')">' + t("markSold") + '</button>' +
+        '<button class="edit-btn" onclick="removeFromSale(\'' + jsq(g.id) + '\')">' + t("removeSale") + '</button></span>' : '') + '</div>';
   });
   if (editable && list.length < 10) html += '<button class="add-btn-dashed" onclick="showGearModal(null)">+ ' + t("addGear") + '</button>';
   return html + '</div>';
@@ -360,7 +360,7 @@ function showGearModal(id) {
         : f.kind === "shoes" ? '<div class="form-group"><label class="form-label">' + t("shoeSize") + ' (EU)</label><input type="number" class="form-input" id="gShoe" min="34" max="48" value="' + escapeHtml(String(f.shoeSize || "")) + '"></div>' : '') +
         '<div class="form-group"><label class="form-label">' + t("note") + '</label><input class="form-input" id="gNote" maxlength="100" value="' + escapeHtml(f.note || "") + '"></div>' +
       '</details>' +
-      (g ? '<button class="btn-danger" onclick="deleteGear(\'' + g.id + '\')">' + t("delete") + '</button>' : '');
+      (g ? '<button class="btn-danger" onclick="deleteGear(\'' + jsq(g.id) + '\')">' + t("delete") + '</button>' : '');
     document.querySelectorAll("#gSaleScope [data-scope]").forEach(function (b) {
       b.onclick = function () { f.saleScope = b.getAttribute("data-scope"); document.querySelectorAll("#gSaleScope .seg-btn").forEach(function (x) { x.classList.toggle("active", x === b); }); };
     });

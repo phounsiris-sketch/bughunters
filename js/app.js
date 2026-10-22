@@ -99,16 +99,20 @@ function showToast(msg) {
 
 var modalCallback = null;
 
+var _modalOpener = null;   // the control that opened the dialog: focus goes back to it when it closes
 function openModal() {
   var overlay = document.getElementById("modal");
+  if (overlay && !overlay.classList.contains("active")) _modalOpener = document.activeElement;
   if (overlay) overlay.classList.add("active");
-  var first = document.querySelector("#modalBody input, #modalBody select");
+  var first = document.querySelector("#modalBody input, #modalBody select, #modalBody textarea, #modalBody button");
   if (first) setTimeout(function () { first.focus(); }, 50);
 }
 
 function closeModal() {
   var overlay = document.getElementById("modal");
   if (overlay) overlay.classList.remove("active");
+  if (_modalOpener && _modalOpener.focus && document.body.contains(_modalOpener)) { try { _modalOpener.focus(); } catch (e) {} }
+  _modalOpener = null;
   var ok = document.getElementById("modalConfirmBtn"); if (ok) { ok.style.display = ""; ok.textContent = t("save"); }
   modalCallback = null;
 }
@@ -122,6 +126,18 @@ function modalConfirm() {
 }
 
 // ── Utility ────────────────────────────────────────────────
+
+/** Safe inside onclick='fn(\'...\')': ids are letters, digits, _ and - only (anything else is dropped) */
+function jsq(v) { return String(v === null || v === undefined ? "" : v).replace(/[^A-Za-z0-9_\-]/g, ""); }
+
+/** A URL that is safe to put in src="...": an image data URL, an img:<id> reference or an http(s) address; "" otherwise */
+function safeUrl(v) {
+  v = String(v || "");
+  if (/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) return v;
+  if (/^img:[A-Za-z0-9_\-]{1,60}$/.test(v)) return v;
+  if (/^https?:\/\/[^\s"'<>`\\]+$/.test(v)) return v;
+  return "";
+}
 
 /**
  * Escape HTML special characters to prevent XSS
@@ -147,7 +163,9 @@ function curSymbol() {
 
 /** Exact amount with thousands separators: 206000 → "206,000 ₭" */
 function fmtLAK(n) {
-  return Math.round(n || 0).toLocaleString("en-US") + " " + curSymbol();
+  var v = Math.round(n || 0);
+  if (v === 0) v = 0;                       // never "-0"
+  return v.toLocaleString("en-US") + " " + curSymbol();
 }
 
 /** Short form for summaries only: 930000 → "930K ₭", 1250000 → "1.25M ₭" */
@@ -155,7 +173,9 @@ function fmtShort(n) {
   var v = Math.round(n || 0);
   var a = Math.abs(v);
   var out;
-  if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+  if (a >= 1e9 - 5e6) out = (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
+  else if (a >= 1e6 - 5e2 * 1 && Math.round(a / 1e3) >= 1000) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";   // 999,950 is "1M", never "1000K"
+  else if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
   else if (a >= 1e3) out = (v / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
   else out = String(v);
   return out + " " + curSymbol();
@@ -232,7 +252,8 @@ function avatarHtml(uid, size) {
   var u = typeof dbFindById === "function" ? findUser(uid) : null;
   var style = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px';
   if (u && u.avatarUrl) {
-    return '<img class="person-avatar" src="' + u.avatarUrl + '" alt="" style="' + style + '">';
+    var av = safeUrl(u.avatarUrl);
+    if (av && av.indexOf("img:") !== 0) return '<img class="person-avatar" src="' + escapeHtml(av) + '" alt="" style="' + style + '">';
   }
   var name = typeof plainUserName === "function" ? plainUserName(u) : (u && u.displayName) || "?";
   return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
@@ -285,7 +306,7 @@ function readPhone(id) {
 function avatarZoomHtml(uid, size) {
   var u = typeof dbFindById === "function" ? findUser(uid) : null;
   if (!u || !u.avatarUrl) return avatarHtml(uid, size);
-  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(findUser(\'' + uid + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
+  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(findUser(\'' + jsq(uid) + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
 }
 
 /** Latest first: by play date + time, then by creation time */
@@ -325,8 +346,23 @@ function monthsOf(items, getDate) {
   return Object.keys(seen).sort().reverse();
 }
 
-/** Re-render whatever page is showing (after data or language changes) */
+/** Re-render whatever page is showing (after data or language changes).
+    A burst of snapshots (several listeners firing together) redraws once: the first call runs now, the rest are folded into one call a moment later. */
+var _rcpLast = 0, _rcpTimer = null, _rcpReasons = {};
 function refreshCurrentPage(reason) {
+  var now = Date.now();
+  if (now - _rcpLast < 150) {
+    _rcpReasons[reason || ""] = 1;
+    if (!_rcpTimer) _rcpTimer = setTimeout(function () {
+      var rs = Object.keys(_rcpReasons); _rcpReasons = {}; _rcpTimer = null; _rcpLast = Date.now();
+      rs.forEach(function (r) { _refreshCurrentPageNow(r || undefined); });
+    }, 160);
+    return;
+  }
+  _rcpLast = now;
+  _refreshCurrentPageNow(reason);
+}
+function _refreshCurrentPageNow(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
   if ((currentPage === "settings" || currentPage === "profile" || currentPage === "profile-sub" || currentPage === "config") && typeof renderSettings === "function") {
@@ -387,7 +423,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v150"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v154"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
@@ -450,6 +486,23 @@ setTimeout(function () { if (typeof hideSplash === "function") hideSplash(); }, 
     }
     var kids = el.querySelectorAll ? el.querySelectorAll("[onclick]") : [];
     for (var i = 0; i < kids.length; i++) fix(kids[i]);
+    bindLabels(el);
+  }
+  // A <label> with no `for`: point it at the next field in the same group (tap the text, focus the field; screen readers read it)
+  var _lid = 0;
+  function bindLabels(root) {
+    if (!root.querySelectorAll) return;
+    var labels = root.querySelectorAll("label.form-label:not([for])");
+    for (var j = 0; j < labels.length; j++) {
+      var lb = labels[j], f = null, n = lb.nextElementSibling;
+      while (n && !f) { f = n.matches && n.matches("input, select, textarea") ? n : (n.querySelector ? n.querySelector("input, select, textarea") : null); n = n.nextElementSibling; }
+      if (!f && lb.parentNode) f = lb.parentNode.querySelector("input, select, textarea");
+      if (!f) continue;
+      if (!f.id) f.id = "fld" + (++_lid) + "_" + Date.now().toString(36);
+      lb.setAttribute("for", f.id);
+    }
+    var heads = root.querySelectorAll(".card-title:not([role]), .me-title:not([role]), .settings-section:not([role]), .modal-title:not([role])");
+    for (var h = 0; h < heads.length; h++) { heads[h].setAttribute("role", "heading"); heads[h].setAttribute("aria-level", heads[h].classList.contains("me-title") || heads[h].classList.contains("modal-title") ? "1" : "2"); }
   }
   new MutationObserver(function (list) {
     list.forEach(function (m) { for (var i = 0; i < m.addedNodes.length; i++) fix(m.addedNodes[i]); });
