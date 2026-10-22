@@ -159,7 +159,9 @@ function curSymbol() {
 
 /** Exact amount with thousands separators: 206000 → "206,000 ₭" */
 function fmtLAK(n) {
-  return Math.round(n || 0).toLocaleString("en-US") + " " + curSymbol();
+  var v = Math.round(n || 0);
+  if (v === 0) v = 0;                       // never "-0"
+  return v.toLocaleString("en-US") + " " + curSymbol();
 }
 
 /** Short form for summaries only: 930000 → "930K ₭", 1250000 → "1.25M ₭" */
@@ -167,7 +169,9 @@ function fmtShort(n) {
   var v = Math.round(n || 0);
   var a = Math.abs(v);
   var out;
-  if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+  if (a >= 1e9 - 5e6) out = (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
+  else if (a >= 1e6 - 5e2 * 1 && Math.round(a / 1e3) >= 1000) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";   // 999,950 is "1M", never "1000K"
+  else if (a >= 1e6) out = (v / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
   else if (a >= 1e3) out = (v / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
   else out = String(v);
   return out + " " + curSymbol();
@@ -400,7 +404,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v151"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v152"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v151';
+var CACHE_NAME = 'godsmash-v152';
 var ASSETS = [
   './',
   './index.html',
@@ -66,6 +66,15 @@ var ASSETS = [
   './icons/apple-touch-icon.png',
   './js/select.js',
   './js/datepicker.js',
+  './js/groups.js',
+  './js/maps.js',
+  './js/restaurants.js',
+  './js/public.js',
+  './js/stats.js',
+  './js/profile.js',
+  './js/social.js',
+  './js/vendor/leaflet/leaflet.js',
+  './js/vendor/leaflet/leaflet.css',
   './js/app.js'
 ];
 

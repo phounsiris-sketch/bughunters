@@ -360,8 +360,8 @@ function renderSessionsList(sessions) {
     }
     html += '</div>';
     html += '<div style="text-align:right;flex-shrink:0">' +
-      '<div class="session-total">' + (s.calculated ? fmtShort(s.grandTotal) : '—') + '</div>' +
-      (s.calculated && players.length ? '<div class="session-each">~' + fmtShort((s.grandTotal || 0) / players.length) + ' ' + t("each") + '</div>' : '') +
+      '<div class="session-total">' + (s.calculated ? fmtShort(_grandOf(s)) : '—') + '</div>' +
+      (s.calculated && players.length ? '<div class="session-each">~' + fmtShort(_grandOf(s) / players.length) + ' ' + t("each") + '</div>' : '') +
       '</div>';
     html += '</div>';
 
@@ -448,7 +448,7 @@ function showSessionDetailsModal(sessionId) {
       var disc = discountOf(s.discount, gross);
       data.discountAmount = disc;
       if (!disc && s.discount) data.discount = null;
-      data.grandTotal = gross - disc;
+      data.grandTotal = computeLedger(Object.assign({}, s, data)).totals.grand;   // one number everywhere
     }
     dbUpdateSession(sessionId, data)
       .then(function () { closeModal(); showToast(t("save") + " ✔"); })
@@ -780,6 +780,21 @@ function _renderSessionHeader(s) {
 }
 
 /* ---------- Result view (after costs are saved) ---------- */
+/** Rounding left over: who ends up with less (negative) or more (positive) than paid - share, because every payment is rounded to ROUND_TO */
+function ledgerRounding(s, L) {
+  var implied = {}, out = [];
+  L.transfers.forEach(function (tr) { implied[tr.from] = (implied[tr.from] || 0) - tr.amount; implied[tr.to] = (implied[tr.to] || 0) + tr.amount; });
+  var uids = {}; Object.keys(L.paid).forEach(function (u) { uids[u] = 1; }); Object.keys(L.shares).forEach(function (u) { uids[u] = 1; });
+  Object.keys(uids).forEach(function (u) {
+    var ideal = (L.paid[u] || 0) - ((L.shares[u] || {}).total || 0), d = Math.round((implied[u] || 0) - ideal);
+    if (Math.abs(d) >= 1) out.push({ uid: u, diff: d });
+  });
+  return out.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+}
+
+/** The total of a settled bill, always from the ledger (the stored grandTotal can be stale) */
+function _grandOf(s) { return computeLedger(s).totals.grand; }
+
 function _renderSplitResult(s) {
   var L = computeLedger(s);
   var settled = s.settled || {};
@@ -896,6 +911,12 @@ function _renderSplitResult(s) {
   }
   calc += '</div>';
 
+  // Rounding: say who gets a little less / more, so nobody is surprised
+  var rnd = ledgerRounding(s, L).filter(function (x) { return Math.abs(x.diff) >= 1; });
+  if (rnd.length) {
+    calc += '<div class="form-hint rnd-note">' + icon("calc", 12) + ' ' + t("billRounded").replace("{n}", fmtLAK(ROUND_TO)) + ' ' +
+      rnd.slice(0, 3).map(function (x) { return escapeHtml(plainUserName(findUser(x.uid))) + ' ' + (x.diff > 0 ? '+' : '\u2212') + fmtLAK(Math.abs(x.diff)); }).join(' \u00B7 ') + '</div>';
+  }
   html += howCalc + calc + '</details>';
 
   // Messenger copy & preview
@@ -930,7 +951,7 @@ function _yourPartHtml(s, L) {
   }
   var row = function (tr, mine) {
     var done = !!settled[tr.key], who = mine ? tr.to : tr.from, canMark = _canMarkTransfer(s, tr);
-    var label = (mine ? t("payTo") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
+    var label = (mine ? t("payToName") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
     var act = done ? '<span class="yp-done">' + icon("check", 14) + ' ' + t("paid") + '</span>'
       : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
       : '<span class="yp-wait">' + t("unpaid") + '</span>';
@@ -1298,7 +1319,7 @@ function _editToSessionData() {
   var gross = courtCost + shuttleTotal + otherTotal + dinnerAmt;
   var disc = edit.discount && edit.discount.type !== "none" ? discountOf(edit.discount, gross) : 0;
 
-  return {
+  var out = {
     date: edit.date,
     time: edit.time,
     duration: edit.duration,
@@ -1323,6 +1344,9 @@ function _editToSessionData() {
     discountAmount: disc,
     grandTotal: gross - disc
   };
+  // The ledger is the one truth for the total (a dinner with nobody eating, a cost with no players... are not charged)
+  out.grandTotal = computeLedger(Object.assign({ settled: {} }, out)).totals.grand;
+  return out;
 }
 
 function _updateEditTotals() {
@@ -1594,8 +1618,6 @@ function saveSessionCosts() {
   data.settled = keep.settled;
   data.settledAt = keep.settledAt;
   data.status = computeLedger(data).transfers.filter(function (tr) { return !data.settled[tr.key]; }).length ? "active" : "completed";
-  if (keep.dropped > 0 && !confirm(t("billDropMarks").replace("{n}", keep.dropped))) return;
-
   var doSave = function () {
     // A new receipt photo is stored on its own (images/), the session keeps a reference
     var jobs = [];
@@ -1619,7 +1641,10 @@ function saveSessionCosts() {
       })
       .catch(function (error) { showToast(_permError(error)); });
   };
-  _billPreview(data, doSave);
+  var proceed = function () { _billPreview(data, doSave); };
+  // Changing a paid amount starts that payment again: say so, with the in-app sheet (not the browser popup)
+  if (keep.dropped > 0) askConfirm({ title: t("billDropMarks").replace("{n}", keep.dropped), yes: t("confirm") }, proceed);
+  else proceed();
 }
 
 /** Paid marks that are still true after an edit: same payment (from + to) and same amount */
