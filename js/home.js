@@ -17,12 +17,6 @@ function loadHome() {
   renderHome();
 }
 
-/** First name to greet (the display name, plain text) */
-function _homeName() {
-  var u = typeof findUser === "function" && currentUser ? findUser(currentUser.uid) : null;
-  return escapeHtml(plainUserName(u || currentUserProfile || {}) || "");
-}
-
 function _hsCard(cls, iconName, title, onclick, inner) {
   return '<button type="button" class="hs-card ' + cls + '" onclick="' + onclick + '">' +
     '<div class="hs-title">' + icon(iconName, 16) + ' ' + title + '</div>' + inner + '</button>';
@@ -113,6 +107,19 @@ function _homeRatingCard(me) {
     '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
     '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + statsFor(me, "all").played + ' ' + t("gamesWord") + '</span>' +
     '</div>');
+}
+
+/** First-open helper: shown until the first game exists, or until hidden */
+function _homeStartCard() {
+  var hidden = false; try { hidden = localStorage.getItem("onbHidden") === "1"; } catch (e) {}
+  var played = typeof lastMatches !== "undefined" && lastMatches && lastMatches.length;
+  if (hidden || played) return "";
+  var row = function (n, label, click) { return '<button type="button" class="onb-row" onclick="' + click + '"><i>' + n + '</i><span>' + label + '</span>' + icon("chevron", 16) + '</button>'; };
+  return '<div class="onb-card"><div class="onb-title">' + t("onbTitle") + '</div>' +
+    row(1, t("onbS1"), "publicTab='games';showPage('public')") +
+    row(2, t("onbS2"), "publicTab='buddies';showPage('public')") +
+    row(3, t("onbS3"), "showPage('groups')") +
+    '<button type="button" class="onb-hide" onclick="try{localStorage.setItem(\'onbHidden\',\'1\')}catch(e){};renderHome()">' + t("onbHide") + '</button></div>';
 }
 
 function _homeShortcut(iconName, label, sub, onclick, cls) {
@@ -270,21 +277,6 @@ function _moments() {
   return ev.slice(0, 10);
 }
 
-/** The card: a live dot, the latest 3 events (10 when opened), times that keep counting, new ones slide in */
-function momentsHtml() {
-  var ev = _moments();
-  if (!ev.length) return "";
-  var shown = _momentsOpen ? ev : ev.slice(0, 3), now = Date.now();
-  var rows = shown.map(function (e) {
-    var fresh = now - e.at < 10 * 60000, pop = _momInit && !_momSeen[e.id];
-    return '<div class="mom-item ' + e.kind + (fresh ? ' fresh' : '') + (pop ? ' pop' : '') + '"><span class="mom-ic">' + icon(e.icon, 16) + '</span>' +
-      '<span class="mom-text">' + e.text + '</span><small class="mom-ago" data-ago="' + e.at + '">' + _agoText(e.at) + '</small></div>';
-  }).join("");
-  ev.forEach(function (e) { _momSeen[e.id] = true; });
-  _momInit = true;
-  return '<div class="card moments"><div class="moments-head"><i class="live-dot green"></i><b>' + t("momTitle") + '</b></div>' + rows +
-    (ev.length > 3 ? '<button type="button" class="moments-more" onclick="toggleMoments()">' + t(_momentsOpen ? "momLess" : "momMore") + '</button>' : '') + '</div>';
-}
 function toggleMoments() {
   _momentsOpen = !_momentsOpen;
   if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
@@ -319,6 +311,7 @@ function renderHome() {
 
   if (typeof liveWatchStart === "function") { liveWatchStart(); html += liveNowHtml(); }
   if (typeof payBoxHtml === "function") html += payBoxHtml();
+  if (groups) html += _homeStartCard();
   var nextCard = _homeNextCard(), nextLive = nextCard.indexOf('home-next live') >= 0;
   if (nextLive) html += nextCard;   // a game being played goes to the top
 

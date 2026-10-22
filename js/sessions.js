@@ -378,12 +378,6 @@ function renderSessionsList(sessions) {
   container.innerHTML = html;
 }
 
-function _monthLabel(ym) {
-  var p = ym.split("-");
-  var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1);
-  return monthYear(d.getFullYear(), d.getMonth());
-}
-
 /** Players picked in the edit-session window */
 var _sesEditPlayers = [];
 function _sesEditChips() {
@@ -469,7 +463,13 @@ function openSessionBill(sessionId) {
 
 /** Turn Firestore "permission-denied" into a readable message */
 function _permError(error) {
-  return error && error.code === "permission-denied" ? t("noPermission") : (error && error.message) || String(error);
+  var c = error && error.code;
+  if (c === "permission-denied") return t("noPermission");
+  if (c === "unavailable" || c === "deadline-exceeded" || (typeof navigator !== "undefined" && navigator.onLine === false)) return t("errOffline");
+  if (c === "resource-exhausted") return t("errQuota");
+  if (c === "not-found") return t("errGone");
+  if (c === "unauthenticated") return t("errSignIn");
+  return t("errGeneric");
 }
 
 /** Start a session directly (without a poll), with me as the first player */
@@ -972,12 +972,6 @@ function _canMarkTransfer(s, tr) {
   var from = findUser(tr.from);
   var to = findUser(tr.to);
   return !!((from && from.manual) || (to && to.manual));
-}
-
-function _detailLine(label, amount, payerUid) {
-  return '<div class="item-row"><div class="item-name" style="font-size:13px">' + label +
-    (payerUid ? '<div style="font-size:12px;color:var(--text-muted)">' + icon("card", 12) + ' ' + t("paidBy") + ' ' + getUserName(payerUid) + '</div>' : '') +
-    '</div><div class="item-price">' + fmtLAK(amount) + '</div></div>';
 }
 
 /** Number of cocks used in a session */
@@ -1630,8 +1624,17 @@ function saveSessionCosts() {
     (data.otherCosts || []).forEach(function (oc) { up(oc.receipt, function (ref) { oc.receipt = ref; }); });
     var saveReceipt = Promise.all(jobs);
 
-    saveReceipt.then(function () { return dbUpdateSession(currentSessionId, data); })
+    var oldRefs = _imgRefsOf(currentSession), baseBill = currentSession ? currentSession.billAt || 0 : 0;
+    // Someone else published this bill while I was editing: ask before replacing their version
+    var guard = fsdb.collection("sessions").doc(currentSessionId).get().then(function (doc) {
+      var live = doc.exists ? doc.data() : null;
+      if (!live || (live.billAt || 0) === baseBill) return true;
+      return new Promise(function (res) { askConfirm({ title: t("billChangedTitle"), body: t("billChangedBody"), yes: t("billReplace"), danger: true }, function () { res(true); }); });
+    }).catch(function () { return true; });
+    guard.then(function (go) { return go ? saveReceipt : Promise.reject({ code: "cancelled" }); })
+      .then(function () { return dbUpdateSession(currentSessionId, data); })
       .then(function () {
+        _dropOrphanImgs(oldRefs, _imgRefsOf(data));
         // Show the result straight away, even if the snapshot hasn't arrived yet
         if (currentSession) Object.assign(currentSession, data);
         sessionEditing = false;
@@ -1639,12 +1642,30 @@ function saveSessionCosts() {
         showToast(t("calculateSplit") + " \u2714");
         renderSessionDetail();
       })
-      .catch(function (error) { showToast(_permError(error)); });
+      .catch(function (error) { if (error && error.code === "cancelled") return; showToast(_permError(error)); });
   };
   var proceed = function () { _billPreview(data, doSave); };
   // Changing a paid amount starts that payment again: say so, with the in-app sheet (not the browser popup)
   if (keep.dropped > 0) askConfirm({ title: t("billDropMarks").replace("{n}", keep.dropped), yes: t("confirm") }, proceed);
   else proceed();
+}
+
+/** All photo references ("img:<id>") on one bill */
+function _imgRefsOf(s) {
+  var out = [];
+  if (!s) return out;
+  var add = function (v) { if (isImgRef(v)) out.push(v); };
+  add(s.courtReceipt); add(s.shuttleReceipt); if (s.dinner) add(s.dinner.receiptUrl);
+  (s.otherCosts || []).forEach(function (oc) { add(oc.receipt); });
+  return out;
+}
+
+/** Photos the old bill had and the new one dropped are deleted (only mine; others stay) */
+function _dropOrphanImgs(oldRefs, newRefs) {
+  oldRefs.forEach(function (r) {
+    if (newRefs.indexOf(r) >= 0) return;
+    fsdb.collection("images").doc(jsq(r.slice(4))).delete().catch(function () {});
+  });
 }
 
 /** Paid marks that are still true after an edit: same payment (from + to) and same amount */

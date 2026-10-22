@@ -1257,3 +1257,12 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Redraw bursts:** `refreshCurrentPage` runs the first call at once and folds the calls of the next 150 ms into one (each distinct reason still runs once). **`statsFor` is memoised** per player and scope until the games or the day change (the Rankings list used to scan all games once per row).
 - **CSS:** toasts (3000 / 3001) sit above sheets (2500) and the image viewer (2600); the map is `isolation: isolate`; `dvh` for the login page, modal and sheets on iOS; live screen respects the side safe areas; only the first 8 Rankings / leader rows animate.
 - **Not done (needs live numbers or a decision):** cutting the push worker's reads (`push/send.js`, 5 unfiltered collections every run, plus the double trigger), limiting what the app downloads on open (matches, users, restaurants, reviews), moving to the Blaze plan with a budget cap. Check real read counts in the Firebase usage page first.
+
+## v155 — hardening follow-ups
+- `parseMoney`: "1.234.567" and "1.234" read as thousands (kip has no decimals); minus sign dropped. Test: `tests/money-parse.test.js`.
+- `_permError` now returns friendly text (offline, busy/quota, gone, sign in, generic) instead of raw Firebase messages. Keys `errOffline…errGeneric` (EN/LA, Lao unreviewed).
+- Bill publish checks the live `billAt` first; if someone else published meanwhile, an in-app sheet asks before replacing.
+- Photos dropped from a bill (receipts replaced/removed) are deleted from `images/` after a successful save (own photos only; rules allow creator/super admin).
+- Home first-open card (`_homeStartCard`): 3 steps, hidden once a match exists or the user taps hide (`localStorage onbHidden`).
+- Removed dead code: `momentsHtml`, `_homeName`, `makeRecap`, `_detailLine`, `_monthLabel`, `dbGetSession`, `.loc-actions` CSS.
+- Join-request notice to admins already exists in `push/events.js` (review finding was stale).
