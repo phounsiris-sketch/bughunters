@@ -28,6 +28,7 @@
     <div id="splashSub" class="sp3-sub">Badminton Club</div>
   </div>
 </div>
+<script>try{var _l=localStorage.getItem("lang")||"la";document.documentElement.lang=_l==="en"?"en":"lo";}catch(e){}</script>
 <script>try{var _s=document.getElementById("splash"),_k="godsmash_splash",_n=localStorage.getItem(_k)==="red"?"blue":"red";localStorage.setItem(_k,_n);_s.className="sp-"+_n;}catch(e){}</script>
 <script src="js/splash.js"></script>
 
@@ -297,7 +298,7 @@
 
 <!-- Modal -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal-card">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-title" id="modalTitle"></div>
     <div id="modalBody"></div>
     <div class="modal-actions">

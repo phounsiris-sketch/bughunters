@@ -99,16 +99,20 @@ function showToast(msg) {
 
 var modalCallback = null;
 
+var _modalOpener = null;   // the control that opened the dialog: focus goes back to it when it closes
 function openModal() {
   var overlay = document.getElementById("modal");
+  if (overlay && !overlay.classList.contains("active")) _modalOpener = document.activeElement;
   if (overlay) overlay.classList.add("active");
-  var first = document.querySelector("#modalBody input, #modalBody select");
+  var first = document.querySelector("#modalBody input, #modalBody select, #modalBody textarea, #modalBody button");
   if (first) setTimeout(function () { first.focus(); }, 50);
 }
 
 function closeModal() {
   var overlay = document.getElementById("modal");
   if (overlay) overlay.classList.remove("active");
+  if (_modalOpener && _modalOpener.focus && document.body.contains(_modalOpener)) { try { _modalOpener.focus(); } catch (e) {} }
+  _modalOpener = null;
   var ok = document.getElementById("modalConfirmBtn"); if (ok) { ok.style.display = ""; ok.textContent = t("save"); }
   modalCallback = null;
 }
@@ -404,7 +408,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v152"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v153"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
@@ -467,6 +471,23 @@ setTimeout(function () { if (typeof hideSplash === "function") hideSplash(); }, 
     }
     var kids = el.querySelectorAll ? el.querySelectorAll("[onclick]") : [];
     for (var i = 0; i < kids.length; i++) fix(kids[i]);
+    bindLabels(el);
+  }
+  // A <label> with no `for`: point it at the next field in the same group (tap the text, focus the field; screen readers read it)
+  var _lid = 0;
+  function bindLabels(root) {
+    if (!root.querySelectorAll) return;
+    var labels = root.querySelectorAll("label.form-label:not([for])");
+    for (var j = 0; j < labels.length; j++) {
+      var lb = labels[j], f = null, n = lb.nextElementSibling;
+      while (n && !f) { f = n.matches && n.matches("input, select, textarea") ? n : (n.querySelector ? n.querySelector("input, select, textarea") : null); n = n.nextElementSibling; }
+      if (!f && lb.parentNode) f = lb.parentNode.querySelector("input, select, textarea");
+      if (!f) continue;
+      if (!f.id) f.id = "fld" + (++_lid) + "_" + Date.now().toString(36);
+      lb.setAttribute("for", f.id);
+    }
+    var heads = root.querySelectorAll(".card-title:not([role]), .me-title:not([role]), .settings-section:not([role]), .modal-title:not([role])");
+    for (var h = 0; h < heads.length; h++) { heads[h].setAttribute("role", "heading"); heads[h].setAttribute("aria-level", heads[h].classList.contains("me-title") || heads[h].classList.contains("modal-title") ? "1" : "2"); }
   }
   new MutationObserver(function (list) {
     list.forEach(function (m) { for (var i = 0; i < m.addedNodes.length; i++) fix(m.addedNodes[i]); });

@@ -1241,3 +1241,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Static checks** (`tools/check-static.js`, run by `release-guard.sh`): duplicate i18n keys inside one language, EN/LA key mismatch, a `<script>` that `sw.js` does not precache, a precached file that does not exist. `sw.js` ASSETS gained the 7 missing scripts (groups, maps, restaurants, public, stats, profile, social) and Leaflet.
 - **Test:** `tests/ledger.test.js` (11 bills: shares add up, transfers net to zero, nobody pays themself, list total == ledger total, rounding reported, format edges).
 - Not done: the other review items (negative other costs from old data, `parseMoney` with "1.234.567", per-currency cents).
+
+## Release safety + contrast / accessibility (v153, from the UX audit and release review)
+- **CI gate:** `.github/workflows/pages.yml` now runs `sh tools/release-guard.sh` (syntax, versions, i18n and offline-cache checks, all `tests/*.test.js`) before it builds and deploys; a red guard means nothing is published.
+- **Contrast:** the WhatsApp share button (#128c4a), "costs" / "settled" badges, poll "open" badge and the pay banner use darker fills so white text passes 4.5:1; light-theme `--text-dim` is darker in all five light palettes; accent used as text on light themes goes through `--accent-text` (the palette accent mixed 32% darker); success / danger text use `--ok-text` / `--danger-text` per theme. Numbers come from the audit's contrast script.
+- **Dialog and keyboard:** `#modal` is a real dialog (`role="dialog"`, `aria-modal`, `aria-labelledby`), focus goes to the first control and **back to the opener** on close; the receipt "attach" input is hidden visually (not `display:none`) so keyboard users can reach it; focus rings on the search boxes; small icon buttons have a 44 px hit area.
+- **Labels and headings (runtime):** the existing keyboard shim in app.js also gives every `label.form-label` without `for` the next field's id, and marks `.card-title` / `.settings-section` (level 2) and `.me-title` / `.modal-title` (level 1) as headings.
+- `<html lang>` is set from the saved language before first paint; Lao script gets no letter-spacing/uppercase on pills and labels.
+- Not done: merging the duplicated CSS rules and the override layers, arrow-key navigation on the poll choice row, 200% zoom and 320 px checks on real screens.
