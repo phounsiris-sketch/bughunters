@@ -213,12 +213,12 @@ function _homeNextCard() {
     else inner += '<div class="home-next-people">' + iconStatHtml("users", pl.length) + peopleHtml(pl, 24, 6) + '</div>';
     inner += '<div class="home-next-btns">' +
       (bd ? '<button class="btn-next" onclick="' + (bd.mine ? "showLiveScore(\'" + g.id + "\')" : "lsWatch(\'" + bd.id + "\')") + '">' + icon("scoreboard", 16) + ' ' + t(bd.mine ? "lsContinue" : "lsWatch") + '</button>'
-          : '<button class="btn-next" onclick="showLiveScore(\'' + g.id + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>') +
-      '<button class="btn-next alt" onclick="showSessionDetail(\'' + g.id + '\',\'games\')">' + icon("add", 16) + ' ' + t("homeAddScore") + '</button></div>';
+          : '<button class="btn-next" onclick="showLiveScore(\'' + jsq(g.id) + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>') +
+      '<button class="btn-next alt" onclick="showSessionDetail(\'' + jsq(g.id) + '\',\'games\')">' + icon("add", 16) + ' ' + t("homeAddScore") + '</button></div>';
   } else {
     var pl2 = g.s.players || [];
     inner += '<div class="home-next-people">' + iconStatHtml("users", pl2.length) + peopleHtml(pl2, 24, 6) + '</div>' +
-      '<button class="btn-next" onclick="showSessionDetail(\'' + g.id + '\')">' + t("homeOpen") + '</button>';
+      '<button class="btn-next" onclick="showSessionDetail(\'' + jsq(g.id) + '\')">' + t("homeOpen") + '</button>';
   }
   return '<div class="home-next' + (live ? ' live' : '') + '">' + inner + '</div>';
 }
@@ -313,7 +313,7 @@ function renderHome() {
 
   // A live score still being counted on this phone
   var running = typeof lsInProgress === "function" ? lsInProgress() : null;
-  if (running) html += '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showLiveScore(\'' + running.sid + '\')">' + icon("scoreboard", 22) +
+  if (running) html += '<div class="home-live-wrap"><button type="button" class="home-live" onclick="showLiveScore(\'' + jsq(running.sid) + '\')">' + icon("scoreboard", 22) +
     '<span><b>' + t("lsResume") + '</b><small>' + running.sa + ' \u2013 ' + running.sb + '</small></span><i>' + t("lsContinue") + '</i></button>' +
     '<button type="button" class="home-live-x" aria-label="' + t("cancel") + '" onclick="lsCancelSaved()">' + icon("close", 16) + '</button></div>';
 

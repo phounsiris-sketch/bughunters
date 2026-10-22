@@ -77,7 +77,7 @@ function dinnerRestaurantFieldHtml(d) {
   if (d.restaurantId) {
     html += '<div class="rest-picked">' + restThumbHtml(r, 40) + '<div style="min-width:0"><b>' + escapeHtml(name) + '</b>' +
       (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
-      (r && _restCanManage(r) ? '<button type="button" class="btn-secondary" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderEditForm()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') +
+      (r && _restCanManage(r) ? '<button type="button" class="btn-secondary" onclick="showRestaurantForm(null,\'' + jsq(r.id) + '\',function(){renderEditForm()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') +
       '<button type="button" class="btn-secondary" onclick="editChooseRestaurant()">' + t("change") + '</button>' +
       '<button type="button" class="btn-secondary" onclick="editClearRestaurant()" aria-label="' + t("removePin") + '">✕</button></div>';
   } else {
@@ -131,7 +131,7 @@ function _restFilter(q) {
     return;
   }
   el.innerHTML = list.map(function (r) {
-    return '<div class="rest-item" onclick="_restPick(\'' + r.id + '\')">' + restThumbHtml(r, 44) + '<div style="min-width:0;flex:1"><b>' + escapeHtml(r.name) + '</b>' +
+    return '<div class="rest-item" onclick="_restPick(\'' + jsq(r.id) + '\')">' + restThumbHtml(r, 44) + '<div style="min-width:0;flex:1"><b>' + escapeHtml(r.name) + '</b>' +
       (r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
       '<div class="rest-item-side">' + ratingHtml(r.id) + (hasPin(r) ? ' <span class="tag">' + icon("pin", 11) + '</span>' : '') + '</div></div>';
   }).join('');
@@ -195,7 +195,7 @@ function _restSave() {
   if (dupEl) dupEl.innerHTML = "";
   if (v.dup) {
     if (dupEl) dupEl.innerHTML = '<div class="rest-dup"><b>' + t("restDuplicate") + '</b><div>' + escapeHtml(v.dup.name) + (v.dup.location ? ' · ' + escapeHtml(v.dup.location) : '') + '</div>' +
-      '<button type="button" class="btn-secondary" onclick="_restPick(\'' + v.dup.id + '\')">' + t("restUseExisting") + '</button></div>';
+      '<button type="button" class="btn-secondary" onclick="_restPick(\'' + jsq(v.dup.id) + '\')">' + t("restUseExisting") + '</button></div>';
     return;
   }
   if (v.error) { showToast(t(v.error)); return; }
@@ -248,7 +248,7 @@ function dinnerRestaurantViewHtml(s) {
   var html = '<div class="rest-view">' + (r && r.photo ? '<img class="rest-photo" ' + imgSrcAttrs(r.photo) + ' alt="' + escapeHtml(name) + '" onclick="openImage(this.src)">' : '') +
     '<div class="rest-view-head"><div style="min-width:0"><b>' + icon("dinner", 14) + ' ' + escapeHtml(name) + '</b>' +
     (r && r.location ? '<div class="form-hint" style="margin:0">' + escapeHtml(r.location) + '</div>' : '') + '</div>' +
-    '<div>' + ratingHtml(d.restaurantId) + (r && _restCanManage(r) ? ' <button type="button" class="edit-btn" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderSessionDetail()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') + '</div></div>';
+    '<div>' + ratingHtml(d.restaurantId) + (r && _restCanManage(r) ? ' <button type="button" class="edit-btn" onclick="showRestaurantForm(null,\'' + jsq(r.id) + '\',function(){renderSessionDetail()})" aria-label="' + escapeHtml(t("restEdit")) + '">' + icon("pen", 14) + '</button>' : '') + '</div></div>';
   if (r && hasPin(r)) html += '<div style="margin-top:6px">' + courtMapLink(r, t("openMap")) + '</div>';
 
   var me = currentUser ? currentUser.uid : "";
@@ -257,11 +257,11 @@ function dinnerRestaurantViewHtml(s) {
     var draft = _revDraft[d.restaurantId] || (_revDraft[d.restaurantId] = { stars: mine ? mine.stars : 0, comment: mine ? mine.comment || "" : "" });
     html += '<div class="rev-box"><div class="form-hint" style="margin:0 0 4px">' + t(mine ? "revYours" : "revRate") + '</div>' +
       '<div class="rev-stars" id="revStars">' + [1, 2, 3, 4, 5].map(function (n) {
-        return '<button type="button" class="rev-star' + (n <= draft.stars ? ' on' : '') + '" aria-label="' + n + '" onclick="reviewStar(\'' + d.restaurantId + '\',' + n + ')">★</button>';
+        return '<button type="button" class="rev-star' + (n <= draft.stars ? ' on' : '') + '" aria-label="' + n + '" onclick="reviewStar(\'' + jsq(d.restaurantId) + '\',' + n + ')">★</button>';
       }).join('') + '</div>' +
-      '<input class="form-input" maxlength="' + REST_COMMENT_MAX + '" placeholder="' + escapeHtml(t("revComment")) + '" value="' + escapeHtml(draft.comment) + '" oninput="_revDraft[\'' + d.restaurantId + '\'].comment=this.value">' +
-      '<div class="rev-actions"><button type="button" class="btn-primary" style="width:auto;padding:8px 16px" onclick="saveRestaurantReview(\'' + d.restaurantId + '\',\'' + s.id + '\')">' + t("revSave") + '</button>' +
-      (mine ? '<button type="button" class="btn-secondary" onclick="deleteMyReview(\'' + d.restaurantId + '\')">' + t("delete") + '</button>' : '') + '</div></div>';
+      '<input class="form-input" maxlength="' + REST_COMMENT_MAX + '" placeholder="' + escapeHtml(t("revComment")) + '" value="' + escapeHtml(draft.comment) + '" oninput="_revDraft[\'' + jsq(d.restaurantId) + '\'].comment=this.value">' +
+      '<div class="rev-actions"><button type="button" class="btn-primary" style="width:auto;padding:8px 16px" onclick="saveRestaurantReview(\'' + jsq(d.restaurantId) + '\',\'' + jsq(s.id) + '\')">' + t("revSave") + '</button>' +
+      (mine ? '<button type="button" class="btn-secondary" onclick="deleteMyReview(\'' + jsq(d.restaurantId) + '\')">' + t("delete") + '</button>' : '') + '</div></div>';
   }
 
   var others = restaurantReviews(d.restaurantId).filter(function (x) { return x.comment || x.uid !== me; })
@@ -346,8 +346,8 @@ function _restMasterRows(list) {
       '<div style="display:flex;align-items:center;gap:10px">' + restThumbHtml(r, 40) + '<div style="min-width:0"><div class="settings-label">' + escapeHtml(r.name) + '</div>' +
       '<div class="form-hint" style="margin:0">' + (r.location ? escapeHtml(r.location) : '') + (hasPin(r) ? ' ' + courtMapLink(r) : ' <span class="no-pin">' + t("noPinYet") + '</span>') + '</div>' +
       '<div class="form-hint" style="margin:0">' + ratingHtml(r.id) + (used ? ' \u00B7 ' + t("restUsedN").replace("{n}", used) : '') + '</div></div></div></div>' +
-      (can ? '<div style="display:flex;gap:8px"><button class="edit-btn" aria-label="' + escapeHtml(t("restEdit")) + '" onclick="showRestaurantForm(null,\'' + r.id + '\',function(){renderSettings()})">' + icon("pen", 16) + '</button>' +
-      (_restCanDelete(r) ? '<button class="delete-btn" aria-label="' + escapeHtml(t("delete")) + '" onclick="deleteRestaurant(\'' + r.id + '\')">' + icon("trash", 16) + '</button>' : '') + '</div>' : '') + '</div>';
+      (can ? '<div style="display:flex;gap:8px"><button class="edit-btn" aria-label="' + escapeHtml(t("restEdit")) + '" onclick="showRestaurantForm(null,\'' + jsq(r.id) + '\',function(){renderSettings()})">' + icon("pen", 16) + '</button>' +
+      (_restCanDelete(r) ? '<button class="delete-btn" aria-label="' + escapeHtml(t("delete")) + '" onclick="deleteRestaurant(\'' + jsq(r.id) + '\')">' + icon("trash", 16) + '</button>' : '') + '</div>' : '') + '</div>';
   }).join('');
 }
 
@@ -355,7 +355,7 @@ function deleteRestaurant(id) {
   var r = restaurantById(id);
   if (!r || !_restCanDelete(r)) return;
   var used = _restUsage(id);
-  askConfirm({ title: t("restDeleteTitle"), big: escapeHtml(r.name), body: escapeHtml(used ? t("restDeleteUsed").replace("{n}", used) : t("restDeleteHint")), yes: t("delete"), danger: true }, function () {
+  askConfirm({ title: t("restDeleteTitle"), big: r.name, body: used ? t("restDeleteUsed").replace("{n}", used) : t("restDeleteHint"), yes: t("delete"), danger: true }, function () {
     fsdb.collection("restaurants").doc(id).delete().then(function () { showToast(t("delete") + " ✔"); setTimeout(function () { if (typeof renderSettings === "function") renderSettings(); }, 250); })
       .catch(function (error) { showToast(_permError(error)); });
   });

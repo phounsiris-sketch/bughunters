@@ -199,14 +199,14 @@ function gameCardHtml(g) {
     (left ? '<span class="slot-row">' + Array(Math.min(left, 6) + 1).join('<span class="slot-empty"></span>') + (left > 6 ? '<small>+' + (left - 6) + '</small>' : '') + '</span>' : '') + '</div>';
   html += '<div class="game-actions">';
   if (host) {
-    html += '<button class="btn-secondary" onclick="editPublicGame(\'' + g.id + '\')">' + icon("edit", 16) + ' ' + t("edit") + '</button>' +
+    html += '<button class="btn-secondary" onclick="editPublicGame(\'' + jsq(g.id) + '\')">' + icon("edit", 16) + ' ' + t("edit") + '</button>' +
       '<details class="poll-manage host-manage"><summary>' + icon("settings", 14) + ' ' + t("pollManage") + '</summary><div class="poll-manage-btns">' +
-      '<button class="edit-btn" onclick="cancelGame(\'' + g.id + '\')">' + t("cancelGame") + '</button>' +
-      '<button class="edit-btn danger" onclick="deletePublicGame(\'' + g.id + '\')">' + icon("trash", 14) + ' ' + t("delete") + '</button></div></details>';
+      '<button class="edit-btn" onclick="cancelGame(\'' + jsq(g.id) + '\')">' + t("cancelGame") + '</button>' +
+      '<button class="edit-btn danger" onclick="deletePublicGame(\'' + jsq(g.id) + '\')">' + icon("trash", 14) + ' ' + t("delete") + '</button></div></details>';
   } else if (inGame || onWait) {
-    html += '<button class="btn-secondary" onclick="toggleGame(\'' + g.id + '\')"' + (closed ? ' disabled' : '') + '>' + t(onWait ? "leaveWaitlist" : "leaveGame") + '</button>';
+    html += '<button class="btn-secondary" onclick="toggleGame(\'' + jsq(g.id) + '\')"' + (closed ? ' disabled' : '') + '>' + t(onWait ? "leaveWaitlist" : "leaveGame") + '</button>';
   } else {
-    html += '<button class="btn-primary" onclick="toggleGame(\'' + g.id + '\')"' + (closed ? ' disabled' : '') + '>' + t(left ? "joinGame" : "joinWaitlist") + '</button>';
+    html += '<button class="btn-primary" onclick="toggleGame(\'' + jsq(g.id) + '\')"' + (closed ? ' disabled' : '') + '>' + t(left ? "joinGame" : "joinWaitlist") + '</button>';
   }
   if (court && hasPin(court)) html += courtMapLink(court, t("directions"));
   html += '</div>';
@@ -350,7 +350,7 @@ function renderGameForm() {
     '<select class="form-select" onchange="newGame.levelMax=this.value"><option value="">' + t("anyLevel") + '</option>' + LEVELS.map(function (l) { return '<option value="' + l + '"' + (normLevel(g.levelMax) === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select></div>' +
     '<div class="form-hint">' + t("levelSelfHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + icon("camera", 12) + ' ' + t("gamePhoto") + ' <span class="form-hint">(' + t("optional") + ')</span></label>' +
-    (g.photoData ? '<img class="rest-photo" src="' + g.photoData + '" alt="">' : '') +
+    (g.photoData ? '<img class="rest-photo" src="' + escapeHtml(safeUrl(g.photoData)) + '" alt="">' : '') +
     '<input type="file" class="form-input" accept="image/*" style="padding:8px;font-size:13px" onchange="gamePhotoChosen(this)"></div>';
   if (!g._editId) html += '<div class="form-group"><label class="form-label">' + icon("history", 12) + ' ' + t("repeatLabel") + '</label>' +
     '<div class="seg seg-wrap"><button type="button" class="seg-btn' + (g.repeat !== "weekly" ? ' active' : '') + '" onclick="gameSet(\'repeat\',\'none\')">' + t("repeatNone") + '</button>' +
@@ -456,9 +456,9 @@ function _renderPublicGroups() {
   return list.map(function (g) {
     var m = myMemberships[g.id];
     var days = (g.usualDays || []).map(function (d) { return weekdayShort(d); }).join(", ");
-    var action = m ? (m.status === "active" ? '<button class="btn-secondary" onclick="switchGroup(\'' + g.id + '\')">' + t("open") + '</button>'
+    var action = m ? (m.status === "active" ? '<button class="btn-secondary" onclick="switchGroup(\'' + jsq(g.id) + '\')">' + t("open") + '</button>'
       : '<span class="status-chip st-costs">' + t("requestPending") + '</span>')
-      : '<button class="btn-primary" onclick="joinGroup(\'' + g.id + '\')">' + t(g.joinMode === "open" ? "joinGroup" : "askToJoinShort") + '</button>';
+      : '<button class="btn-primary" onclick="joinGroup(\'' + jsq(g.id) + '\')">' + t(g.joinMode === "open" ? "joinGroup" : "askToJoinShort") + '</button>';
     return '<div class="card game-card"><div class="game-head"><div class="game-when">' + escapeHtml(g.name) + '</div>' +
       '<span class="tag">' + t(g.joinMode === "open" ? "joinOpen" : "joinAsk") + '</span></div>' +
       '<div class="game-facts">' + icon("pin", 13) + ' ' + escapeHtml(cityLabel(g.city)) +

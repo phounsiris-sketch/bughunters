@@ -315,7 +315,7 @@ function _lsPickHtml() {
   }
   list.forEach(function (s, i) {
     var pl = s.players || [];
-    html += '<button type="button" class="ls-game-row" onclick="lsChoose(\'' + s.id + '\')">' + dateBlockHtml(s.date) +
+    html += '<button type="button" class="ls-game-row" onclick="lsChoose(\'' + jsq(s.id) + '\')">' + dateBlockHtml(s.date) +
       '<span class="ls-game-main"><b>' + escapeHtml(s.courtName || "–") + '</b><small>' + iconStatHtml("users", pl.length) + ' ' + iconStatHtml("clock", escapeHtml(s.time || "–")) + '</small>' +
       '<span class="ls-game-people">' + peopleHtml(pl, 20, 3) + '</span></span>' +
       (i === 0 ? pillHtml("teal", s.date === today ? t("lsToday") : t("lsCurrent")) : '') + icon("chevron", 16) + '</button>';
@@ -379,7 +379,7 @@ function _lsSettingsHtml() {
   html += '<div class="card"><div class="card-title">' + icon("court", 14) + ' ' + t("lsCurrentGame") + '</div>' +
     games.map(function (s) {
       var on = s.id === live.sid;
-      return '<button type="button" class="ls-game-row' + (on ? ' on' : '') + '" onclick="lsPickSession(\'' + s.id + '\')"><span class="radio-dot' + (on ? ' on' : '') + '"></span><span><b>' + fmtDate(s.date) + '</b><small>' + escapeHtml(s.courtName || "") + ' · ' + (s.players || []).length + ' ' + t("playersWord") + '</small></span></button>';
+      return '<button type="button" class="ls-game-row' + (on ? ' on' : '') + '" onclick="lsPickSession(\'' + jsq(s.id) + '\')"><span class="radio-dot' + (on ? ' on' : '') + '"></span><span><b>' + fmtDate(s.date) + '</b><small>' + escapeHtml(s.courtName || "") + ' · ' + (s.players || []).length + ' ' + t("playersWord") + '</small></span></button>';
     }).join("") + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsTeamsPlaying") + '</div>' +
     ["A", "B"].map(function (side) {
@@ -689,7 +689,7 @@ function liveWatchStop() {
 /** Home banner: one tap on a running game of the group */
 function liveNowHtml() {
   return liveNow.filter(function (g) { return !_liveEnded(g); }).map(function (g) {
-    return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="lsWatch(\'' + g.id + '\')">' + icon("scoreboard", 22) +
+    return '<div class="home-live-wrap"><button type="button" class="home-live" onclick="lsWatch(\'' + jsq(g.id) + '\')">' + icon("scoreboard", 22) +
       '<span><b>' + t("lsLiveNow") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + '</b><small>' + g.sa + ' \u2013 ' + g.sb + ' \u00B7 ' + (g.a || []).concat(g.b || []).map(getUserName).join(", ") + '</small></span><i>' + t("lsWatch") + '</i></button></div>';
   }).join("");
 }

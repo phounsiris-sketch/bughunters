@@ -339,7 +339,7 @@ function _renderRanking() {
   if (!ranked.length) html += '<div class="empty-state" style="padding:12px">' + t("noRankYet").replace("{n}", RANK_MIN_MATCHES) + '</div>';
   ranked.forEach(function (p, i) {
     var sf = statsFor(p.uid, statsScope);
-    html += '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + '" onclick="progressUser=\'' + p.uid + '\';setStatsTab(\'progress\')">' +
+    html += '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + '" onclick="progressUser=\'' + jsq(p.uid) + '\';setStatsTab(\'progress\')">' +
       '<span class="rank-no">' + (i + 1) + '</span>' + avatarHtml(p.uid, 32) +
       '<span class="rank-text"><b>' + getUserName(p.uid) + ' ' + levelBadgeHtml(playerLevel(p.uid), true) + _provTag(p.comp, RANK_MIN_MATCHES) + '</b>' +
       '<small>' + Math.round(p.rating) + ' \u00B7 ' + pct(sf.wins, sf.decided) + ' \u00B7 ' + fmtWL(sf.wins, sf.losses) + '</small></span>' + _rankTrend(st.rankChange.players[p.uid], p.rating, p.monthStart) + '</div>';
@@ -700,7 +700,7 @@ function sessionGamesTabHtml(s) {
   if (!gameForm || gameForm.sessionId !== s.id) gameForm = _blankGameForm(s);
   var mode = s.mode || "competition";
   var html = '<div class="games-mode"><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
-  if (_canAddGames(s) && sessionStep(s) < 3) html += '<button type="button" class="live-launch" onclick="showLiveScore(\'' + s.id + '\')">' + icon("scoreboard", 22) + '<span><b>' + t("lsTitle") + '</b><small>' + t("lsRule4") + '</small></span>' + icon("chevron", 18) + '</button>';
+  if (_canAddGames(s) && sessionStep(s) < 3) html += '<button type="button" class="live-launch" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 22) + '<span><b>' + t("lsTitle") + '</b><small>' + t("lsRule4") + '</small></span>' + icon("chevron", 18) + '</button>';
   if (_canAddGames(s)) html += '<div id="gameFormBox">' + _gameFormHtml(s) + '</div>';
   html += '<div id="sgList">' + _gamesListHtml(s) + '</div>';
   return html;
@@ -861,8 +861,8 @@ function matchRowHtml(m, no) {
   var html = '<div class="card match-row">';
   html += '<div class="match-head"><b>' + (no ? t("gameN").replace("{n}", no) : '') + '</b>' +
     '<span class="match-meta">' + t("gameType_" + (m.type || "md")) + (m.minutes ? ' · ' + m.minutes + ' ' + t("minShort") : '') + '</span>' +
-    (canEdit ? '<span class="match-actions"><button class="edit-btn" aria-label="' + t("edit") + '" onclick="editGame(\'' + m.id + '\')">' + icon("pen", 14) + '</button>' +
-      '<button class="delete-btn" aria-label="' + t("delete") + '" onclick="deleteMatch(\'' + m.id + '\')">' + icon("trash", 14) + '</button></span>' : '') + '</div>';
+    (canEdit ? '<span class="match-actions"><button class="edit-btn" aria-label="' + t("edit") + '" onclick="editGame(\'' + jsq(m.id) + '\')">' + icon("pen", 14) + '</button>' +
+      '<button class="delete-btn" aria-label="' + t("delete") + '" onclick="deleteMatch(\'' + jsq(m.id) + '\')">' + icon("trash", 14) + '</button></span>' : '') + '</div>';
   html += '<div class="match-score-row"><div class="ms-side' + (w === "A" ? ' win' : '') + '"><div class="ms-names">' + (m.teamA && m.teamA.length ? teamHtml(m.teamA, 24) : _teamName([], "A")) + '</div><div class="ms-pts">' + (g.a != null ? g.a : '–') + '</div></div>' +
     '<div class="ms-vs">–</div>' +
     '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + (m.teamB && m.teamB.length ? teamHtml(m.teamB, 24) : _teamName([], "B")) + '</div><div class="ms-pts">' + (g.b != null ? g.b : '–') + '</div></div></div>';

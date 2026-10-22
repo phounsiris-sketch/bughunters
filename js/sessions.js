@@ -346,7 +346,7 @@ function renderSessionsList(sessions) {
     var st = sessionStatus(s);
 
     html += '<div class="session-card">';
-    html += '<div class="session-card-main" onclick="showSessionDetail(\'' + s.id + '\')">';
+    html += '<div class="session-card-main" onclick="showSessionDetail(\'' + jsq(s.id) + '\')">';
     html += '<div style="min-width:0;flex:1">';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="session-date">' + fmtDate(s.date) + '</span>' +
       '<span class="status-pill ' + st.cls + '">' + st.label + '</span></div>';
@@ -367,9 +367,9 @@ function renderSessionsList(sessions) {
 
     if (canDetails || canBill) {
       html += '<div class="session-actions">';
-      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 14) + ' ' + t("editDetails") + '</button>';
-      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + s.id + '\')">' + icon("bill", 14) + ' ' + t("editBillShort") + '</button>';
-      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + s.id + '\')">' + icon("trash", 16) + '</button>';
+      if (canDetails) html += '<button class="edit-btn" onclick="showSessionDetailsModal(\'' + jsq(s.id) + '\')">' + icon("pen", 14) + ' ' + t("editDetails") + '</button>';
+      if (canBill) html += '<button class="edit-btn" onclick="openSessionBill(\'' + jsq(s.id) + '\')">' + icon("bill", 14) + ' ' + t("editBillShort") + '</button>';
+      if (canDel) html += '<button class="delete-btn" onclick="deleteSessionById(\'' + jsq(s.id) + '\')">' + icon("trash", 16) + '</button>';
       html += '</div>';
     }
     html += '</div>';
@@ -389,7 +389,7 @@ var _sesEditPlayers = [];
 function _sesEditChips() {
   return DB_CACHE.users.map(function (u) {
     var on = _sesEditPlayers.indexOf(u.id) >= 0;
-    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="sesEditToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="sesEditToggle(\'' + jsq(u.id) + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
   }).join('');
 }
 function sesEditToggle(uid) {
@@ -547,7 +547,7 @@ function sesPickCourt(id) {
 function _newSesChips() {
   return DB_CACHE.users.map(function (u) {
     var on = newSes.players.indexOf(u.id) >= 0;
-    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + u.id + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
+    return '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="newSesToggle(\'' + jsq(u.id) + '\')">' + avatarHtml(u.id, 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(u.id) + '</div>';
   }).join('');
 }
 
@@ -676,10 +676,10 @@ function _sessionLocationHtml(court) {
   if (hasPin(court)) {
     return '<span class="loc-mini">' +
       '<a class="loc-ic" href="' + mapsDirUrl(court.lat, court.lng) + '" target="_blank" rel="noopener" title="' + t("openLocation") + '" aria-label="' + t("openLocation") + '">' + icon("route", 18) + '</a>' +
-      '<button class="loc-ic" onclick="shareLocation(\'' + court.id + '\')" title="' + t("shareLocation") + '" aria-label="' + t("shareLocation") + '">' + icon("share", 18) + '</button></span>';
+      '<button class="loc-ic" onclick="shareLocation(\'' + jsq(court.id) + '\')" title="' + t("shareLocation") + '" aria-label="' + t("shareLocation") + '">' + icon("share", 18) + '</button></span>';
   }
   if (typeof can === "function" && (can("editConfig") || (typeof isGroupAdminMe === "function" && isGroupAdminMe())))
-    return '<span class="loc-mini"><button class="loc-ic" onclick="pinSessionCourt(\'' + court.id + '\')" title="' + t("pinCourtLocation") + '" aria-label="' + t("pinCourtLocation") + '">' + icon("pin", 18) + '</button></span>';
+    return '<span class="loc-mini"><button class="loc-ic" onclick="pinSessionCourt(\'' + jsq(court.id) + '\')" title="' + t("pinCourtLocation") + '" aria-label="' + t("pinCourtLocation") + '">' + icon("pin", 18) + '</button></span>';
   return '';
 }
 
@@ -721,7 +721,7 @@ function _sessionActionBar(s) {
   if (!s || typeof sessionStep !== "function" || sessionEditing) return "";
   var step = sessionStep(s), btns = "";
   if (step <= 1 && sessionTab !== "games" && _hasGamesTab() && typeof _canAddGames === "function" && _canAddGames(s)) {
-    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + s.id + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>' +
+    btns = '<button type="button" class="btn-secondary" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 16) + ' ' + t("lsTitle") + '</button>' +
       '<button type="button" class="btn-primary" onclick="quickAddGame()">' + icon("add", 16) + ' ' + t("addGameScore") + '</button>';
   } else if (step === 2 && typeof myOweOn === "function" && myOweOn(s) > 0) {
     btns = '<button type="button" class="btn-primary" onclick="showMyPayments()">' + icon("wallet", 16) + ' ' + t("homePay") + ' ' + fmtShort(myOweOn(s)) + '</button>';
@@ -749,7 +749,7 @@ function _renderPendingSession(s) {
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
   (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div><div class="session-actions" style="margin:12px 0">';
-  if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + s.id + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
+  if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + jsq(s.id) + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
   if (canEditBill(s)) html += '<button class="btn-primary" onclick="startEditSession()">' + icon("bill", 16) + ' ' + t("enterBill") + '</button>';
   return html + '</div>';
 }
@@ -856,10 +856,10 @@ function _renderSplitResult(s) {
       calc += '<div class="settle-block' + (isDone ? ' done' : '') + '">';
       calc += '<div class="settle-head"><div class="settle-who">' + personHtml(tr.from, 28) + '<span class="settle-arrow">' + icon("chevron", 16) + '</span>' + personHtml(tr.to, 28) + '</div><div>';
       if (isDone) {
-        calc += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
+        calc += canMark ? '<button class="edit-btn paid-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',false)">' + icon("check", 14) + ' ' + t("paid") + '</button>'
                         : '<span class="person-status status-payer">' + t("paid") + '</span>';
       } else if (canMark) {
-        calc += '<button class="edit-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
+        calc += '<button class="edit-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',true)">' + t("markPaid") + '</button>';
       } else {
         calc += '<span class="person-status status-owes">' + t("unpaid") + '</span>';
       }
@@ -906,7 +906,7 @@ function _renderSplitResult(s) {
     html += '<button class="btn-secondary" style="margin-bottom:8px" onclick="startEditSession()">' + icon("pen", 14) + ' ' + t("editCosts") + '</button>';
   }
   if (canDeleteSession(s)) {
-    html += '<button class="btn-danger" onclick="deleteSessionById(\'' + s.id + '\')">' + t("deleteSession") + '</button>';
+    html += '<button class="btn-danger" onclick="deleteSessionById(\'' + jsq(s.id) + '\')">' + t("deleteSession") + '</button>';
   }
   return html;
 }
@@ -932,7 +932,7 @@ function _yourPartHtml(s, L) {
     var done = !!settled[tr.key], who = mine ? tr.to : tr.from, canMark = _canMarkTransfer(s, tr);
     var label = (mine ? t("payTo") : t("owesYou")).replace("{name}", '<b>' + escapeHtml(getUserName(who)) + '</b>');
     var act = done ? '<span class="yp-done">' + icon("check", 14) + ' ' + t("paid") + '</span>'
-      : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + s.id + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
+      : canMark ? '<button class="yp-btn" onclick="setTransferSettled(\'' + jsq(s.id) + '\',\'' + tr.key + '\',true)">' + t(mine ? "markPaid" : "payItemReceived") + '</button>'
       : '<span class="yp-wait">' + t("unpaid") + '</span>';
     return '<div class="yp-row' + (done ? ' done' : '') + '">' + avatarHtml(who, 30) + '<span class="yp-who"><span>' + label + '</span><small>' + fmtLAK(tr.amount) + '</small></span>' + act + '</div>';
   };
@@ -1025,7 +1025,7 @@ function _fillQrSlots(root) {
     dbGetUserQr(uid).then(function (qr) {
       var url = qrFor(qr, type);
       slot.innerHTML = url
-        ? '<img src="' + url + '" alt="QR" onclick="openImage(this.src)">'
+        ? '<img src="' + escapeHtml(safeUrl(url)) + '" alt="QR" onclick="openImage(this.src)">'
         : '<div class="qr-missing">' + t("noQr") + '</div>';
     });
   });
@@ -1035,7 +1035,9 @@ function _fillQrSlots(root) {
 function openImage(src) {
   var viewer = document.createElement("div");
   viewer.className = "image-viewer";
-  viewer.innerHTML = '<img src="' + src + '" alt=""><button class="image-viewer-close" aria-label="Close">' + icon("close", 26) + '</button>';
+  var shown = safeUrl(src);
+  if (!shown || shown.indexOf("img:") === 0) return;     // only real images (data URL or http) open here
+  viewer.innerHTML = '<img src="' + escapeHtml(shown) + '" alt=""><button class="image-viewer-close" aria-label="' + t("close") + '">' + icon("close", 26) + '</button>';
   viewer.addEventListener("click", function () { viewer.remove(); });
   document.body.appendChild(viewer);
 }
@@ -1249,7 +1251,7 @@ function renderEditForm() {
   html += '<button class="btn-primary" onclick="saveSessionCosts()">' + t("calculateSplit") + '</button>';
   html += '<button class="btn-secondary" style="margin-top:8px" onclick="cancelEditSession()">' + t("cancel") + '</button>';
   if (currentSession && !currentSession.calculated && canDeleteSession(currentSession)) {
-    html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + currentSession.id + '\')">' + t("deleteSession") + '</button>';
+    html += '<button class="btn-danger" style="margin-top:8px" onclick="deleteSessionById(\'' + jsq(currentSession.id) + '\')">' + t("deleteSession") + '</button>';
   }
 
   container.innerHTML = _renderSessionHeader({

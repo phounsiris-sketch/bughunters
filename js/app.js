@@ -123,6 +123,18 @@ function modalConfirm() {
 
 // ── Utility ────────────────────────────────────────────────
 
+/** Safe inside onclick='fn(\'...\')': ids are letters, digits, _ and - only (anything else is dropped) */
+function jsq(v) { return String(v === null || v === undefined ? "" : v).replace(/[^A-Za-z0-9_\-]/g, ""); }
+
+/** A URL that is safe to put in src="...": an image data URL, an img:<id> reference or an http(s) address; "" otherwise */
+function safeUrl(v) {
+  v = String(v || "");
+  if (/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)) return v;
+  if (/^img:[A-Za-z0-9_\-]{1,60}$/.test(v)) return v;
+  if (/^https?:\/\/[^\s"'<>`\\]+$/.test(v)) return v;
+  return "";
+}
+
 /**
  * Escape HTML special characters to prevent XSS
  */
@@ -232,7 +244,8 @@ function avatarHtml(uid, size) {
   var u = typeof dbFindById === "function" ? findUser(uid) : null;
   var style = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px';
   if (u && u.avatarUrl) {
-    return '<img class="person-avatar" src="' + u.avatarUrl + '" alt="" style="' + style + '">';
+    var av = safeUrl(u.avatarUrl);
+    if (av && av.indexOf("img:") !== 0) return '<img class="person-avatar" src="' + escapeHtml(av) + '" alt="" style="' + style + '">';
   }
   var name = typeof plainUserName === "function" ? plainUserName(u) : (u && u.displayName) || "?";
   return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
@@ -285,7 +298,7 @@ function readPhone(id) {
 function avatarZoomHtml(uid, size) {
   var u = typeof dbFindById === "function" ? findUser(uid) : null;
   if (!u || !u.avatarUrl) return avatarHtml(uid, size);
-  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(findUser(\'' + uid + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
+  return '<span class="avatar-zoom" role="button" aria-label="' + t("viewPhoto") + '" onclick="openImage(findUser(\'' + jsq(uid) + '\').avatarUrl)">' + avatarHtml(uid, size) + '</span>';
 }
 
 /** Latest first: by play date + time, then by creation time */
@@ -387,7 +400,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v150"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v151"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

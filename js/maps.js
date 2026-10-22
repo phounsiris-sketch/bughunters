@@ -138,14 +138,14 @@ var _pickSearch = {};   // picker id -> { timer, abort, res }
 /** Markup for a location picker; call initMapPicker(id, lat, lng) after it is in the page */
 function mapPickerHtml(id) {
   return '<div class="map-picker" id="' + id + '">' +
-    '<div class="pk-search"><span class="cm-sico">' + icon("search", 18) + '</span><input class="cm-q" type="search" id="' + id + '-q" autocomplete="off" enterkeyhint="search" placeholder="' + escapeHtml(t("cmSearchPh")) + '" oninput="pickSearchInput(\'' + id + '\', this.value)"></div>' +
+    '<div class="pk-search"><span class="cm-sico">' + icon("search", 18) + '</span><input class="cm-q" type="search" id="' + id + '-q" autocomplete="off" enterkeyhint="search" placeholder="' + escapeHtml(t("cmSearchPh")) + '" oninput="pickSearchInput(\'' + jsq(id) + '\', this.value)"></div>' +
     '<div class="pk-res" id="' + id + '-res"></div>' +
     '<div class="map-box" id="' + id + '-map"><div class="map-hint">' + t("loading") + '</div></div>' +
     '<div class="map-actions">' +
-      '<button type="button" class="btn-secondary map-btn" onclick="mapUseMyLocation(\'' + id + '\')">' + icon("pin", 15) + ' ' + t("useMyLocation") + '</button>' +
-      '<button type="button" class="btn-secondary map-btn" id="' + id + '-clear" onclick="mapClearPin(\'' + id + '\')">' + t("removePin") + '</button>' +
+      '<button type="button" class="btn-secondary map-btn" onclick="mapUseMyLocation(\'' + jsq(id) + '\')">' + icon("pin", 15) + ' ' + t("useMyLocation") + '</button>' +
+      '<button type="button" class="btn-secondary map-btn" id="' + id + '-clear" onclick="mapClearPin(\'' + jsq(id) + '\')">' + t("removePin") + '</button>' +
     '</div>' +
-    '<input class="form-input map-paste" id="' + id + '-paste" placeholder="' + t("pasteMapLink") + '" oninput="mapPasted(\'' + id + '\', this.value)">' +
+    '<input class="form-input map-paste" id="' + id + '-paste" placeholder="' + t("pasteMapLink") + '" oninput="mapPasted(\'' + jsq(id) + '\', this.value)">' +
     '<div class="map-status" id="' + id + '-status"></div>' +
   '</div>';
 }
@@ -271,7 +271,7 @@ function _pickRes(id) {
   var box = document.getElementById(id + "-res"), st = _pickSearch[id];
   if (!box || !st) return;
   box.innerHTML = (st.res || []).map(function (r, i) {
-    return '<button type="button" class="cm-res-row" onclick="pickSearchPick(\'' + id + '\',' + i + ')"><span class="cm-ic">' + icon("pin", 16) + '</span>' +
+    return '<button type="button" class="cm-res-row" onclick="pickSearchPick(\'' + jsq(id) + '\',' + i + ')"><span class="cm-ic">' + icon("pin", 16) + '</span>' +
       '<span class="cm-name"><b>' + escapeHtml(r.name || "") + '</b><small>' + escapeHtml(r.addr || "") + '</small></span>' +
       (typeof r.km === "number" ? '<span class="tag">' + fmtKm(r.km) + '</span>' : '') + '</button>';
   }).join("");

@@ -87,8 +87,10 @@ function dbSaveImage(dataUrl, kind) {
 /** src="…" for a data URL, or a placeholder that loads the referenced image */
 function imgSrcAttrs(v) {
   if (!v) return 'src="' + IMG_BLANK + '"';
-  if (!isImgRef(v)) return 'src="' + v + '"';
-  var id = v.slice(4);
+  v = safeUrl(v);
+  if (!v) return 'src="' + IMG_BLANK + '"';
+  if (!isImgRef(v)) return 'src="' + escapeHtml(v) + '"';
+  var id = jsq(v.slice(4));
   return _imgCache[id] ? 'src="' + _imgCache[id] + '"' : 'src="' + IMG_BLANK + '" data-img="' + id + '"';
 }
 

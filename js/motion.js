@@ -47,16 +47,16 @@ function _countUp(el) {
 
 
 /* Bottom-sheet confirm (replaces the browser's confirm() popup).
-   askConfirm({ title, big, body, yes, danger }, onYes) */
+   askConfirm({ title, big, body, yes, danger }, onYes): every text is escaped here, pass plain text */
 function askConfirm(o, onYes) {
   var old = document.getElementById("askSheet"); if (old) old.remove();
   var el = document.createElement("div");
   el.id = "askSheet"; el.className = "sheet-wrap";
   el.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' +
     '<div class="sheet-grab"></div>' +
-    (o.title ? '<div class="sheet-title">' + o.title + '</div>' : '') +
-    (o.big ? '<div class="sheet-big">' + o.big + '</div>' : '') +
-    (o.body ? '<div class="sheet-body">' + o.body + '</div>' : '') +
+    (o.title ? '<div class="sheet-title">' + escapeHtml(o.title) + '</div>' : '') +
+    (o.big ? '<div class="sheet-big">' + escapeHtml(o.big) + '</div>' : '') +
+    (o.body ? '<div class="sheet-body">' + escapeHtml(o.body) + '</div>' : '') +
     '<div class="sheet-btns"><button type="button" class="btn-secondary" data-no>' + (o.no || t("cancel")) + '</button>' +
     '<button type="button" class="' + (o.danger ? 'btn-danger' : 'btn-primary') + '" data-yes>' + (o.yes || t("confirm")) + '</button></div></div>';
   var close = function () { el.remove(); };

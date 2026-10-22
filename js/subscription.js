@@ -53,7 +53,7 @@ function renderPaywall() {
   var html = '<div class="sub-hero"><div class="sub-logo">' + icon("medal", 34) + '</div><h2>' + t("subTitle") + '</h2><p>' + t("subSub") + '</p></div>';
   html += '<div class="sub-plans">' + SUB_PLANS.map(function (p) {
     var on = p.id === subPick;
-    return '<button type="button" class="sub-plan' + (on ? ' on' : '') + '" onclick="subSetPlan(\'' + p.id + '\')">' + (p.best ? '<span class="sub-best">' + t("subBest") + '</span>' : '') +
+    return '<button type="button" class="sub-plan' + (on ? ' on' : '') + '" onclick="subSetPlan(\'' + jsq(p.id) + '\')">' + (p.best ? '<span class="sub-best">' + t("subBest") + '</span>' : '') +
       '<b>' + t(p.id === "month" ? "subMonthly" : "subYearly") + '</b><span class="sub-price">' + fmtShort(p.price) + ' ₭</span><small>' + t(p.per) + '</small>' +
       '<span class="sub-radio' + (on ? ' on' : '') + '">' + (on ? icon("check", 14) : '') + '</span></button>';
   }).join("") + '</div>';

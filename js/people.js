@@ -40,7 +40,7 @@ function loadUserProfile() {
 
   var html = '<div class="card profile-head">';
   if (typeof showPersonMenu === "function" && GROUPS_ON && !u.manual) {
-    html += '<button class="person-menu-btn" aria-label="' + t("moreActions") + '" onclick="showPersonMenu(\'' + uid + '\')">\u2026</button>';
+    html += '<button class="person-menu-btn" aria-label="' + t("moreActions") + '" onclick="showPersonMenu(\'' + jsq(uid) + '\')">\u2026</button>';
   }
   html += '<div class="avatar-edit">' + avatarZoomHtml(uid, 84) + '</div>';
   if (typeof myBlocked === "function" && myBlocked().indexOf(uid) >= 0) html += '<div class="perm-note" style="margin-top:8px">' + icon("lock", 12) + ' ' + t("youBlocked") + '</div>';
@@ -74,14 +74,14 @@ function loadUserProfile() {
     '<div class="user-qr" id="userQr"><div class="empty-state" style="padding:8px">' + t("loading") + '</div></div></div>';
 
   // Links
-  html += '<button class="card nav-card" onclick="dashTab=\'activity\';dashActivityUser=\'' + uid + '\';showPage(\'dashboard\')">' +
+  html += '<button class="card nav-card" onclick="dashTab=\'activity\';dashActivityUser=\'' + jsq(uid) + '\';showPage(\'dashboard\')">' +
     '<span class="nav-card-icon">' + icon("dashboard", 22) + '</span>' +
     '<span class="nav-card-text"><b>' + t("seeActivity") + '</b><small>' + t("seeActivityHint") + '</small></span>' + icon("chevron", 16) + '</button>';
   if (isSuperAdmin() && !u.manual && userPerms(u) !== "super") {
-    html += '<button class="btn-secondary" onclick="showPermsModal(\'' + uid + '\')">' + icon("key", 16) + ' ' + t("permissions") + '</button>';
+    html += '<button class="btn-secondary" onclick="showPermsModal(\'' + jsq(uid) + '\')">' + icon("key", 16) + ' ' + t("permissions") + '</button>';
   }
   if (u.manual && can("editConfig")) {
-    html += '<button class="btn-secondary" onclick="showPlayerModal(\'' + uid + '\')">' + icon("pen", 16) + ' ' + t("editDetails") + '</button>';
+    html += '<button class="btn-secondary" onclick="showPlayerModal(\'' + jsq(uid) + '\')">' + icon("pen", 16) + ' ' + t("editDetails") + '</button>';
   }
   box.innerHTML = html;
 
@@ -93,7 +93,7 @@ function loadUserProfile() {
     var items = main ? [{ url: main, label: t("qrMainShort") }] : [];
     qrExtras(qr).forEach(function (x) { items.push({ url: x.url, label: labels[x.type] }); });
     el.innerHTML = items.length ? items.map(function (x) {
-      return '<div class="user-qr-item"><img src="' + x.url + '" alt="QR" onclick="openImage(this.src)"><span>' + x.label + '</span></div>';
+      return '<div class="user-qr-item"><img src="' + escapeHtml(safeUrl(x.url)) + '" alt="QR" onclick="openImage(this.src)"><span>' + x.label + '</span></div>';
     }).join('') : '<div style="font-size:13px;color:var(--text-muted)">' + t("noQr") + '</div>';
   });
 }
@@ -104,5 +104,5 @@ function _userStat(iconName, value, label) {
 
 /** Clickable name + photo used around the app */
 function userLink(uid, size) {
-  return '<span class="user-link" role="button" onclick="showUserProfile(\'' + uid + '\',event)">' + avatarHtml(uid, size || 22) + '<b>' + getUserName(uid) + '</b></span>';
+  return '<span class="user-link" role="button" onclick="showUserProfile(\'' + jsq(uid) + '\',event)">' + avatarHtml(uid, size || 22) + '<b>' + getUserName(uid) + '</b></span>';
 }

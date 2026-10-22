@@ -351,7 +351,7 @@ function showGroupSwitcher() {
     var g = myGroupsInfo[gid] || { name: gid };
     var m = myMemberships[gid];
     var pending = m.status !== "active";
-    html += '<button class="group-row' + (gid === currentGroupId ? ' active' : '') + '"' + (pending ? ' disabled' : ' onclick="switchGroup(\'' + gid + '\')"') + '>' +
+    html += '<button class="group-row' + (gid === currentGroupId ? ' active' : '') + '"' + (pending ? ' disabled' : ' onclick="switchGroup(\'' + jsq(gid) + '\')"') + '>' +
       groupLogoHtml(g, 36) +
       '<span class="group-row-text"><b>' + escapeHtml(g.name || gid) + '</b><small>' +
       (pending ? t("requestPending") : t(g.type === "public" ? "groupPublic" : "groupPrivate") + ' · ' + t("role_" + m.role)) + '</small></span>' +
@@ -385,8 +385,8 @@ function loadGroupsPage() {
       html += '<div class="settings-item"><div class="settings-left">' + groupLogoHtml(g, 36) +
         '<div><div class="settings-label">' + escapeHtml(g.name || gid) + '</div><div style="font-size:12px;color:var(--text-muted)">' +
         (m.status === "active" ? t("role_" + m.role) : t("requestPending")) + '</div></div></div>' +
-        (m.status === "active" && gid !== currentGroupId ? '<button class="edit-btn" onclick="switchGroup(\'' + gid + '\')">' + t("open") + '</button>' : '') +
-        (m.status !== "active" ? '<button class="edit-btn" onclick="cancelJoinRequest(\'' + gid + '\')">' + t("cancel") + '</button>' : '') + '</div>';
+        (m.status === "active" && gid !== currentGroupId ? '<button class="edit-btn" onclick="switchGroup(\'' + jsq(gid) + '\')">' + t("open") + '</button>' : '') +
+        (m.status !== "active" ? '<button class="edit-btn" onclick="cancelJoinRequest(\'' + jsq(gid) + '\')">' + t("cancel") + '</button>' : '') + '</div>';
     });
     html += '</div>';
   }
@@ -416,7 +416,7 @@ function renderGroupForm(boxId, f, isEdit) {
   if (!box) return;
   var seg = function (field, opts) {
     return '<div class="seg">' + opts.map(function (o) {
-      return '<button type="button" class="seg-btn' + (f[field] === o[0] ? ' active' : '') + '" onclick="groupFormSet(\'' + boxId + '\',\'' + field + '\',\'' + o[0] + '\')">' + o[1] + '</button>';
+      return '<button type="button" class="seg-btn' + (f[field] === o[0] ? ' active' : '') + '" onclick="groupFormSet(\'' + jsq(boxId) + '\',\'' + field + '\',\'' + o[0] + '\')">' + o[1] + '</button>';
     }).join('') + '</div>';
   };
   var joinOpts = f.type === "public"
@@ -426,29 +426,29 @@ function renderGroupForm(boxId, f, isEdit) {
   if (f.type === "private") f.joinMode = "invite";
   var html = '<div class="card">';
   html += '<div class="form-group"><label class="form-label">' + t("groupName") + ' *</label>' +
-    '<input class="form-input" id="gfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="groupFormSet(\'' + boxId + '\',\'name\',this.value,true)"></div>';
+    '<input class="form-input" id="gfName" maxlength="40" value="' + escapeHtml(f.name) + '" oninput="groupFormSet(\'' + jsq(boxId) + '\',\'name\',this.value,true)"></div>';
   html += '<div class="form-group"><label class="form-label">' + t("groupType") + ' *</label>' +
     seg("type", [["private", icon("lock", 14) + ' ' + t("groupPrivate")], ["public", icon("globe", 14) + ' ' + t("groupPublic")]]) +
     '<div class="form-hint">' + t(f.type === "public" ? "groupPublicHint" : "groupPrivateHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("whoCanJoin") + ' *</label>' + seg("joinMode", joinOpts) + '</div>';
-  html += '<div class="form-group"><label class="form-label">' + t("city") + ' *</label><select class="form-select" onchange="groupFormSet(\'' + boxId + '\',\'city\',this.value)">' +
+  html += '<div class="form-group"><label class="form-label">' + t("city") + ' *</label><select class="form-select" onchange="groupFormSet(\'' + jsq(boxId) + '\',\'city\',this.value)">' +
     cityOptionsHtml(f.city) + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + t("currency") + ' *</label>' +
     seg("currency", [["LAK", "LAK ₭"], ["THB", "THB ฿"], ["USD", "USD $"]]) + '</div>';
   html += '<div class="form-group"><label class="form-label">' + t("minPlayersLabel") + '</label>' +
-    '<input type="number" class="form-input" min="2" max="30" value="' + (f.minPlayers || 4) + '" onchange="groupFormSet(\'' + boxId + '\',\'minPlayers\',Math.max(2,parseInt(this.value,10)||4),true)"></div>';
+    '<input type="number" class="form-input" min="2" max="30" value="' + (f.minPlayers || 4) + '" onchange="groupFormSet(\'' + jsq(boxId) + '\',\'minPlayers\',Math.max(2,parseInt(this.value,10)||4),true)"></div>';
   if (!f.maxPoints) f.maxPoints = "31";
   f.maxPoints = String(f.maxPoints);
   html += '<div class="form-group"><label class="form-label">' + t("maxPointsLabel") + '</label>' +
     seg("maxPoints", [["31", t("maxPoints31")], ["30", t("maxPoints30")]]) + '<div class="form-hint">' + t("maxPointsHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("groupDescription") + '</label>' +
-    '<textarea class="form-input" rows="2" maxlength="200" placeholder="' + t("groupDescriptionHint") + '" oninput="groupFormSet(\'' + boxId + '\',\'description\',this.value,true)">' + escapeHtml(f.description || "") + '</textarea></div>';
+    '<textarea class="form-input" rows="2" maxlength="200" placeholder="' + t("groupDescriptionHint") + '" oninput="groupFormSet(\'' + jsq(boxId) + '\',\'description\',this.value,true)">' + escapeHtml(f.description || "") + '</textarea></div>';
   html += '<div class="form-group"><label class="form-label">' + t("language") + '</label>' + seg("lang", [["la", "ລາວ"], ["en", "English"]]) + '</div>';
   html += '<details class="more-details"' + (f._more ? ' open' : '') + ' ontoggle="(' + (isEdit ? 'groupEditForm' : 'newGroupForm') + '||{})._more=this.open"><summary>' + t("moreDetails") + '</summary>';
   html += '<div class="form-group"><label class="form-label">' + t("usualDays") + '</label><div class="chips">' +
     [1, 2, 3, 4, 5, 6, 0].map(function (d) {
       var on = (f.usualDays || []).indexOf(d) >= 0;
-      return '<div class="chip' + (on ? ' active' : '') + '" onclick="groupFormDay(\'' + boxId + '\',' + d + ')">' + weekdayShort(d) + '</div>';
+      return '<div class="chip' + (on ? ' active' : '') + '" onclick="groupFormDay(\'' + jsq(boxId) + '\',' + d + ')">' + weekdayShort(d) + '</div>';
     }).join('') + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("usualTime") + '</label>' +
     timeRangeHtml(f.usualTime, f.usualTimeTo, "groupFormSet('" + boxId + "','usualTime',this.value,true)", "groupFormSet('" + boxId + "','usualTimeTo',this.value,true)") + '</div>';
@@ -760,18 +760,18 @@ function loadGroupMembers() {
       html += '<div class="settings-item"><div class="settings-left">' + avatarHtml(m.uid, 34) +
         '<div><div class="settings-label">' + getUserName(m.uid) + ' ' + levelBadgeHtml(m.level || (findUser(m.uid) || {}).selfLevel, true) + '</div>' +
         (m.message ? '<div style="font-size:12px;color:var(--text-secondary)">“' + escapeHtml(m.message) + '”</div>' : '') + '</div></div>' +
-        '<div style="display:flex;gap:6px"><button class="edit-btn" onclick="approveMember(\'' + m.id + '\')">' + t("approve") + '</button>' +
-        '<button class="delete-btn" onclick="removeMember(\'' + m.id + '\',true)">' + t("decline") + '</button></div></div>';
+        '<div style="display:flex;gap:6px"><button class="edit-btn" onclick="approveMember(\'' + jsq(m.id) + '\')">' + t("approve") + '</button>' +
+        '<button class="delete-btn" onclick="removeMember(\'' + jsq(m.id) + '\',true)">' + t("decline") + '</button></div></div>';
     });
     html += '</div>';
   }
   html += '<div class="settings-section">' + t("members") + ' (' + active.length + ')</div><div class="card">';
   active.forEach(function (m) {
     var isMe = m.uid === currentUser.uid;
-    html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + m.uid + '\',event)">' + avatarHtml(m.uid, 34) +
+    html += '<div class="settings-item"><div class="settings-left" role="button" style="cursor:pointer" onclick="showUserProfile(\'' + jsq(m.uid) + '\',event)">' + avatarHtml(m.uid, 34) +
       '<div><div class="settings-label">' + getUserName(m.uid) + (isMe ? ' <span style="font-size:12px;color:var(--accent)">(' + t("you") + ')</span>' : '') + '</div>' +
       '<div style="margin-top:4px">' + memberBadges(m) + '</div></div></div>' +
-      (admin && m.role !== "owner" && !isMe ? '<button class="edit-btn" onclick="showMemberModal(\'' + m.id + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>' : '') + '</div>';
+      (admin && m.role !== "owner" && !isMe ? '<button class="edit-btn" onclick="showMemberModal(\'' + jsq(m.id) + '\')">' + icon("key", 14) + ' ' + t("permissions") + '</button>' : '') + '</div>';
   });
   html += '</div>';
   if (myMember() && myMember().role !== "owner") {
