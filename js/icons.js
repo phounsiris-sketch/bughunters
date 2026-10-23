@@ -100,7 +100,7 @@ function iconAs(theme, name, size, cls) {
   if (!SOLAR[name]) return "";
   size = size || 18;
   var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
-  if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ci = ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
+  if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
   if (!sets || theme === "classic" || !sets.line[name]) return _iconSvg(name, size, cls);
   if (theme === "line" || ICON_PLAIN[name]) return _phSvg("line", name, size, cls);
   if (theme === "duo") return _phSvg("duo", name, size, cls, "ico-dc ico-dc" + _iconHash(name));
