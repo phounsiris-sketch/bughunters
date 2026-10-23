@@ -6072,7 +6072,7 @@ body[data-special="orbs"]:not([data-theme="light"]) {
   --text: #ffffff; --text-secondary: #dbeafe; --text-muted: #b6cdf0; --text-dim: #a9c3ec;
   --input-bg: #0b3a7e; --chip-bg: #0b3a7e; --control-border: #7fb2f8;
   --poll-card-bg: linear-gradient(160deg, #1b66c8 0%, #104a98 100%); --poll-card-border: #7fb2f8; --poll-option-bg: rgba(0, 0, 0, 0.3); --pay-banner-bg: linear-gradient(135deg, #c2410c, #9a3412);
-  background-color: #06224d; background-image: linear-gradient(180deg, #06224d 0%, #0d4a9e 62%, #1f6fd0 100%); background-repeat: no-repeat; background-attachment: fixed;
+  background-color: #06224d; background-image: linear-gradient(180deg, #0a3b3f 0%, #137a6c 62%, #25a07c 100%); background-repeat: no-repeat; background-attachment: fixed;
 }
 body[data-special="orbs"]:not([data-theme="light"]) .app-header { background: #0d3f8f; border-bottom: 1px solid #7fb2f8; }
 body[data-special="orbs"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #c2410c, #9a3412); color: #fff; }
