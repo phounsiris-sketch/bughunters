@@ -545,10 +545,11 @@ function showEditPoll(pollId) {
 
 /* ---------- Cancel poll ---------- */
 function cancelPoll(pollId) {
-  if (!confirm(t("cancelPoll") + "?")) return;
-  dbUpdatePoll(pollId, { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: currentUser.uid })
-    .then(function () { showToast(t("cancelled")); })
-    .catch(function (error) { showToast(error.message); });
+  askYes(t("cancelPoll") + "?", function () {
+    dbUpdatePoll(pollId, { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: currentUser.uid })
+      .then(function () { showToast(t("cancelled")); })
+      .catch(function (error) { showToast(error.message); });
+  }, { danger: true, yes: t("confirm") });
 }
 
 /* ---------- Create poll (one plan per poll) ---------- */

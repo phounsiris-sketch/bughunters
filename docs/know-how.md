@@ -1285,3 +1285,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - `_hwBats()` adds three CSS-animated bats (`#hwBats`, pointer-events none, hidden under reduced motion); removed when another style is picked.
 - Home shows a seasonal card Oct 20 – Nov 2 (`_hwCard`) with "Try it"; hidden after use or ✕ (`localStorage hwHidden`).
 - `tools/contrast/audit.js` now includes the Halloween style. Lao wording unreviewed.
+## v159 — our own confirm sheet (no browser popups)
+- `askConfirm({title, body, detail, kind, type, yes, no, onNo}, onYes)` in `js/motion.js`: icon badge (trash/warning/question), title, optional name chip, optional typed-word lock (`type`), big action button on top, quiet Cancel below. Esc, tap outside and Cancel close it; focus is trapped and returns to the opener; danger kind focuses Cancel so a stray Enter never deletes.
+- `askYes(msg, onYes, {danger, kind, yes, detail, type})` is the short form; `askCopy(title, text)` replaces the `prompt()` clipboard fallback.
+- All 30 native `confirm()` / `prompt()` calls were converted (code after the confirm now runs in the callback). `tests/security.test.js` fails if any native `confirm/prompt/alert` comes back.
+- Delete-group now asks for the group name inside the sheet (the Confirm button stays locked until it matches).

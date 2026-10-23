@@ -87,10 +87,11 @@ function restoreTrash(trashId, quiet) {
 }
 
 function deleteTrashForever(trashId) {
-  if (!confirm(t("deleteForeverConfirm"))) return;
-  fsdb.collection("trash").doc(trashId).delete()
-    .then(function () { showToast(t("delete") + " ✔"); loadTrash(); })
-    .catch(function (error) { showToast(_permError(error)); });
+  askYes(t("deleteForeverConfirm"), function () {
+    fsdb.collection("trash").doc(trashId).delete()
+      .then(function () { showToast(t("delete") + " ✔"); loadTrash(); })
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- Undo toast ---------- */

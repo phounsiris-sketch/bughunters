@@ -31,14 +31,18 @@ function isBlockedPair(uid, user) {
 function toggleBlock(uid) {
   var list = myBlocked().slice(), i = list.indexOf(uid);
   var blocking = i < 0;
-  if (blocking && !confirm(t("blockConfirm").replace("{name}", plainUserName(findUser(uid))))) return;
-  if (blocking) list.push(uid); else list.splice(i, 1);
-  dbUpdateUser(currentUser.uid, { blocked: list }).then(function () {
-    if (currentUserProfile) currentUserProfile.blocked = list;
-    closeModal();
-    showToast(t(blocking ? "blocked" : "unblocked") + " ✔");
-    refreshCurrentPage("users");
-  }).catch(function (e) { showToast(_permError(e)); });
+  var _go = function () {
+
+    if (blocking) list.push(uid); else list.splice(i, 1);
+    dbUpdateUser(currentUser.uid, { blocked: list }).then(function () {
+      if (currentUserProfile) currentUserProfile.blocked = list;
+      closeModal();
+      showToast(t(blocking ? "blocked" : "unblocked") + " ✔");
+      refreshCurrentPage("users");
+    }).catch(function (e) { showToast(_permError(e)); });
+  };
+  if (blocking) askYes(t("blockConfirm").replace("{name}", plainUserName(findUser(uid))), _go, { danger: true, yes: t("blocked") });
+  else _go();
 }
 
 /** "…" menu on a profile: block or report */
@@ -428,12 +432,13 @@ function _renderReports() {
 }
 
 function resolveReport(id) {
-  if (!confirm(t("markHandledQ"))) return;
-  fsdb.collection("reports").doc(id).delete().then(function () {
-    _reports = (_reports || []).filter(function (r) { return r.id !== id; });
-    showToast(t("markHandled") + " \u2714");
-    _renderReports();
-  }).catch(function (e) { showToast(_permError(e)); });
+  askYes(t("markHandledQ"), function () {
+    fsdb.collection("reports").doc(id).delete().then(function () {
+      _reports = (_reports || []).filter(function (r) { return r.id !== id; });
+      showToast(t("markHandled") + " \u2714");
+      _renderReports();
+    }).catch(function (e) { showToast(_permError(e)); });
+  });
 }
 
 /* ---------- Market (Public): gear for sale to everyone ----------

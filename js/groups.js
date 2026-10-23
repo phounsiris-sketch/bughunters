@@ -598,49 +598,49 @@ window.addEventListener("hashchange", function () {
 function deleteGroup() {
   var g = currentGroup, gid = currentGroupId;
   if (!g || !(isSuperAdmin() || g.ownerId === currentUser.uid)) return;
-  var typed = prompt(t("deleteGroupConfirm").replace("{name}", g.name));
-  if (typed === null) return;
-  if (typed.trim().toLowerCase() !== String(g.name || "").trim().toLowerCase()) { showToast(t("deleteGroupMismatch")); return; }
-  showToast(t("deletingGroup"));
-  var byGroup = function (col) { return fsdb.collection(col).where("groupId", "==", gid).get().then(function (s) { return s.docs.map(function (d) { return d.ref; }); }); };
-  Promise.all([byGroup("polls"), byGroup("sessions"), byGroup("matches"), byGroup("shuttlecocks").then(function (a) { return byGroup("groupCourts").then(function (b) { return a.concat(b); }); }),
-    fsdb.collection("users").where("groupId", "==", gid).get().then(function (s) { return s.docs.filter(function (d) { return d.data().manual; }).map(function (d) { return d.ref; }); }),
-    fsdb.collection("members").where("gid", "==", gid).get()
-  ]).then(function (r) {
-    var data = r[0].concat(r[1], r[2], r[3], r[4]);
-    var members = r[5].docs.filter(function (d) { return d.data().role !== "owner"; }).map(function (d) { return d.ref; });
-    var ownerRefs = r[5].docs.filter(function (d) { return d.data().role === "owner"; }).map(function (d) { return d.ref; });
-    var chunks = function (refs) { var out = []; for (var i = 0; i < refs.length; i += 400) out.push(refs.slice(i, i + 400)); return out; };
-    var run = function (refs) {
-      return chunks(refs).reduce(function (p, part) {
-        return p.then(function () { var b = fsdb.batch(); part.forEach(function (ref) { b.delete(ref); }); return b.commit(); });
-      }, Promise.resolve());
-    };
-    // Data first (I'm still the owner), then the members, then the group
-    return run(data).then(function () { return run(members); }).then(function () {
-      var b = fsdb.batch();
-      b.delete(fsdb.collection("groupSecrets").doc(gid));
-      ownerRefs.forEach(function (ref) { b.delete(ref); });
-      b.delete(fsdb.collection("groups").doc(gid));
-      return b.commit();
-    });
-  }).then(function () {
-    delete myMemberships[gid];
-    delete myGroupsInfo[gid];
-    showToast(t("groupDeleted").replace("{name}", g.name) + " \u2714");
-    switchGroup(_activeGroupIds()[0] || null);
-    showPage("settings");
-  }).catch(function (e) { showToast(_permError(e)); });
+  askConfirm({ title: t("deleteGroupConfirm").replace("{name}", g.name), kind: "danger", type: g.name, yes: t("delete") }, function () {
+    showToast(t("deletingGroup"));
+    var byGroup = function (col) { return fsdb.collection(col).where("groupId", "==", gid).get().then(function (s) { return s.docs.map(function (d) { return d.ref; }); }); };
+    Promise.all([byGroup("polls"), byGroup("sessions"), byGroup("matches"), byGroup("shuttlecocks").then(function (a) { return byGroup("groupCourts").then(function (b) { return a.concat(b); }); }),
+      fsdb.collection("users").where("groupId", "==", gid).get().then(function (s) { return s.docs.filter(function (d) { return d.data().manual; }).map(function (d) { return d.ref; }); }),
+      fsdb.collection("members").where("gid", "==", gid).get()
+    ]).then(function (r) {
+      var data = r[0].concat(r[1], r[2], r[3], r[4]);
+      var members = r[5].docs.filter(function (d) { return d.data().role !== "owner"; }).map(function (d) { return d.ref; });
+      var ownerRefs = r[5].docs.filter(function (d) { return d.data().role === "owner"; }).map(function (d) { return d.ref; });
+      var chunks = function (refs) { var out = []; for (var i = 0; i < refs.length; i += 400) out.push(refs.slice(i, i + 400)); return out; };
+      var run = function (refs) {
+        return chunks(refs).reduce(function (p, part) {
+          return p.then(function () { var b = fsdb.batch(); part.forEach(function (ref) { b.delete(ref); }); return b.commit(); });
+        }, Promise.resolve());
+      };
+      // Data first (I'm still the owner), then the members, then the group
+      return run(data).then(function () { return run(members); }).then(function () {
+        var b = fsdb.batch();
+        b.delete(fsdb.collection("groupSecrets").doc(gid));
+        ownerRefs.forEach(function (ref) { b.delete(ref); });
+        b.delete(fsdb.collection("groups").doc(gid));
+        return b.commit();
+      });
+    }).then(function () {
+      delete myMemberships[gid];
+      delete myGroupsInfo[gid];
+      showToast(t("groupDeleted").replace("{name}", g.name) + " \u2714");
+      switchGroup(_activeGroupIds()[0] || null);
+      showPage("settings");
+    }).catch(function (e) { showToast(_permError(e)); });
+  });
 }
 
 function leaveGroup() {
   var m = myMember();
   if (!m || m.role === "owner") return;
-  if (!confirm(t("leaveGroupConfirm").replace("{name}", currentGroup ? currentGroup.name : ""))) return;
-  fsdb.collection("members").doc(m.id).delete().then(function () {
-    delete myMemberships[currentGroupId];
-    switchGroup(_activeGroupIds()[0] || null);
-  }).catch(function (e) { showToast(_permError(e)); });
+  askYes(t("leaveGroupConfirm").replace("{name}", currentGroup ? currentGroup.name : ""), function () {
+    fsdb.collection("members").doc(m.id).delete().then(function () {
+      delete myMemberships[currentGroupId];
+      switchGroup(_activeGroupIds()[0] || null);
+    }).catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("confirm") });
 }
 
 /* ---------- Group settings (admins) ---------- */
@@ -695,13 +695,14 @@ function shareInvite() {
 }
 
 function resetInviteCode() {
-  if (!confirm(t("resetCodeConfirm"))) return;
-  var code = _newInviteCode();
-  fsdb.collection("groupSecrets").doc(currentGroupId).set({ inviteCode: code }, { merge: true }).then(function () {
-    _groupSecret = { inviteCode: code };
-    _renderInviteBox();
-    showToast(t("resetCode") + " ✔");
-  }).catch(function (e) { showToast(_permError(e)); });
+  askYes(t("resetCodeConfirm"), function () {
+    var code = _newInviteCode();
+    fsdb.collection("groupSecrets").doc(currentGroupId).set({ inviteCode: code }, { merge: true }).then(function () {
+      _groupSecret = { inviteCode: code };
+      _renderInviteBox();
+      showToast(t("resetCode") + " ✔");
+    }).catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** The group logo: shown in the header and in the group list; admins change it here (saved at once) */
@@ -796,9 +797,13 @@ function approveMember(mid) {
 function removeMember(mid, isRequest) {
   var m = groupMembers.filter(function (x) { return x.id === mid; })[0];
   if (!m) return;
-  if (!isRequest && !confirm(t("removeMemberConfirm").replace("{name}", getUserName(m.uid)))) return;
-  fsdb.collection("members").doc(mid).delete().then(function () { closeModal(); showToast(t(isRequest ? "decline" : "removeMember") + " ✔"); })
-    .catch(function (e) { showToast(_permError(e)); });
+  var _go = function () {
+
+    fsdb.collection("members").doc(mid).delete().then(function () { closeModal(); showToast(t(isRequest ? "decline" : "removeMember") + " ✔"); })
+      .catch(function (e) { showToast(_permError(e)); });
+  };
+  if (isRequest) _go();
+  else askYes(t("removeMemberConfirm").replace("{name}", getUserName(m.uid)), _go, { danger: true, yes: t("removeMember") });
 }
 
 function showMemberModal(mid) {

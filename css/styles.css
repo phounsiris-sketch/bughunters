@@ -5815,3 +5815,23 @@ body[data-palette="halloween"]:not([data-theme="light"]) .chip.active, body[data
 .hw-card small { color: #d3c5ee; font-size: 12px; }
 .hw-card .hw-go { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: 12px; border: 0; background: #c2410c; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .hw-card .hw-x { min-height: 40px; min-width: 32px; background: none; border: 0; color: #d3c5ee; cursor: pointer; font-size: 18px; }
+/* ===== v159: our own confirm sheet ===== */
+.sheet-wrap { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.sheet-wrap.out { opacity: 0; transition: opacity .16s ease; }
+.sheet-wrap.out .sheet { transform: translateY(24px); transition: transform .16s ease; }
+.sheet.ask { padding-top: 10px; box-shadow: 0 -10px 40px rgba(0, 0, 0, .35); }
+.ask-ico { width: 60px; height: 60px; margin: 6px auto 12px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--accent-rgb), .16); color: var(--accent-text); }
+.ask-danger .ask-ico { background: rgba(239, 68, 68, .16); color: var(--danger-text); }
+.ask-warn .ask-ico { background: rgba(245, 158, 11, .18); color: var(--orange); }
+.sheet.ask .sheet-title { font-size: 17px; line-height: 1.35; padding: 0 6px; overflow-wrap: anywhere; }
+.ask-detail { display: inline-block; max-width: 100%; margin-top: 8px; padding: 5px 12px; border-radius: 999px; background: var(--chip-bg); border: 1px solid var(--control-border); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.sheet.ask .sheet-body { margin-top: 8px; font-size: 14px; color: var(--text-secondary); line-height: 1.45; }
+.ask-type { margin-top: 14px; text-align: center; }
+.ask-copy { margin-top: 12px; font-size: 13px; resize: none; }
+.ask-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.ask-btns button { margin: 0; width: 100%; min-height: 50px; border-radius: 14px; font-size: 16px; font-weight: 700; }
+.ask-btns .btn-danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+.ask-btns .btn-danger:disabled { opacity: .4; }
+.ask-btns .ask-no { background: transparent; border: 0; color: var(--text-secondary); font-weight: 600; }
+.ask-btns .ask-no:active { background: var(--chip-bg); }
+@media (min-width: 600px) { .sheet-wrap { align-items: center; } .sheet.ask { border-radius: 22px; max-width: 400px; } }

@@ -251,7 +251,7 @@ function _renderSettingsPage() {
   html += _renderMergeCard();
 
   // 4. Sign out
-  html += '<button class="btn-danger" style="margin-top:8px" onclick="if(confirm(t(\'confirmSignOut\')))logoutUser()">' + t("logout") + '</button>';
+  html += '<button class="btn-danger" style="margin-top:8px" onclick="askYes(t(\'confirmSignOut\'), logoutUser, { kind: \'warn\', yes: t(\'logout\') })">' + t("logout") + '</button>';
   html += '<div class="app-version">Godsmash ' + APP_VERSION + '</div>';
   return html;
 }
@@ -398,9 +398,12 @@ function showPlayerModal(uid, onSaved) {
 
 function deleteManualPlayer(uid) {
   var u = findUser(uid);
-  if (!u || !confirm(t("delete") + " " + (u.displayName || "") + "?")) return;
-  trashDoc("player", "users", uid, plainUserName(u))
-    .catch(function (error) { showToast(_permError(error)); });
+  if (!u) return;
+  askYes(t("delete") + " " + (u.displayName || "") + "?", function () {
+
+    trashDoc("player", "users", uid, plainUserName(u))
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 function copyInviteLink() {
@@ -610,16 +613,18 @@ function showCourtModal(courtId, onSaved, opts) {
 function deleteSettingsCourt(id) {
   var c = findCourt(id);
   if (GROUPS_ON) {
-    if (!confirm(t("removeFromGroupConfirm").replace("{name}", c ? c.name : ""))) return;
-    var op;
-    if (c && c.groupId) op = fsdb.collection("groupCourts").doc(c.id).delete();
-    else { var upd = {}; upd["courtPrices." + id] = firebase.firestore.FieldValue.delete(); op = fsdb.collection("groups").doc(currentGroupId).update(upd); }
-    op.then(function () { showToast(t("removeFromGroup") + " ✔"); }).catch(function (error) { showToast(_permError(error)); });
+    askYes(t("removeFromGroupConfirm").replace("{name}", c ? c.name : ""), function () {
+      var op;
+      if (c && c.groupId) op = fsdb.collection("groupCourts").doc(c.id).delete();
+      else { var upd = {}; upd["courtPrices." + id] = firebase.firestore.FieldValue.delete(); op = fsdb.collection("groups").doc(currentGroupId).update(upd); }
+      op.then(function () { showToast(t("removeFromGroup") + " ✔"); }).catch(function (error) { showToast(_permError(error)); });
+    }, { danger: true, yes: t("removeFromGroup") });
     return;
   }
-  if (!confirm(t("delete") + (c ? " " + c.name : "") + "?")) return;
-  trashDoc("court", "courts", id, c ? c.name : t("court"))
-    .catch(function (error) { showToast(_permError(error)); });
+  askYes(t("delete") + (c ? " " + c.name : "") + "?", function () {
+    trashDoc("court", "courts", id, c ? c.name : t("court"))
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- Shuttlecock brands ---------- */
@@ -681,9 +686,10 @@ function showShuttleModal(brandId, onSaved) {
 function deleteSettingsShuttlecock(id) {
   var b = dbFindById(DB_CACHE.shuttlecocks, id);
   var name = b ? (b.name || b.brand || "") : "";
-  if (!confirm(t("delete") + (name ? " " + name : "") + "?")) return;
-  trashDoc("shuttle", "shuttlecocks", id, name || t("shuttlecocks"))
-    .catch(function (error) { showToast(_permError(error)); });
+  askYes(t("delete") + (name ? " " + name : "") + "?", function () {
+    trashDoc("shuttle", "shuttlecocks", id, name || t("shuttlecocks"))
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- QR codes: up to 3 per person (court, cocks, dinner & other) ---------- */
@@ -799,12 +805,15 @@ function handleQrUpload(type, input) {
 }
 
 function removeQr(type) {
-  if (!qrOwner || !confirm(t("delete") + "?")) return;
-  var labels = { main: t("qrMainShort"), court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
-  var owner = qrOwner;
-  trashField("qr", "qrcodes", owner, type, "QR " + labels[type] + " — " + getUserName(owner))
-    .then(function () { delete _qrCache[owner]; renderSettings(); })
-    .catch(function (error) { showToast(_permError(error)); });
+  if (!qrOwner) return;
+  askYes(t("delete") + "?", function () {
+
+    var labels = { main: t("qrMainShort"), court: t("court"), shuttle: t("shuttlecocks"), dinner: t("dinnerAndOther") };
+    var owner = qrOwner;
+    trashField("qr", "qrcodes", owner, type, "QR " + labels[type] + " — " + getUserName(owner))
+      .then(function () { delete _qrCache[owner]; renderSettings(); })
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- General: minimum players, default payers ---------- */
@@ -883,50 +892,51 @@ function _swapUid(value, oldId, newId) {
 function mergeManualPlayer(manualId) {
   var manual = findUser(manualId);
   if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
-  if (!confirm(t("mergeConfirm").replace("{name}", plainUserName(manual)))) return;
-  var me = currentUser.uid;
-  showToast(t("loading"));
+  askYes(t("mergeConfirm").replace("{name}", plainUserName(manual)), function () {
+    var me = currentUser.uid;
+    showToast(t("loading"));
 
-  var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "settled", "createdBy"];
-  var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
+    var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "settled", "createdBy"];
+    var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
 
-  function migrate(collection, fields) {
-    return groupScoped(fsdb.collection(collection)).get().then(function (snap) {
-      var jobs = [];
-      snap.forEach(function (doc) {
-        var data = doc.data();
-        if (JSON.stringify(fields.map(function (f) { return data[f] === undefined ? null : data[f]; })).indexOf(manualId) < 0) return;
-        var update = {};
-        fields.forEach(function (f) { if (data[f] !== undefined) update[f] = _swapUid(data[f], manualId, me); });
-        jobs.push(doc.ref.update(update));
-      });
-      return Promise.all(jobs);
-    });
-  }
-
-  migrate("sessions", sessionFields)
-    .then(function () { return migrate("polls", pollFields); })
-    .then(function () {
-      // Keep the phone number and QR codes if I don't have my own yet
-      var jobs = [];
-      if (manual.phone && !(currentUserProfile && currentUserProfile.phone)) {
-        jobs.push(dbUpdateUser(me, { phone: manual.phone }));
-        if (currentUserProfile) currentUserProfile.phone = manual.phone;
-      }
-      jobs.push(dbGetUserQr(manualId).then(function (qr) {
-        return dbGetUserQr(me).then(function (mine) {
-          var copy = ["main"].concat(QR_TYPES).filter(function (k) { return qr[k] && !mine[k]; });
-          return Promise.all(copy.map(function (k) { return dbSetUserQr(me, k, qr[k]); }));
+    function migrate(collection, fields) {
+      return groupScoped(fsdb.collection(collection)).get().then(function (snap) {
+        var jobs = [];
+        snap.forEach(function (doc) {
+          var data = doc.data();
+          if (JSON.stringify(fields.map(function (f) { return data[f] === undefined ? null : data[f]; })).indexOf(manualId) < 0) return;
+          var update = {};
+          fields.forEach(function (f) { if (data[f] !== undefined) update[f] = _swapUid(data[f], manualId, me); });
+          jobs.push(doc.ref.update(update));
         });
-      }));
-      ["defaultCourtPayer", "defaultShuttlePayer"].forEach(function (k) {
-        if (appSetting(k, "") === manualId) { var d = {}; d[k] = me; jobs.push(dbSetAppSettings(d)); }
+        return Promise.all(jobs);
       });
-      return Promise.all(jobs);
-    })
-    .then(function () { return dbDeleteManualPlayer(manualId); })
-    .then(function () { showToast(t("mergeDone").replace("{name}", plainUserName(manual))); renderSettings(); })
-    .catch(function (error) { showToast(_permError(error)); });
+    }
+
+    migrate("sessions", sessionFields)
+      .then(function () { return migrate("polls", pollFields); })
+      .then(function () {
+        // Keep the phone number and QR codes if I don't have my own yet
+        var jobs = [];
+        if (manual.phone && !(currentUserProfile && currentUserProfile.phone)) {
+          jobs.push(dbUpdateUser(me, { phone: manual.phone }));
+          if (currentUserProfile) currentUserProfile.phone = manual.phone;
+        }
+        jobs.push(dbGetUserQr(manualId).then(function (qr) {
+          return dbGetUserQr(me).then(function (mine) {
+            var copy = ["main"].concat(QR_TYPES).filter(function (k) { return qr[k] && !mine[k]; });
+            return Promise.all(copy.map(function (k) { return dbSetUserQr(me, k, qr[k]); }));
+          });
+        }));
+        ["defaultCourtPayer", "defaultShuttlePayer"].forEach(function (k) {
+          if (appSetting(k, "") === manualId) { var d = {}; d[k] = me; jobs.push(dbSetAppSettings(d)); }
+        });
+        return Promise.all(jobs);
+      })
+      .then(function () { return dbDeleteManualPlayer(manualId); })
+      .then(function () { showToast(t("mergeDone").replace("{name}", plainUserName(manual))); renderSettings(); })
+      .catch(function (error) { showToast(_permError(error)); });
+  });
 }
 
 /** Super Admin: delete every poll and session (players, courts, cocks, QR and settings stay) */
@@ -934,42 +944,43 @@ function resetPollsAndSessions() {
   if (!isSuperAdmin()) return;
   var typed = (document.getElementById("resetConfirm").value || "").trim();
   if (typed !== "DELETE") { showToast(t("resetTypeDelete")); return; }
-  if (!confirm(t("resetConfirm"))) return;
-  showToast(t("loading"));
+  askYes(t("resetConfirm"), function () {
+    showToast(t("loading"));
 
-  // Everything goes to the trash (restorable for 30 days), in batches
-  var count = 0;
-  function wipe(name) {
-    // Only the current group's polls / sessions (with groups)
-    return groupScoped(fsdb.collection(name)).get().then(function (snap) {
-      var docs = [];
-      snap.forEach(function (doc) { docs.push(doc); });
-      var chain = Promise.resolve();
-      for (var i = 0; i < docs.length; i += 200) {
-        (function (part) {
-          chain = chain.then(function () {
-            var batch = fsdb.batch();
-            part.forEach(function (doc) {
-              var d = doc.data();
-              var label = (name === "polls" ? t("trashKind_poll") + " " : "") + fmtDate(d.date) + (d.time ? " " + d.time : "") + (d.courtName ? " · " + d.courtName : "");
-              var entry = _trashEntry(name === "polls" ? "poll" : "session", name, doc.id, label);
-              entry.data = d;
-              batch.set(fsdb.collection("trash").doc(), withGroup(entry));
-              batch.delete(doc.ref);
-              count++;
+    // Everything goes to the trash (restorable for 30 days), in batches
+    var count = 0;
+    function wipe(name) {
+      // Only the current group's polls / sessions (with groups)
+      return groupScoped(fsdb.collection(name)).get().then(function (snap) {
+        var docs = [];
+        snap.forEach(function (doc) { docs.push(doc); });
+        var chain = Promise.resolve();
+        for (var i = 0; i < docs.length; i += 200) {
+          (function (part) {
+            chain = chain.then(function () {
+              var batch = fsdb.batch();
+              part.forEach(function (doc) {
+                var d = doc.data();
+                var label = (name === "polls" ? t("trashKind_poll") + " " : "") + fmtDate(d.date) + (d.time ? " " + d.time : "") + (d.courtName ? " · " + d.courtName : "");
+                var entry = _trashEntry(name === "polls" ? "poll" : "session", name, doc.id, label);
+                entry.data = d;
+                batch.set(fsdb.collection("trash").doc(), withGroup(entry));
+                batch.delete(doc.ref);
+                count++;
+              });
+              return batch.commit();
             });
-            return batch.commit();
-          });
-        })(docs.slice(i, i + 200));
-      }
-      return chain;
-    });
-  }
-  wipe("polls")
-    .then(function () { return wipe("sessions"); })
-    .then(function () {
-      document.getElementById("resetConfirm").value = "";
-      showToast(t("resetDone").replace("{n}", count));
-    })
-    .catch(function (error) { showToast(_permError(error)); });
+          })(docs.slice(i, i + 200));
+        }
+        return chain;
+      });
+    }
+    wipe("polls")
+      .then(function () { return wipe("sessions"); })
+      .then(function () {
+        document.getElementById("resetConfirm").value = "";
+        showToast(t("resetDone").replace("{n}", count));
+      })
+      .catch(function (error) { showToast(_permError(error)); });
+  });
 }
