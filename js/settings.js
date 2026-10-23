@@ -251,7 +251,7 @@ function _renderSettingsPage() {
     ICON_THEMES.map(function (id) {
       var on = currentIconTheme === id;
       return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 16); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
+        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
     }).join("") + '</div></div>';
   // Special (gimmick) themes: separate from the styles above, dark mode only
   html += '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("specialThemes") + '</div>' +

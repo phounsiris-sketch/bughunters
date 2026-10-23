@@ -69,33 +69,33 @@ var SOLAR = {
 "trash2": "<g fill=\"currentColor\"><path d=\"M12 3C9.68925 3 8.23007 5.58716 5.31171 10.7615L4.94805 11.4063C2.52291 15.7061 1.31034 17.856 2.40626 19.428C3.50217 21 6.21356 21 11.6363 21H12.3637C17.7864 21 20.4978 21 21.5937 19.428C22.6897 17.856 21.4771 15.7061 19.0519 11.4063L18.6883 10.7615C15.7699 5.58716 14.3107 3 12 3Z\" opacity=\".5\"/><path d=\"M12 7.25C12.4142 7.25 12.75 7.58579 12.75 8V13C12.75 13.4142 12.4142 13.75 12 13.75C11.5858 13.75 11.25 13.4142 11.25 13V8C11.25 7.58579 11.5858 7.25 12 7.25Z\"/><path d=\"M12 17C12.5523 17 13 16.5523 13 16C13 15.4477 12.5523 15 12 15C11.4477 15 11 15.4477 11 16C11 16.5523 11.4477 17 12 17Z\"/></g>"
 };
 
-/* Icon style for the Dashboard page only: classic (the Solar duotone set), line (outline), tiles (white icon on a coloured
-   rounded tile) or emoji. The choice lives in localStorage "iconTheme"; _iconCtx is switched on only while the dashboard renders. */
-var ICON_THEMES = ["classic", "line", "tiles", "emoji"];
+/* Icon styles for the Home and Dashboard pages (the Settings card "Icon style"). Four real icon sets, not filters:
+   classic = the Solar duotone set used everywhere else, line = Phosphor Regular, duo = Phosphor Duotone in a colour per icon,
+   tiles = Phosphor Fill, white on a glossy rounded tile. ICON_SETS (js/icons-sets.js) holds the Phosphor paths.
+   Saved in localStorage "iconTheme"; _iconCtx is switched on only while Home or the Dashboard render. */
+var ICON_THEMES = ["classic", "line", "duo", "tiles"];
 var currentIconTheme = "classic";
-try { var _it = localStorage.getItem("iconTheme"); if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
+try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji") _it = "duo"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
 var _iconCtx = false;
-var ICON_EMOJI = { trophy: "\uD83C\uDFC6", medal: "\uD83E\uDD47", crown: "\uD83D\uDC51", target: "\uD83C\uDFAF", ranking: "\uD83D\uDCCA", chart: "\uD83D\uDCC8", dashboard: "\uD83C\uDFE0", settings: "\u2699\uFE0F",
-  bill: "\uD83E\uDDFE", wallet: "\uD83D\uDCB0", card: "\uD83D\uDCB3", court: "\uD83C\uDFF8", shuttle: "\uD83C\uDFF8", dinner: "\uD83C\uDF7D\uFE0F", other: "\uD83D\uDED2", percent: "\uD83C\uDFF7\uFE0F",
-  users: "\uD83D\uDC65", user: "\uD83D\uDC64", calendar: "\uD83D\uDCC5", clock: "\u23F1\uFE0F", history: "\uD83D\uDD58", pin: "\uD83D\uDCCD", noshow: "\uD83D\uDEAB", polls: "\uD83D\uDDF3\uFE0F", vote: "\uD83D\uDDF3\uFE0F",
-  sessions: "\uD83D\uDDD3\uFE0F", scoreboard: "\uD83D\uDD22", calc: "\uD83E\uDDEE", warning: "\u26A0\uFE0F", check: "\u2705", lock: "\uD83D\uDD12", key: "\uD83D\uDD11", mail: "\u2709\uFE0F", phone: "\uD83D\uDCF1",
-  bell: "\uD83D\uDD14", camera: "\uD83D\uDCF7", globe: "\uD83C\uDF10", sun: "\u2600\uFE0F", moon: "\uD83C\uDF19", watch: "\u231A", route: "\uD83E\uDDED", qr: "\uD83D\uDCF1", manual: "\u270D\uFE0F", question: "\u2753" };
-var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls keep their normal look
+var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
 
 function _iconSvg(name, size, cls, extra) {
-  var body = SOLAR[name];
-  return '<svg class="si' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>';
+  return '<svg class="si' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' + SOLAR[name] + '</svg>';
+}
+function _phSvg(set, name, size, cls, extra) {
+  return '<svg class="si ph' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICON_SETS[set][name] + '</svg>';
 }
 function _iconHash(name) { var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return h % 8; }
 
-/** One icon in a given style (used by the Settings preview too) */
+/** One icon in a given style (used by the Settings preview too); falls back to the classic icon when a set lacks the name */
 function iconAs(theme, name, size, cls) {
-  var body = SOLAR[name];
-  if (!body) return "";
+  if (!SOLAR[name]) return "";
   size = size || 18;
-  if (theme === "line") return _iconSvg(name, size, cls, "ico-line");
-  if (theme === "tiles" && !ICON_PLAIN[name]) { var tile = Math.round(size * 1.65); return '<span class="ico-tile ico-t' + _iconHash(name) + '" style="width:' + tile + 'px;height:' + tile + 'px">' + _iconSvg(name, size, cls) + '</span>'; }
-  if (theme === "emoji" && ICON_EMOJI[name]) { var chip = Math.round(size * 1.6); return '<span class="ico-chip" style="width:' + chip + 'px;height:' + chip + 'px"><span class="ico-emoji" style="font-size:' + Math.round(size * .92) + 'px" aria-hidden="true">' + ICON_EMOJI[name] + '</span></span>'; }
+  var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
+  if (!sets || theme === "classic" || !sets.line[name]) return _iconSvg(name, size, cls);
+  if (theme === "line" || ICON_PLAIN[name]) return _phSvg("line", name, size, cls);
+  if (theme === "duo") return _phSvg("duo", name, size, cls, "ico-dc ico-dc" + _iconHash(name));
+  if (theme === "tiles") { var tile = Math.round(size * 1.65); return '<span class="ico-tile ico-t' + _iconHash(name) + '" style="width:' + tile + 'px;height:' + tile + 'px">' + _phSvg("fill", name, size, cls) + '</span>'; }
   return _iconSvg(name, size, cls);
 }
 
