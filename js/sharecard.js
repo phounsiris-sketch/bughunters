@@ -28,11 +28,9 @@ function shareCardData(uid, scope) {
 }
 
 function _scPalette(id) {
-  if (SC_THEMES[id]) return SC_THEMES[id];
-  var cs = getComputedStyle(document.body), g = function (k, d) { return (cs.getPropertyValue(k) || "").trim() || d; };
-  var bg = g("--bg", "#060d1a"), card = g("--card", "#18304f");
-  return { name: "scDefault", bg: [bg, bg, card], card: card, edge: g("--border", "#2b4c74"), text: g("--text", "#edf2f8"), dim: g("--text-secondary", "#a9b7c9"),
-    accent: g("--accent", "#4ade80"), pill: g("--primary", "#0f766e") };
+  var P = SC_THEMES[id] || { name: "scDefault", bg: ["#052e22", "#0b4f36", "#15803d"], card: "rgba(4,36,26,.82)", edge: "#86efac", text: "#ffffff", dim: "#d1fae5", accent: "#fde047", pill: "#15803d" };
+  P.line = id === "default" || !SC_THEMES[id] ? "rgba(255,255,255,.34)" : "rgba(255,255,255,.2)";
+  return P;
 }
 
 function _scThemeId() {
@@ -92,6 +90,52 @@ function _scBackdrop(c, W, H, id, P) {
   }
 }
 
+
+/** Badminton court seen from above: outer lines, singles sidelines, service lines, centre line and the net */
+function _scCourt(c, W, H, P) {
+  var x0 = 70, x1 = W - 70, y0 = 250, y1 = H - 130, w = x1 - x0, h = y1 - y0, mid = y0 + h / 2;
+  c.save(); c.strokeStyle = P.line; c.lineWidth = 7; c.lineJoin = "round";
+  c.strokeRect(x0, y0, w, h);
+  var side = w * 0.075; c.beginPath(); c.moveTo(x0 + side, y0); c.lineTo(x0 + side, y1); c.moveTo(x1 - side, y0); c.lineTo(x1 - side, y1); c.stroke();
+  var sv = h * 0.215, lg = h * 0.058;                      // short service line 1.98 m from the net, doubles long line 0.76 m from the back
+  [[mid - sv, mid - sv], [mid + sv, mid + sv], [y0 + lg, y0 + lg], [y1 - lg, y1 - lg]].forEach(function (l, i) { c.beginPath(); c.moveTo(i < 2 ? x0 : x0 + side, l[0]); c.lineTo(i < 2 ? x1 : x1 - side, l[1]); c.stroke(); });
+  c.beginPath(); c.moveTo(W / 2, y0); c.lineTo(W / 2, mid - sv); c.moveTo(W / 2, mid + sv); c.lineTo(W / 2, y1); c.stroke();
+  // net: a band with a mesh
+  c.globalAlpha = .55; c.lineWidth = 3; c.beginPath(); c.moveTo(x0 - 24, mid); c.lineTo(x1 + 24, mid); c.stroke();
+  c.lineWidth = 2; c.globalAlpha = .28;
+  for (var k = x0 - 24; k <= x1 + 24; k += 22) { c.beginPath(); c.moveTo(k, mid - 14); c.lineTo(k, mid + 14); c.stroke(); }
+  c.beginPath(); c.moveTo(x0 - 24, mid - 14); c.lineTo(x1 + 24, mid - 14); c.moveTo(x0 - 24, mid + 14); c.lineTo(x1 + 24, mid + 14); c.stroke();
+  c.restore();
+}
+
+/** Shuttlecock pointing up: cork head, feather skirt with ribs and a rim band */
+function _scShuttle(c, x, y, size, rot, fill, alpha) {
+  c.save(); c.translate(x, y); c.rotate(rot * Math.PI / 180); c.globalAlpha = alpha == null ? 1 : alpha;
+  var s = size;
+  c.fillStyle = fill; c.strokeStyle = "rgba(0,0,0,.28)"; c.lineWidth = Math.max(2, s / 40);
+  c.beginPath(); c.moveTo(-s * .2, s * .12); c.lineTo(-s * .62, -s * .78); c.quadraticCurveTo(0, -s * 1.02, s * .62, -s * .78); c.lineTo(s * .2, s * .12); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); for (var i = -3; i <= 3; i++) { c.moveTo(i * s * .06, s * .1); c.lineTo(i * s * .205, -s * .86 + Math.abs(i) * s * .035); } c.stroke();
+  c.lineWidth = Math.max(3, s / 22); c.beginPath(); c.moveTo(-s * .58, -s * .76); c.quadraticCurveTo(0, -s * .98, s * .58, -s * .76); c.stroke();
+  c.fillStyle = "#f5deb3"; c.beginPath(); c.arc(0, s * .24, s * .24, 0, 7); c.fill(); c.strokeStyle = "rgba(0,0,0,.3)"; c.stroke();
+  c.restore();
+}
+
+/** Racket: oval head with a string grid, throat and grip; (x, y) is the centre of the head */
+function _scRacket(c, x, y, len, rot, col, alpha) {
+  c.save(); c.translate(x, y); c.rotate(rot * Math.PI / 180); c.globalAlpha = alpha == null ? 1 : alpha;
+  var rx = len * .13, ry = len * .17;
+  c.strokeStyle = col; c.fillStyle = col; c.lineCap = "round";
+  c.lineWidth = len * .028; c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, 7); c.stroke();
+  c.save(); c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, 7); c.clip(); c.lineWidth = 2;
+  for (var i = -rx; i <= rx; i += len * .028) { c.beginPath(); c.moveTo(i, -ry); c.lineTo(i, ry); c.stroke(); }
+  for (var j = -ry; j <= ry; j += len * .028) { c.beginPath(); c.moveTo(-rx, j); c.lineTo(rx, j); c.stroke(); }
+  c.restore();
+  c.lineWidth = len * .02; c.beginPath(); c.moveTo(-rx * .5, ry * .92); c.lineTo(0, ry + len * .16); c.lineTo(rx * .5, ry * .92); c.stroke();
+  c.lineWidth = len * .026; c.beginPath(); c.moveTo(0, ry + len * .14); c.lineTo(0, ry + len * .52); c.stroke();
+  c.lineWidth = len * .05; c.beginPath(); c.moveTo(0, ry + len * .3); c.lineTo(0, ry + len * .52); c.stroke();
+  c.restore();
+}
+
 /** The whole card. fmt: "story" 1080x1920 or "square" 1080x1350 */
 function drawShareCard(canvas, d, id, fmt) {
   var W = 1080, H = fmt === "square" ? 1350 : 1920, P = _scPalette(id), c = canvas.getContext("2d");
@@ -99,11 +143,14 @@ function drawShareCard(canvas, d, id, fmt) {
   var font = function (px, w) { return (w || 700) + " " + px + "px Montserrat, 'Noto Sans Lao', 'Noto Sans', sans-serif"; };
   _scBackdrop(c, W, H, id, P);
   var sq = fmt === "square", top = sq ? 70 : 150;
+  _scCourt(c, W, H, P);
   // brand
-  c.textAlign = "center"; c.fillStyle = P.accent; c.font = font(34, 800); c.fillText("GODSMASH", W / 2, top);
+  c.textAlign = "center"; c.fillStyle = P.accent; c.font = font(36, 800); c.fillText("GODSMASH  BADMINTON", W / 2, top);
+  _scShuttle(c, 150, top - 12, 46, -35, P.text, .95); _scShuttle(c, W - 150, top - 12, 46, 35, P.text, .95);
   c.fillStyle = P.dim; c.font = font(28, 600); c.fillText(d.period + (d.group ? "  ·  " + d.group : ""), W / 2, top + 46);
   // avatar
   var ay = top + (sq ? 190 : 270), ar = sq ? 110 : 140;
+  _scRacket(c, W / 2 - ar * 1.2, ay - ar * 1.05, ar * 3.1, -38, P.text, .55); _scRacket(c, W / 2 + ar * 1.2, ay - ar * 1.05, ar * 3.1, 38, P.accent, .6);
   c.save(); c.shadowColor = P.accent; c.shadowBlur = 40; c.strokeStyle = P.accent; c.lineWidth = 8; c.beginPath(); c.arc(W / 2, ay, ar + 8, 0, 7); c.stroke(); c.restore();
   c.save(); c.beginPath(); c.arc(W / 2, ay, ar, 0, 7); c.clip();
   if (_sc.avatar) { var s = Math.min(_sc.avatar.width, _sc.avatar.height); c.drawImage(_sc.avatar, (_sc.avatar.width - s) / 2, (_sc.avatar.height - s) / 2, s, s, W / 2 - ar, ay - ar, ar * 2, ar * 2); }
@@ -119,6 +166,7 @@ function drawShareCard(canvas, d, id, fmt) {
   var ry = ny + (sq ? 272 : 335);
   c.fillStyle = P.dim; c.font = font(30, 700); c.fillText(t("homeRating").toUpperCase(), W / 2, ry - (sq ? 150 : 210));
   c.save(); c.shadowColor = P.accent; c.shadowBlur = 36; c.fillStyle = P.text; c.font = font(sq ? 190 : 250, 800); c.fillText(d.rating == null ? "–" : String(d.rating), W / 2, ry); c.restore();
+  _scShuttle(c, 150, ry - (sq ? 80 : 120), sq ? 110 : 140, -28, P.text, .96); _scShuttle(c, W - 150, ry - (sq ? 100 : 150), sq ? 80 : 100, 24, P.accent, .96);
   // three facts
   var fy = ry + (sq ? 50 : 80), bw = 300, gap = 30, fx = (W - (bw * 3 + gap * 2)) / 2;
   var streak = d.streak > 0 ? d.streak + t("winShort") : d.streak < 0 ? (-d.streak) + t("lossShort") : "–";
