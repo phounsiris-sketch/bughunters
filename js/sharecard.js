@@ -6,6 +6,10 @@ var SC_THEMES = {
   halloween: { name: "spHalloween", bg: ["#0f0826", "#1b0f45", "#33176e"], card: "rgba(37,22,80,.82)", edge: "#7a4fd0", text: "#f6f0ff", dim: "#d3c5ee", accent: "#fdba74", pill: "#c2410c" },
   christmas: { name: "spChristmas", bg: ["#05160b", "#0c2e1b", "#14482c"], card: "rgba(20,61,38,.84)", edge: "#4aa571", text: "#f4fff6", dim: "#cfe8d6", accent: "#fde68a", pill: "#b91c1c" },
   cny: { name: "spCny", bg: ["#1c0303", "#4a0a0a", "#7a1212"], card: "rgba(79,16,16,.84)", edge: "#e0a43a", text: "#fff7e6", dim: "#f5d9b0", accent: "#fcd34d", pill: "#b91c1c" },
+  ninja: { name: "spNinja", bg: ["#05081a", "#0c1740", "#17266b"], card: "rgba(23,35,90,.84)", edge: "#fb923c", text: "#fff7ed", dim: "#fed7aa", accent: "#fb923c", pill: "#c2410c" },
+  orbs: { name: "spOrbs", bg: ["#06224d", "#0d4a9e", "#1f6fd0"], card: "rgba(16,74,152,.82)", edge: "#fbbf24", text: "#ffffff", dim: "#dbeafe", accent: "#fbbf24", pill: "#c2410c" },
+  pirate: { name: "spPirate", bg: ["#031a22", "#063c4f", "#0a5a73"], card: "rgba(10,74,94,.84)", edge: "#fbbf24", text: "#f0fdff", dim: "#bae6fd", accent: "#fbbf24", pill: "#b91c1c" },
+  reaper: { name: "spReaper", bg: ["#050508", "#0c0c14", "#161620"], card: "rgba(27,27,36,.88)", edge: "#a1a1aa", text: "#fafafa", dim: "#d4d4d8", accent: "#fb923c", pill: "#c2410c" },
   arcade: { name: "spArcade", bg: ["#080314", "#160630", "#2a0b55"], card: "rgba(28,11,61,.86)", edge: "#e879f9", text: "#f7f0ff", dim: "#d6c3f2", accent: "#22d3ee", pill: "#a21caf" }
 };
 
@@ -85,6 +89,8 @@ function _scBackdrop(c, W, H, id, P) {
     for (i = 0; i <= 14; i++) { c.beginPath(); c.moveTo(W / 2 + (i - 7) * 20, H - 400); c.lineTo(W / 2 + (i - 7) * 160, H); c.stroke(); }
     for (i = 0; i < 9; i++) { y = H - 400 + Math.pow(i / 8, 2) * 400; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
     c.fillStyle = "rgba(255,255,255,.04)"; for (y = 0; y < H; y += 6) c.fillRect(0, y, W, 2);
+  } else if (typeof FX_SCENES !== "undefined" && FX_SCENES[id] && /^(ninja|orbs|pirate|reaper)$/.test(id)) {
+    var k = W / 430; c.save(); c.scale(k, k); FX_SCENES[id](c, 430, H / k, 3.4); c.restore();
   } else {
     glow(W / 2, 300, 620, "rgba(255,255,255,.08)"); glow(W - 100, H - 100, 520, P.accent.charAt(0) === "#" ? P.accent + "33" : "rgba(255,255,255,.06)");
   }
@@ -232,7 +238,7 @@ function openShareCard(uid) {
 }
 
 function _scControls() {
-  var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade"], cur = _sc.theme;
+  var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade", "ninja", "orbs", "pirate", "reaper"], cur = _sc.theme;
   var box = document.getElementById("scThemes"); if (!box) return;
   box.innerHTML = ids.map(function (k) {
     var label = k === "auto" ? t("scAuto") : k === "default" ? t("scDefault") : t(SC_THEMES[k].name);

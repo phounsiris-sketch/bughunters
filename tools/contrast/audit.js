@@ -18,13 +18,13 @@ function lum(c){function f(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055
 function cr(a,b){var x=lum(a),y=lum(b);if(x<y){var t=x;x=y;y=t;}return (x+0.05)/(y+0.05);}
 function bgOf(el){var stack=[];for(var e=el;e;e=e.parentElement){stack.push(getComputedStyle(e).backgroundColor);}var c={r:255,g:255,b:255,a:1};for(var i=stack.length-1;i>=0;i--){c=over(parse(stack[i]),c);}return c;}
 var out=[];
-var combos=[["",""],["light",""],["light","lilac"],["light","sky"],["light","paper"],["light","sunrise"],["dark","violet"],["dark","court"],["dark","clean"],["dark","midnight"],["dark","halloween"],["dark","christmas"],["dark","cny"],["dark","arcade"]];
+var combos=[["",""],["light",""],["light","lilac"],["light","sky"],["light","paper"],["light","sunrise"],["dark","violet"],["dark","court"],["dark","clean"],["dark","midnight"],["dark","halloween"],["dark","christmas"],["dark","cny"],["dark","arcade"],["dark","ninja"],["dark","orbs"],["dark","pirate"],["dark","reaper"]];
 var hosts=[document.getElementById("hostC"),document.getElementById("hostB")];
 combos.forEach(function(cb){
  document.body.removeAttribute("data-theme");document.body.removeAttribute("data-palette");document.body.removeAttribute("data-lpalette");document.body.removeAttribute("data-special");
  document.documentElement.removeAttribute("data-theme");
  if(cb[0]==="light"){document.body.setAttribute("data-theme","light");if(cb[1])document.body.setAttribute("data-lpalette",cb[1]);}
- else if(["halloween","christmas","cny","arcade"].indexOf(cb[1])>=0) document.body.setAttribute("data-special",cb[1]); else if(cb[1]) document.body.setAttribute("data-palette",cb[1]);
+ else if(["halloween","christmas","cny","arcade","ninja","orbs","pirate","reaper"].indexOf(cb[1])>=0) document.body.setAttribute("data-special",cb[1]); else if(cb[1]) document.body.setAttribute("data-palette",cb[1]);
  document.body.style.background="var(--bg)";
  ITEMS.forEach(function(it){
   var best=null;

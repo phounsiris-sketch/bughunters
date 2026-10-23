@@ -258,6 +258,84 @@ var FX_SCENES = {
   }
 };
 
+
+/* ───────────── anime-inspired scenes (original art, no characters or logos) ───────────── */
+
+function fxShuriken(c, x, y, r, rot, col) {
+  c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = col; c.strokeStyle = "rgba(0,0,0,.45)"; c.lineWidth = Math.max(1, r / 14);
+  c.beginPath(); for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); c.lineTo(Math.cos(a + Math.PI / 4) * r * .28, Math.sin(a + Math.PI / 4) * r * .28); } c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = "rgba(0,0,0,.55)"; c.beginPath(); c.arc(0, 0, r * .13, 0, 7); c.fill(); c.restore();
+}
+function fxButterfly(c, x, y, s, flap, col) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  var gl = c.createRadialGradient(0, 0, 0, 0, 0, 40); gl.addColorStop(0, "rgba(249,115,22,.35)"); gl.addColorStop(1, "rgba(249,115,22,0)"); c.fillStyle = gl; c.beginPath(); c.arc(0, 0, 40, 0, 7); c.fill();
+  c.fillStyle = col; c.strokeStyle = "rgba(249,115,22,.9)"; c.lineWidth = 1.4;
+  [-1, 1].forEach(function (k) { c.save(); c.scale(k * Math.max(.25, Math.abs(Math.sin(flap))), 1); c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(16, -22, 34, -18, 30, -2); c.bezierCurveTo(34, 12, 14, 18, 0, 4); c.closePath(); c.fill(); c.stroke(); c.restore(); });
+  c.fillStyle = "#f97316"; c.beginPath(); c.ellipse(0, 0, 2, 8, 0, 0, 7); c.fill(); c.restore();
+}
+function fxOrb(c, x, y, r, stars, t) {
+  var g = c.createRadialGradient(x - r * .3, y - r * .35, r * .1, x, y, r); g.addColorStop(0, "#fff3b0"); g.addColorStop(.35, "#fbbf24"); g.addColorStop(1, "#d97706");
+  var hg = c.createRadialGradient(x, y, r * .8, x, y, r * 2); hg.addColorStop(0, "rgba(251,191,36,.45)"); hg.addColorStop(1, "rgba(251,191,36,0)"); c.fillStyle = hg; c.beginPath(); c.arc(x, y, r * 2, 0, 7); c.fill();
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.strokeStyle = "rgba(146,64,14,.7)"; c.lineWidth = Math.max(1, r / 12); c.stroke();
+  c.fillStyle = "#dc2626"; var sr = r * (stars > 4 ? .17 : .22);
+  for (var i = 0; i < stars; i++) { var a = stars === 1 ? 0 : i / stars * Math.PI * 2 + t * .3, d = stars === 1 ? 0 : r * .42; var sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d; c.beginPath(); for (var k = 0; k < 10; k++) { var rr = k % 2 ? sr * .45 : sr, aa = -Math.PI / 2 + k * Math.PI / 5; c.lineTo(sx + Math.cos(aa) * rr, sy + Math.sin(aa) * rr); } c.closePath(); c.fill(); }
+}
+function _fxCloud(c, x, y, s, col) { c.fillStyle = col; c.beginPath(); c.arc(x, y, 14 * s, 0, 7); c.arc(x + 16 * s, y - 6 * s, 18 * s, 0, 7); c.arc(x + 36 * s, y, 15 * s, 0, 7); c.arc(x + 18 * s, y + 6 * s, 16 * s, 0, 7); c.fill(); }
+
+FX_SCENES.ninja = function (c, w, h, t) {
+  var i, g = c.createRadialGradient(w - 60, 70, 0, w - 60, 70, 150 + Math.sin(t) * 6); g.addColorStop(0, "rgba(255,244,214,.35)"); g.addColorStop(1, "rgba(255,244,214,0)"); c.fillStyle = g; c.fillRect(w - 220, 0, 220, 230);
+  c.fillStyle = "#fff4d6"; c.beginPath(); c.arc(w - 60, 70, 34, 0, 7); c.fill(); c.fillStyle = "rgba(180,160,120,.35)"; c.beginPath(); c.arc(w - 72, 62, 8, 0, 7); c.arc(w - 48, 84, 6, 0, 7); c.fill();
+  // chakra swirl turning slowly
+  c.save(); c.translate(w * .22, h * .34); c.rotate(t * .5); c.strokeStyle = "rgba(251,146,60,.28)"; c.lineWidth = 7; for (var arm = 0; arm < 3; arm++) { c.beginPath(); for (var k = 0; k < 60; k++) { var a = k * .14 + arm * 2.094, r = 8 + k * 1.9; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); } c.restore();
+  // rooftops
+  c.fillStyle = "#050914"; var base = h - FX_NAV; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 40; x += 40) { var up = (x / 40) % 3 === 1 ? 38 : 18; c.lineTo(x, base - up + 12); c.lineTo(x + 20, base - up - 10); } c.lineTo(w, h); c.closePath(); c.fill();
+  for (i = 0; i < 22; i++) { var lx = _frnd(i + 2) * w, ly = ((t * (12 + _frnd(i) * 18) + _frnd(i + 4) * h) % (h + 20)), sw = Math.sin(t * 2 + i) * 12; c.save(); c.translate(lx + sw, ly); c.rotate(t + i); c.fillStyle = i % 3 ? "rgba(251,146,60,.5)" : "rgba(74,222,128,.45)"; c.beginPath(); c.ellipse(0, 0, 5, 2.4, 0, 0, 7); c.fill(); c.restore(); }
+  for (i = 0; i < 4; i++) { var ph = (t * .22 + i * .27) % 1, sx = -40 + ph * (w + 100), sy = 90 + i * 140 + Math.sin(ph * 6 + i) * 30; for (var tr = 3; tr >= 0; tr--) { c.globalAlpha = .12 * (4 - tr); fxShuriken(c, sx - tr * 16, sy + tr * 3, 13, t * 14 + i, "#cbd5e1"); } c.globalAlpha = 1; fxShuriken(c, sx, sy, 15, t * 14 + i, "#e2e8f0"); }
+  var sm = (t % 7) / 7; c.fillStyle = "rgba(226,232,240," + (.22 * (1 - sm)) + ")"; _fxCloud(c, w * .55, h - FX_NAV - 40 - sm * 60, 1 + sm * 2.4, c.fillStyle);
+};
+
+FX_SCENES.orbs = function (c, w, h, t) {
+  var i;
+  for (i = 0; i < 4; i++) _fxCloud(c, ((t * (6 + i * 3) + i * 140) % (w + 200)) - 80, 70 + i * 120, .9 + i * .15, "rgba(255,255,255,.14)");
+  // golden aura at the bottom: spiky flames that sway and pulse
+  var cx = w / 2, by = h - FX_NAV + 6, pulse = 1 + Math.sin(t * 3) * .08;
+  for (i = 0; i < 11; i++) { var k = (i - 5) / 5, bw = 26, hh = (110 - Math.abs(k) * 60) * pulse + Math.sin(t * 6 + i * 1.7) * 14, bx = cx + k * 150, tipx = bx + Math.sin(t * 5 + i) * 14 + k * 24;
+    var fg = c.createLinearGradient(0, by, 0, by - hh); fg.addColorStop(0, "rgba(251,191,36,.85)"); fg.addColorStop(.6, "rgba(253,224,71,.55)"); fg.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = fg;
+    c.beginPath(); c.moveTo(bx - bw, by); c.quadraticCurveTo(bx - bw * .4, by - hh * .55, tipx, by - hh); c.quadraticCurveTo(bx + bw * .4, by - hh * .55, bx + bw, by); c.closePath(); c.fill(); }
+  // seven orbs drifting along a lazy arc, each with its stars
+  for (i = 0; i < 7; i++) { var ph = t * .25 + i * .9, ox = w * (.1 + i * .13) + Math.sin(ph) * 10, oy = 120 + (i % 4) * 118 + Math.sin(t * 1.4 + i) * 14; fxOrb(c, ox, oy, 15, i + 1, t + i); }
+  for (i = 0; i < 18; i++) { var tw = Math.max(0, Math.sin(t * 2 + i * 1.9)); c.fillStyle = "rgba(255,255,255," + tw * .8 + ")"; c.fillRect(_frnd(i + 1) * w, _frnd(i + 6) * (h - 200), 2.4, 2.4); }
+};
+
+FX_SCENES.pirate = function (c, w, h, t) {
+  var i, horizon = h - 250;
+  var sg = c.createRadialGradient(w * .78, horizon - 20, 0, w * .78, horizon - 20, 150); sg.addColorStop(0, "rgba(253,224,71,.5)"); sg.addColorStop(1, "rgba(253,224,71,0)"); c.fillStyle = sg; c.fillRect(0, horizon - 180, w, 200);
+  for (i = 0; i < 4; i++) { var gx = ((t * (22 + i * 8) + i * 130) % (w + 80)) - 40, gy = 80 + i * 55 + Math.sin(t * 2 + i) * 10; c.strokeStyle = "rgba(240,249,255,.8)"; c.lineWidth = 2.2; c.beginPath(); c.moveTo(gx - 12, gy); c.quadraticCurveTo(gx - 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx, gy); c.quadraticCurveTo(gx + 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx + 12, gy); c.stroke(); }
+  // ship: hull, two sails, mast and a pennant; it sails across and bobs
+  var sx = ((t * 20) % (w + 260)) - 130, sy = horizon + 18 + Math.sin(t * 1.6) * 5, rock = Math.sin(t * 1.6) * .04;
+  c.save(); c.translate(sx, sy); c.rotate(rock);
+  c.fillStyle = "#0f172a"; c.beginPath(); c.moveTo(-70, 0); c.lineTo(70, 0); c.lineTo(52, 26); c.lineTo(-56, 26); c.closePath(); c.fill(); c.fillStyle = "#7c2d12"; c.fillRect(-60, 6, 120, 5);
+  c.fillStyle = "#0f172a"; c.fillRect(-2, -86, 4, 90);
+  [[-48, -80, 44, 62, .15], [4, -84, 48, 68, .1]].forEach(function (s) { c.fillStyle = "#fff7e6"; c.strokeStyle = "#a16207"; c.lineWidth = 1.6; var bulge = 8 + Math.sin(t * 2 + s[4] * 10) * 3; c.beginPath(); c.moveTo(s[0], s[1]); c.quadraticCurveTo(s[0] + s[2] / 2 + bulge, s[1] + s[3] * .5, s[0] + s[2], s[1]); c.lineTo(s[0] + s[2], s[1] + s[3]); c.quadraticCurveTo(s[0] + s[2] / 2 + bulge, s[1] + s[3] * .8, s[0], s[1] + s[3]); c.closePath(); c.fill(); c.stroke(); });
+  c.fillStyle = "#0f172a"; c.beginPath(); c.moveTo(2, -86); c.lineTo(34 + Math.sin(t * 6) * 3, -90); c.lineTo(2, -96); c.fill();
+  c.fillStyle = "#e2e8f0"; c.beginPath(); c.arc(-24, -50, 7, 0, 7); c.fill(); c.fillStyle = "#0f172a"; c.fillRect(-27, -53, 2, 2); c.fillRect(-22, -53, 2, 2); c.fillRect(-26, -47, 6, 1.4);   // a small skull on the sail
+  c.restore();
+  // three layers of waves scrolling at different speeds
+  [["rgba(14,116,144,.55)", 18, 70, 1.1, 0], ["rgba(8,145,178,.5)", 22, 60, 1.6, 40], ["rgba(7,89,133,.7)", 26, 52, 2.2, 80]].forEach(function (L, n) {
+    c.fillStyle = L[0]; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 10; x += 8) c.lineTo(x, horizon + 40 + n * 34 + Math.sin(x / L[2] + t * L[3] + L[4]) * L[1] * .4); c.lineTo(w, h); c.closePath(); c.fill(); });
+  for (i = 0; i < 16; i++) { var tw = Math.max(0, Math.sin(t * 3 + i * 1.3)); c.fillStyle = "rgba(255,255,255," + tw * .7 + ")"; c.fillRect(_frnd(i + 3) * w, horizon + 30 + _frnd(i + 9) * 160, 2.6, 2.6); }
+  for (i = 0; i < 6; i++) { var cp = (t * .4 + i * .17) % 1; c.fillStyle = "rgba(252,211,77," + (.9 * Math.sin(cp * Math.PI)) + ")"; c.beginPath(); c.arc(w * .1 + i * 24, h - FX_NAV - 6 - cp * 40, 3.4, 0, 7); c.fill(); }
+};
+
+FX_SCENES.reaper = function (c, w, h, t) {
+  var i, mx = w - 80, my = 110, glow = c.createRadialGradient(mx, my, 0, mx, my, 200 + Math.sin(t * 1.3) * 10); glow.addColorStop(0, "rgba(255,255,255,.28)"); glow.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = glow; c.fillRect(0, 0, w, 330);
+  c.fillStyle = "#fafafa"; c.beginPath(); c.arc(mx, my, 62, 0, 7); c.fill(); c.fillStyle = "#0a0a0f"; c.beginPath(); c.arc(mx - 26, my - 6, 56, 0, 7); c.fill();
+  for (i = 0; i < 26; i++) { var p = (t * (.03 + _frnd(i) * .04) + _frnd(i + 7)) % 1, ex = _frnd(i + 2) * w + Math.sin(t + i) * 12, ey = h - FX_NAV - p * (h - FX_NAV); c.fillStyle = "rgba(255," + (180 + (i % 3) * 25) + "," + (120 + (i % 4) * 30) + "," + (.55 * (1 - p)) + ")"; c.beginPath(); c.arc(ex, ey, 1.4 + _frnd(i + 5) * 1.8, 0, 7); c.fill(); }
+  for (i = 0; i < 5; i++) { var ph = (t * .12 + i * .21) % 1, bx = -30 + ph * (w + 80), by = 130 + i * 110 + Math.sin(t * 1.6 + i * 2) * 36; fxButterfly(c, bx, by, 1.05 - i * .1, t * 7 + i, "#1f1f2b"); c.strokeStyle = "rgba(249,115,22,.25)"; c.lineWidth = 2; c.beginPath(); c.moveTo(bx - 4, by); c.quadraticCurveTo(bx - 40, by + 14, bx - 80, by + 4); c.stroke(); }
+  var sl = (t % 6) / .5; if (sl < 1) { var a = sl < .5 ? sl * 2 : (1 - sl) * 2; c.strokeStyle = "rgba(255,255,255," + a * .9 + ")"; c.lineWidth = 3; c.beginPath(); c.moveTo(w * .1, h * .28); c.lineTo(w * .1 + w * .8 * Math.min(1, sl * 2.2), h * .28 + h * .3 * Math.min(1, sl * 2.2)); c.stroke(); }
+  c.strokeStyle = "rgba(255,255,255,.1)"; c.lineWidth = 1.2; for (i = 0; i < 4; i++) { c.beginPath(); c.moveTo(0, h - FX_NAV - 6 - i * 6); c.lineTo(w, h - FX_NAV - 6 - i * 6); c.stroke(); }
+};
+
 /* ───────────── engine ───────────── */
 
 function _fxSize() {
