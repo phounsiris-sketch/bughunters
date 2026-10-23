@@ -6154,3 +6154,18 @@ body[data-special="pirate"]:not([data-theme="light"]) .live-screen .ls-half::bef
 body[data-special="pirate"]:not([data-theme="light"]) .hs-health, body[data-special="pirate"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #1d4ed8, #dc2626); }
 
 :root { --hdr-h: 46px; }   /* set from the real height of the app bar by _syncHeaderVar() */
+
+/* ===== v177: icon styles for the Dashboard (classic / line / tiles / emoji) ===== */
+.si.ico-line path, .si.ico-line circle, .si.ico-line rect, .si.ico-line ellipse, .si.ico-line line, .si.ico-line polygon { fill: none !important; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: 1 !important; }
+.si.ico-line g { fill: none !important; opacity: 1 !important; }
+.ico-tile { display: inline-flex; align-items: center; justify-content: center; border-radius: 30%; color: #fff; vertical-align: middle; margin-right: 6px; flex: none; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+.ico-tile .si { color: #fff !important; }
+.ico-t0 { background: linear-gradient(135deg, #0d9488, #14b8a6); } .ico-t1 { background: linear-gradient(135deg, #2563eb, #60a5fa); } .ico-t2 { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.ico-t3 { background: linear-gradient(135deg, #db2777, #f472b6); } .ico-t4 { background: linear-gradient(135deg, #ea580c, #fb923c); } .ico-t5 { background: linear-gradient(135deg, #16a34a, #4ade80); }
+.ico-t6 { background: linear-gradient(135deg, #dc2626, #f87171); } .ico-t7 { background: linear-gradient(135deg, #b45309, #fbbf24); }
+.ico-emoji { display: inline-block; text-align: center; line-height: 1; vertical-align: middle; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.is-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.is-opt { text-align: left; padding: 10px; border-radius: 14px; border: 2px solid var(--control-border); background: var(--chip-bg); color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+.is-opt.active { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-text) inset; }
+.is-prev { display: flex; gap: 8px; align-items: center; min-height: 40px; color: var(--accent-text); }
+.is-opt b { font-size: 14px; }
