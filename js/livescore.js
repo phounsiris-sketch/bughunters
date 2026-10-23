@@ -431,9 +431,10 @@ function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live
 
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
-  if (!confirm(t("lsResetConfirm"))) return;   // always ask: the button sits next to the ones you tap all game
-  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
-  lsSave(); liveMode = "count"; lsRender();
+  askYes(t("lsResetConfirm"), function () {
+    live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
+    lsSave(); liveMode = "count"; lsRender();
+  }, { danger: true, yes: t("confirm") });
 }
 
 function lsTestAgain() {
@@ -447,10 +448,11 @@ function lsTestAgain() {
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
   if (liveMode === "watch") { lsWatchStop(); return; }
-  if (!confirm(t(live && live.test ? "lsExitTestConfirm" : "lsExitConfirm"))) return;   // always ask, whatever the score: an accidental tap must not end the game
-  live = null; lsSave();
-  liveMode = "count";
-  lsClose();
+  askYes(t(live && live.test ? "lsExitTestConfirm" : "lsExitConfirm"), function () {
+    live = null; lsSave();
+    liveMode = "count";
+    lsClose();
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** Save the finished game like "Add game score" does, then continue or finish */
@@ -482,9 +484,10 @@ function lsSaveGame(next) {
 
 /** Drop a half-counted game from the Home banner (asks first) */
 function lsCancelSaved() {
-  if (!confirm(t("lsExitConfirm"))) return;
-  live = null; lsSave();
-  if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+  askYes(t("lsExitConfirm"), function () {
+    live = null; lsSave();
+    if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** A game is still being counted on this phone (for the Home banner) */

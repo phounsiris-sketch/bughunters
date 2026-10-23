@@ -46,22 +46,66 @@ function _countUp(el) {
 }
 
 
-/* Bottom-sheet confirm (replaces the browser's confirm() popup).
-   askConfirm({ title, big, body, yes, danger }, onYes): every text is escaped here, pass plain text */
+/* Our own confirm sheet (never the browser's confirm()/prompt()).
+   askConfirm({ title, body, big, detail, kind, yes, no, danger, type }, onYes)
+     kind   "danger" (trash, red) | "warn" | "ask" (default)   danger:true = kind "danger"
+     detail a name/label shown in a chip under the title (e.g. what is being deleted)
+     type   a word the user must type before the button unlocks (e.g. the group name)
+   Every text is escaped here, pass plain text. Esc / tap outside / Cancel close it.
+   Cancel has the focus for danger, so a stray Enter never deletes anything. */
+var _askOpener = null;
 function askConfirm(o, onYes) {
   var old = document.getElementById("askSheet"); if (old) old.remove();
+  var kind = o.kind || (o.danger ? "danger" : "ask");
+  var ico = { danger: "trash", warn: "warning", ask: "question" }[kind] || "question";
+  _askOpener = document.activeElement;
   var el = document.createElement("div");
   el.id = "askSheet"; el.className = "sheet-wrap";
-  el.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' +
+  el.innerHTML = '<div class="sheet ask ask-' + kind + '" role="alertdialog" aria-modal="true" aria-labelledby="askT"' + (o.body ? ' aria-describedby="askB"' : '') + '>' +
     '<div class="sheet-grab"></div>' +
-    (o.title ? '<div class="sheet-title">' + escapeHtml(o.title) + '</div>' : '') +
+    '<div class="ask-ico">' + icon(ico, 28) + '</div>' +
+    (o.title ? '<div class="sheet-title" id="askT">' + escapeHtml(o.title) + '</div>' : '') +
+    (o.detail ? '<div class="ask-detail">' + escapeHtml(o.detail) + '</div>' : '') +
     (o.big ? '<div class="sheet-big">' + escapeHtml(o.big) + '</div>' : '') +
-    (o.body ? '<div class="sheet-body">' + escapeHtml(o.body) + '</div>' : '') +
-    '<div class="sheet-btns"><button type="button" class="btn-secondary" data-no>' + (o.no || t("cancel")) + '</button>' +
-    '<button type="button" class="' + (o.danger ? 'btn-danger' : 'btn-primary') + '" data-yes>' + (o.yes || t("confirm")) + '</button></div></div>';
-  var close = function () { el.remove(); };
-  el.onclick = function (e) { if (e.target === el || e.target.hasAttribute("data-no")) close(); };
-  el.querySelector("[data-yes]").onclick = function () { close(); if (onYes) onYes(); };
+    (o.body ? '<div class="sheet-body" id="askB">' + escapeHtml(o.body) + '</div>' : '') +
+    (o.type ? '<input type="text" class="form-input ask-type" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="' + escapeHtml(o.type) + '" placeholder="' + escapeHtml(o.type) + '">' : '') +
+    '<div class="ask-btns"><button type="button" class="' + (kind === "danger" ? 'btn-danger ask-yes' : 'btn-primary ask-yes') + '" data-yes' + (o.type ? ' disabled' : '') + '>' + escapeHtml(o.yes || t("confirm")) + '</button>' +
+    '<button type="button" class="ask-no" data-no>' + escapeHtml(o.no || t("cancel")) + '</button></div></div>';
+  var close = function () {
+    el.classList.add("out");
+    document.removeEventListener("keydown", onKey, true);
+    setTimeout(function () { el.remove(); }, 160);
+    if (_askOpener && _askOpener.focus && document.contains(_askOpener)) { try { _askOpener.focus(); } catch (e) {} }
+  };
+  var yes = el.querySelector("[data-yes]"), no = el.querySelector("[data-no]"), inp = el.querySelector(".ask-type");
+  var go = function () { if (yes.disabled) return; close(); if (onYes) onYes(); };
+  var onKey = function (e) {
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); if (o.onNo) o.onNo(); return; }
+    if (e.key === "Enter" && inp && document.activeElement === inp) { e.preventDefault(); go(); return; }
+    if (e.key === "Tab") {
+      var f = [].slice.call(el.querySelectorAll("button:not([disabled]), input")), first = f[0], last = f[f.length - 1];
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+  document.addEventListener("keydown", onKey, true);
+  el.onclick = function (e) { if (e.target === el || e.target.hasAttribute("data-no")) { close(); if (o.onNo) o.onNo(); } };
+  yes.onclick = go;
+  if (inp) inp.oninput = function () { yes.disabled = inp.value.trim().toLowerCase() !== String(o.type).trim().toLowerCase(); };
   document.body.appendChild(el);
-  var y = el.querySelector("[data-yes]"); if (y && y.focus) y.focus();
+  var first = inp || (kind === "danger" ? no : yes); if (first && first.focus) first.focus();
+}
+
+/** Short form for the common case: askYes("Delete this?", function () { ... }, { kind: "danger", yes: t("delete") }) */
+function askYes(msg, onYes, o) {
+  o = o || {};
+  askConfirm({ title: msg, body: o.body, detail: o.detail, kind: o.kind || (o.danger ? "danger" : "ask"), yes: o.yes, no: o.no, type: o.type }, onYes);
+}
+
+/** Show text the user can copy by hand (the fallback when the clipboard is blocked) */
+function askCopy(title, text) {
+  askConfirm({ title: title, kind: "ask", yes: t("close") || "OK", no: t("cancel") }, function () {});
+  var sh = document.querySelector("#askSheet .sheet-title");
+  if (sh) { var ta = document.createElement("textarea"); ta.className = "form-input ask-copy"; ta.readOnly = true; ta.value = text; ta.rows = 3; sh.insertAdjacentElement("afterend", ta); ta.focus(); ta.select(); }
 }

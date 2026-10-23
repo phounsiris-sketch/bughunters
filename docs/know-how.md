@@ -1279,3 +1279,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 ## v158 — poll plan padding
 - An older rule (`.poll-card .poll-plan { padding: 0 }`) removed the box padding while dark mode still painted its background, so tags and the note touched the edge. Padding restored (12/14), tags and note spaced.
+
+## v159 — our own confirm sheet (no browser popups)
+- `askConfirm({title, body, detail, kind, type, yes, no, onNo}, onYes)` in `js/motion.js`: icon badge (trash/warning/question), title, optional name chip, optional typed-word lock (`type`), big action button on top, quiet Cancel below. Esc, tap outside and Cancel close it; focus is trapped and returns to the opener; danger kind focuses Cancel so a stray Enter never deletes.
+- `askYes(msg, onYes, {danger, kind, yes, detail, type})` is the short form; `askCopy(title, text)` replaces the `prompt()` clipboard fallback.
+- All 30 native `confirm()` / `prompt()` calls were converted (code after the confirm now runs in the callback). `tests/security.test.js` fails if any native `confirm/prompt/alert` comes back.
+- Delete-group now asks for the group name inside the sheet (the Confirm button stays locked until it matches).

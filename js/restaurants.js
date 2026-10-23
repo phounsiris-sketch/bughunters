@@ -294,10 +294,11 @@ function saveRestaurantReview(restId, sessionId) {
 }
 
 function deleteMyReview(restId) {
-  if (!confirm(t("delete") + "?")) return;
-  fsdb.collection("restaurantReviews").doc(restId + "_" + currentUser.uid).delete()
-    .then(function () { delete _revDraft[restId]; })
-    .catch(function (error) { showToast(_permError(error)); });
+  askYes(t("delete") + "?", function () {
+    fsdb.collection("restaurantReviews").doc(restId + "_" + currentUser.uid).delete()
+      .then(function () { delete _revDraft[restId]; })
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 

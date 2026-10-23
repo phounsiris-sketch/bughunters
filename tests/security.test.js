@@ -30,3 +30,8 @@ fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f); }).forEach(fu
 });
 assert.deepStrictEqual(bad, [], "unguarded src sinks: " + bad.join(" | "));
 console.log("security OK");
+// no native browser dialogs: confirm()/prompt()/alert() are replaced by askYes/askConfirm/askCopy
+fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f); }).forEach(function (f) {
+  var code = fs.readFileSync("js/" + f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.ok(!/(^|[^A-Za-z_.])(confirm|prompt|alert)\(/.test(code.replace(/askConfirm\(|askYes\(/g, "")), f + " uses a native dialog");
+});
