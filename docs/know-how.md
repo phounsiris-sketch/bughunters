@@ -1326,3 +1326,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Seasonal "Try it" card on Home from Jan 20 to Feb 25 (the date moves each year: 2026-02-17, 2027-02-06, 2028-01-26). A saved choice of `songkran` falls back to the normal style.
 ## v164 — bottom nav
 - Removed the coloured strip on top of the active bottom-nav tab (added in v157). The active tab stays bold and in the accent colour.
+
+## v166 — app bar
+- The app bar (`.app-header`) now sits above the special-theme effects layer (`#fxLayer`, z 410): bar z-index 430. While the live score is open (`body.live-on`) it drops back to 100, because the live score covers the whole screen.
+- The bar is 20% lower (vertical padding 12 -> 6 px, 58 -> 46 px plus the phone's top inset) and the blur behind it in the special themes is softer (6 -> 3 px).
