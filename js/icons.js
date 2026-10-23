@@ -71,10 +71,10 @@ var SOLAR = {
 
 /* Icon styles for the Home and Dashboard pages (the Settings card "Icon style"). Four real icon sets, not filters:
    classic = the Solar duotone set used everywhere else, line = Phosphor Regular, duo = Phosphor Duotone in a colour per icon,
-   tiles = Phosphor Fill, white on a glossy rounded tile. ICON_SETS (js/icons-sets.js) holds the Phosphor paths.
+   tiles = Phosphor Fill, white on a glossy rounded tile, box = the classic Solar glyph in white on a 3D candy box (the default). ICON_SETS (js/icons-sets.js) holds the Phosphor paths.
    Saved in localStorage "iconTheme"; _iconCtx is switched on only while Home or the Dashboard render. */
-var ICON_THEMES = ["classic", "line", "duo", "tiles"];
-var currentIconTheme = "classic";
+var ICON_THEMES = ["box", "classic", "line", "duo", "tiles"];
+var currentIconTheme = "box";
 try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji") _it = "duo"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
 var _iconCtx = false;
 var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
@@ -82,16 +82,25 @@ var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add
 function _iconSvg(name, size, cls, extra) {
   return '<svg class="si' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' + SOLAR[name] + '</svg>';
 }
+function _boldSvg(name, size, cls) {
+  return '<svg class="si' + (cls ? ' ' + cls : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' + SOLAR_BOLD[name] + '</svg>';
+}
 function _phSvg(set, name, size, cls, extra) {
   return '<svg class="si ph' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' + ICON_SETS[set][name] + '</svg>';
 }
 function _iconHash(name) { var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return h % 8; }
+
+/* 3D box: colour per meaning (0 green, 1 red, 2 teal, 3 blue, 4 orange, 5 purple, 6 gold, 7 pink) */
+var ICON_BOX = { calendar: 0, sessions: 0, check: 0, pin: 0, vote: 0, polls: 0, target: 0, clock: 1, history: 1, warning: 1, noshow: 1, bell: 1, users: 2, user: 2, court: 2, shuttle: 2, globe: 2, route: 2,
+  chart: 3, ranking: 3, dashboard: 3, scoreboard: 3, calc: 3, card: 3, bill: 4, wallet: 4, dinner: 4, other: 4, percent: 4, phone: 4, mail: 4, qr: 5, key: 5, lock: 5, camera: 5, manual: 5, watch: 5,
+  trophy: 6, medal: 6, crown: 6, sun: 6, moon: 6, question: 7, settings: 3 };
 
 /** One icon in a given style (used by the Settings preview too); falls back to the classic icon when a set lacks the name */
 function iconAs(theme, name, size, cls) {
   if (!SOLAR[name]) return "";
   size = size || 18;
   var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
+  if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ci = ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
   if (!sets || theme === "classic" || !sets.line[name]) return _iconSvg(name, size, cls);
   if (theme === "line" || ICON_PLAIN[name]) return _phSvg("line", name, size, cls);
   if (theme === "duo") return _phSvg("duo", name, size, cls, "ico-dc ico-dc" + _iconHash(name));
@@ -104,10 +113,10 @@ function icon(name, size, cls) {
   return iconAs(_iconCtx ? currentIconTheme : "classic", name, size, cls);
 }
 
-/** The nav bar and the app bar are drawn once at startup; on the Home and Dashboard pages they take the chosen style too, and go back to classic on any other page */
+/** The nav bar and the app bar are drawn once at startup; on the Home and Dashboard pages they take the chosen style too (the 3D box style is on the nav bar of every page), and go back to classic on any other page */
 var _chromeKey = "";
 function applyChromeIcons(page) {
-  var on = (page === "dashboard" || page === "home") && currentIconTheme !== "classic", key = on ? currentIconTheme : "";
+  var on = currentIconTheme === "box" || ((page === "dashboard" || page === "home") && currentIconTheme !== "classic"), key = on ? currentIconTheme : "";
   if (key === _chromeKey) return;
   _chromeKey = key;
   try { document.body.setAttribute("data-icons", key); } catch (e) {}

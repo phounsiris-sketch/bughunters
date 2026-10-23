@@ -6202,3 +6202,30 @@ body[data-icons="duo"] .app-header .si.ph { color: #fff; }
 
 .is-prev .ico-tile { margin-right: 0; }
 .home-sc-ico .ico-dc, .home-new-ico .ico-dc, .hs-card .ico-dc, .mh-ii .ico-dc, .app-header .ico-dc, .nav-center .ico-dc { color: #fff; }
+
+/* ===== v182: 3D box icons (Solar glyph, white, on a candy box with a thick bottom edge) ===== */
+.ico-bx { display: inline-flex; align-items: center; justify-content: center; border-radius: 30%; color: #fff; vertical-align: middle; margin-right: 6px; flex: none; position: relative; margin-bottom: 3px; }
+.ico-bx .si { color: #fff !important; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .18)); }
+.ico-bx .si [opacity] { opacity: .5; }
+.ico-bx::after { content: ""; position: absolute; left: 12%; right: 12%; top: 5%; height: 26%; border-radius: 40% 40% 60% 60%; background: linear-gradient(180deg, rgba(255,255,255,.4), rgba(255,255,255,0)); pointer-events: none; }
+.ico-bx0 { background: linear-gradient(180deg, #6fcf6f, #58b258); box-shadow: 0 3px 0 #3d8a3d, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx1 { background: linear-gradient(180deg, #e56a62, #d24f48); box-shadow: 0 3px 0 #a23a35, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx2 { background: linear-gradient(180deg, #52b4a4, #3f9d8e); box-shadow: 0 3px 0 #2b786c, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx3 { background: linear-gradient(180deg, #5b8def, #3f74dc); box-shadow: 0 3px 0 #2c55a8, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx4 { background: linear-gradient(180deg, #f59a4a, #e8832d); box-shadow: 0 3px 0 #b85f1a, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx5 { background: linear-gradient(180deg, #a78bfa, #8b6cf0); box-shadow: 0 3px 0 #6247b8, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx6 { background: linear-gradient(180deg, #fcd34d, #f2b81f); box-shadow: 0 3px 0 #b8860b, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.ico-bx7 { background: linear-gradient(180deg, #f27cb4, #e45a9c); box-shadow: 0 3px 0 #ae3e76, 0 6px 9px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .5); }
+.home-sc-ico .ico-bx, .home-new-ico .ico-bx, .hs-card .ico-bx, .mh-ii .ico-bx, .app-header .ico-bx { background: none; box-shadow: none; width: auto !important; height: auto !important; margin: 0; }
+.home-sc-ico .ico-bx::after, .home-new-ico .ico-bx::after, .hs-card .ico-bx::after, .mh-ii .ico-bx::after, .app-header .ico-bx::after { display: none; }
+body[data-icons="box"] .nav-item .nav-icon { min-height: 38px; align-items: flex-end; }
+body[data-icons="box"] .bottom-nav .ico-bx { width: 33px !important; height: 33px !important; margin-right: 0; }
+body[data-icons="box"] .bottom-nav .ico-bx .si { width: 19px; height: 19px; }
+body[data-icons="box"] .nav-item.active .ico-bx { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, .35), 0 0 0 2px var(--accent), inset 0 1px 0 rgba(255, 255, 255, .5); }
+body[data-icons="box"] .nav-item:not(.active) .ico-bx { filter: saturate(.7) brightness(.92); }
+body[data-icons="box"] .nav-center .nav-icon .ico-bx { background: none; box-shadow: none; width: auto !important; height: auto !important; filter: none; transform: none; }
+body[data-icons="box"] .nav-center .nav-icon .ico-bx::after { display: none; }
+.is-prev .ico-bx { margin-right: 0; margin-bottom: 3px; }
+body[data-icons="box"] .home-next-info > div, .home-next-info > div .ico-bx { align-items: center; }
+.home-next-info > div, .icon-stat { display: inline-flex; align-items: center; gap: 8px; }
+.home-next-info > div { display: flex; }
