@@ -305,25 +305,80 @@ function _fxGoldCloud(c, x, y, s, t) {
   c.restore();
 }
 
+/** Height of the rooftop line at x (same zigzag the scene draws), so the ninja runs on the roofs */
+function _fxRoofAt(x, base) {
+  var seg = Math.floor(x / 40), x0 = seg * 40, up = function (i) { return (i % 3 === 1) ? 38 : 18; };
+  var y0 = base - up(seg) + 12, yp = base - up(seg) - 10, y1 = base - up(seg + 1) + 12, f = (x - x0) / 40;
+  return f < .5 ? y0 + (yp - y0) * (f / .5) : yp + (y1 - yp) * ((f - .5) / .5);
+}
+
+/** A ninja silhouette seen from the side, facing right: forward lean, flowing headband tails and scarf, swinging arms and a run cycle.
+    (x, y) = feet, s = size, ph = run phase, air = 0..1 jump height factor (legs tuck while in the air), alpha for clones. */
+function fxNinja(c, x, y, s, t, ph, air, alpha) {
+  var lean = .28 + air * .1, hip = -17 * s - air * 8 * s;
+  c.save(); c.translate(x, y); c.globalAlpha = alpha == null ? 1 : alpha; c.lineCap = "round"; c.lineJoin = "round";
+  c.shadowColor = "#facc15"; c.shadowBlur = 7; c.strokeStyle = "#04060b"; c.fillStyle = "#04060b";
+  var leg = function (k) { var a = Math.sin(ph + k * Math.PI), kx = Math.sin(a) * 9 * s * (1 - air * .5), ky = Math.max(0, Math.cos(ph + k * Math.PI)) * 6 * s; c.lineWidth = 4.6 * s; c.beginPath(); c.moveTo(0, hip); c.lineTo(kx * .6 + 2 * s, hip + 9 * s - ky * .5 - air * 3 * s); c.lineTo(kx + (air ? 3 : 0) * s, -ky * (1 - air) - air * 4 * s); c.stroke(); };
+  leg(0); leg(1);
+  c.save(); c.translate(0, hip); c.rotate(lean);
+  c.lineWidth = 9 * s; c.beginPath(); c.moveTo(0, 0); c.lineTo(1 * s, -13 * s); c.stroke();                       // torso
+  c.beginPath(); c.arc(2.5 * s, -20 * s, 6.2 * s, 0, 7); c.fill();                                                    // head
+  c.lineWidth = 3 * s; [-1, 1].forEach(function (k) { var sw = Math.sin(ph + (k > 0 ? 0 : Math.PI)) * .9; c.beginPath(); c.moveTo(1 * s, -12 * s); c.lineTo(Math.cos(sw) * 8 * s + (k > 0 ? 4 : -2) * s, -12 * s + Math.sin(sw) * 8 * s + 4 * s); c.stroke(); });
+  // headband tails and scarf streaming behind, waving
+  c.strokeStyle = "#facc15"; c.lineWidth = 2.2 * s; for (var i = 0; i < 2; i++) { c.beginPath(); c.moveTo(-2 * s, (-22 + i * 2) * s); c.bezierCurveTo(-12 * s, (-24 + i * 3) * s + Math.sin(t * 9 + i) * 3 * s, -20 * s, (-22 + i * 5) * s + Math.sin(t * 9 + i * 2) * 5 * s, -30 * s, (-22 + i * 8) * s + Math.sin(t * 8 + i) * 6 * s); c.stroke(); }
+  c.strokeStyle = "#dc2626"; c.lineWidth = 4 * s; c.beginPath(); c.moveTo(0, -13 * s); c.bezierCurveTo(-12 * s, -12 * s + Math.sin(t * 7) * 4 * s, -24 * s, -8 * s + Math.sin(t * 7 + 1) * 6 * s, -38 * s, -6 * s + Math.sin(t * 6) * 8 * s); c.stroke();
+  c.fillStyle = "#e5e7eb"; c.fillRect(0.2 * s, -24.6 * s, 6 * s, 3.2 * s);                                              // plain headband plate
+  c.restore(); c.restore();
+}
+
+function fxKunai(c, x, y, s, rot, trail) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  if (trail) { var g = c.createLinearGradient(-trail, 0, 0, 0); g.addColorStop(0, "rgba(226,232,240,0)"); g.addColorStop(1, "rgba(226,232,240,.5)"); c.fillStyle = g; c.fillRect(-trail, -1.6 * s, trail, 3.2 * s); }
+  c.fillStyle = "#cbd5e1"; c.strokeStyle = "#0f172a"; c.lineWidth = 1.2 * s; c.beginPath(); c.moveTo(12 * s, 0); c.lineTo(2 * s, -4 * s); c.lineTo(-4 * s, 0); c.lineTo(2 * s, 4 * s); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = "#1e293b"; c.lineWidth = 2.2 * s; c.beginPath(); c.moveTo(-4 * s, 0); c.lineTo(-12 * s, 0); c.stroke(); c.strokeStyle = "#dc2626"; c.lineWidth = 1.6 * s; c.beginPath(); c.arc(-15 * s, 0, 3 * s, 0, 7); c.stroke(); c.restore();
+}
+
+/** Cartoon smoke puff (the "poof" of a shadow clone), p = 0..1 life */
+function _fxPoof(c, x, y, r, p) {
+  var a = Math.sin(Math.min(1, p) * Math.PI), rr = r * (.5 + p);
+  [[0, 0, 1], [-.7, .15, .7], [.7, .1, .75], [-.3, -.55, .65], [.4, -.5, .6], [0, .6, .6]].forEach(function (b) { c.fillStyle = "rgba(241,245,249," + (.8 * a) + ")"; c.strokeStyle = "rgba(100,116,139," + (.5 * a) + ")"; c.lineWidth = 2; c.beginPath(); c.arc(x + b[0] * rr, y + b[1] * rr, rr * b[2] * .55, 0, 7); c.fill(); c.stroke(); });
+}
+
 FX_SCENES.ninja = function (c, w, h, t, top) {
   top = top || 0; var i, base = h - FX_NAV, cx = w / 2, pulse = 1 + Math.sin(t * 3.2) * .07;
+  // big pale moon with a golden halo under the app bar
+  var mx = w - 70, my = top + 60, mg = c.createRadialGradient(mx, my, 0, mx, my, 150); mg.addColorStop(0, "rgba(255,244,200,.4)"); mg.addColorStop(1, "rgba(255,244,200,0)"); c.fillStyle = mg; c.fillRect(mx - 160, top, 320, 260);
+  c.fillStyle = "#fff4cc"; c.beginPath(); c.arc(mx, my, 34, 0, 7); c.fill(); c.fillStyle = "rgba(190,160,90,.4)"; c.beginPath(); c.arc(mx - 10, my - 6, 8, 0, 7); c.arc(mx + 12, my + 12, 6, 0, 7); c.fill();
   // golden halo behind the aura
-  var hg = c.createRadialGradient(cx, base - 30, 0, cx, base - 30, 300 * pulse); hg.addColorStop(0, "rgba(250,204,21,.38)"); hg.addColorStop(.5, "rgba(245,158,11,.14)"); hg.addColorStop(1, "rgba(245,158,11,0)"); c.fillStyle = hg; c.fillRect(0, base - 340, w, 380);
+  var hg = c.createRadialGradient(cx, base - 30, 0, cx, base - 30, 300 * pulse); hg.addColorStop(0, "rgba(250,204,21,.34)"); hg.addColorStop(.5, "rgba(245,158,11,.12)"); hg.addColorStop(1, "rgba(245,158,11,0)"); c.fillStyle = hg; c.fillRect(0, base - 340, w, 380);
+  // chakra sphere: a spinning ball of light with spiral arms and orbiting sparks (floats up and down on the left)
+  var sx0 = w * .2, sy0 = top + 190 + Math.sin(t * 1.3) * 16, sr = 26;
+  var sg = c.createRadialGradient(sx0, sy0, 2, sx0, sy0, sr * 2.4); sg.addColorStop(0, "rgba(255,255,255,.9)"); sg.addColorStop(.35, "rgba(147,197,253,.5)"); sg.addColorStop(1, "rgba(59,130,246,0)"); c.fillStyle = sg; c.beginPath(); c.arc(sx0, sy0, sr * 2.4, 0, 7); c.fill();
+  c.save(); c.translate(sx0, sy0); c.rotate(t * 7); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 2.4; for (var arm = 0; arm < 3; arm++) { c.beginPath(); for (var k = 0; k < 22; k++) { var a = k * .24 + arm * 2.094, r = 2 + k * (sr / 22); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); } c.restore();
+  for (i = 0; i < 7; i++) { var oa = t * 3 + i * .9, orr = sr * 1.5 + Math.sin(t * 2 + i) * 6; c.fillStyle = "rgba(191,219,254," + (.5 + .4 * Math.sin(t * 5 + i)) + ")"; c.beginPath(); c.arc(sx0 + Math.cos(oa) * orr, sy0 + Math.sin(oa) * orr * .6, 2.2, 0, 7); c.fill(); }
+  // leaf vortex on the right
+  for (i = 0; i < 26; i++) { var la = t * 1.7 + i * .42, lr = 14 + ((i * 7 + t * 12) % 70), lx = w * .8 + Math.cos(la) * lr * 1.4, ly = base - 190 + Math.sin(la) * lr * .7 - ((i * 5) % 40); c.save(); c.translate(lx, ly); c.rotate(la * 2); c.fillStyle = i % 3 ? "rgba(74,222,128,.6)" : "rgba(251,146,60,.6)"; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.restore(); }
+  // paper tags drifting down
+  for (i = 0; i < 5; i++) { var tp = (t * (.05 + _frnd(i) * .03) + _frnd(i + 3)) % 1, tx = w * (.1 + i * .2) + Math.sin(t * 1.4 + i) * 18, ty = top + 20 + tp * (base - top); c.save(); c.translate(tx, ty); c.rotate(Math.sin(t * 2 + i) * .5); c.fillStyle = "#fef3c7"; c.strokeStyle = "#b91c1c"; c.lineWidth = 1.4; c.fillRect(-5, -13, 10, 26); c.strokeRect(-5, -13, 10, 26); c.strokeStyle = "#b91c1c"; c.beginPath(); c.moveTo(-3, -8); c.lineTo(3, -8); c.moveTo(0, -8); c.lineTo(0, 8); c.moveTo(-3, 0); c.lineTo(3, 3); c.stroke(); c.restore(); }
   // dark rooftops
   c.fillStyle = "#0a0702"; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 40; x += 40) { var up = (x / 40) % 3 === 1 ? 38 : 18; c.lineTo(x, base - up + 12); c.lineTo(x + 20, base - up - 10); } c.lineTo(w, h); c.closePath(); c.fill();
-  // golden chakra cloak: flames with a black outline that rise, sway and flicker
-  for (i = 0; i < 11; i++) {
-    var k = (i - 5) / 5, bw = 30 + (5 - Math.abs(i - 5)) * 3, hh = (190 - Math.abs(k) * 100) * pulse + Math.sin(t * 7 + i * 1.9) * 18, bx = cx + k * w * .44, tx = bx + Math.sin(t * 4 + i * 1.3) * 22 + k * 30;
+  // golden chakra flames with a black outline behind the runner
+  for (i = 0; i < 9; i++) {
+    var kk = (i - 4) / 4, bw = 26 + (4 - Math.abs(i - 4)) * 3, hh = (150 - Math.abs(kk) * 80) * pulse + Math.sin(t * 7 + i * 1.9) * 14, bx = cx + kk * w * .44, tx2 = bx + Math.sin(t * 4 + i * 1.3) * 18 + kk * 24;
     var fg = c.createLinearGradient(0, base, 0, base - hh); fg.addColorStop(0, "#d97706"); fg.addColorStop(.35, "#facc15"); fg.addColorStop(.8, "#fef08a"); fg.addColorStop(1, "rgba(255,255,255,.1)");
-    c.fillStyle = fg; c.strokeStyle = "#1c1204"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(bx - bw, base + 6); c.quadraticCurveTo(bx - bw * .5, base - hh * .5, tx, base - hh); c.quadraticCurveTo(bx + bw * .5, base - hh * .5, bx + bw, base + 6); c.closePath(); c.fill(); c.stroke();
-    c.strokeStyle = "rgba(28,18,4,.55)"; c.lineWidth = 2; c.beginPath(); c.moveTo(bx, base); c.quadraticCurveTo(bx + Math.sin(t * 5 + i) * 6, base - hh * .5, tx - (tx - bx) * .2, base - hh * .86); c.stroke();
+    c.fillStyle = fg; c.strokeStyle = "#1c1204"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(bx - bw, base + 6); c.quadraticCurveTo(bx - bw * .5, base - hh * .5, tx2, base - hh); c.quadraticCurveTo(bx + bw * .5, base - hh * .5, bx + bw, base + 6); c.closePath(); c.fill(); c.stroke();
   }
-  // sparks lifting off the aura
-  for (i = 0; i < 26; i++) { var p = (t * (.05 + _frnd(i) * .07) + _frnd(i + 7)) % 1, sx = cx + (_frnd(i + 2) - .5) * w * .95 + Math.sin(t * 2 + i) * 10, sy = base - p * (h * .7); c.fillStyle = "rgba(254,240,138," + (.8 * (1 - p)) + ")"; c.beginPath(); c.arc(sx, sy, 1.4 + _frnd(i + 5) * 2, 0, 7); c.fill(); }
-  // yellow lightning every few seconds
-  var lp = (t % 3.4) / .35; if (lp < 1) { var lx = w * (.2 + .6 * _frnd(Math.floor(t / 3.4) + 3)), ly = top, a = 1 - lp; c.save(); c.shadowColor = "#facc15"; c.shadowBlur = 16; c.strokeStyle = "rgba(255,251,200," + a + ")"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(lx, ly);
+  // the ninja runs along the roofs and leaps every few seconds; every ~9 s a shadow-clone poof makes two copies
+  var run = 66, nx = ((t * run) % (w + 240)) - 120, jp = (t * run / 150) % 1, air = jp > .62 ? Math.sin((jp - .62) / .38 * Math.PI) : 0, ny = _fxRoofAt(nx, base) - air * 60, S = 1.7, ph = t * 12;
+  var cyc = t % 9, clones = cyc > 5.5 && cyc < 7.4 ? Math.sin((cyc - 5.5) / 1.9 * Math.PI) : 0;
+  if (clones > 0) { [[-90, -.08], [86, .06]].forEach(function (o, n) { var cxn = nx + o[0], cyn = _fxRoofAt(cxn, base); fxNinja(c, cxn, cyn, S * .95, t, ph + n * 1.4, 0, .85 * clones); if (cyc < 5.9 || cyc > 7.0) _fxPoof(c, cxn, cyn - 22, 26, cyc < 5.9 ? (cyc - 5.5) / .4 : (cyc - 7.0) / .4); }); }
+  fxNinja(c, nx, ny, S, t, ph, air, 1);
+  // kunai thrown across every four seconds
+  var kp = ((t - 1.2) % 4) / 1.5; if (kp > 0 && kp < 1) { var kx = nx + 10 + kp * (w - nx + 80), ky = ny - 40 - Math.sin(kp * Math.PI) * 90; fxKunai(c, kx, ky, 1.5, -.12 + kp * .5, 46); }
+  // sparks, lightning and flash streaks
+  for (i = 0; i < 22; i++) { var p = (t * (.05 + _frnd(i) * .07) + _frnd(i + 7)) % 1, sx = cx + (_frnd(i + 2) - .5) * w * .95 + Math.sin(t * 2 + i) * 10, sy = base - p * (h * .7); c.fillStyle = "rgba(254,240,138," + (.8 * (1 - p)) + ")"; c.beginPath(); c.arc(sx, sy, 1.4 + _frnd(i + 5) * 2, 0, 7); c.fill(); }
+  var lp = (t % 3.4) / .35; if (lp < 1) { var lx = w * (.2 + .6 * _frnd(Math.floor(t / 3.4) + 3)), ly = top, a2 = 1 - lp; c.save(); c.shadowColor = "#facc15"; c.shadowBlur = 16; c.strokeStyle = "rgba(255,251,200," + a2 + ")"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(lx, ly);
     for (i = 1; i < 9; i++) { lx += (_frnd(i + Math.floor(t / 3.4) * 7) - .5) * 60; ly = top + i * ((base - top) / 8.2); c.lineTo(lx, ly); } c.stroke(); c.restore(); }
-  // flash streaks that zip across
   for (i = 0; i < 3; i++) { var fp = (t * .5 + i * .33) % 1; if (fp < .16) { var u = fp / .16, fy = top + 70 + i * 190 + _frnd(i + 4) * 40, fx = -80 + u * (w + 160), fa = Math.sin(u * Math.PI); var lg = c.createLinearGradient(fx - 160, 0, fx, 0); lg.addColorStop(0, "rgba(250,204,21,0)"); lg.addColorStop(1, "rgba(255,251,200," + fa + ")"); c.strokeStyle = lg; c.lineWidth = 4; c.beginPath(); c.moveTo(fx - 160, fy); c.lineTo(fx, fy); c.stroke(); c.fillStyle = "rgba(255,255,255," + fa + ")"; c.beginPath(); c.arc(fx, fy, 3.4, 0, 7); c.fill(); } }
 };
 
