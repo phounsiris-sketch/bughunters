@@ -6229,3 +6229,20 @@ body[data-icons="box"] .nav-center .nav-icon .ico-bx::after { display: none; }
 body[data-icons="box"] .home-next-info > div, .home-next-info > div .ico-bx { align-items: center; }
 .home-next-info > div, .icon-stat { display: inline-flex; align-items: center; gap: 8px; }
 .home-next-info > div { display: flex; }
+
+/* ===== v183: Home shortcuts and create as see-through glass tiles ===== */
+:root { --glass-bg: rgba(255, 255, 255, .08); --glass-line: rgba(255, 255, 255, .16); --glass-hi: rgba(255, 255, 255, .2); }
+body[data-theme="light"] { --glass-bg: rgba(255, 255, 255, .55); --glass-line: rgba(15, 31, 53, .12); --glass-hi: rgba(255, 255, 255, .9); }
+.hg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.hg-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.hg-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 92px; padding: 12px 4px 10px; border-radius: 18px; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: center; line-height: 1.15; cursor: pointer;
+  background: var(--glass-bg); border: 1px solid var(--glass-line); box-shadow: inset 0 1px 0 var(--glass-hi); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform .12s ease, background-color .2s ease; }
+.hg-grid.four .hg-tile { min-height: 80px; padding: 10px 2px 8px; font-size: 12px; }
+.hg-tile:active { transform: scale(.96); background: var(--glass-hi); }
+.hg-tile > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; max-width: 100%; white-space: nowrap; }
+.hg-tile .ico-bx { margin: 0 0 3px; }
+.hg-head { display: flex; align-items: center; gap: 8px; margin: 4px 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+:lang(lo) .hg-head { letter-spacing: 0; text-transform: none; font-size: 13px; }
+.hg-head .ico-bx { margin: 0; }
+.hg-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hg-head .si { color: var(--accent-text, var(--accent)); }

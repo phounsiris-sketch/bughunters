@@ -140,15 +140,6 @@ function _homeStartCard() {
     '<button type="button" class="onb-hide" onclick="try{localStorage.setItem(\'onbHidden\',\'1\')}catch(e){};renderHome()">' + t("onbHide") + '</button></div>';
 }
 
-function _homeShortcut(iconName, label, sub, onclick, cls) {
-  return '<button type="button" class="home-sc" onclick="' + onclick + '"><span class="home-sc-ico ' + cls + '">' + icon(iconName, 26) + '</span>' +
-    '<b>' + label + '</b><small>' + sub + '</small></button>';
-}
-
-function _homeCreateTile(iconName, label, onclick, cls) {
-  return '<button type="button" class="home-new" onclick="' + onclick + '"><span class="home-new-ico ' + cls + '">' + icon(iconName, 24) + '</span>' + label + '</button>';
-}
-
 /** Add a score to my most recent running session */
 function homeAddScore() {
   var today = _todayIso(), best = null;
@@ -350,20 +341,19 @@ function _renderHomeInner() {
 
   // Moments: what just happened in the group
 
-  // 2. Shortcuts: find court, find friends, market
+  // 2. Shortcuts and create: see-through glass tiles, one short word each (the page background shows through)
+  var tile = function (iconName, bx, label, onclick) { return '<button type="button" class="hg-tile" onclick="' + onclick + '">' + icon(iconName, 24, "bx" + bx) + '<span>' + label + '</span></button>'; };
   if (groups) {
-    html += '<div class="home-scs">' +
-      _homeShortcut("court", t("homeFindCourt"), t("homeFindCourtSub"), "publicTab='games';showPage('public')", "c1") +
-      _homeShortcut("users", t("homeFindFriends"), t("homeFindFriendsSub"), "publicTab='buddies';showPage('public')", "c2") +
-      _homeShortcut("shuttle", t("homeMarket"), t("homeMarketSub"), "publicTab='market';showPage('public')", "c3") + '</div>';
+    html += '<div class="hg-grid">' +
+      tile("court", 1, t("homeShortCourt"), "publicTab='games';showPage('public')") +
+      tile("users", 2, t("homeShortFriends"), "publicTab='buddies';showPage('public')") +
+      tile("other", 4, t("homeMarket"), "publicTab='market';showPage('public')") + '</div>';
   }
-
-  // 3. Create
-  html += '<div class="card home-create"><div class="card-title">' + icon("add", 14) + ' ' + t("homeCreate") + '</div><div class="home-news">' +
-    _homeCreateTile("vote", t("homeVote"), "showCreatePoll()", "n1") +
-    _homeCreateTile("court", t("homeGame"), "createAdHocSession()", "n2") +
-    _homeCreateTile("add", t("homeAddScore"), "homeAddScore()", "n3") +
-    _homeCreateTile("scoreboard", t("lsTitle"), "showLiveScore()", "n4") + '</div></div>';
+  html += '<div class="hg-head">' + icon("add", 16) + ' <span>' + t("homeCreate") + '</span></div><div class="hg-grid four">' +
+    tile("vote", 3, t("homeVote"), "showCreatePoll()") +
+    tile("court", 1, t("homeGame"), "createAdHocSession()") +
+    tile("manual", 2, t("homeShortScore"), "homeAddScore()") +
+    tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()") + '</div>';
 
   // 4. Next game (on top instead while it is being played)
   if (!nextLive) html += nextCard;
