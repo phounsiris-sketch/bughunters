@@ -1333,3 +1333,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 ## v167 — no blur behind the app bar
 - Removed `backdrop-filter` from `.app-header` in all special themes (and forced `none`), so nothing blurs behind the bar on iOS. The confirm sheet backdrop keeps its light blur.
+
+## v168 — living backgrounds for the special themes
+- New `js/fx.js`: one canvas (`#fxCanvas`, **z-index -1**, behind every card and button, never over content) plays a loop at about 30 pictures a second. Scenes are plain functions of time in `FX_SCENES`: Halloween (flapping bats, drifting ghost, rising embers, pulsing moon glow), Christmas (twinkling garland and falling snow), Chinese New Year (swaying lanterns, a dragon swimming across the bottom chasing a pearl, a dancing lion), Neon Arcade (pulsing striped sun, moving grid, twinkles, shooting stars).
+- **Dragon** (`fxDragon`): 38 body segments in a travelling wave, gold scales and dorsal fins, two walking legs, tail tuft, head with chewing jaw, teeth, blinking eye, flowing mane, waving whiskers and horns. **Lion** (`fxLion`): bouncing head, rippling mane, blinking eyes, moving brows and ears, chewing mouth, swaying beard and pom-pom, cloth body on hopping legs. **Lantern** (`fxLantern`): glow, swing and swinging tassels. The share card draws these same functions as still poses.
+- Pauses when the screen is hidden or the live score is open; draws a single still frame when the phone asks for reduced motion. The old floating DOM particles and the static dragon, lion, lanterns and arcade sun in the CSS background are gone.
+- `tests/special-themes.test.js` checks every special theme has a scene and that the canvas stays behind the app.

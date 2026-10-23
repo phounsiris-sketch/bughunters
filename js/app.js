@@ -50,25 +50,8 @@ var SPECIALS = [
 ];
 var currentSpecial = _savedPalette("special", SPECIALS, "");
 
-/** Effects layer for the special theme: bats / snow / bubbles / sparks (CSS only, off when motion is reduced) */
-function _fxLayer(sp) {
-  var el = document.getElementById("fxLayer");
-  if (!sp) { if (el) el.remove(); return; }
-  if (el && el.getAttribute("data-sp") === sp[0]) return;
-  if (el) el.remove();
-  el = document.createElement("div"); el.id = "fxLayer"; el.className = "fx-" + sp[4]; el.setAttribute("data-sp", sp[0]); el.setAttribute("aria-hidden", "true");
-  var html = "";
-  for (var i = 0; i < sp[5]; i++) {
-    var r = (i * 37 % 100), d = (i * 53 % 17), dur = 9 + (i * 29 % 12), sz = 4 + (i * 13 % 9);
-    if (sp[4] === "snow") html += '<i style="left:' + r + '%;animation-duration:' + dur + 's;animation-delay:-' + d + 's;width:' + (3 + sz % 5) + 'px;height:' + (3 + sz % 5) + 'px"></i>';
-    else if (sp[4] === "lanterns") html += '<i style="left:' + r + '%;width:' + (22 + sz * 2) + 'px;height:' + Math.round((22 + sz * 2) * 1.5) + 'px;animation-duration:' + (dur + 12) + 's;animation-delay:-' + d + 's"></i>';
-    else if (sp[4] === "bubbles") html += '<i style="left:' + r + '%;width:' + (8 + sz * 2) + 'px;height:' + (8 + sz * 2) + 'px;animation-duration:' + (dur + 6) + 's;animation-delay:-' + d + 's"></i>';
-    else if (sp[4] === "sparks") html += '<i style="left:' + r + '%;top:' + ((i * 61) % 90) + '%;animation-duration:' + (2 + dur % 4) + 's;animation-delay:-' + d + 's"></i>';
-    else html += "<i></i>";
-  }
-  el.innerHTML = html;
-  document.body.appendChild(el);
-}
+/** The animated background of a special theme (js/fx.js): a canvas behind the whole app */
+function _fxLayer(sp) { if (!sp) { if (typeof fxStop === "function") fxStop(); } else if (typeof fxStart === "function") fxStart(sp[0]); }
 
 /** Pick a special theme ("" = back to the normal styles). Specials are dark designs, so this switches to dark mode */
 function setSpecial(id) {
@@ -474,7 +457,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v167"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v168"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
