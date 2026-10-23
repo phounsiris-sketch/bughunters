@@ -1279,3 +1279,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 ## v158 — poll plan padding
 - An older rule (`.poll-card .poll-plan { padding: 0 }`) removed the box padding while dark mode still painted its background, so tags and the note touched the edge. Padding restored (12/14), tags and note spaced.
+
+## v160 — Halloween style
+- New dark style "Halloween" (`PALETTES` in app.js, Settings > Appearance > Dark style): indigo night sky, glowing moon (peeks through the header), stars, cobweb corner, haunted-house silhouette, orange accent (`#c2410c` so white text stays readable). All drawn with CSS background layers on `body`, no image files.
+- `_hwBats()` adds three CSS-animated bats (`#hwBats`, pointer-events none, hidden under reduced motion); removed when another style is picked.
+- Home shows a seasonal card Oct 20 – Nov 2 (`_hwCard`) with "Try it"; hidden after use or ✕ (`localStorage hwHidden`).
+- `tools/contrast/audit.js` now includes the Halloween style. Lao wording unreviewed.

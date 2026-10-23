@@ -18,7 +18,7 @@ function lum(c){function f(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055
 function cr(a,b){var x=lum(a),y=lum(b);if(x<y){var t=x;x=y;y=t;}return (x+0.05)/(y+0.05);}
 function bgOf(el){var stack=[];for(var e=el;e;e=e.parentElement){stack.push(getComputedStyle(e).backgroundColor);}var c={r:255,g:255,b:255,a:1};for(var i=stack.length-1;i>=0;i--){c=over(parse(stack[i]),c);}return c;}
 var out=[];
-var combos=[["",""],["light",""],["light","lilac"],["light","sky"],["light","paper"],["light","sunrise"],["dark","violet"],["dark","court"],["dark","clean"],["dark","midnight"]];
+var combos=[["",""],["light",""],["light","lilac"],["light","sky"],["light","paper"],["light","sunrise"],["dark","violet"],["dark","court"],["dark","clean"],["dark","midnight"],["dark","halloween"]];
 var hosts=[document.getElementById("hostC"),document.getElementById("hostB")];
 combos.forEach(function(cb){
  document.body.removeAttribute("data-theme");document.body.removeAttribute("data-palette");document.body.removeAttribute("data-lpalette");

@@ -5767,3 +5767,51 @@ body[data-theme="light"] { --danger-text: #c81e1e; }
 .poll-card .poll-plan { padding: 12px 14px; margin-top: 10px; border-radius: 12px; }
 .poll-card .poll-plan .game-tags { gap: 6px; flex-wrap: wrap; }
 .poll-card .poll-plan .game-tags + div { margin-top: 10px !important; line-height: 1.4; }
+
+/* ===== v160: Halloween style (dark) ===== */
+body[data-palette="halloween"]:not([data-theme="light"]) {
+  --primary: #c2410c; --primary-light: #fb923c; --accent: #fdba74; --accent-rgb: 253, 186, 116; --blue: #a855f7;
+  --bg: #120a2e; --surface: #1a1040; --card: #251650; --border: #4a2f8f;
+  --text: #f6f0ff; --text-secondary: #d3c5ee; --text-muted: #ad9fd0; --text-dim: #a798c9;
+  --input-bg: #1a1040; --chip-bg: #1a1040; --control-border: #8466c9;
+  --poll-card-bg: linear-gradient(160deg, #3a1f78 0%, #251650 100%); --poll-card-border: #7a4fd0;
+  --poll-option-bg: rgba(18, 10, 46, 0.5);
+  --pay-banner-bg: linear-gradient(135deg, #c2410c, #9a3412);
+  background-color: #120a2e;
+  background-image:
+    radial-gradient(circle 34px at calc(100% - 50px) 38px, #ffe9b8 0, #f9c06b 62%, #e8893a 96%, transparent 100%),
+    radial-gradient(circle 6px at calc(100% - 64px) 28px, rgba(176, 92, 30, .45), transparent),
+    radial-gradient(circle 4px at calc(100% - 38px) 48px, rgba(176, 92, 30, .4), transparent),
+    radial-gradient(circle 3.5px at calc(100% - 56px) 52px, rgba(176, 92, 30, .35), transparent),
+    radial-gradient(circle 120px at calc(100% - 50px) 38px, rgba(253, 186, 116, .22), transparent),
+    radial-gradient(1.6px 1.6px at 8% 12%, #fff, transparent), radial-gradient(1.2px 1.2px at 22% 6%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 31% 20%, #fde68a, transparent), radial-gradient(1.2px 1.2px at 46% 9%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 58% 24%, #fff, transparent), radial-gradient(1.2px 1.2px at 12% 34%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 70% 8%, #fde68a, transparent), radial-gradient(1.2px 1.2px at 40% 40%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 90% 38%, #fff, transparent), radial-gradient(1.2px 1.2px at 5% 52%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 78% 56%, #fff, transparent), radial-gradient(1.4px 1.4px at 52% 66%, #fff, transparent),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23e9d5ff' stroke-width='1' opacity='.55'%3E%3Cpath d='M0 0 L120 0 M0 0 L0 120 M0 0 L105 105 M0 0 L118 52 M0 0 L52 118'/%3E%3Cpath d='M0 22 Q24 24 22 0 M0 44 Q46 46 44 0 M0 70 Q74 72 70 0 M0 98 Q100 100 98 0'/%3E%3Ccircle cx='86' cy='56' r='2' fill='%23e9d5ff'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='150' viewBox='0 0 240 150'%3E%3Cg fill='%230a0420'%3E%3Cpath d='M0 150 V128 Q30 118 60 126 T120 124 V150Z'/%3E%3Cpath d='M150 150 V70 L170 70 V48 L186 30 L202 48 V70 H226 V150Z'/%3E%3Cpath d='M120 150 V100 L128 100 V86 L136 100 H150 V150Z'/%3E%3Cpath d='M20 126 V100 L14 88 L26 96 L24 78 L34 94 L46 82 L40 104 L46 126Z'/%3E%3C/g%3E%3Cg fill='%23fdba74'%3E%3Crect x='164' y='84' width='10' height='14'/%3E%3Crect x='184' y='84' width='10' height='14'/%3E%3Crect x='204' y='98' width='10' height='14'/%3E%3Crect x='176' y='56' width='8' height='10'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(180deg, #0f0826 0%, #1b0f45 55%, #33176e 100%);
+  background-repeat: no-repeat;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, left top, right 6px bottom 74px, 0 0;
+  background-size: auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, 120px 120px, 240px 150px, auto;
+  background-attachment: fixed;
+}
+body[data-palette="halloween"]:not([data-theme="light"]) .app-header { background: rgba(18, 10, 46, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+body[data-palette="halloween"]:not([data-theme="light"]) .card, body[data-palette="halloween"]:not([data-theme="light"]) .poll-card { box-shadow: 0 6px 22px rgba(0, 0, 0, .45), 0 0 0 1px rgba(251, 146, 60, .12); }
+body[data-palette="halloween"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #c2410c, #9a3412); color: #fff; }
+body[data-palette="halloween"]:not([data-theme="light"]) .chip.active, body[data-palette="halloween"]:not([data-theme="light"]) .seg-btn.active { background: #c2410c; border-color: #c2410c; }
+#hwBats { position: fixed; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; }
+#hwBats i { position: absolute; left: -80px; width: 54px; height: 24px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 28' width='64' height='28'%3E%3Cpath fill='%230a0420' d='M32 8 C28 2 20 0 10 6 C14 8 12 12 16 14 C18 12 22 13 24 18 C27 14 30 14 32 18 C34 14 37 14 40 18 C42 13 46 12 48 14 C52 12 50 8 54 6 C44 0 36 2 32 8Z'/%3E%3Ccircle cx='29' cy='11' r='1' fill='%23fdba74'/%3E%3Ccircle cx='35' cy='11' r='1' fill='%23fdba74'/%3E%3C/svg%3E") center / contain no-repeat; animation: hwFly 16s linear infinite; opacity: .9; }
+#hwBats i:nth-child(1) { top: 14%; animation-delay: 0s; }
+#hwBats i:nth-child(2) { top: 30%; animation-duration: 22s; animation-delay: 6s; transform: scale(.7); }
+#hwBats i:nth-child(3) { top: 8%; animation-duration: 19s; animation-delay: 11s; transform: scale(.55); }
+@keyframes hwFly { 0% { translate: 0 0; } 25% { translate: 30vw -22px; } 50% { translate: 60vw 14px; } 75% { translate: 90vw -18px; } 100% { translate: calc(100vw + 120px) 6px; } }
+@media (prefers-reduced-motion: reduce) { #hwBats { display: none; } }
+.hw-card { margin: 12px 16px; padding: 14px; border-radius: 16px; display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #3a1f78, #251650); border: 1px solid #7a4fd0; color: #f6f0ff; }
+.hw-card .hw-pk { font-size: 34px; line-height: 1; }
+.hw-card b { display: block; font-size: 15px; }
+.hw-card small { color: #d3c5ee; font-size: 12px; }
+.hw-card .hw-go { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: 12px; border: 0; background: #c2410c; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.hw-card .hw-x { min-height: 40px; min-width: 32px; background: none; border: 0; color: #d3c5ee; cursor: pointer; font-size: 18px; }

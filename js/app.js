@@ -22,7 +22,8 @@ var PALETTES = [
   ["violet", "palViolet", ["#110e1a", "#201a31", "#7c4dff", "#5eead4"], "#7c4dff"],
   ["court", "palCourt", ["#0a1220", "#14233d", "#1d5fd1", "#7dd3fc"], "#1d5fd1"],
   ["clean", "palClean", ["#121212", "#1f1f1f", "#3b74d9", "#6ee7b7"], "#3b74d9"],
-  ["midnight", "palMidnight", ["#0c0e1c", "#1a1e38", "#5b4dff", "#1d6fe0"], "#5b4dff"]
+  ["midnight", "palMidnight", ["#0c0e1c", "#1a1e38", "#5b4dff", "#1d6fe0"], "#5b4dff"],
+  ["halloween", "palHalloween", ["#120a2e", "#251650", "#c2410c", "#fdba74"], "#1b0f45"]
 ];
 /* Light styles: same shape. Mint is the original light look */
 var LIGHT_PALETTES = [
@@ -40,6 +41,16 @@ function _savedPalette(key, list, fallback) {
 var currentPalette = _savedPalette("palette", PALETTES, "navy");
 var currentLightPalette = _savedPalette("paletteLight", LIGHT_PALETTES, "mint");
 
+/** Halloween style: three bats fly across the screen (CSS only, hidden when motion is reduced) */
+function _hwBats(on) {
+  var el = document.getElementById("hwBats");
+  if (!on) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div"); el.id = "hwBats"; el.setAttribute("aria-hidden", "true");
+  el.innerHTML = "<i></i><i></i><i></i>";
+  document.body.appendChild(el);
+}
+
 /** Apply theme + dark style to the page and the phone's status bar */
 function applyTheme() {
   document.body.setAttribute("data-theme", currentTheme);
@@ -50,6 +61,7 @@ function applyTheme() {
   var pal = list.filter(function (p) { return p[0] === id; })[0] || list[0];
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", pal[3]);
+  _hwBats(!light && currentPalette === "halloween");
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.innerHTML = icon(currentTheme === "dark" ? "sun" : "moon", 18);
 }

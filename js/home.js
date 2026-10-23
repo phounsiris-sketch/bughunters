@@ -109,6 +109,17 @@ function _homeRatingCard(me) {
     '</div>');
 }
 
+/** Seasonal: Oct 20 - Nov 2, offer the Halloween style once (until tried or hidden) */
+function _hwCard() {
+  var d = new Date(), m = d.getMonth() + 1, day = d.getDate();
+  if (!((m === 10 && day >= 20) || (m === 11 && day <= 2))) return "";
+  var hidden = false; try { hidden = localStorage.getItem("hwHidden") === "1"; } catch (e) {}
+  if (hidden || (typeof currentPalette !== "undefined" && currentPalette === "halloween" && currentTheme === "dark")) return "";
+  return '<div class="hw-card"><span class="hw-pk" aria-hidden="true">\uD83C\uDF83</span><span><b>' + t("hwTitle") + '</b><small>' + t("hwSub") + '</small></span>' +
+    '<button type="button" class="hw-go" onclick="try{localStorage.setItem(\'hwHidden\',\'1\')}catch(e){};setPalette(\'halloween\');renderHome()">' + t("hwGo") + '</button>' +
+    '<button type="button" class="hw-x" aria-label="' + t("cancel") + '" onclick="try{localStorage.setItem(\'hwHidden\',\'1\')}catch(e){};renderHome()">\u00D7</button></div>';
+}
+
 /** First-open helper: shown until the first game exists, or until hidden */
 function _homeStartCard() {
   var hidden = false; try { hidden = localStorage.getItem("onbHidden") === "1"; } catch (e) {}
@@ -311,6 +322,7 @@ function renderHome() {
 
   if (typeof liveWatchStart === "function") { liveWatchStart(); html += liveNowHtml(); }
   if (typeof payBoxHtml === "function") html += payBoxHtml();
+  html += _hwCard();
   if (groups) html += _homeStartCard();
   var nextCard = _homeNextCard(), nextLive = nextCard.indexOf('home-next live') >= 0;
   if (nextLive) html += nextCard;   // a game being played goes to the top
