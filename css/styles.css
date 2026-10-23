@@ -5762,3 +5762,8 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 .edit-btn.danger { border-color: var(--danger-text); }
 button:disabled, .btn-primary:disabled, .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
 body[data-theme="light"] { --danger-text: #c81e1e; }
+
+/* ===== v158: poll plan box (mode tags + note) needs its padding back ===== */
+.poll-card .poll-plan { padding: 12px 14px; margin-top: 10px; border-radius: 12px; }
+.poll-card .poll-plan .game-tags { gap: 6px; flex-wrap: wrap; }
+.poll-card .poll-plan .game-tags + div { margin-top: 10px !important; line-height: 1.4; }

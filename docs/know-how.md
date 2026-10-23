@@ -1276,3 +1276,6 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v157 — contrast sweep
 - `tools/contrast/` renders every button class in 10 themes and reports weak text contrast / flat edges (see its README).
 - Fixed: accent text on light (pw-toggle, cal-toggle, nav active, crumb, paid link) now uses `--accent-text`; red text uses `--danger-text` (light #c81e1e); share button darker green; secondary/edit/nav/chip controls use `--control-border`; active bottom-nav tab gets a bar + bold; disabled buttons look disabled (`:disabled` opacity).
+
+## v158 — poll plan padding
+- An older rule (`.poll-card .poll-plan { padding: 0 }`) removed the box padding while dark mode still painted its background, so tags and the note touched the edge. Padding restored (12/14), tags and note spaced.
