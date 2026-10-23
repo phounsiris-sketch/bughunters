@@ -5,7 +5,7 @@ vm.runInContext(fs.readFileSync("js/icons.js", "utf8"), ctx);
 vm.runInContext(fs.readFileSync("js/icons-sets.js", "utf8"), ctx);
 vm.runInContext(fs.readFileSync("js/icons-solar-bold.js", "utf8"), ctx);
 assert.strictEqual(ctx.currentIconTheme, "line", "saved style is read");
-assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["box", "classic", "line", "duo", "tiles"]));
+assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["box", "neu", "glass", "classic", "line", "duo", "tiles"]));
 var classic = ctx.iconAs("classic", "trophy", 20);
 assert.ok(/^<svg class="si"/.test(classic) && classic.indexOf("viewBox=\"0 0 24 24\"") > 0 && classic.indexOf("ico-") < 0, "classic is the Solar svg");
 assert.strictEqual(ctx.icon("trophy", 20), classic, "outside Home and the dashboard every page keeps the classic icon, whatever the setting");
@@ -23,6 +23,11 @@ assert.ok(/ico-bx1/.test(ctx.iconAs("box", "clock", 18)) && /ico-bx2/.test(ctx.i
 assert.ok(/^<svg/.test(ctx.iconAs("box", "calendar", 12)), "tiny inline icons are not boxed");
 ["chevron", "plus", "close", "search"].forEach(function (n) { assert.ok(/^<svg/.test(ctx.iconAs("box", n, 20)), n + " control stays plain in box"); });
 Object.keys(ctx.ICON_BOX).forEach(function (n) { if (ctx.SOLAR[n]) assert.ok(ctx.SOLAR_BOLD[n], "Solar Bold glyph for the boxed icon " + n); });
+var neu = ctx.iconAs("neu", "bill", 22), gl = ctx.iconAs("glass", "bill", 22);
+assert.ok(/ico-neu ico-nc4/.test(neu) && neu.indexOf("viewBox=\"0 0 24 24\"") > 0, "neumorphic plate, colour follows the meaning (bill = orange)");
+assert.ok(/ico-gl ico-gc4/.test(gl), "glass plate");
+assert.ok(/ico-neu ico-nc3/.test(ctx.iconAs("neu", "ranking", 20, "bx3")) && /ico-gc1/.test(ctx.iconAs("glass", "court", 20, "bx1")), "a caller can pick the colour with bxN");
+["neu", "glass"].forEach(function (th) { assert.ok(/^<svg/.test(ctx.iconAs(th, "plus", 20)) && /^<svg/.test(ctx.iconAs(th, "calendar", 12)), th + ": controls and tiny icons stay plain"); });
 // every icon the app draws has a place in all three Phosphor sets
 var used = {}; ["dashboard.js", "home.js", "health-ui.js", "payments.js", "stats.js", "sessions.js", "polls.js", "settings.js", "public.js", "sharecard.js"].forEach(function (f) { (fs.readFileSync("js/" + f, "utf8").match(/\bicon\("([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(6, -1)] = 1; }); });
 (fs.readFileSync("index.html", "utf8").match(/data-icon="([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(11, -1)] = 1; });
@@ -52,5 +57,5 @@ var homeSrc = fs.readFileSync("js/home.js", "utf8");
 assert.ok(/function renderHome\(\) \{\s*_iconCtx = true;\s*try \{ _renderHomeInner\(\); \} finally \{ _iconCtx = false; \}/.test(homeSrc), "home render switches the style on and always off again");
 assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "home.js" && f !== "icons.js"; }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_iconCtx = true") < 0; }), "no other page switches it on");
 var i18n = fs.readFileSync("js/i18n.js", "utf8");
-["iconStyle", "iconStyleHint", "icon_box", "icon_classic", "icon_line", "icon_duo", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+["iconStyle", "iconStyleHint", "icon_box", "icon_neu", "icon_glass", "icon_classic", "icon_line", "icon_duo", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("icons OK");
