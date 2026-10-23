@@ -55,6 +55,18 @@ assert.strictEqual(ctx.healthRangeSummary(ws, ctx.healthRangeBounds("week", -1, 
 var yr = ctx.healthRangeSummary(ws, ctx.healthRangeBounds("year", 0, new Date(2026, 9, 23))); assert.strictEqual(yr.buckets.length, 12); assert.strictEqual(yr.buckets[9].min, mo.totalMin, "October bucket");
 assert.strictEqual(ctx.healthRangeSummary(ws, ctx.healthRangeBounds("week", 3, new Date(2026, 9, 23))).sessions, 0);
 
+// the workout card lives on the Dashboard only, no longer inside a session
+var statsSrc = fs.readFileSync("js/stats.js", "utf8"), dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
+assert.ok(statsSrc.indexOf("healthCardHtml") < 0 && statsSrc.indexOf("healthWorkoutCardHtml") < 0, "the session Games tab no longer shows the workout card");
+assert.ok(dashSrc.indexOf("healthLatestCardHtml") > 0, "the Dashboard shows my latest workout");
+assert.ok(fs.readFileSync("js/home.js", "utf8").indexOf("healthLatestCardHtml") < 0, "not on Home");
+
+// the Home card: this month by weeks of the month
+var mw = ctx.healthMonthWeeks([{ date: "2026-10-02", totalMin: 100 }, { date: "2026-10-09", totalMin: 60 }, { date: "2026-10-12", totalMin: 30 }, { date: "2026-10-30", totalMin: 45 }, { date: "2026-09-30", totalMin: 999 }], new Date(2026, 9, 23));
+assert.strictEqual(mw.length, 5, "October has 31 days: five blocks"); assert.deepStrictEqual(JSON.stringify(mw.map(function (w) { return w.min; })), JSON.stringify([100, 90, 0, 0, 45]), "minutes per block, other months left out");
+assert.ok(mw[3].now && !mw[0].now, "today (23rd) is in the fourth block"); assert.strictEqual(mw[4].from, 29); assert.strictEqual(mw[4].to, 31);
+assert.strictEqual(ctx.healthMonthWeeks([], new Date(2026, 1, 10)).length, 4, "February 2026 has exactly four blocks");
+
 // rules and texts
 assert.ok(/function healthOk\(d\)/.test(rules) && /allow write: if isOwner\(uid\) && healthOk\(request\.resource\.data\)/.test(rules), "userPrivate rules bound the health fields");
 var uiSrc = fs.readFileSync("js/health-ui.js", "utf8");

@@ -359,9 +359,36 @@ function _renderHomeInner() {
   if (!nextLive) html += nextCard;
   el.innerHTML = html;
   _homePulseStart();
+  _homeSlideStart();
 }
 
 /** Highlight the dot of the card that is in view */
+/** Which card is showing and how far to scroll to reach the next one (lefts = each card's left edge relative to the strip); loops back to the first */
+function _homeNextSlide(lefts, atEnd) {
+  if (!lefts || lefts.length < 2) return null;
+  var cur = 0; lefts.forEach(function (l, i) { if (Math.abs(l) < Math.abs(lefts[cur])) cur = i; });
+  var nxt = atEnd ? 0 : (cur + 1) % lefts.length;   // the strip cannot scroll further than its end: from there it goes back to the first card
+  return { from: cur, to: nxt, delta: lefts[nxt] };
+}
+
+/** The swipe cards on Home slide on by themselves, 3 seconds on each card. A touch or a scroll by the user pauses it for 8 seconds; it also waits while
+    the app is in the background or another page is open, and stays still when the phone asks for reduced motion. */
+var _slideTimer = null, _slideHold = 0;
+function _homeSlideStart() {
+  if (_slideTimer) { clearInterval(_slideTimer); _slideTimer = null; }
+  var strip = document.getElementById("homeStrip");
+  if (!strip || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+  var hold = function () { _slideHold = Date.now() + 8000; };
+  ["touchstart", "pointerdown", "wheel", "keydown"].forEach(function (ev) { strip.addEventListener(ev, hold, { passive: true }); });
+  _slideTimer = setInterval(function () {
+    var s = document.getElementById("homeStrip");
+    if (!s || currentPage !== "home" || document.hidden || Date.now() < _slideHold) return;
+    var box = s.getBoundingClientRect(), lefts = [].map.call(s.children, function (c) { return c.getBoundingClientRect().left - box.left; });
+    var step = _homeNextSlide(lefts, s.scrollLeft + s.clientWidth >= s.scrollWidth - 4); if (!step) return;
+    if (step.to === 0) s.scrollTo({ left: 0, behavior: "smooth" }); else s.scrollBy({ left: step.delta, behavior: "smooth" });
+  }, 3000);
+}
+
 function _homeStripDots() {
   var s = document.getElementById("homeStrip"), d = document.getElementById("homeStripDots");
   if (!s || !d || !s.children.length) return;
