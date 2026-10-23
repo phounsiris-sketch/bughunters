@@ -1330,3 +1330,6 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v166 — app bar
 - The app bar (`.app-header`) now sits above the special-theme effects layer (`#fxLayer`, z 410): bar z-index 430. While the live score is open (`body.live-on`) it drops back to 100, because the live score covers the whole screen.
 - The bar is 20% lower (vertical padding 12 -> 6 px, 58 -> 46 px plus the phone's top inset) and the blur behind it in the special themes is softer (6 -> 3 px).
+
+## v167 — no blur behind the app bar
+- Removed `backdrop-filter` from `.app-header` in all special themes (and forced `none`), so nothing blurs behind the bar on iOS. The confirm sheet backdrop keeps its light blur.
