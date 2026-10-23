@@ -47,154 +47,161 @@ function _fxFire(c, len, S, strength, t) {
   }
 }
 
-/** A fierce dragon: scaled body in a travelling wave with spiked ridge, clawed legs, a roaring head that breathes fire, glaring slit eyes,
-    antlered horns, a whipping flame mane and long whiskers. Head at (hx, hy) moving right, S = size, t = seconds. */
+/** Classic cartoon Chinese dragon (red scales, golden belly plates, golden leaf fins and mane, antlers, long snout, clawed red legs, orange flame swirls).
+    Still fierce: it glares, bares its teeth and roars fire every few seconds. Head at (hx, hy) moving right, S = size, t = seconds. */
 function fxDragon(c, hx, hy, S, t) {
   var N = 40, sp = 12.5 * S, pts = [], i;
   for (i = 0; i < N; i++) { var a = (.5 + i / N * .8) * 26 * S; pts.push([hx - i * sp, hy + Math.sin(i * .44 - t * 3.6) * a]); }
-  var wid = function (k) { return 25 * S * Math.pow(1 - k / N, .6) + 2.5 * S; };
+  var wid = function (k) { return 26 * S * Math.pow(1 - k / N, .6) + 2.5 * S; };
   var ang = function (k) { var a = pts[Math.max(0, k - 1)], b = pts[Math.min(N - 1, k + 1)]; return Math.atan2(a[1] - b[1], a[0] - b[0]); };
   var roar = Math.pow(Math.max(0, Math.sin(t * .9)), 3), blink = (t % 5.1) < .12;
   c.save(); c.lineJoin = "round"; c.lineCap = "round";
-  // ridge spikes behind the body: sharp, swept back, dark root to gold tip
-  for (i = N - 2; i > 2; i--) {
-    var an = ang(i), r = wid(i) / 2, nx = Math.sin(an), ny = -Math.cos(an), bx = -Math.cos(an), by = -Math.sin(an), L = (10 + 10 * (1 - i / N)) * S;
-    var sx = pts[i][0] + nx * r * .9, sy = pts[i][1] + ny * r * .9, tx = sx + nx * L + bx * L * .9, ty = sy + ny * L + by * L * .9;
-    var sg = c.createLinearGradient(sx, sy, tx, ty); sg.addColorStop(0, "#7f1d1d"); sg.addColorStop(1, "#fcd34d");
-    c.fillStyle = sg; c.beginPath(); c.moveTo(sx - bx * 4 * S, sy - by * 4 * S); c.lineTo(tx, ty); c.lineTo(sx + bx * 4 * S, sy + by * 4 * S); c.closePath(); c.fill();
-  }
-  // legs with a knee, a muscle and four sharp claws
-  [10, 24].forEach(function (k, n) {
-    var p = pts[k], r = wid(k) / 2, sw = Math.sin(t * 3.6 + n * 2.2) * 9 * S, kx = p[0] - 4 * S + sw * .5, ky = p[1] + r + 12 * S, fx = p[0] + 6 * S + sw, fy = ky + 16 * S;
-    c.strokeStyle = "#7f1d1d"; c.lineWidth = 9 * S; c.beginPath(); c.moveTo(p[0], p[1] + r * .4); c.quadraticCurveTo(kx - 6 * S, ky - 2 * S, kx, ky); c.lineTo(fx, fy); c.stroke();
-    c.strokeStyle = "#dc2626"; c.lineWidth = 6 * S; c.beginPath(); c.moveTo(p[0], p[1] + r * .4); c.quadraticCurveTo(kx - 6 * S, ky - 2 * S, kx, ky); c.lineTo(fx, fy); c.stroke();
-    c.strokeStyle = "#fff7e0"; c.lineWidth = 2.2 * S; for (var q = -1.5; q <= 1.5; q++) { c.beginPath(); c.moveTo(fx, fy); c.quadraticCurveTo(fx + (7 + q * 2) * S, fy + 3 * S, fx + (10 + q * 4) * S, fy + (9 + Math.abs(q) * 1.5) * S); c.stroke(); }
+  // orange flame swirls trailing from two bends of the body
+  [11, 27].forEach(function (k, n) {
+    var p = pts[k], r = wid(k) / 2; for (var q = 0; q < 3; q++) { var g = c.createLinearGradient(p[0], p[1], p[0] - 60 * S, p[1] + 20 * S); g.addColorStop(0, "#fb923c"); g.addColorStop(1, "rgba(249,115,22,0)");
+      _fxStrand(c, p[0] - 6 * S, p[1] + r * .6, p[0] - 30 * S, p[1] + (r + 14 + q * 8) * S + Math.sin(t * 5 + q + n) * 6 * S, p[0] - (60 + q * 14) * S, p[1] + (r + 6 + q * 14) * S + Math.sin(t * 5 + q) * 10 * S, 9 * S, g); }
   });
-  // body from tail to neck: shaded cylinder, ochre belly, overlapping scales
-  for (i = N - 1; i >= 1; i--) {
-    var p2 = pts[i], r2 = wid(i) / 2;
-    c.fillStyle = "#5c0f0f"; c.beginPath(); c.arc(p2[0], p2[1], r2 + 1.8 * S, 0, 7); c.fill();
-    var gg = c.createLinearGradient(0, p2[1] - r2, 0, p2[1] + r2); gg.addColorStop(0, "#9b1c1c"); gg.addColorStop(.4, "#e11d28"); gg.addColorStop(.7, "#ea580c"); gg.addColorStop(1, "#fbbf24");
-    c.fillStyle = gg; c.beginPath(); c.arc(p2[0], p2[1], r2, 0, 7); c.fill();
-    if (r2 > 4 * S) {
-      c.strokeStyle = "rgba(70,8,8,.55)"; c.lineWidth = 1.3 * S; c.beginPath(); c.arc(p2[0] - r2 * .15, p2[1] - r2 * .2, r2 * .55, Math.PI * .15, Math.PI * .85); c.stroke(); c.beginPath(); c.arc(p2[0] + r2 * .25, p2[1] + r2 * .05, r2 * .4, Math.PI * .15, Math.PI * .85); c.stroke();
-      c.strokeStyle = "rgba(255,226,140,.8)"; c.lineWidth = 1.1 * S; c.beginPath(); c.arc(p2[0] + r2 * .05, p2[1] - r2 * .3, r2 * .52, Math.PI * 1.2, Math.PI * 1.75); c.stroke();
-      c.strokeStyle = "rgba(120,53,15,.5)"; c.beginPath(); c.moveTo(p2[0], p2[1] + r2 * .45); c.lineTo(p2[0], p2[1] + r2 * .95); c.stroke();
-    }
+  // golden leaf fins along the back
+  for (i = N - 3; i > 2; i -= 1) {
+    var an = ang(i), r = wid(i) / 2, nx = Math.sin(an), ny = -Math.cos(an), bx = -Math.cos(an), by = -Math.sin(an), L = (12 + 9 * (1 - i / N)) * S;
+    var sx = pts[i][0] + nx * r * .85, sy = pts[i][1] + ny * r * .85, tx = sx + nx * L + bx * L * .7, ty = sy + ny * L + by * L * .7, mx = (sx + tx) / 2 + bx * 5 * S, my = (sy + ty) / 2 + by * 5 * S;
+    var fg = c.createLinearGradient(sx, sy, tx, ty); fg.addColorStop(0, "#f59e0b"); fg.addColorStop(1, "#fde047");
+    c.fillStyle = fg; c.strokeStyle = "#b45309"; c.lineWidth = 1.2 * S; c.beginPath(); c.moveTo(sx - bx * 5 * S, sy - by * 5 * S); c.quadraticCurveTo(mx + nx * 4 * S, my + ny * 4 * S, tx, ty); c.quadraticCurveTo(mx - nx * 2 * S, my - ny * 2 * S, sx + bx * 5 * S, sy + by * 5 * S); c.closePath(); c.fill(); c.stroke();
   }
-  var tp = pts[N - 1]; for (i = -2; i <= 2; i++) _fxStrand(c, tp[0], tp[1], tp[0] - 18 * S, tp[1] + i * 7 * S + Math.sin(t * 6 + i) * 5 * S, tp[0] - 40 * S, tp[1] + i * 14 * S + Math.sin(t * 6 + i) * 9 * S, 5 * S, i % 2 ? "#fb923c" : "#fcd34d");
+  // legs: red with a bent knee and golden claws
+  [10, 24].forEach(function (k, n) {
+    var p = pts[k], r = wid(k) / 2, sw = Math.sin(t * 3.6 + n * 2.2) * 9 * S, kx = p[0] - 4 * S + sw * .5, ky = p[1] + r + 12 * S, fx = p[0] + 6 * S + sw, fy = ky + 15 * S;
+    c.strokeStyle = "#7f1d1d"; c.lineWidth = 10 * S; c.beginPath(); c.moveTo(p[0], p[1] + r * .4); c.quadraticCurveTo(kx - 6 * S, ky - 2 * S, kx, ky); c.lineTo(fx, fy); c.stroke();
+    c.strokeStyle = "#dc2626"; c.lineWidth = 7 * S; c.beginPath(); c.moveTo(p[0], p[1] + r * .4); c.quadraticCurveTo(kx - 6 * S, ky - 2 * S, kx, ky); c.lineTo(fx, fy); c.stroke();
+    c.strokeStyle = "#fbbf24"; c.lineWidth = 3 * S; for (var q = -1.5; q <= 1.5; q++) { c.beginPath(); c.moveTo(fx, fy); c.quadraticCurveTo(fx + (7 + q * 2) * S, fy + 3 * S, fx + (10 + q * 4) * S, fy + (9 + Math.abs(q) * 1.5) * S); c.stroke(); }
+  });
+  // body: red scales on top, broad golden belly plates underneath
+  for (i = N - 1; i >= 1; i--) {
+    var p2 = pts[i], r2 = wid(i) / 2, an2 = ang(i);
+    c.save(); c.translate(p2[0], p2[1]); c.rotate(an2);
+    c.fillStyle = "#5c0f0f"; c.beginPath(); c.arc(0, 0, r2 + 1.8 * S, 0, 7); c.fill();
+    var gg = c.createLinearGradient(0, -r2, 0, r2); gg.addColorStop(0, "#c81e1e"); gg.addColorStop(.55, "#e11d28"); gg.addColorStop(1, "#b91c1c");
+    c.fillStyle = gg; c.beginPath(); c.arc(0, 0, r2, 0, 7); c.fill();
+    if (r2 > 3.5 * S) {
+      var bg = c.createLinearGradient(0, r2 * .1, 0, r2); bg.addColorStop(0, "#fde047"); bg.addColorStop(1, "#f59e0b");
+      c.fillStyle = bg; c.beginPath(); c.arc(0, 0, r2 * .98, Math.PI * .16, Math.PI * .84); c.closePath(); c.fill();
+      c.strokeStyle = "rgba(146,64,14,.55)"; c.lineWidth = 1.2 * S; c.beginPath(); c.moveTo(-r2 * .55, r2 * .3); c.lineTo(r2 * .55, r2 * .3); c.stroke(); c.beginPath(); c.moveTo(0, r2 * .3); c.lineTo(0, r2 * .95); c.stroke();
+      c.strokeStyle = "rgba(90,10,10,.7)"; c.lineWidth = 1.4 * S; [[-.45, -.1], [.1, -.35], [.5, -.05], [-.1, .05]].forEach(function (o) { c.beginPath(); c.arc(o[0] * r2, o[1] * r2, r2 * .42, Math.PI * .1, Math.PI * .9); c.stroke(); });
+      c.strokeStyle = "rgba(255,170,120,.7)"; c.lineWidth = 1 * S; c.beginPath(); c.arc(r2 * .05, -r2 * .25, r2 * .5, Math.PI * 1.15, Math.PI * 1.8); c.stroke();
+    }
+    c.restore();
+  }
+  var tp = pts[N - 1]; for (i = -2; i <= 2; i++) { var tg = c.createLinearGradient(tp[0], tp[1], tp[0] - 50 * S, tp[1]); tg.addColorStop(0, "#fde047"); tg.addColorStop(1, "rgba(249,115,22,0)"); _fxStrand(c, tp[0], tp[1], tp[0] - 20 * S, tp[1] + i * 7 * S + Math.sin(t * 6 + i) * 5 * S, tp[0] - 48 * S, tp[1] + i * 15 * S + Math.sin(t * 6 + i) * 10 * S, 7 * S, tg); }
   // head
   c.save(); c.translate(pts[0][0], pts[0][1]); c.rotate(ang(1) * .55);
-  var open = .1 + .08 * Math.sin(t * 3) + .5 * roar;
-  // flame mane streaming back from the nape and the chin
-  for (i = 0; i < 9; i++) {
-    var m1 = Math.sin(t * 5 + i * .8) * 8 * S, gm = c.createLinearGradient(0, 0, -70 * S, 0); gm.addColorStop(0, "#fcd34d"); gm.addColorStop(.5, "#f97316"); gm.addColorStop(1, "rgba(185,28,28,0)");
-    _fxStrand(c, -2 * S, (-22 + i * 5.5) * S, -34 * S, (-34 + i * 8) * S + m1, -72 * S, (-26 + i * 12) * S + m1 * 1.8, 8 * S, gm);
+  var open = .1 + .06 * Math.sin(t * 3) + .5 * roar;
+  // golden mane and cheek tufts, streaming back
+  for (i = 0; i < 8; i++) {
+    var m1 = Math.sin(t * 5 + i * .8) * 7 * S, gm = c.createLinearGradient(0, 0, -64 * S, 0); gm.addColorStop(0, "#fde047"); gm.addColorStop(.6, "#f59e0b"); gm.addColorStop(1, "rgba(234,88,12,0)");
+    _fxStrand(c, -2 * S, (-24 + i * 6) * S, -32 * S, (-36 + i * 9) * S + m1, -66 * S, (-28 + i * 13) * S + m1 * 1.7, 9 * S, gm);
   }
-  // antlered horns: a sweeping beam with two tines each
-  [[0, -26, 1], [14, -22, .8]].forEach(function (h, n) {
-    var hg = c.createLinearGradient(h[0] * S, h[1] * S, (h[0] - 38) * S, (h[1] - 40) * S); hg.addColorStop(0, "#fff1b8"); hg.addColorStop(1, "#b45309");
-    c.strokeStyle = hg; c.lineCap = "round"; c.lineWidth = (7 - n * 2) * S; var sw = Math.sin(t * 2.4 + n) * 2 * S;
+  // antlered horns: grey-gold, branching
+  [[0, -26], [15, -22]].forEach(function (h, n) {
+    var hg = c.createLinearGradient(h[0] * S, h[1] * S, (h[0] - 38) * S, (h[1] - 40) * S); hg.addColorStop(0, "#a8a29e"); hg.addColorStop(.5, "#d6b46a"); hg.addColorStop(1, "#78716c");
+    c.strokeStyle = hg; c.lineWidth = (8 - n * 2) * S; var sw = Math.sin(t * 2.4 + n) * 2 * S;
     c.beginPath(); c.moveTo((14 + h[0]) * S, (h[1] + 4) * S); c.quadraticCurveTo((h[0] - 6) * S, (h[1] - 30) * S, (h[0] - 40) * S, (h[1] - 38) * S + sw); c.stroke();
-    c.lineWidth = (3.4 - n) * S; c.beginPath(); c.moveTo((h[0] - 4) * S, (h[1] - 22) * S); c.lineTo((h[0] + 4) * S, (h[1] - 44) * S); c.moveTo((h[0] - 20) * S, (h[1] - 33) * S); c.lineTo((h[0] - 26) * S, (h[1] - 52) * S + sw); c.stroke();
+    c.lineWidth = (4 - n) * S; c.beginPath(); c.moveTo((h[0] - 4) * S, (h[1] - 22) * S); c.lineTo((h[0] + 6) * S, (h[1] - 46) * S); c.moveTo((h[0] - 20) * S, (h[1] - 33) * S); c.lineTo((h[0] - 27) * S, (h[1] - 54) * S + sw); c.stroke();
   });
-  // lower jaw: dropping open, fangs and a flickering tongue
+  // lower jaw (golden chin beard, fangs, tongue)
   c.save(); c.translate(8 * S, 8 * S); c.rotate(open);
-  c.fillStyle = "#450a0a"; c.beginPath(); c.moveTo(0, -6 * S); c.lineTo(66 * S, -6 * S); c.quadraticCurveTo(70 * S, 6 * S, 52 * S, 10 * S); c.quadraticCurveTo(24 * S, 16 * S, 0, 7 * S); c.fill();
-  c.fillStyle = "#e11d48"; c.beginPath(); c.moveTo(6 * S, -2 * S); c.quadraticCurveTo(34 * S, -10 * S + Math.sin(t * 9) * 3 * S, 62 * S, -3 * S); c.quadraticCurveTo(36 * S, 5 * S, 6 * S, 3 * S); c.fill();
-  var jg = c.createLinearGradient(0, -6 * S, 0, 14 * S); jg.addColorStop(0, "#b91c1c"); jg.addColorStop(1, "#7f1d1d"); c.fillStyle = jg; c.beginPath(); c.moveTo(0, 2 * S); c.quadraticCurveTo(34 * S, 16 * S, 70 * S, 6 * S); c.lineTo(66 * S, 0); c.quadraticCurveTo(34 * S, 8 * S, 0, -3 * S); c.fill();
-  c.fillStyle = "#fffbe8"; [[56, -4, 14], [26, -4, 9]].forEach(function (f) { c.beginPath(); c.moveTo((f[0] - 4) * S, f[1] * S); c.lineTo(f[0] * S + 1 * S, (f[1] - f[2]) * S); c.lineTo((f[0] + 4) * S, f[1] * S); c.fill(); });
-  for (i = 0; i < 6; i++) { c.beginPath(); c.moveTo((14 + i * 8) * S, -3 * S); c.lineTo((17 + i * 8) * S, -8 * S); c.lineTo((20 + i * 8) * S, -3 * S); c.fill(); }
+  c.fillStyle = "#450a0a"; c.beginPath(); c.moveTo(0, -6 * S); c.lineTo(78 * S, -6 * S); c.quadraticCurveTo(84 * S, 6 * S, 62 * S, 10 * S); c.quadraticCurveTo(28 * S, 16 * S, 0, 7 * S); c.fill();
+  c.fillStyle = "#fb7185"; c.beginPath(); c.moveTo(6 * S, -2 * S); c.quadraticCurveTo(38 * S, -10 * S + Math.sin(t * 9) * 3 * S, 74 * S, -3 * S); c.quadraticCurveTo(40 * S, 5 * S, 6 * S, 3 * S); c.fill();
+  var jg = c.createLinearGradient(0, -6 * S, 0, 14 * S); jg.addColorStop(0, "#dc2626"); jg.addColorStop(1, "#991b1b"); c.fillStyle = jg; c.beginPath(); c.moveTo(0, 2 * S); c.quadraticCurveTo(40 * S, 16 * S, 82 * S, 6 * S); c.lineTo(78 * S, 0); c.quadraticCurveTo(40 * S, 8 * S, 0, -3 * S); c.fill();
+  c.fillStyle = "#fffbe8"; [[64, -4, 14], [30, -4, 9]].forEach(function (f) { c.beginPath(); c.moveTo((f[0] - 4) * S, f[1] * S); c.lineTo(f[0] * S + 1 * S, (f[1] - f[2]) * S); c.lineTo((f[0] + 4) * S, f[1] * S); c.fill(); });
+  for (i = 0; i < 7; i++) { c.beginPath(); c.moveTo((14 + i * 8) * S, -3 * S); c.lineTo((17 + i * 8) * S, -8 * S); c.lineTo((20 + i * 8) * S, -3 * S); c.fill(); }
+  for (i = 0; i < 4; i++) _fxStrand(c, (8 + i * 8) * S, 9 * S, (6 + i * 8) * S, (20 + Math.sin(t * 4 + i) * 3) * S, (2 + i * 8) * S, (32 + Math.sin(t * 4 + i) * 5) * S, 7 * S, "#fde047");
   c.restore();
-  // fire from the open mouth
-  if (roar > .12) { c.save(); c.translate(70 * S, 6 * S); c.rotate(open * .5); _fxFire(c, 190 * S * roar, S, roar, t); c.restore(); }
-  // skull: heavy brow, long snout with flared nostril and upper fangs
-  var hg2 = c.createLinearGradient(0, -34 * S, 0, 12 * S); hg2.addColorStop(0, "#c81e1e"); hg2.addColorStop(.6, "#dc2626"); hg2.addColorStop(1, "#7f1d1d");
+  if (roar > .12) { c.save(); c.translate(82 * S, 6 * S); c.rotate(open * .5); _fxFire(c, 180 * S * roar, S, roar, t); c.restore(); }
+  // skull: long tapered horse-like snout, upturned nose
+  var hg2 = c.createLinearGradient(0, -34 * S, 0, 12 * S); hg2.addColorStop(0, "#e11d28"); hg2.addColorStop(.6, "#dc2626"); hg2.addColorStop(1, "#b91c1c");
   c.fillStyle = hg2; c.strokeStyle = "#450a0a"; c.lineWidth = 2 * S; c.beginPath();
-  c.moveTo(-8 * S, 8 * S); c.quadraticCurveTo(-12 * S, -26 * S, 18 * S, -30 * S); c.quadraticCurveTo(42 * S, -34 * S, 56 * S, -22 * S); c.quadraticCurveTo(72 * S, -22 * S, 82 * S, -12 * S);
-  c.quadraticCurveTo(84 * S, -4 * S, 74 * S, -2 * S); c.quadraticCurveTo(46 * S, -4 * S, 30 * S, 4 * S); c.quadraticCurveTo(10 * S, 12 * S, -8 * S, 8 * S); c.fill(); c.stroke();
-  c.fillStyle = "#fffbe8"; [[70, -1, 13], [52, -2, 9]].forEach(function (f) { c.beginPath(); c.moveTo((f[0] - 3.5) * S, f[1] * S); c.lineTo(f[0] * S, (f[1] + f[2] + open * 6) * S); c.lineTo((f[0] + 3.5) * S, f[1] * S); c.fill(); });
-  for (i = 0; i < 4; i++) { c.beginPath(); c.moveTo((30 + i * 6) * S, 0); c.lineTo((32.5 + i * 6) * S, (5 + open * 4) * S); c.lineTo((35 + i * 6) * S, -1 * S); c.fill(); }
-  c.fillStyle = "#1c0505"; c.beginPath(); c.ellipse(76 * S, -11 * S, 3.4 * S, 2.4 * S, -.4, 0, 7); c.fill();
-  if (roar < .2) for (i = 0; i < 3; i++) { var sk = (t * .8 + i / 3) % 1; c.fillStyle = "rgba(180,170,170," + (.35 * (1 - sk)) + ")"; c.beginPath(); c.arc((80 + sk * 22) * S, (-12 - sk * 26) * S, (3 + sk * 8) * S, 0, 7); c.fill(); }
-  // spiked cheek and brow ridge, then the glaring eye
-  c.fillStyle = "#fcd34d"; for (i = 0; i < 3; i++) { c.beginPath(); c.moveTo((8 + i * 7) * S, -6 * S); c.lineTo((2 + i * 7) * S, (6 + i * 3) * S); c.lineTo((14 + i * 7) * S, -2 * S); c.fill(); }
-  c.fillStyle = "#450a0a"; c.beginPath(); c.moveTo(14 * S, -26 * S); c.lineTo(52 * S, -16 * S); c.lineTo(48 * S, -22 * S); c.lineTo(20 * S, -33 * S); c.closePath(); c.fill();
-  var eg = c.createRadialGradient(32 * S, -17 * S, 0, 32 * S, -17 * S, 10 * S); eg.addColorStop(0, "#fff7a8"); eg.addColorStop(.6, "#f59e0b"); eg.addColorStop(1, "#b91c1c");
-  c.save(); c.shadowColor = "#ffb020"; c.shadowBlur = 10 * S; c.fillStyle = eg; c.beginPath(); c.moveTo(18 * S, -18 * S); c.quadraticCurveTo(34 * S, -26 * S, 48 * S, -14 * S); c.quadraticCurveTo(32 * S, -10 * S, 18 * S, -18 * S); c.fill(); c.restore();
-  if (!blink) { c.fillStyle = "#0b0505"; c.beginPath(); c.ellipse(36 * S, -16.5 * S, 1.8 * S, 4.2 * S, .5, 0, 7); c.fill(); }
-  c.fillStyle = "#450a0a"; c.beginPath(); c.moveTo(16 * S, -22 * S); c.quadraticCurveTo(34 * S, -30 * S, 50 * S, -12 * S); c.lineTo(50 * S, -15 * S); c.quadraticCurveTo(34 * S, -24 * S, 18 * S, -18 * S); c.fill();
-  // whiskers
-  c.strokeStyle = "#fde68a"; c.lineWidth = 2.2 * S;
-  [0, 1].forEach(function (k) { c.beginPath(); c.moveTo(70 * S, (-6 + k * 4) * S); c.bezierCurveTo(96 * S, (-26 + k * 40) * S + Math.sin(t * 5 + k) * 7 * S, 110 * S, (-6 + k * 44) * S, 132 * S + Math.sin(t * 4 + k) * 8 * S, (14 + k * 38) * S + Math.sin(t * 5 + k * 2) * 10 * S); c.stroke(); });
+  c.moveTo(-8 * S, 8 * S); c.quadraticCurveTo(-12 * S, -26 * S, 18 * S, -30 * S); c.quadraticCurveTo(44 * S, -32 * S, 62 * S, -22 * S); c.quadraticCurveTo(84 * S, -22 * S, 92 * S, -14 * S);
+  c.quadraticCurveTo(96 * S, -6 * S, 86 * S, -2 * S); c.quadraticCurveTo(54 * S, -4 * S, 32 * S, 4 * S); c.quadraticCurveTo(10 * S, 12 * S, -8 * S, 8 * S); c.fill(); c.stroke();
+  c.fillStyle = "#fffbe8"; [[78, -1, 13], [58, -2, 9]].forEach(function (f) { c.beginPath(); c.moveTo((f[0] - 3.5) * S, f[1] * S); c.lineTo(f[0] * S, (f[1] + f[2] + open * 6) * S); c.lineTo((f[0] + 3.5) * S, f[1] * S); c.fill(); });
+  for (i = 0; i < 5; i++) { c.beginPath(); c.moveTo((30 + i * 6) * S, 0); c.lineTo((32.5 + i * 6) * S, (5 + open * 4) * S); c.lineTo((35 + i * 6) * S, -1 * S); c.fill(); }
+  c.fillStyle = "#1c0505"; c.beginPath(); c.ellipse(86 * S, -11 * S, 3.4 * S, 2.4 * S, -.4, 0, 7); c.fill();
+  if (roar < .2) for (i = 0; i < 3; i++) { var sk = (t * .8 + i / 3) % 1; c.fillStyle = "rgba(190,180,180," + (.35 * (1 - sk)) + ")"; c.beginPath(); c.arc((90 + sk * 22) * S, (-12 - sk * 26) * S, (3 + sk * 8) * S, 0, 7); c.fill(); }
+  // golden cheek fur and brow
+  c.fillStyle = "#fde047"; for (i = 0; i < 4; i++) { c.beginPath(); c.moveTo((6 + i * 7) * S, -8 * S); c.lineTo((-2 + i * 7) * S, (8 + i * 3) * S); c.lineTo((14 + i * 7) * S, -2 * S); c.fill(); }
+  c.fillStyle = "#fbbf24"; c.beginPath(); c.moveTo(12 * S, -27 * S); c.lineTo(52 * S, -17 * S); c.lineTo(50 * S, -23 * S); c.lineTo(18 * S, -34 * S); c.closePath(); c.fill();
+  // big round eye with a white, a dark pupil and a glint, under an angry lid
+  c.fillStyle = "#fff"; c.strokeStyle = "#450a0a"; c.lineWidth = 2 * S; c.beginPath(); c.ellipse(32 * S, -14 * S, 10 * S, blink ? 1 * S : 9 * S, -.15, 0, 7); c.fill(); c.stroke();
+  if (!blink) { c.fillStyle = "#1c0505"; c.beginPath(); c.arc(35 * S, -14 * S, 5 * S, 0, 7); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(36.6 * S, -16 * S, 1.8 * S, 0, 7); c.fill(); }
+  c.fillStyle = "#b91c1c"; c.beginPath(); c.moveTo(20 * S, -24 * S); c.lineTo(46 * S, -12 * S); c.lineTo(46 * S, -26 * S); c.closePath(); c.fill(); c.strokeStyle = "#450a0a"; c.beginPath(); c.moveTo(20 * S, -24 * S); c.lineTo(46 * S, -12 * S); c.stroke();
+  // long golden whiskers with a curl
+  c.strokeStyle = "#fde047"; c.lineWidth = 2.4 * S;
+  [0, 1].forEach(function (k) { c.beginPath(); c.moveTo(80 * S, (-6 + k * 4) * S); c.bezierCurveTo(104 * S, (-28 + k * 44) * S + Math.sin(t * 5 + k) * 7 * S, 118 * S, (-6 + k * 48) * S, 140 * S + Math.sin(t * 4 + k) * 8 * S, (14 + k * 40) * S + Math.sin(t * 5 + k * 2) * 10 * S); c.stroke(); });
   c.restore();
-  // the pearl it hunts
-  var px = pts[0][0] + 132 * S + roar * 70 * S, py = hy - 6 * S + Math.sin(t * 2.2) * 8 * S;
+  var px = pts[0][0] + 150 * S + roar * 70 * S, py = hy - 6 * S + Math.sin(t * 2.2) * 8 * S;
   var pg = c.createRadialGradient(px, py, 1, px, py, 22 * S); pg.addColorStop(0, "rgba(255,244,180,1)"); pg.addColorStop(.35, "rgba(252,211,77,.85)"); pg.addColorStop(1, "rgba(252,211,77,0)");
   c.fillStyle = pg; c.beginPath(); c.arc(px, py, 22 * S, 0, 7); c.fill(); c.fillStyle = "#fff7c2"; c.beginPath(); c.arc(px, py, 6.5 * S, 0, 7); c.fill();
   c.restore();
   return { x: px, y: py, tail: tp[0] };
 }
 
-/** A fierce lion-dance lion: whipping spiked mane, thick furrowed brows, glowing glaring eyes, flared nose, and a roar that opens a fanged mouth
-    and shakes the head. (x, y) = ground under the head, S = size, t = seconds. */
+/** Classic lion-dance head: white fur fringe, red crown with twin horns and a gold flower, huge ringed eyes, a golden nose, a big white
+    moustache over a laughing, fanged mouth, and a row of swinging tassels. It bobs, rolls its eyes, flaps its ears and roars. (x, y) = ground, S = size. */
 function fxLion(c, x, y, S, t) {
-  var ph = t * 2.6, hop = Math.abs(Math.sin(ph)), R = S * .5, roar = Math.pow(Math.max(0, Math.sin(t * 1.1)), 2.2), blink = (t % 3.7) < .12;
-  var shake = roar * Math.sin(t * 52) * 1.8, tilt = Math.sin(ph) * .08 + Math.sin(t * 40) * .02 * roar, open = .12 + roar * .88;
-  c.save(); c.translate(x, y); c.lineJoin = "round";
-  // cloth body with a gold pattern, wavy hem, hopping legs
-  var bx = R * .55, by = -R * .95 - hop * R * .16, len = S * 1.25, hh = S * .6;
-  var cg = c.createLinearGradient(bx, by, bx + len, by + hh); cg.addColorStop(0, "#991b1b"); cg.addColorStop(.55, "#dc2626"); cg.addColorStop(1, "#d97706");
-  c.fillStyle = cg; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + len * .5, by - 10 + Math.sin(t * 4) * 6, bx + len, by + 2); c.lineTo(bx + len, by + hh * .78);
-  for (var k = 10; k >= 0; k--) c.lineTo(bx + len * k / 10, by + hh + Math.sin(k * 1.4 + t * 5) * 6 - k * 1.2); c.closePath(); c.fill();
-  c.strokeStyle = "rgba(252,211,77,.85)"; c.lineWidth = 2.2;
-  for (k = 0; k < 5; k++) for (var q = 0; q < 3; q++) { var sx = bx + len * (.12 + k * .19), sy = by + hh * (.22 + q * .26); c.beginPath(); c.arc(sx, sy, 9, Math.PI * .1, Math.PI * .9); c.stroke(); c.beginPath(); c.arc(sx + 9, sy + 5, 9, Math.PI * .1, Math.PI * .9); c.stroke(); }
-  c.strokeStyle = "#fcd34d"; c.lineWidth = 4; c.beginPath(); for (k = 0; k <= 10; k++) c.lineTo(bx + len * k / 10, by + hh + Math.sin((10 - k) * 1.4 + t * 5) * 6 - (10 - k) * 1.2); c.stroke();
-  [[R * .1, 0], [R * .75, 1], [len * .65, 0], [len * .95, 1]].forEach(function (L) { var up = Math.max(0, Math.sin(ph + L[1] * Math.PI)) * 13; c.fillStyle = "#111827"; c.fillRect(L[0] - 6.5, -R * .38 - up, 13, R * .38 + up - 2); c.fillStyle = "#dc2626"; c.beginPath(); c.ellipse(L[0] + 3, -3 - up, 12, 6.5, 0, 0, 7); c.fill(); c.strokeStyle = "#fcd34d"; c.lineWidth = 1.6; c.stroke(); });
+  var ph = t * 2.6, hop = Math.abs(Math.sin(ph)), R = S * .5, roar = Math.pow(Math.max(0, Math.sin(t * 1.1)), 2.2), blink = (t % 3.4) < .13;
+  var shake = roar * Math.sin(t * 50) * 1.6, tilt = Math.sin(ph) * .08 + Math.sin(t * 38) * .02 * roar, open = .14 + roar * .86;
+  c.save(); c.translate(x, y); c.lineJoin = "round"; c.lineCap = "round";
+  // body: wavy colour bands with a white fur hem, hopping legs
+  var bx = R * .5, by = -R * .9 - hop * R * .16, len = S * 1.3, hh = S * .62, bands = ["#dc2626", "#f97316", "#facc15", "#f472b6", "#dc2626"];
+  c.save(); c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + len * .5, by - 12 + Math.sin(t * 4) * 6, bx + len, by + 2); c.lineTo(bx + len, by + hh * .8);
+  for (var k = 10; k >= 0; k--) c.lineTo(bx + len * k / 10, by + hh + Math.sin(k * 1.4 + t * 5) * 6 - k * 1.2); c.closePath(); c.clip();
+  for (var b = 0; b < 5; b++) { c.fillStyle = bands[b]; c.beginPath(); c.moveTo(bx - 4, by + hh * b / 5 - 14); for (var q = 0; q <= 12; q++) c.lineTo(bx + len * q / 12, by + hh * b / 5 - 14 + Math.sin(q * .9 + t * 3 + b) * 9); c.lineTo(bx + len, by + hh); c.lineTo(bx, by + hh); c.closePath(); c.fill(); }
+  c.restore();
+  c.fillStyle = "#fffbf5"; c.strokeStyle = "#475569"; c.lineWidth = 1.6; for (k = 0; k < 9; k++) { c.beginPath(); c.arc(bx + len * (k + .5) / 9, by + hh + Math.sin((k + .5) * 1.4 * 10 / 9 + t * 5) * 6 - (k + .5) * 1.2, 11, 0, Math.PI); c.fill(); c.stroke(); }
+  [[R * .1, 0], [R * .75, 1], [len * .62, 0], [len * .95, 1]].forEach(function (L) { var up = Math.max(0, Math.sin(ph + L[1] * Math.PI)) * 13; c.fillStyle = "#111827"; c.fillRect(L[0] - 6.5, -R * .38 - up, 13, R * .38 + up - 2); c.fillStyle = "#dc2626"; c.beginPath(); c.ellipse(L[0] + 3, -3 - up, 12, 6.5, 0, 0, 7); c.fill(); c.strokeStyle = "#facc15"; c.lineWidth = 1.8; c.stroke(); });
   // head
-  c.translate(shake, -R * 1.05 - hop * R * .26); c.rotate(tilt);
-  // mane: three layers of spiked flames whipping in the wind
-  [[34, 1.38, "#7f1d1d", .17], [30, 1.22, "#f97316", .15], [26, 1.04, "#fcd34d", .12]].forEach(function (L, li) {
-    for (var i = 0; i < L[0]; i++) {
-      var a = i / L[0] * Math.PI * 2 + li * .1, whip = Math.sin(t * 6 + i * .9 + li) * .1 + roar * Math.sin(t * 30 + i) * .06, rr = R * L[1] * (1 + Math.sin(t * 4.3 + i * 1.3) * .05 + roar * .1);
-      var a0 = a - L[3], a1 = a + L[3];
-      c.fillStyle = L[2]; c.beginPath(); c.moveTo(Math.cos(a0) * R * .75, Math.sin(a0) * R * .75); c.quadraticCurveTo(Math.cos(a - .04 + whip) * rr * .95, Math.sin(a - .04 + whip) * rr * .95, Math.cos(a + whip * 1.6) * rr, Math.sin(a + whip * 1.6) * rr);
-      c.quadraticCurveTo(Math.cos(a + .04 + whip) * rr * .95, Math.sin(a + .04 + whip) * rr * .95, Math.cos(a1) * R * .75, Math.sin(a1) * R * .75); c.closePath(); c.fill();
-    }
-  });
-  c.fillStyle = "#b91c1c"; [-1, 1].forEach(function (k) { c.beginPath(); c.moveTo(k * R * .56, -R * .56); c.lineTo(k * R * .96 + Math.sin(t * 7 + k) * 2, -R * 1.02); c.lineTo(k * R * .24, -R * .76); c.closePath(); c.fill(); c.strokeStyle = "#fcd34d"; c.lineWidth = 3; c.stroke(); });
-  // face
-  var fg = c.createRadialGradient(-R * .2, -R * .3, 2, 0, 0, R * .9); fg.addColorStop(0, "#ff6b4a"); fg.addColorStop(.6, "#d71f1f"); fg.addColorStop(1, "#8f1313");
-  c.fillStyle = fg; c.strokeStyle = "#450a0a"; c.lineWidth = 3; c.beginPath(); c.ellipse(0, R * .04, R * .8, R * .76, 0, 0, 7); c.fill(); c.stroke();
-  // horn
-  var hg = c.createLinearGradient(0, -R * .7, 0, -R * 1.15); hg.addColorStop(0, "#b45309"); hg.addColorStop(1, "#fff1b8"); c.strokeStyle = hg; c.lineWidth = R * .16; c.lineCap = "round";
-  c.beginPath(); c.moveTo(0, -R * .66); c.quadraticCurveTo(Math.sin(t * 4) * 5, -R * .92, Math.sin(t * 4) * 9, -R * 1.12); c.stroke();
-  c.fillStyle = "#fff"; c.beginPath(); c.arc(Math.sin(t * 4) * 9, -R * 1.16, R * .13, 0, 7); c.fill(); c.strokeStyle = "#f87171"; c.lineWidth = 2; c.stroke();
-  // forehead wrinkles and heavy angry brows
-  c.strokeStyle = "rgba(69,10,10,.65)"; c.lineWidth = 2.4; c.lineCap = "round"; for (var w = 0; w < 3; w++) { c.beginPath(); c.moveTo(-R * .18, -R * (.5 - w * .08)); c.quadraticCurveTo(0, -R * (.56 - w * .08) - roar * 4, R * .18, -R * (.5 - w * .08)); c.stroke(); }
+  c.translate(shake, -R * 1.18 - hop * R * .26); c.rotate(tilt);
+  // twin red crest horns behind the head
   [-1, 1].forEach(function (k) {
-    var f = roar * R * .06; c.fillStyle = "#3b0a0a"; c.beginPath(); c.moveTo(k * R * .66, -R * .38); c.lineTo(k * R * .1, -R * .06 + f); c.lineTo(k * R * .08, -R * .22 + f); c.lineTo(k * R * .56, -R * .56); c.closePath(); c.fill();
-    c.strokeStyle = "#fcd34d"; c.lineWidth = 2; c.beginPath(); c.moveTo(k * R * .66, -R * .38); c.lineTo(k * R * .1, -R * .06 + f); c.stroke();
-    // glowing glaring eye under a half-lowered lid
-    var ex = k * R * .34, ey = -R * .02;
-    c.save(); c.shadowColor = "#ff7a18"; c.shadowBlur = 8 + roar * 14; var eg = c.createRadialGradient(ex, ey, 0, ex, ey, R * .22); eg.addColorStop(0, "#fff3a0"); eg.addColorStop(.55, "#fb923c"); eg.addColorStop(1, "#b91c1c"); c.fillStyle = eg; c.beginPath(); c.ellipse(ex, ey, R * .21, R * .17, 0, 0, 7); c.fill(); c.restore();
-    if (!blink) { c.fillStyle = "#0b0505"; c.beginPath(); c.ellipse(ex - k * R * .01, ey, R * .06, R * .12, 0, 0, 7); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(ex + R * .04, ey - R * .05, R * .03, 0, 7); c.fill(); }
-    c.fillStyle = "#8f1313"; c.beginPath(); c.moveTo(ex - k * R * .26, ey - R * .26); c.lineTo(ex + k * R * .26, ey + R * .02 - roar * R * .02); c.lineTo(ex + k * R * .26, ey - R * .26); c.closePath(); c.fill();
-    if (blink) { c.strokeStyle = "#3b0a0a"; c.lineWidth = 3; c.beginPath(); c.moveTo(ex - R * .2, ey); c.lineTo(ex + R * .2, ey); c.stroke(); }
+    var wig = Math.sin(t * 6 + k) * 2;
+    c.fillStyle = "#dc2626"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 3; c.beginPath(); c.moveTo(k * R * .3, -R * .7); c.quadraticCurveTo(k * R * .5, -R * 1.1, k * R * 1.0 + wig, -R * 1.12); c.quadraticCurveTo(k * R * .86, -R * .86, k * R * .96, -R * .64); c.quadraticCurveTo(k * R * .8, -R * .62, k * R * .62, -R * .5); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = "#fca5a5"; c.beginPath(); c.moveTo(k * R * .46, -R * .74); c.quadraticCurveTo(k * R * .62, -R * .96, k * R * .86 + wig * .6, -R * .98); c.quadraticCurveTo(k * R * .72, -R * .8, k * R * .78, -R * .68); c.closePath(); c.fill();
   });
-  // broad nose with flared nostrils
-  c.fillStyle = "#b45309"; c.beginPath(); c.moveTo(-R * .2, R * .2); c.quadraticCurveTo(0, R * .02, R * .2, R * .2); c.quadraticCurveTo(R * .22, R * .34, 0, R * .36); c.quadraticCurveTo(-R * .22, R * .34, -R * .2, R * .2); c.fill();
-  c.fillStyle = "#1c0505"; [-1, 1].forEach(function (k) { c.beginPath(); c.ellipse(k * R * .09, R * .26, R * .045, R * .06 + roar * R * .02, k * .5, 0, 7); c.fill(); });
-  // mouth: upper fangs, dropping jaw, tongue, lower fangs
-  var mw = R * .5, jawY = R * .36, drop = R * (.06 + open * .42);
-  c.fillStyle = "#3b0a0a"; c.beginPath(); c.moveTo(-mw, jawY); c.quadraticCurveTo(0, jawY - R * .04, mw, jawY); c.quadraticCurveTo(mw * .8, jawY + drop * 1.3, 0, jawY + drop * 1.45); c.quadraticCurveTo(-mw * .8, jawY + drop * 1.3, -mw, jawY); c.fill();
-  c.fillStyle = "#f43f5e"; c.beginPath(); c.ellipse(0, jawY + drop * .95, mw * .5, drop * .4 + 1, 0, 0, 7); c.fill();
-  c.fillStyle = "#fffdf5"; [[-mw * .78, .26], [-mw * .4, .15], [mw * .4, .15], [mw * .78, .26]].forEach(function (f) { c.beginPath(); c.moveTo(f[0] - R * .06, jawY - 1); c.lineTo(f[0], jawY + R * f[1] + drop * .5); c.lineTo(f[0] + R * .06, jawY - 1); c.fill(); });
-  [-.5, .5].forEach(function (f) { c.beginPath(); c.moveTo(f * mw - R * .05, jawY + drop * 1.4); c.lineTo(f * mw, jawY + drop * 1.4 - R * .16); c.lineTo(f * mw + R * .05, jawY + drop * 1.4); c.fill(); });
-  c.strokeStyle = "#fcd34d"; c.lineWidth = 3; c.beginPath(); c.moveTo(-mw, jawY); c.quadraticCurveTo(0, jawY - R * .05, mw, jawY); c.stroke();
-  // cheek fur, whiskers and a ragged white beard
-  c.fillStyle = "#fff7ed"; [-1, 1].forEach(function (k) { for (var j = 0; j < 4; j++) { c.beginPath(); c.moveTo(k * R * .6, R * (.2 + j * .08)); c.lineTo(k * R * (.95 + roar * .05), R * (.22 + j * .12) + Math.sin(t * 6 + j) * 2); c.lineTo(k * R * .56, R * (.3 + j * .08)); c.fill(); } });
-  for (var b = -3; b <= 3; b++) { c.beginPath(); c.moveTo(b * R * .13 - R * .06, jawY + drop * 1.35); c.lineTo(b * R * .13, jawY + drop * 1.35 + R * (.22 + Math.abs(Math.sin(t * 5 + b)) * .12)); c.lineTo(b * R * .13 + R * .06, jawY + drop * 1.35); c.fill(); }
+  // white fur fringe around the face: scalloped lobes that ruffle a little
+  var lobes = 22; c.fillStyle = "#fffbf5"; c.strokeStyle = "#475569"; c.lineWidth = 2.2;
+  for (var i = 0; i < lobes; i++) { var a = Math.PI * .1 + (i / (lobes - 1)) * (Math.PI * 1.8) + Math.PI / 2 * 0; var aa = a + Math.PI * .5, rr = R * (.82 + Math.sin(t * 4 + i * 1.3) * .015); c.beginPath(); c.arc(Math.cos(aa) * rr * 1.02, Math.sin(aa) * rr * .98, R * .2, 0, 7); c.fill(); c.stroke(); }
+  c.fillStyle = "#fffbf5"; c.beginPath(); c.ellipse(0, 0, R * .84, R * .8, 0, 0, 7); c.fill();
+  // red face
+  var fg = c.createRadialGradient(-R * .2, -R * .35, 2, 0, 0, R * .9); fg.addColorStop(0, "#f04438"); fg.addColorStop(.7, "#d71f1f"); fg.addColorStop(1, "#a31616");
+  c.fillStyle = fg; c.strokeStyle = "#7f1d1d"; c.lineWidth = 3; c.beginPath(); c.ellipse(0, -R * .06, R * .74, R * .7, 0, 0, 7); c.fill(); c.stroke();
+  // spiral horn with a pom-pom, and the golden flower on the forehead
+  var hx = Math.sin(t * 4) * 6;
+  c.save(); c.translate(hx * .4, 0); c.fillStyle = "#fff"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-R * .12, -R * .62); c.lineTo(hx, -R * 1.02); c.lineTo(R * .12, -R * .62); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = "#dc2626"; c.lineWidth = 3.5; for (var s = 0; s < 3; s++) { c.beginPath(); c.moveTo(-R * .1 + s * .01, -R * (.7 + s * .1)); c.lineTo(R * .1, -R * (.76 + s * .1)); c.stroke(); }
+  c.fillStyle = "#fffbf5"; c.strokeStyle = "#dc2626"; c.lineWidth = 3; c.beginPath(); c.arc(hx, -R * 1.1, R * .14 + Math.sin(t * 8) * 1.2, 0, 7); c.fill(); c.stroke(); c.restore();
+  c.fillStyle = "#f59e0b"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2; for (i = 0; i < 8; i++) { var pa = i / 8 * Math.PI * 2; c.beginPath(); c.ellipse(Math.cos(pa) * R * .15, -R * .42 + Math.sin(pa) * R * .15, R * .08, R * .08, 0, 0, 7); c.fill(); c.stroke(); }
+  c.fillStyle = "#facc15"; c.beginPath(); c.arc(0, -R * .42, R * .13, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#e0f2fe"; c.beginPath(); c.arc(0, -R * .42, R * .06, 0, 7); c.fill(); c.fillStyle = "#2563eb"; c.beginPath(); c.arc(0, -R * .42, R * .03, 0, 7); c.fill();
+  // eyes: black rim, white, yellow ring, red ring, pupil that rolls; angry lid and brows
+  [-1, 1].forEach(function (k) {
+    var ex = k * R * .36, ey = -R * .1, er = R * (.27 + roar * .02), lx = Math.cos(t * 1.7) * R * .04 * k, ly = Math.sin(t * 2.3) * R * .03;
+    c.fillStyle = "#111827"; c.beginPath(); c.arc(ex, ey, er + 3, 0, 7); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(ex, ey, er, 0, 7); c.fill();
+    if (!blink) { c.fillStyle = "#facc15"; c.beginPath(); c.arc(ex + lx, ey + ly, er * .72, 0, 7); c.fill(); c.fillStyle = "#dc2626"; c.beginPath(); c.arc(ex + lx, ey + ly, er * .5, 0, 7); c.fill(); c.fillStyle = "#0b0b0b"; c.beginPath(); c.arc(ex + lx, ey + ly, er * .3, 0, 7); c.fill(); c.fillStyle = "#fff"; c.beginPath(); c.arc(ex + lx + er * .14, ey + ly - er * .16, er * .1, 0, 7); c.fill(); }
+    c.fillStyle = "#d71f1f"; c.strokeStyle = "#111827"; c.lineWidth = 3; c.beginPath(); c.moveTo(ex - k * er * 1.1, ey - er * 1.1); c.lineTo(ex + k * er * 1.1, ey - er * .1 + (blink ? er * 1.1 : 0)); c.lineTo(ex + k * er * 1.1, ey - er * 1.3); c.closePath(); c.fill();
+    if (blink) { c.beginPath(); c.moveTo(ex - er, ey); c.lineTo(ex + er, ey); c.stroke(); }
+    // fluffy white brow, tilted inward when it roars
+    c.fillStyle = "#fffbf5"; c.strokeStyle = "#475569"; c.lineWidth = 2; for (var bb = 0; bb < 4; bb++) { var bxx = ex + k * (bb - 1.5) * er * .5, byy = ey - er * 1.35 + (k * (bb - 1.5)) * er * .12 * (1 + roar * 1.4); c.beginPath(); c.arc(bxx, byy, er * .3, 0, 7); c.fill(); c.stroke(); }
+  });
+  c.fillStyle = "#3b82f6"; c.beginPath(); c.arc(0, R * .02, R * .05, 0, 7); c.fill();
+  // golden nose, white moustache lobes, laughing mouth
+  c.fillStyle = "#facc15"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(0, R * .08); c.quadraticCurveTo(R * .2, R * .14, R * .12, R * .28); c.quadraticCurveTo(0, R * .34, -R * .12, R * .28); c.quadraticCurveTo(-R * .2, R * .14, 0, R * .08); c.fill(); c.stroke();
+  var mouthY = R * .4, drop = R * (.04 + open * .34);
+  c.fillStyle = "#3b0a0a"; c.beginPath(); c.moveTo(-R * .5, mouthY); c.quadraticCurveTo(0, mouthY - R * .06, R * .5, mouthY); c.quadraticCurveTo(R * .42, mouthY + drop * 1.6 + R * .1, 0, mouthY + drop * 1.7 + R * .12); c.quadraticCurveTo(-R * .42, mouthY + drop * 1.6 + R * .1, -R * .5, mouthY); c.fill(); c.strokeStyle = "#7f1d1d"; c.lineWidth = 3; c.stroke();
+  c.fillStyle = "#fb7185"; c.beginPath(); c.ellipse(0, mouthY + drop * 1.15 + R * .1, R * .22, drop * .45 + 2, 0, 0, 7); c.fill();
+  c.fillStyle = "#fffdf5"; [[-.36, .17], [-.17, .1], [.17, .1], [.36, .17]].forEach(function (f) { c.beginPath(); c.moveTo(f[0] * R - R * .06, mouthY - 1); c.lineTo(f[0] * R, mouthY + R * f[1] + drop * .45); c.lineTo(f[0] * R + R * .06, mouthY - 1); c.fill(); });
+  c.fillStyle = "#fffbf5"; c.strokeStyle = "#475569"; c.lineWidth = 2; [-1, 1].forEach(function (k) { for (var m = 0; m < 3; m++) { c.beginPath(); c.ellipse(k * (R * .26 + m * R * .17), R * .27 + m * R * .035 + Math.sin(t * 6 + m + k) * 1.2 - roar * R * .05, R * .17, R * .12, k * -.35, 0, 7); c.fill(); c.stroke(); } });
+  // swinging tassels under the chin
+  for (i = -3; i <= 3; i++) { var sw = Math.sin(t * 4 + i * .7) * .12, tl = R * (.3 + (3 - Math.abs(i)) * .07), tx = i * R * .2; c.save(); c.translate(tx, mouthY + drop * 1.7 + R * .12); c.rotate(sw); c.fillStyle = "#facc15"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 1.6; c.fillRect(-R * .03, 0, R * .06, tl); c.strokeRect(-R * .03, 0, R * .06, tl); c.fillStyle = "#dc2626"; c.beginPath(); c.arc(0, tl + R * .05, R * .08, 0, 7); c.fill(); c.stroke(); c.restore(); }
+  // ears flapping at the sides
+  [-1, 1].forEach(function (k) { c.fillStyle = "#dc2626"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2.4; c.save(); c.translate(k * R * .86, -R * .22); c.rotate(k * (.4 + Math.sin(t * 6 + k) * .18)); c.beginPath(); c.ellipse(0, 0, R * .13, R * .24, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#facc15"; c.beginPath(); c.ellipse(0, 0, R * .06, R * .13, 0, 0, 7); c.fill(); c.restore(); });
   c.restore();
 }
 
