@@ -1320,3 +1320,6 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Paths**: Home swipe card -> overview; Dashboard card (top of the Leaderboard tab) -> week, month, workouts, zones, health details, share card; overview -> a workout; the "My workout" card on a session -> workout detail; Profile > Health details -> overview.
 - Fix found by test: the cool-down after the last game could push the estimated heart rate below resting; it now settles near 12% of the reserve. The test checks every point of every curve stays between resting and max.
 - Lao wording unreviewed.
+
+## v164 — bottom nav
+- Removed the coloured strip on top of the active bottom-nav tab (added in v157). The active tab stays bold and in the accent colour.

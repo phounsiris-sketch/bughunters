@@ -5752,7 +5752,7 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 
 /* ===== v157: contrast sweep (found by rendering every button class in 10 themes) ===== */
 .pw-toggle, .cal-toggle, .cm-fab:not(.add), .nav-item.active, .nav-item:hover, .paid-btn, .crumb { color: var(--accent-text); }
-.nav-item.active { font-weight: 700; box-shadow: inset 0 2px 0 var(--accent-text); }
+.nav-item.active { font-weight: 700; }
 .btn-danger, .delete-btn, .notif-clear, .pf-rm, .edit-btn.danger { color: var(--danger-text); }
 .btn-danger, .edit-btn.danger { border-color: var(--danger-text); }
 .btn-share, .btn-share:hover { color: #fff; }
