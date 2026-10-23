@@ -1290,3 +1290,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - `askYes(msg, onYes, {danger, kind, yes, detail, type})` is the short form; `askCopy(title, text)` replaces the `prompt()` clipboard fallback.
 - All 30 native `confirm()` / `prompt()` calls were converted (code after the confirm now runs in the callback). `tests/security.test.js` fails if any native `confirm/prompt/alert` comes back.
 - Delete-group now asks for the group name inside the sheet (the Confirm button stays locked until it matches).
+
+## v160b — special themes (separate from Dark/Light styles)
+- Halloween moved out of the dark styles into a new **Settings > Special themes** card; four themes: Halloween, Christmas, Songkran / Pee Mai, Neon Arcade (`SPECIALS` in app.js, `setSpecial(id)`, saved as `special`; dark mode only, "Back to normal style" turns it off). Body gets `data-special`.
+- Reaches every page: all `.card` / `.session-card` / `.cost-card` / `.pay-card` (dashboard, votes via `.poll-card`, sessions, payments) get a themed ornament (cobweb, snow cap, wave, neon line); home cards (`.hs-*`), `.home-next` and `.ls-bar` get themed gradients; the live score halves get ornaments and the team colours follow the theme (`LS_THEMES` entries 6-9, `LS_SPECIAL_IDX`; a colour set picked by hand in live-score settings wins).
+- `#fxLayer` (z 410, above the live score) draws bats / snow / bubbles / sparks with CSS only; off for reduced motion. Home shows a seasonal "Try it" card inside each theme's date window (`_hwCard`; Halloween Oct 20-Nov 2, Christmas Dec 15-Jan 2, Songkran Apr 10-20, Arcade none).
+- `tests/special-themes.test.js` checks CSS block, texts EN+LA and live-score colours for each theme. Lao text unreviewed.

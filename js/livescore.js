@@ -20,8 +20,14 @@ var LS_THEMES = [
   ["Forest", "#16a34a", "#4ade80", "#0f766e", "#2dd4bf"],
   ["Ocean", "#0891b2", "#22d3ee", "#4338ca", "#818cf8"],
   ["Night", "#db2777", "#f472b6", "#1e293b", "#475569"],
-  ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"]
+  ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"],
+  ["Halloween", "#ea580c", "#fb923c", "#4c1d95", "#7c3aed"],
+  ["Christmas", "#b91c1c", "#ef4444", "#166534", "#22c55e"],
+  ["Songkran", "#0284c7", "#38bdf8", "#d97706", "#fcd34d"],
+  ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"]
 ];
+/** A special theme gives the live score its own team colours, until the player picks one by hand */
+var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, songkran: 8, arcade: 9 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null
@@ -83,7 +89,12 @@ function lsSave() {
   if (live) lsShare(); else lsUnshare();
 }
 function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s && s.bo > 3) s.bo = 3; return s && s.sid ? s : null; } catch (e) { return null; } }
-function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
+function lsThemeIdx() {
+  var raw = null; try { raw = localStorage.getItem(LS_THEME_KEY); } catch (e) {}
+  var i = parseInt(raw, 10);
+  if (isNaN(i)) i = (typeof currentSpecial !== "undefined" && currentSpecial && currentTheme === "dark" && LS_SPECIAL_IDX[currentSpecial]) || 0;
+  return i >= 0 && i < LS_THEMES.length ? i : 0;
+}
 
 function _lsSessions() {
   var today = _todayIso();

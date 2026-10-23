@@ -241,6 +241,16 @@ function _renderSettingsPage() {
       '<span class="palette-name">' + t(p[1]) + '</span></button>';
   });
   html += '</div></div>';
+  // Special (gimmick) themes: separate from the styles above, dark mode only
+  html += '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("specialThemes") + '</div>' +
+    '<div class="form-hint">' + t("specialThemesHint") + '</div><div class="sp-grid">';
+  SPECIALS.forEach(function (sp) {
+    var on = currentSpecial === sp[0];
+    html += '<button type="button" class="sp-opt' + (on ? ' active' : '') + '" onclick="setSpecial(\'' + sp[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
+      '<span class="sp-swatch">' + sp[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
+      '<b>' + t(sp[1]) + '</b><small>' + t(sp[1] + "Sub") + '</small></button>';
+  });
+  html += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '') + '</div>';
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
