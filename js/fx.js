@@ -282,27 +282,30 @@ function fxOrb(c, x, y, r, stars, t) {
 }
 function _fxCloud(c, x, y, s, col) { c.fillStyle = col; c.beginPath(); c.arc(x, y, 14 * s, 0, 7); c.arc(x + 16 * s, y - 6 * s, 18 * s, 0, 7); c.arc(x + 36 * s, y, 15 * s, 0, 7); c.arc(x + 18 * s, y + 6 * s, 16 * s, 0, 7); c.fill(); }
 
-/** A flat cartoon golden cloud: bumpy lobes with darker crescents under each, a few nicks, and a long curling tail that trails behind
-    while it flies right. (x, y) = centre of the body, s = size, t = seconds. */
-function _fxGoldCloud(c, x, y, s, t) {
-  var k = s * .78, bob = Math.sin(t * 2.2) * 3 * s, sway = Math.sin(t * 3) * 5;
+/** A flat cartoon golden cloud that leaves a jet-like vapour trail: the trail is the cloud's own past path (trail = list of [dx, dy]
+    offsets of earlier positions, newest first), drawn as a tapering ribbon plus fading puffs, so it curves and bobs exactly where the cloud has been.
+    (x, y) = centre of the body, s = size. */
+function _fxGoldCloud(c, x, y, s, t, trail) {
+  var k = s * .78, n = trail ? trail.length : 0, i;
+  if (n > 1) {
+    // soft vapour puffs along the path
+    for (i = n - 1; i >= 0; i--) { var f = i / n, r = (18 * (1 - f) + 3) * s, a = .55 * (1 - f), px = x + trail[i][0] - 20 * s, py = y + trail[i][1] + 6 * s + Math.sin(t * 6 + i * .8) * 1.5 * s;
+      c.fillStyle = "rgba(255,243,168," + a + ")"; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill(); }
+    // tapering golden ribbon down the middle of the trail
+    c.lineCap = "round"; c.lineJoin = "round";
+    for (i = 0; i < n - 1; i++) { var f2 = i / n; c.strokeStyle = "rgba(250,204,21," + (.9 * (1 - f2)) + ")"; c.lineWidth = Math.max(1, 12 * s * (1 - f2) * (1 - f2) + 1.5); c.beginPath(); c.moveTo(x + trail[i][0] - 20 * s, y + trail[i][1] + 6 * s); c.lineTo(x + trail[i + 1][0] - 20 * s, y + trail[i + 1][1] + 6 * s); c.stroke(); }
+    // the curl at the very end, like the classic tail
+    var e = trail[n - 1]; c.strokeStyle = "rgba(234,179,8,.7)"; c.lineWidth = 2.4 * s; c.beginPath(); c.arc(x + e[0] - 26 * s, y + e[1] + 2 * s, 7 * s, Math.PI * .2, Math.PI * 1.6); c.stroke();
+  }
   var L = [[-40, 2, 34], [-6, -14, 38], [30, -8, 34], [58, 8, 30], [-54, 24, 26], [-12, 24, 34], [26, 28, 32], [52, 30, 24]];
-  c.save(); c.translate(x, y + bob); c.scale(-k, k); c.lineJoin = "round"; c.lineCap = "round";
-  // tail (drawn first so the body overlaps it): a tapered curl
-  var tg = c.createLinearGradient(60, 0, 160, 30); tg.addColorStop(0, "#facc15"); tg.addColorStop(1, "#eab308");
-  c.fillStyle = tg; c.strokeStyle = "#c28a00"; c.lineWidth = 3; c.beginPath(); c.moveTo(56, 12); c.bezierCurveTo(92, 34 + sway * .4, 128, 36 + sway, 156, 10 + sway * 1.2);
-  c.bezierCurveTo(160, 2 + sway, 150, -2 + sway, 148, 6 + sway); c.bezierCurveTo(132, 22 + sway * .6, 100, 22, 66, 4); c.closePath(); c.fill(); c.stroke();
-  // outline pass, then fill pass: the union gets one clean edge
+  c.save(); c.translate(x, y); c.scale(-k, k); c.lineJoin = "round"; c.lineCap = "round";
   c.strokeStyle = "#c28a00"; c.lineWidth = 7; L.forEach(function (l) { c.beginPath(); c.arc(l[0], l[1], l[2], 0, 7); c.stroke(); });
   c.fillStyle = "#facc15"; L.forEach(function (l) { c.beginPath(); c.arc(l[0], l[1], l[2], 0, 7); c.fill(); });
-  // light tops: every lobe lit from the upper left, leaving a darker crescent at its lower right
   c.save(); c.beginPath(); L.forEach(function (l) { c.moveTo(l[0] + l[2], l[1]); c.arc(l[0], l[1], l[2], 0, 7); }); c.clip();
   c.fillStyle = "#fde668"; L.forEach(function (l) { c.beginPath(); c.arc(l[0] - 5, l[1] - 8, l[2] - 3, 0, 7); c.fill(); });
   c.fillStyle = "#fff4a8"; L.forEach(function (l) { c.beginPath(); c.arc(l[0] - 9, l[1] - 13, l[2] * .45, 0, 7); c.fill(); });
-  // cartoon nicks where the lobes meet
-  c.strokeStyle = "#d89a00"; c.lineWidth = 4.2; [[-22, -2, 11, .95], [16, -8, 12, .85], [46, 8, 10, .95], [-28, 26, 11, .95], [10, 24, 12, .85]].forEach(function (n) { c.beginPath(); c.arc(n[0], n[1], n[2], Math.PI * n[3], Math.PI * (n[3] + .5)); c.stroke(); });
-  c.restore();
-  c.restore();
+  c.strokeStyle = "#d89a00"; c.lineWidth = 4.2; [[-22, -2, 11, .95], [16, -8, 12, .85], [46, 8, 10, .95], [-28, 26, 11, .95], [10, 24, 12, .85]].forEach(function (nk) { c.beginPath(); c.arc(nk[0], nk[1], nk[2], Math.PI * nk[3], Math.PI * (nk[3] + .5)); c.stroke(); });
+  c.restore(); c.restore();
 }
 
 /** Height of the rooftop line at x (same zigzag the scene draws), so the ninja runs on the roofs */
@@ -312,22 +315,21 @@ function _fxRoofAt(x, base) {
   return f < .5 ? y0 + (yp - y0) * (f / .5) : yp + (y1 - yp) * ((f - .5) / .5);
 }
 
-/** A ninja silhouette seen from the side, facing right: forward lean, flowing headband tails and scarf, swinging arms and a run cycle.
-    (x, y) = feet, s = size, ph = run phase, air = 0..1 jump height factor (legs tuck while in the air), alpha for clones. */
-function fxNinja(c, x, y, s, t, ph, air, alpha) {
-  var lean = .28 + air * .1, hip = -17 * s - air * 8 * s;
-  c.save(); c.translate(x, y); c.globalAlpha = alpha == null ? 1 : alpha; c.lineCap = "round"; c.lineJoin = "round";
-  c.shadowColor = "#facc15"; c.shadowBlur = 7; c.strokeStyle = "#04060b"; c.fillStyle = "#04060b";
+/** A ninja silhouette seen from the side: forward lean, flowing headband tails and scarf, swinging arms and a run cycle.
+    (x, y) = feet, s = size, ph = run phase, air = 0..1 jump factor, alpha for clones, scarf/band colours, dir = 1 right, -1 left. */
+function fxNinja(c, x, y, s, t, ph, air, alpha, scarf, band, dir) {
+  var lean = .28 + air * .1, hip = -17 * s - air * 8 * s; scarf = scarf || "#dc2626"; band = band || "#e2e8f0";
+  c.save(); c.translate(x, y); if (dir < 0) c.scale(-1, 1); c.globalAlpha = alpha == null ? 1 : alpha; c.lineCap = "round"; c.lineJoin = "round";
+  c.shadowColor = band; c.shadowBlur = 7; c.strokeStyle = "#04060b"; c.fillStyle = "#04060b";
   var leg = function (k) { var a = Math.sin(ph + k * Math.PI), kx = Math.sin(a) * 9 * s * (1 - air * .5), ky = Math.max(0, Math.cos(ph + k * Math.PI)) * 6 * s; c.lineWidth = 4.6 * s; c.beginPath(); c.moveTo(0, hip); c.lineTo(kx * .6 + 2 * s, hip + 9 * s - ky * .5 - air * 3 * s); c.lineTo(kx + (air ? 3 : 0) * s, -ky * (1 - air) - air * 4 * s); c.stroke(); };
   leg(0); leg(1);
   c.save(); c.translate(0, hip); c.rotate(lean);
-  c.lineWidth = 9 * s; c.beginPath(); c.moveTo(0, 0); c.lineTo(1 * s, -13 * s); c.stroke();                       // torso
-  c.beginPath(); c.arc(2.5 * s, -20 * s, 6.2 * s, 0, 7); c.fill();                                                    // head
+  c.lineWidth = 9 * s; c.beginPath(); c.moveTo(0, 0); c.lineTo(1 * s, -13 * s); c.stroke();
+  c.beginPath(); c.arc(2.5 * s, -20 * s, 6.2 * s, 0, 7); c.fill();
   c.lineWidth = 3 * s; [-1, 1].forEach(function (k) { var sw = Math.sin(ph + (k > 0 ? 0 : Math.PI)) * .9; c.beginPath(); c.moveTo(1 * s, -12 * s); c.lineTo(Math.cos(sw) * 8 * s + (k > 0 ? 4 : -2) * s, -12 * s + Math.sin(sw) * 8 * s + 4 * s); c.stroke(); });
-  // headband tails and scarf streaming behind, waving
-  c.strokeStyle = "#facc15"; c.lineWidth = 2.2 * s; for (var i = 0; i < 2; i++) { c.beginPath(); c.moveTo(-2 * s, (-22 + i * 2) * s); c.bezierCurveTo(-12 * s, (-24 + i * 3) * s + Math.sin(t * 9 + i) * 3 * s, -20 * s, (-22 + i * 5) * s + Math.sin(t * 9 + i * 2) * 5 * s, -30 * s, (-22 + i * 8) * s + Math.sin(t * 8 + i) * 6 * s); c.stroke(); }
-  c.strokeStyle = "#dc2626"; c.lineWidth = 4 * s; c.beginPath(); c.moveTo(0, -13 * s); c.bezierCurveTo(-12 * s, -12 * s + Math.sin(t * 7) * 4 * s, -24 * s, -8 * s + Math.sin(t * 7 + 1) * 6 * s, -38 * s, -6 * s + Math.sin(t * 6) * 8 * s); c.stroke();
-  c.fillStyle = "#e5e7eb"; c.fillRect(0.2 * s, -24.6 * s, 6 * s, 3.2 * s);                                              // plain headband plate
+  c.strokeStyle = band; c.lineWidth = 2.2 * s; for (var i = 0; i < 2; i++) { c.beginPath(); c.moveTo(-2 * s, (-22 + i * 2) * s); c.bezierCurveTo(-12 * s, (-24 + i * 3) * s + Math.sin(t * 9 + i) * 3 * s, -20 * s, (-22 + i * 5) * s + Math.sin(t * 9 + i * 2) * 5 * s, -30 * s, (-22 + i * 8) * s + Math.sin(t * 8 + i) * 6 * s); c.stroke(); }
+  c.strokeStyle = scarf; c.lineWidth = 4 * s; c.beginPath(); c.moveTo(0, -13 * s); c.bezierCurveTo(-12 * s, -12 * s + Math.sin(t * 7) * 4 * s, -24 * s, -8 * s + Math.sin(t * 7 + 1) * 6 * s, -38 * s, -6 * s + Math.sin(t * 6) * 8 * s); c.stroke();
+  c.fillStyle = "#e5e7eb"; c.fillRect(0.2 * s, -24.6 * s, 6 * s, 3.2 * s);
   c.restore(); c.restore();
 }
 
@@ -345,59 +347,87 @@ function _fxPoof(c, x, y, r, p) {
 }
 
 FX_SCENES.ninja = function (c, w, h, t, top) {
-  top = top || 0; var i, base = h - FX_NAV, cx = w / 2, pulse = 1 + Math.sin(t * 3.2) * .07;
-  // big pale moon with a golden halo under the app bar
-  var mx = w - 70, my = top + 60, mg = c.createRadialGradient(mx, my, 0, mx, my, 150); mg.addColorStop(0, "rgba(255,244,200,.4)"); mg.addColorStop(1, "rgba(255,244,200,0)"); c.fillStyle = mg; c.fillRect(mx - 160, top, 320, 260);
-  c.fillStyle = "#fff4cc"; c.beginPath(); c.arc(mx, my, 34, 0, 7); c.fill(); c.fillStyle = "rgba(190,160,90,.4)"; c.beginPath(); c.arc(mx - 10, my - 6, 8, 0, 7); c.arc(mx + 12, my + 12, 6, 0, 7); c.fill();
-  // golden halo behind the aura
-  var hg = c.createRadialGradient(cx, base - 30, 0, cx, base - 30, 300 * pulse); hg.addColorStop(0, "rgba(250,204,21,.34)"); hg.addColorStop(.5, "rgba(245,158,11,.12)"); hg.addColorStop(1, "rgba(245,158,11,0)"); c.fillStyle = hg; c.fillRect(0, base - 340, w, 380);
-  // chakra sphere: a spinning ball of light with spiral arms and orbiting sparks (floats up and down on the left)
+  top = top || 0; var i, base = h - FX_NAV, cx = w / 2;
+  // big pale moon under the app bar
+  var mx = w - 70, my = top + 60, mg = c.createRadialGradient(mx, my, 0, mx, my, 150); mg.addColorStop(0, "rgba(226,232,240,.35)"); mg.addColorStop(1, "rgba(226,232,240,0)"); c.fillStyle = mg; c.fillRect(mx - 160, top, 320, 260);
+  c.fillStyle = "#f1f5f9"; c.beginPath(); c.arc(mx, my, 34, 0, 7); c.fill(); c.fillStyle = "rgba(148,163,184,.45)"; c.beginPath(); c.arc(mx - 10, my - 6, 8, 0, 7); c.arc(mx + 12, my + 12, 6, 0, 7); c.fill();
+  // chakra sphere: a spinning ball of light with spiral arms and orbiting sparks
   var sx0 = w * .2, sy0 = top + 190 + Math.sin(t * 1.3) * 16, sr = 26;
   var sg = c.createRadialGradient(sx0, sy0, 2, sx0, sy0, sr * 2.4); sg.addColorStop(0, "rgba(255,255,255,.9)"); sg.addColorStop(.35, "rgba(147,197,253,.5)"); sg.addColorStop(1, "rgba(59,130,246,0)"); c.fillStyle = sg; c.beginPath(); c.arc(sx0, sy0, sr * 2.4, 0, 7); c.fill();
   c.save(); c.translate(sx0, sy0); c.rotate(t * 7); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 2.4; for (var arm = 0; arm < 3; arm++) { c.beginPath(); for (var k = 0; k < 22; k++) { var a = k * .24 + arm * 2.094, r = 2 + k * (sr / 22); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); } c.restore();
   for (i = 0; i < 7; i++) { var oa = t * 3 + i * .9, orr = sr * 1.5 + Math.sin(t * 2 + i) * 6; c.fillStyle = "rgba(191,219,254," + (.5 + .4 * Math.sin(t * 5 + i)) + ")"; c.beginPath(); c.arc(sx0 + Math.cos(oa) * orr, sy0 + Math.sin(oa) * orr * .6, 2.2, 0, 7); c.fill(); }
-  // leaf vortex on the right
+  // leaf vortex and drifting paper tags
   for (i = 0; i < 26; i++) { var la = t * 1.7 + i * .42, lr = 14 + ((i * 7 + t * 12) % 70), lx = w * .8 + Math.cos(la) * lr * 1.4, ly = base - 190 + Math.sin(la) * lr * .7 - ((i * 5) % 40); c.save(); c.translate(lx, ly); c.rotate(la * 2); c.fillStyle = i % 3 ? "rgba(74,222,128,.6)" : "rgba(251,146,60,.6)"; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.restore(); }
-  // paper tags drifting down
-  for (i = 0; i < 5; i++) { var tp = (t * (.05 + _frnd(i) * .03) + _frnd(i + 3)) % 1, tx = w * (.1 + i * .2) + Math.sin(t * 1.4 + i) * 18, ty = top + 20 + tp * (base - top); c.save(); c.translate(tx, ty); c.rotate(Math.sin(t * 2 + i) * .5); c.fillStyle = "#fef3c7"; c.strokeStyle = "#b91c1c"; c.lineWidth = 1.4; c.fillRect(-5, -13, 10, 26); c.strokeRect(-5, -13, 10, 26); c.strokeStyle = "#b91c1c"; c.beginPath(); c.moveTo(-3, -8); c.lineTo(3, -8); c.moveTo(0, -8); c.lineTo(0, 8); c.moveTo(-3, 0); c.lineTo(3, 3); c.stroke(); c.restore(); }
+  for (i = 0; i < 5; i++) { var tp = (t * (.05 + _frnd(i) * .03) + _frnd(i + 3)) % 1, tx = w * (.1 + i * .2) + Math.sin(t * 1.4 + i) * 18, ty = top + 20 + tp * (base - top); c.save(); c.translate(tx, ty); c.rotate(Math.sin(t * 2 + i) * .5); c.fillStyle = "#fef3c7"; c.strokeStyle = "#b91c1c"; c.lineWidth = 1.4; c.fillRect(-5, -13, 10, 26); c.strokeRect(-5, -13, 10, 26); c.beginPath(); c.moveTo(-3, -8); c.lineTo(3, -8); c.moveTo(0, -8); c.lineTo(0, 8); c.moveTo(-3, 0); c.lineTo(3, 3); c.stroke(); c.restore(); }
+  // summoning circle with an unrolling scroll (cyan), shown for a few seconds every 14 s
+  var cyc3 = t % 14; if (cyc3 > 7 && cyc3 < 11.5) { var sp2 = (cyc3 - 7) / 4.5, sa = Math.sin(sp2 * Math.PI), ccx = cx, ccy = base - 78, rr = 78;
+    c.save(); c.translate(ccx, ccy); c.scale(1, .3); c.globalAlpha = sa; c.shadowColor = "#67e8f9"; c.shadowBlur = 14; c.strokeStyle = "#67e8f9"; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, rr, 0, 7); c.stroke(); c.beginPath(); c.arc(0, 0, rr * .72, 0, 7); c.stroke();
+    c.rotate(t * .9); c.lineWidth = 2.4; for (i = 0; i < 6; i++) { var ga = i / 6 * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(ga) * rr * .72, Math.sin(ga) * rr * .72); c.lineTo(Math.cos(ga + 2.094) * rr * .72, Math.sin(ga + 2.094) * rr * .72); c.stroke(); c.fillStyle = "#e0f2fe"; c.fillRect(Math.cos(ga) * rr * .86 - 3, Math.sin(ga) * rr * .86 - 8, 6, 16); }
+    c.restore();
+    var sw2 = 150 * Math.min(1, sp2 * 2.2) * (sa > .02 ? 1 : 0); c.globalAlpha = Math.min(1, sa * 2); c.fillStyle = "#fef3c7"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2; c.fillRect(ccx - sw2 / 2, ccy - 62, sw2, 22); c.strokeRect(ccx - sw2 / 2, ccy - 62, sw2, 22);
+    c.fillStyle = "#7f1d1d"; c.beginPath(); c.arc(ccx - sw2 / 2, ccy - 51, 7, 0, 7); c.arc(ccx + sw2 / 2, ccy - 51, 7, 0, 7); c.fill(); c.strokeStyle = "#1c1917"; c.lineWidth = 1.8; for (i = 0; i < 8; i++) { var gx = ccx - sw2 / 2 + 12 + i * (sw2 - 24) / 7; c.beginPath(); c.moveTo(gx - 3, ccy - 56); c.lineTo(gx + 3, ccy - 56); c.moveTo(gx, ccy - 56); c.lineTo(gx, ccy - 46); c.stroke(); } c.globalAlpha = 1; }
   // dark rooftops
   c.fillStyle = "#0a0702"; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 40; x += 40) { var up = (x / 40) % 3 === 1 ? 38 : 18; c.lineTo(x, base - up + 12); c.lineTo(x + 20, base - up - 10); } c.lineTo(w, h); c.closePath(); c.fill();
-  // golden chakra flames with a black outline behind the runner
-  for (i = 0; i < 9; i++) {
-    var kk = (i - 4) / 4, bw = 26 + (4 - Math.abs(i - 4)) * 3, hh = (150 - Math.abs(kk) * 80) * pulse + Math.sin(t * 7 + i * 1.9) * 14, bx = cx + kk * w * .44, tx2 = bx + Math.sin(t * 4 + i * 1.3) * 18 + kk * 24;
-    var fg = c.createLinearGradient(0, base, 0, base - hh); fg.addColorStop(0, "#d97706"); fg.addColorStop(.35, "#facc15"); fg.addColorStop(.8, "#fef08a"); fg.addColorStop(1, "rgba(255,255,255,.1)");
-    c.fillStyle = fg; c.strokeStyle = "#1c1204"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(bx - bw, base + 6); c.quadraticCurveTo(bx - bw * .5, base - hh * .5, tx2, base - hh); c.quadraticCurveTo(bx + bw * .5, base - hh * .5, bx + bw, base + 6); c.closePath(); c.fill(); c.stroke();
-  }
-  // the ninja runs along the roofs and leaps every few seconds; every ~9 s a shadow-clone poof makes two copies
-  var run = 66, nx = ((t * run) % (w + 240)) - 120, jp = (t * run / 150) % 1, air = jp > .62 ? Math.sin((jp - .62) / .38 * Math.PI) : 0, ny = _fxRoofAt(nx, base) - air * 60, S = 1.7, ph = t * 12;
-  var cyc = t % 9, clones = cyc > 5.5 && cyc < 7.4 ? Math.sin((cyc - 5.5) / 1.9 * Math.PI) : 0;
-  if (clones > 0) { [[-90, -.08], [86, .06]].forEach(function (o, n) { var cxn = nx + o[0], cyn = _fxRoofAt(cxn, base); fxNinja(c, cxn, cyn, S * .95, t, ph + n * 1.4, 0, .85 * clones); if (cyc < 5.9 || cyc > 7.0) _fxPoof(c, cxn, cyn - 22, 26, cyc < 5.9 ? (cyc - 5.5) / .4 : (cyc - 7.0) / .4); }); }
+  // two ninja: the hero runs right and leaps, a rival in blue runs left; where they cross, their blades clash in a spark burst
+  var run = 66, S = 1.7, nx = ((t * run) % (w + 240)) - 120, jp = (t * run / 150) % 1, air = jp > .62 ? Math.sin((jp - .62) / .38 * Math.PI) : 0, ny = _fxRoofAt(nx, base) - air * 60;
+  var rx = w + 120 - ((t * 58) % (w + 240)), ry = _fxRoofAt(rx, base);
+  fxNinja(c, rx, ry, S * .95, t, -t * 12 + 2, 0, 1, "#3b82f6", "#93c5fd", -1);
+  var cyc = t % 9, clones = cyc > 5.5 && cyc < 7.4 ? Math.sin((cyc - 5.5) / 1.9 * Math.PI) : 0, ph = t * 12;
+  if (clones > 0) { [[-90], [86]].forEach(function (o, n) { var cxn = nx + o[0], cyn = _fxRoofAt(cxn, base); fxNinja(c, cxn, cyn, S * .95, t, ph + n * 1.4, 0, .85 * clones); if (cyc < 5.9 || cyc > 7.0) _fxPoof(c, cxn, cyn - 22, 26, cyc < 5.9 ? (cyc - 5.5) / .4 : (cyc - 7.0) / .4); }); }
   fxNinja(c, nx, ny, S, t, ph, air, 1);
-  // kunai thrown across every four seconds
+  var dd = Math.abs(nx - rx); if (dd < 44) { var ci = 1 - dd / 44, ccx2 = (nx + rx) / 2, ccy2 = Math.min(ny, ry) - 34; c.save(); c.translate(ccx2, ccy2); c.strokeStyle = "rgba(255,255,255," + ci + ")"; c.lineWidth = 2.6; c.lineCap = "round"; for (i = 0; i < 10; i++) { var ra = i / 10 * Math.PI * 2 + t * 9, r1 = 6 + (1 - ci) * 6, r2 = r1 + 14 + (i % 2) * 10; c.beginPath(); c.moveTo(Math.cos(ra) * r1, Math.sin(ra) * r1); c.lineTo(Math.cos(ra) * r2, Math.sin(ra) * r2); c.stroke(); }
+    c.strokeStyle = "rgba(147,197,253," + ci + ")"; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, 10 + (1 - ci) * 26, 0, 7); c.stroke(); c.fillStyle = "rgba(255,255,255," + ci + ")"; c.beginPath(); c.arc(0, 0, 6, 0, 7); c.fill(); c.restore(); }
+  // kunai thrown every four seconds
   var kp = ((t - 1.2) % 4) / 1.5; if (kp > 0 && kp < 1) { var kx = nx + 10 + kp * (w - nx + 80), ky = ny - 40 - Math.sin(kp * Math.PI) * 90; fxKunai(c, kx, ky, 1.5, -.12 + kp * .5, 46); }
-  // sparks, lightning and flash streaks
-  for (i = 0; i < 22; i++) { var p = (t * (.05 + _frnd(i) * .07) + _frnd(i + 7)) % 1, sx = cx + (_frnd(i + 2) - .5) * w * .95 + Math.sin(t * 2 + i) * 10, sy = base - p * (h * .7); c.fillStyle = "rgba(254,240,138," + (.8 * (1 - p)) + ")"; c.beginPath(); c.arc(sx, sy, 1.4 + _frnd(i + 5) * 2, 0, 7); c.fill(); }
-  var lp = (t % 3.4) / .35; if (lp < 1) { var lx = w * (.2 + .6 * _frnd(Math.floor(t / 3.4) + 3)), ly = top, a2 = 1 - lp; c.save(); c.shadowColor = "#facc15"; c.shadowBlur = 16; c.strokeStyle = "rgba(255,251,200," + a2 + ")"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(lx, ly);
-    for (i = 1; i < 9; i++) { lx += (_frnd(i + Math.floor(t / 3.4) * 7) - .5) * 60; ly = top + i * ((base - top) / 8.2); c.lineTo(lx, ly); } c.stroke(); c.restore(); }
-  for (i = 0; i < 3; i++) { var fp = (t * .5 + i * .33) % 1; if (fp < .16) { var u = fp / .16, fy = top + 70 + i * 190 + _frnd(i + 4) * 40, fx = -80 + u * (w + 160), fa = Math.sin(u * Math.PI); var lg = c.createLinearGradient(fx - 160, 0, fx, 0); lg.addColorStop(0, "rgba(250,204,21,0)"); lg.addColorStop(1, "rgba(255,251,200," + fa + ")"); c.strokeStyle = lg; c.lineWidth = 4; c.beginPath(); c.moveTo(fx - 160, fy); c.lineTo(fx, fy); c.stroke(); c.fillStyle = "rgba(255,255,255," + fa + ")"; c.beginPath(); c.arc(fx, fy, 3.4, 0, 7); c.fill(); } }
+  // fire-style jutsu: every ten seconds the hero spits a big fireball that streaks right, trailing flames
+  var fl = ((t - 4) % 10) / 1.9; if (fl > 0 && fl < 1) {
+    var lt = t - fl * 1.9, ox = ((lt * run) % (w + 240)) - 120 + 22, oy = _fxRoofAt(ox, base) - 34 * S, fx = ox + fl * (w + 160 - ox), fy = oy - Math.sin(fl * Math.PI) * 40, fr = 10 + fl * 30;
+    for (i = 0; i < 7; i++) { var tl = i / 7, tx2 = fx - tl * fr * 3.2, ty2 = fy + Math.sin(t * 20 + i * 2) * fr * .25 * tl, tr = fr * (1 - tl * .7); var tg = c.createRadialGradient(tx2, ty2, 0, tx2, ty2, tr); tg.addColorStop(0, "rgba(251,146,60," + (.8 * (1 - tl)) + ")"); tg.addColorStop(1, "rgba(220,38,38,0)"); c.fillStyle = tg; c.beginPath(); c.arc(tx2, ty2, tr, 0, 7); c.fill(); }
+    var bg = c.createRadialGradient(fx - fr * .2, fy - fr * .2, 0, fx, fy, fr); bg.addColorStop(0, "#fff7ae"); bg.addColorStop(.4, "#fb923c"); bg.addColorStop(1, "rgba(220,38,38,.9)"); c.fillStyle = bg; c.beginPath(); c.arc(fx, fy, fr, 0, 7); c.fill();
+    c.strokeStyle = "rgba(255,237,160,.9)"; c.lineWidth = 2.4; for (i = 0; i < 6; i++) { var fa = i / 6 * Math.PI * 2 + t * 6; c.beginPath(); c.moveTo(fx + Math.cos(fa) * fr * .9, fy + Math.sin(fa) * fr * .9); c.lineTo(fx + Math.cos(fa) * fr * 1.35, fy + Math.sin(fa) * fr * 1.35); c.stroke(); } }
 };
 
+/** A round white-and-teal dome house with windows, a door and a tiny glowing antenna (x = centre, y = ground, r = radius) */
+function fxNamekDome(c, x, y, r, t, seed) {
+  var g = c.createLinearGradient(0, y - r * 1.1, 0, y); g.addColorStop(0, "#f0fdfa"); g.addColorStop(.5, "#a7e8dc"); g.addColorStop(1, "#4fb8a6");
+  c.fillStyle = "#0b5e55"; c.beginPath(); c.arc(x, y, r + 2.4, Math.PI, 0); c.lineTo(x + r + 2.4, y); c.lineTo(x - r - 2.4, y); c.fill();
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, Math.PI, 0); c.lineTo(x + r, y); c.lineTo(x - r, y); c.closePath(); c.fill();
+  c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.ellipse(x - r * .35, y - r * .62, r * .22, r * .1, -.5, 0, 7); c.fill();
+  c.strokeStyle = "rgba(11,94,85,.45)"; c.lineWidth = 2; c.beginPath(); c.arc(x, y, r * .55, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+  for (var i = 0; i < 3; i++) { var wa = Math.PI * (1.28 + i * .22), wx = x + Math.cos(wa) * r * .74, wy = y + Math.sin(wa) * r * .74, lit = .55 + .45 * Math.max(0, Math.sin(t * 1.6 + seed + i * 1.7)); c.fillStyle = "rgba(16,92,120,.95)"; c.beginPath(); c.ellipse(wx, wy, r * .1, r * .13, 0, 0, 7); c.fill(); c.fillStyle = "rgba(190,242,255," + lit + ")"; c.beginPath(); c.ellipse(wx, wy, r * .06, r * .09, 0, 0, 7); c.fill(); }
+  c.fillStyle = "#0e5a6e"; c.beginPath(); c.moveTo(x - r * .16, y); c.lineTo(x - r * .16, y - r * .24); c.arc(x, y - r * .24, r * .16, Math.PI, 0); c.lineTo(x + r * .16, y); c.fill();
+  c.strokeStyle = "#0b5e55"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(x + r * .1, y - r * .98); c.lineTo(x + r * .1, y - r * 1.3); c.stroke();
+  var pl = .5 + .5 * Math.sin(t * 3 + seed), gl = c.createRadialGradient(x + r * .1, y - r * 1.32, 0, x + r * .1, y - r * 1.32, 12 + pl * 8); gl.addColorStop(0, "rgba(255,200,120,.95)"); gl.addColorStop(1, "rgba(255,160,60,0)"); c.fillStyle = gl; c.beginPath(); c.arc(x + r * .1, y - r * 1.32, 12 + pl * 8, 0, 7); c.fill();
+}
+/** A tall banded tower with a domed head and a ring around it */
+function fxNamekTower(c, x, y, hgt, t) {
+  var w2 = hgt * .13, g = c.createLinearGradient(x - w2, 0, x + w2, 0); g.addColorStop(0, "#7fd3c4"); g.addColorStop(.45, "#e6fffa"); g.addColorStop(1, "#4fb8a6");
+  c.fillStyle = "#0b5e55"; c.fillRect(x - w2 - 2, y - hgt, w2 * 2 + 4, hgt); c.fillStyle = g; c.fillRect(x - w2, y - hgt, w2 * 2, hgt);
+  c.strokeStyle = "rgba(11,94,85,.4)"; c.lineWidth = 2; for (var i = 1; i < 6; i++) { c.beginPath(); c.moveTo(x - w2, y - hgt * i / 6); c.lineTo(x + w2, y - hgt * i / 6); c.stroke(); }
+  c.fillStyle = "#0b5e55"; c.beginPath(); c.arc(x, y - hgt, w2 * 1.5 + 2, Math.PI, 0); c.fill(); c.fillStyle = "#c7f5ec"; c.beginPath(); c.arc(x, y - hgt, w2 * 1.5, Math.PI, 0); c.fill();
+  c.strokeStyle = "#0e7490"; c.lineWidth = 4; c.beginPath(); c.ellipse(x, y - hgt * .72, w2 * 2.4, w2 * .8, 0, 0, 7); c.stroke();
+  var pl = .5 + .5 * Math.sin(t * 2.4), gl = c.createRadialGradient(x, y - hgt - w2 * 1.9, 0, x, y - hgt - w2 * 1.9, 18 + pl * 8); gl.addColorStop(0, "rgba(254,240,138,.95)"); gl.addColorStop(1, "rgba(254,240,138,0)"); c.fillStyle = gl; c.beginPath(); c.arc(x, y - hgt - w2 * 1.9, 18 + pl * 8, 0, 7); c.fill();
+  c.strokeStyle = "#0b5e55"; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y - hgt - w2 * 1.4); c.lineTo(x, y - hgt - w2 * 1.9); c.stroke();
+}
+
 FX_SCENES.orbs = function (c, w, h, t, top) {
-  top = top || 0; var i;
+  top = top || 0; var i, base = h - FX_NAV;
   for (i = 0; i < 3; i++) _fxCloud(c, ((t * (5 + i * 2) + i * 170) % (w + 220)) - 90, top + 20 + i * 150, .9 + i * .12, "rgba(255,255,255,.12)");
-  // golden aura at the bottom: spiky flames that sway and pulse
-  var cx = w / 2, by = h - FX_NAV + 6, pulse = 1 + Math.sin(t * 3) * .08;
-  for (i = 0; i < 11; i++) { var k = (i - 5) / 5, bw = 26, hh = (110 - Math.abs(k) * 60) * pulse + Math.sin(t * 6 + i * 1.7) * 14, bx = cx + k * 150, tipx = bx + Math.sin(t * 5 + i) * 14 + k * 24;
-    var fg = c.createLinearGradient(0, by, 0, by - hh); fg.addColorStop(0, "rgba(251,191,36,.85)"); fg.addColorStop(.6, "rgba(253,224,71,.55)"); fg.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = fg;
-    c.beginPath(); c.moveTo(bx - bw, by); c.quadraticCurveTo(bx - bw * .4, by - hh * .55, tipx, by - hh); c.quadraticCurveTo(bx + bw * .4, by - hh * .55, bx + bw, by); c.closePath(); c.fill(); }
+  // three small suns in the green sky
+  [[.2, .1, 14], [.52, .06, 10], [.8, .13, 18]].forEach(function (u, n) { var sx = w * u[0], sy = top + 30 + u[1] * h * .3 + Math.sin(t * .6 + n) * 3, g = c.createRadialGradient(sx, sy, 0, sx, sy, u[2] * 3); g.addColorStop(0, "rgba(255,255,230,.7)"); g.addColorStop(1, "rgba(255,255,230,0)"); c.fillStyle = g; c.beginPath(); c.arc(sx, sy, u[2] * 3, 0, 7); c.fill(); c.fillStyle = "#fffbe0"; c.beginPath(); c.arc(sx, sy, u[2] * .55, 0, 7); c.fill(); });
+  // blue grass hills and the domed houses of a quiet village
+  c.fillStyle = "#1d5fb5"; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 10; x += 10) c.lineTo(x, base - 24 + Math.sin(x / 60) * 8); c.lineTo(w, h); c.closePath(); c.fill();
+  c.fillStyle = "#2a78d6"; c.beginPath(); c.moveTo(0, h); for (x = 0; x <= w + 10; x += 10) c.lineTo(x, base - 6 + Math.sin(x / 45 + 1) * 6); c.lineTo(w, h); c.closePath(); c.fill();
+  fxNamekTower(c, w * .36, base - 6, 150, t); fxNamekDome(c, w * .16, base - 6, 58, t, 0); fxNamekDome(c, w * .56, base - 6, 40, t, 2); fxNamekDome(c, w * .84, base - 6, 66, t, 4);
   // seven orbs drifting, each with its stars
   for (i = 0; i < 7; i++) { var ph = t * .25 + i * .9, ox = w * (.1 + i * .13) + Math.sin(ph) * 10, oy = top + 70 + (i % 4) * 118 + Math.sin(t * 1.4 + i) * 14; fxOrb(c, ox, oy, 15, i + 1, t + i); }
-  // two golden-yellow clouds carrying along: a big one in front, a small one further back, bobbing and shedding puffs
-  [[.9, 46, 150, 22, 1.05], [.55, 24, 80, 14, .6]].forEach(function (L, n) {
-    var speed = L[2] * .5 * (n ? .55 : 1), x = ((t * speed + n * 210) % (w + 300)) - 130, y = Math.max(top + 50, h * (n ? .3 : .52)) + Math.sin(t * 1.3 + n) * 12;
-    _fxGoldCloud(c, x, y, L[4], t + n * 2);
+  // two golden clouds, each dragging a vapour trail along its own path like a jet
+  [{ s: 1.05, spd: 75, off: 0, yf: .52 }, { s: .6, spd: 41, off: 210, yf: .3 }].forEach(function (L, n) {
+    var pos = function (tau) { var xx = ((tau * L.spd + L.off) % (w + 320)) - 140; return [xx, Math.max(top + 70, h * L.yf) + Math.sin(tau * 1.3 + n) * 12 + Math.sin(tau * 2.2) * 3 * L.s]; };
+    var cur = pos(t), trail = []; for (var k = 0; k < 30; k++) { var pp = pos(t - k * .075); if (pp[0] > cur[0] + 4) break; trail.push([pp[0] - cur[0], pp[1] - cur[1]]); }
+    _fxGoldCloud(c, cur[0], cur[1], L.s, t, trail);
   });
-  for (i = 0; i < 18; i++) { var tw = Math.max(0, Math.sin(t * 2 + i * 1.9)); c.fillStyle = "rgba(255,255,255," + tw * .8 + ")"; c.fillRect(_frnd(i + 1) * w, _frnd(i + 6) * (h - 200), 2.4, 2.4); }
+  for (i = 0; i < 18; i++) { var tw = Math.max(0, Math.sin(t * 2 + i * 1.9)); c.fillStyle = "rgba(255,255,255," + tw * .8 + ")"; c.fillRect(_frnd(i + 1) * w, top + 10 + _frnd(i + 6) * (h * .45), 2.4, 2.4); }
 };
 
 /** An aggressive pirate galleon: raked bow with a ram spike and a snarling figurehead, ragged crimson-black sails with a skull, red pennants,
