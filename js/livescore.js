@@ -25,7 +25,7 @@ var LS_THEMES = [
   ["Christmas", "#b91c1c", "#ef4444", "#166534", "#22c55e"],
   ["Chinese New Year", "#dc2626", "#f87171", "#b45309", "#fcd34d"],
   ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"],
-  ["Golden Ninja", "#f59e0b", "#fde047", "#1c1917", "#57534e"],
+  ["Ninja Village", "#ea580c", "#fb923c", "#1e3a8a", "#3b82f6"],
   ["Dragon Orbs", "#d97706", "#fcd34d", "#1d4ed8", "#60a5fa"],
   ["Pirate Seas", "#dc2626", "#f87171", "#1d4ed8", "#fbbf24"],
   ["Soul Reaper", "#ea580c", "#fb923c", "#18181b", "#52525b"]

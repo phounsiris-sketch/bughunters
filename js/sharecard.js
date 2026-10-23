@@ -6,7 +6,7 @@ var SC_THEMES = {
   halloween: { name: "spHalloween", bg: ["#0f0826", "#1b0f45", "#33176e"], card: "rgba(37,22,80,.82)", edge: "#7a4fd0", text: "#f6f0ff", dim: "#d3c5ee", accent: "#fdba74", pill: "#c2410c" },
   christmas: { name: "spChristmas", bg: ["#05160b", "#0c2e1b", "#14482c"], card: "rgba(20,61,38,.84)", edge: "#4aa571", text: "#f4fff6", dim: "#cfe8d6", accent: "#fde68a", pill: "#b91c1c" },
   cny: { name: "spCny", bg: ["#1c0303", "#4a0a0a", "#7a1212"], card: "rgba(79,16,16,.84)", edge: "#e0a43a", text: "#fff7e6", dim: "#f5d9b0", accent: "#fcd34d", pill: "#b91c1c" },
-  ninja: { name: "spNinja", bg: ["#050301", "#140e03", "#2a1a04"], card: "rgba(36,26,8,.88)", edge: "#facc15", text: "#fffbea", dim: "#fde68a", accent: "#facc15", pill: "#b45309" },
+  ninja: { name: "spNinja", bg: ["#060a20", "#101c55", "#2a1a3c"], card: "rgba(23,35,90,.84)", edge: "#fb923c", text: "#fff7ed", dim: "#fed7aa", accent: "#fb923c", pill: "#c2410c" },
   orbs: { name: "spOrbs", bg: ["#0a3b3f", "#137a6c", "#25a07c"], card: "rgba(16,74,152,.82)", edge: "#fbbf24", text: "#ffffff", dim: "#dbeafe", accent: "#fbbf24", pill: "#c2410c" },
   pirate: { name: "spPirate", bg: ["#040d24", "#0a2152", "#12399a"], card: "rgba(19,53,115,.86)", edge: "#fbbf24", text: "#fff8e7", dim: "#e7ddc2", accent: "#fbbf24", pill: "#dc2626" },
   reaper: { name: "spReaper", bg: ["#050508", "#0c0c14", "#161620"], card: "rgba(27,27,36,.88)", edge: "#a1a1aa", text: "#fafafa", dim: "#d4d4d8", accent: "#fb923c", pill: "#c2410c" },
