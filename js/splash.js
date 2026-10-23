@@ -33,7 +33,11 @@
     ninja:    { hot: [251, 146, 60], hot2: [186, 215, 255], stone: [10, 16, 51], deep: [5, 8, 28] },
     orbs:     { hot: [251, 191, 36], hot2: [190, 242, 255], stone: [10, 59, 63], deep: [4, 28, 32] },
     pirate:   { hot: [220, 38, 38], hot2: [253, 224, 120], stone: [7, 22, 52], deep: [3, 10, 28] },
-    reaper:   { hot: [251, 146, 60], hot2: [245, 245, 245], stone: [12, 12, 18], deep: [4, 4, 8] }
+    reaper:   { hot: [251, 146, 60], hot2: [245, 245, 245], stone: [12, 12, 18], deep: [4, 4, 8] },
+    kitty:    { hot: [244, 114, 182], hot2: [252, 231, 243], stone: [74, 24, 51], deep: [34, 10, 24] },
+    doraemon: { hot: [253, 224, 71], hot2: [191, 219, 254], stone: [11, 74, 158], deep: [6, 34, 84] },
+    valentine: { hot: [251, 113, 133], hot2: [254, 205, 211], stone: [74, 15, 32], deep: [34, 6, 14] },
+    jujutsu:  { hot: [167, 139, 250], hot2: [125, 211, 252], stone: [15, 11, 34], deep: [5, 4, 12] }
   };
   function pickPal() {
     var g = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };

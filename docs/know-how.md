@@ -1439,3 +1439,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Icons that sit inside a button, chip, tab, badge or their own coloured tile (`.nav-row-ico`, `.nav-card-icon`, `.hl-ico`, `.empty-icon`, ...) get no second plate: CSS block at the end of styles.css ("v190") strips plate/shadow/size and keeps the plain glyph in the text colour. If a new container shows a plate inside a plate, add its class to that selector list.
 - Controls (back, chevron, plus, close, search, ...) and icons under 14px stay plain in every style, as before.
 - Not checked on real phones: how each style looks inside every small control. Look at Settings, Stats, Polls, Payments first.
+
+
+## v191 - four more special themes
+
+- New specials in `SPECIALS` (js/app.js): `kitty` (Kitty Pink), `doraemon` (Sky Pocket), `valentine` (date window 02-07..02-15, offered on Home), `jujutsu` (Cursed Night). Each has: CSS block at the end of styles.css, EN + LA texts (`spX`, `spXSub`, `spXTitle`), live-score colour set (`LS_THEMES` 14-17 + `LS_SPECIAL_IDX`), share-card palette (`SC_THEMES`, also the id list and the fx regexp), splash palette, Home card emoji, and an animated canvas scene in js/fx.js (`FX_SCENES.kitty/doraemon/valentine/jujutsu`).
+- Art is original: generic bows, hearts, bells, propellers, a door, talismans, a torii gate, cursed-energy ribbons. No characters or logos; the franchise names only appear in the "X style" subtitle.
+- New fx helpers: `fxHeart`, `fxBow`, `fxSparkle`, `fxBell`, `fxCopter`, `fxTalisman`.
+- Not checked: contrast audit (`tools/contrast`) on the new palettes, animation speed on real phones, Lao wording.
