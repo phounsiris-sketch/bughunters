@@ -55,6 +55,12 @@ assert.strictEqual(ctx.healthRangeSummary(ws, ctx.healthRangeBounds("week", -1, 
 var yr = ctx.healthRangeSummary(ws, ctx.healthRangeBounds("year", 0, new Date(2026, 9, 23))); assert.strictEqual(yr.buckets.length, 12); assert.strictEqual(yr.buckets[9].min, mo.totalMin, "October bucket");
 assert.strictEqual(ctx.healthRangeSummary(ws, ctx.healthRangeBounds("week", 3, new Date(2026, 9, 23))).sessions, 0);
 
+// the workout card lives on the Dashboard only, no longer inside a session
+var statsSrc = fs.readFileSync("js/stats.js", "utf8"), dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
+assert.ok(statsSrc.indexOf("healthCardHtml") < 0 && statsSrc.indexOf("healthWorkoutCardHtml") < 0, "the session Games tab no longer shows the workout card");
+assert.ok(dashSrc.indexOf("healthLatestCardHtml") > 0, "the Dashboard shows my latest workout");
+assert.ok(fs.readFileSync("js/home.js", "utf8").indexOf("healthLatestCardHtml") < 0, "not on Home");
+
 // rules and texts
 assert.ok(/function healthOk\(d\)/.test(rules) && /allow write: if isOwner\(uid\) && healthOk\(request\.resource\.data\)/.test(rules), "userPrivate rules bound the health fields");
 var uiSrc = fs.readFileSync("js/health-ui.js", "utf8");

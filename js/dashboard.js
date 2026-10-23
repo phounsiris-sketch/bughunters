@@ -92,6 +92,7 @@ function _renderDashboardInner() {
 
   if (dashTab === "leaders") {
     if (typeof healthDashCardHtml === "function") html += healthDashCardHtml();
+    if (typeof healthLatestCardHtml === "function") html += healthLatestCardHtml();
     html += _renderLeaderboard();
     container.innerHTML = html;
     uiMotion(container, dashTab + "|" + dashPeriod + "|" + (dashActivityUser || ""));

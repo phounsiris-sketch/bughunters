@@ -171,3 +171,15 @@ function homeHealthCardHtml() {
     '<div class="hs-big">' + _hmm(sum.totalMin) + ' <small>' + t("healthThisWeek") + '</small></div><div class="hs-health-bars" aria-hidden="true">' + bars + '</div>' +
     '<div class="hs-sub">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + ' · ' : '') + sum.sessions + ' ' + t("healthSessions") + '</div></button>';
 }
+
+/** Dashboard: my most recent workout (the same estimate card that used to sit in a session); nothing until I have a timed game */
+function healthLatestCardHtml() {
+  if (!currentUser) return "";
+  if (typeof _myPrivate !== "undefined" && _myPrivate === null) {   // my private record is not loaded yet: load it once, then redraw the Dashboard
+    loadMyHealth(function () { if (typeof currentPage !== "undefined" && currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard(); });
+    return "";
+  }
+  var w = myWorkouts()[0];
+  if (!w) return "";
+  return healthWorkoutCardHtml(w.d, w.sid, _fmtD(new Date(w.date + "T00:00:00"), { weekday: "short", day: "numeric", month: "short" }));
+}

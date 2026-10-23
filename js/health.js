@@ -200,24 +200,16 @@ function loadMyHealth(cb) {
   fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) { _myPrivate = doc.exists ? doc.data() : {}; cb(); }).catch(function () { _myPrivate = {}; cb(); });
 }
 
-/** The estimate card on a session's Games tab (mine only) */
-function healthCardHtml(s) {
-  if (!currentUser || !(s.players || []).length) return "";
-  if (typeof _myPrivate !== "undefined" && _myPrivate === null) {   // my private record is not loaded yet: load it once, then redraw the Games tab
-    loadMyHealth(function () { if (typeof currentPage !== "undefined" && currentPage === "session-detail" && typeof renderSessionGamesTab === "function" && sessionTab === "games") renderSessionGamesTab(); });
-    return "";
-  }
-  var h = myHealth(), me = currentUser.uid, age = _healthAge();
-  var d = healthForSession(h, age, me, sessionMatches(s.id), s);
-  if (!d) return "";
+/** The "My workout" card for one finished workout (d from healthForSession), shown on the Dashboard only */
+function healthWorkoutCardHtml(d, sid, dateLabel) {
   var fmtM = function (m) { return Math.floor(m / 60) ? Math.floor(m / 60) + " " + t("hShort") + " " + (m % 60) + " " + t("minShort") : m + " " + t("minShort"); };
   var tile = function (v, l, hot) { return '<div class="hc-tile' + (hot ? ' hot' : '') + '"><b>' + v + '</b><small>' + l + '</small></div>'; };
-  var html = '<div class="card health-card"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthMyWorkout") + ' <span class="hc-est">' + t("healthEstimate") + '</span></div><div class="hc-tiles">' +
+  var html = '<div class="card health-card"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthLatestWorkout") + (dateLabel ? ' <span class="hc-when">' + escapeHtml(dateLabel) + '</span>' : '') + ' <span class="hc-est">' + t("healthEstimate") + '</span></div><div class="hc-tiles">' +
     tile(fmtM(d.onCourt), t("healthOnCourt").replace("{n}", d.segs.length)) +
     (d.kcal ? tile(d.kcal.active, t("healthKcal")) : '') + (d.pts ? tile(d.avg, t("healthAvgBpm")) + tile(d.peak, t("healthPeakBpm"), true) : '') +
     (d.zones ? tile(d.zoneMin[2] + d.zoneMin[3] + d.zoneMin[4] + " " + t("minShort"), t("healthZ3Up")) : '') + '</div>';
   if (d.pts) html += healthChartSvg(d) + '<div class="hc-note">' + (d.restAssumed ? t("healthRestAssumed") + ' ' : '') + t("healthNote") + '</div>';
-  html += '<button type="button" class="btn-secondary" onclick="openWorkout(\'' + jsq(s.id) + '\')">' + icon("chart", 16) + ' ' + t("healthSeeWorkout") + '</button>';
+  html += '<button type="button" class="btn-secondary" onclick="openWorkout(\'' + jsq(sid) + '\')">' + icon("chart", 16) + ' ' + t("healthSeeWorkout") + '</button>';
   if (!d.kcal || !d.zones) html += '<button type="button" class="btn-secondary" onclick="openPfSub(\'health\')">' + icon("user", 16) + ' ' + t("healthAddDetails") + '</button>';
   return html + '</div>';
 }
