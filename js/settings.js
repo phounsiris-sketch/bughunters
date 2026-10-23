@@ -141,6 +141,7 @@ function _renderProfileTab() {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
     html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
+    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("share", 16) + ' ' + t("shareMyCard") + '</button>';
   }
   html += '</div>';
 
