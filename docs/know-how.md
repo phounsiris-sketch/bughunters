@@ -1266,3 +1266,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Home first-open card (`_homeStartCard`): 3 steps, hidden once a match exists or the user taps hide (`localStorage onbHidden`).
 - Removed dead code: `momentsHtml`, `_homeName`, `makeRecap`, `_detailLine`, `_monthLabel`, `dbGetSession`, `.loc-actions` CSS.
 - Join-request notice to admins already exists in `push/events.js` (review finding was stale).
+
+## v156 — choices look tappable
+- Bug: light theme inherited the dark `--poll-option-bg` (translucent navy), so vote buttons looked grey and disabled.
+- New tokens `--control-border` (3:1 edge against the card) and `--choice-bg`. Resting choice = white/surface fill + visible edge; selected = solid fill + white text (+ check on votes).
+- Same edge applied to `.chip`, `.period-btn`, `.seg-btn`, `.level-opt`, `.day-chip`.
+- Poll shows "Tap your answer to vote" until the user votes (`voteTapHint`).

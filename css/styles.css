@@ -5729,3 +5729,23 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 .onb-row i { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-style: normal; font-size: 12px; font-weight: 700; }
 .onb-row span { flex: 1; }
 .onb-hide { display: block; margin: 6px 0 0 auto; min-height: 36px; background: none; border: 0; color: var(--text-dim); font: inherit; font-size: 12px; cursor: pointer; }
+
+/* ===== v156: choices must look tappable =====
+   Rule: every choice has a visible edge (3:1 against its card) and a clear
+   resting state; the selected one is a solid fill with white text + a check. */
+:root { --control-border: #5f87b8; --choice-bg: var(--surface); }
+[data-theme="light"] { --control-border: #6b7c93; --choice-bg: #ffffff; --poll-option-bg: #ffffff; }
+.vote-seg-btn { background: var(--choice-bg); border: 2px solid var(--control-border); color: var(--text); min-height: 60px; box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+.vote-seg-btn em { color: var(--text-secondary); }
+.vote-seg-btn:hover { border-color: var(--primary); }
+.vote-seg-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: none; }
+.vote-seg-btn.on em { color: rgba(255,255,255,.92); }
+.vote-seg-btn.on.a1, .vote-seg-btn.on.a2 { background: var(--orange); border-color: var(--orange); color: #fff; }
+[data-theme="dark"] .vote-seg-btn.on.a1, [data-theme="dark"] .vote-seg-btn.on.a2, :root:not([data-theme="light"]) .vote-seg-btn.on.a1, :root:not([data-theme="light"]) .vote-seg-btn.on.a2 { color: #1a1204; }
+:root:not([data-theme="light"]) .vote-seg-btn.on.a1 em, :root:not([data-theme="light"]) .vote-seg-btn.on.a2 em { color: rgba(26,18,4,.85); }
+.vote-seg-btn.on { transform: none; }
+.chip:not(.active), .period-btn:not(.active), .seg-btn:not(.active), .level-opt:not(.active), .day-chip:not(.on) { border-color: var(--control-border); }
+.chip:not(.active), .period-btn:not(.active) { color: var(--text); }
+.chip.active, .period-btn.active, .seg-btn.active, .day-chip.on { box-shadow: none; font-weight: 700; }
+.vote-hint { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.vote-hint + .vote-seg { margin-top: 6px; }
