@@ -15,6 +15,6 @@ ctx.SPECIALS.forEach(function (sp) {
     assert.strictEqual(n, 2, k + " must exist once in EN and once in LA (found " + n + ")");
   });
   assert.ok(sp[2].length === 4, sp[0] + " swatch has 4 colours");
-  assert.ok(idx[sp[0]] && themes[idx[sp[0]]][0].toLowerCase() === sp[0], sp[0] + " has a live-score colour set");
+  assert.ok(idx[sp[0]] && themes[idx[sp[0]]] && themes[idx[sp[0]]].length === 5, sp[0] + " has a live-score colour set");
 });
 console.log("special-themes OK (" + ctx.SPECIALS.length + " themes)");

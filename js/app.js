@@ -45,7 +45,7 @@ var currentLightPalette = _savedPalette("paletteLight", LIGHT_PALETTES, "mint");
 var SPECIALS = [
   ["halloween", "spHalloween", ["#120a2e", "#251650", "#c2410c", "#fdba74"], "#1b0f45", "bats", 3, ["10-20", "11-02"]],
   ["christmas", "spChristmas", ["#07200f", "#143d26", "#b91c1c", "#fde68a"], "#0c2e1b", "snow", 26, ["12-15", "01-02"]],
-  ["songkran", "spSongkran", ["#052f4a", "#0a4d74", "#0369a1", "#fcd34d"], "#0a5a85", "bubbles", 14, ["04-10", "04-20"]],
+  ["cny", "spCny", ["#2a0606", "#4f1010", "#b91c1c", "#fcd34d"], "#4a0a0a", "lanterns", 10, ["01-20", "02-25"]],
   ["arcade", "spArcade", ["#0a0418", "#1c0b3d", "#a21caf", "#22d3ee"], "#160630", "sparks", 18, null]
 ];
 var currentSpecial = _savedPalette("special", SPECIALS, "");
@@ -61,6 +61,7 @@ function _fxLayer(sp) {
   for (var i = 0; i < sp[5]; i++) {
     var r = (i * 37 % 100), d = (i * 53 % 17), dur = 9 + (i * 29 % 12), sz = 4 + (i * 13 % 9);
     if (sp[4] === "snow") html += '<i style="left:' + r + '%;animation-duration:' + dur + 's;animation-delay:-' + d + 's;width:' + (3 + sz % 5) + 'px;height:' + (3 + sz % 5) + 'px"></i>';
+    else if (sp[4] === "lanterns") html += '<i style="left:' + r + '%;width:' + (22 + sz * 2) + 'px;height:' + Math.round((22 + sz * 2) * 1.5) + 'px;animation-duration:' + (dur + 12) + 's;animation-delay:-' + d + 's"></i>';
     else if (sp[4] === "bubbles") html += '<i style="left:' + r + '%;width:' + (8 + sz * 2) + 'px;height:' + (8 + sz * 2) + 'px;animation-duration:' + (dur + 6) + 's;animation-delay:-' + d + 's"></i>';
     else if (sp[4] === "sparks") html += '<i style="left:' + r + '%;top:' + ((i * 61) % 90) + '%;animation-duration:' + (2 + dur % 4) + 's;animation-delay:-' + d + 's"></i>';
     else html += "<i></i>";
@@ -473,7 +474,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v163"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v166"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
