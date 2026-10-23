@@ -1339,3 +1339,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Dragon** (`fxDragon`): 38 body segments in a travelling wave, gold scales and dorsal fins, two walking legs, tail tuft, head with chewing jaw, teeth, blinking eye, flowing mane, waving whiskers and horns. **Lion** (`fxLion`): bouncing head, rippling mane, blinking eyes, moving brows and ears, chewing mouth, swaying beard and pom-pom, cloth body on hopping legs. **Lantern** (`fxLantern`): glow, swing and swinging tassels. The share card draws these same functions as still poses.
 - Pauses when the screen is hidden or the live score is open; draws a single still frame when the phone asks for reduced motion. The old floating DOM particles and the static dragon, lion, lanterns and arcade sun in the CSS background are gone.
 - `tests/special-themes.test.js` checks every special theme has a scene and that the canvas stays behind the app.
+
+## v169 — Rankings card alignment, solid app bar
+- Rankings "my card" top (`.mh-top`) is a grid: photo, name (one line, ellipsis, never breaks "MartinyBob" into two lines), share and help buttons on the right; level badge, rank and rank change on one row under the name; the rating gets its own row below with a thin divider. The three fact chips and the progress button share one even row.
+- The app bar is opaque in every special theme (it was 55-75% see-through, so scrolled cards smeared through the title and buttons, which looked like blur on iOS).
