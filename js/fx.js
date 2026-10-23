@@ -222,27 +222,27 @@ function fxGhost(c, x, y, s, t) {
 /* ───────────── scenes ───────────── */
 
 var FX_SCENES = {
-  halloween: function (c, w, h, t) {
-    var i, g = c.createRadialGradient(w - 50, 38, 0, w - 50, 38, 96 + Math.sin(t * 1.4) * 8); g.addColorStop(0, "rgba(253,186,116,.3)"); g.addColorStop(1, "rgba(253,186,116,0)"); c.fillStyle = g; c.fillRect(w - 160, 0, 160, 140);
+  halloween: function (c, w, h, t, top) {
+    top = top || 0; var i, my = top + 38, g = c.createRadialGradient(w - 50, my, 0, w - 50, my, 96 + Math.sin(t * 1.4) * 8); g.addColorStop(0, "rgba(253,186,116,.3)"); g.addColorStop(1, "rgba(253,186,116,0)"); c.fillStyle = g; c.fillRect(w - 160, top, 160, 140);
     for (i = 0; i < 16; i++) { var p = (t * (.02 + _frnd(i) * .03) + _frnd(i + 9)) % 1, ex = _frnd(i + 3) * w + Math.sin(t + i) * 14, ey = h - FX_NAV - p * (h - FX_NAV); c.fillStyle = "rgba(251,146,60," + (.25 + .5 * Math.abs(Math.sin(t * 2 + i))) * (1 - p) + ")"; c.beginPath(); c.arc(ex, ey, 1.6 + _frnd(i + 5) * 1.6, 0, 7); c.fill(); }
     fxGhost(c, w * (.12 + .76 * ((t / 34) % 1)), h * .46 + Math.sin(t * 1.1) * 30, 1.1, t);
-    for (i = 0; i < 3; i++) { var sp = 52 + i * 14, bx = ((t * sp + i * 210) % (w + 200)) - 100, by = 86 + i * 70 + Math.sin(t * 1.7 + i * 2) * 26; fxBat(c, bx, by, .8 - i * .12, Math.sin(t * 14 + i * 1.3) * .9); }
+    for (i = 0; i < 3; i++) { var sp = 52 + i * 14, bx = ((t * sp + i * 210) % (w + 200)) - 100, by = top + 50 + i * 70 + Math.sin(t * 1.7 + i * 2) * 26; fxBat(c, bx, by, .8 - i * .12, Math.sin(t * 14 + i * 1.3) * .9); }
   },
-  christmas: function (c, w, h, t) {
-    var i, cols = ["#ef4444", "#fde68a", "#4ade80", "#60a5fa"];
-    c.strokeStyle = "rgba(2,20,10,.9)"; c.lineWidth = 2; c.beginPath(); for (var x = 0; x <= w; x += 6) { var y = 10 + Math.abs(Math.sin(x / 110 * Math.PI / 1)) * 14; if (x) c.lineTo(x, y); else c.moveTo(x, y); } c.stroke();
-    for (i = 0, x = 16; x < w; x += 34, i++) { var by = 10 + Math.abs(Math.sin(x / 110 * Math.PI)) * 14 + 6, tw = .45 + .55 * Math.max(0, Math.sin(t * 2.6 + i * 1.3)); c.fillStyle = cols[i % 4]; c.globalAlpha = .45 + tw * .55; c.beginPath(); c.ellipse(x, by, 4.2, 6.2, 0, 0, 7); c.fill(); var g = c.createRadialGradient(x, by, 0, x, by, 20); g.addColorStop(0, cols[i % 4]); g.addColorStop(1, "rgba(0,0,0,0)"); c.globalAlpha = tw * .35; c.fillStyle = g; c.fillRect(x - 20, by - 20, 40, 40); c.globalAlpha = 1; }
+  christmas: function (c, w, h, t, top) {
+    top = top || 0; var i, cols = ["#ef4444", "#fde68a", "#4ade80", "#60a5fa"];
+    c.strokeStyle = "rgba(2,20,10,.9)"; c.lineWidth = 2; c.beginPath(); for (var x = 0; x <= w; x += 6) { var y = top + 10 + Math.abs(Math.sin(x / 110 * Math.PI / 1)) * 14; if (x) c.lineTo(x, y); else c.moveTo(x, y); } c.stroke();
+    for (i = 0, x = 16; x < w; x += 34, i++) { var by = top + 10 + Math.abs(Math.sin(x / 110 * Math.PI)) * 14 + 6, tw = .45 + .55 * Math.max(0, Math.sin(t * 2.6 + i * 1.3)); c.fillStyle = cols[i % 4]; c.globalAlpha = .45 + tw * .55; c.beginPath(); c.ellipse(x, by, 4.2, 6.2, 0, 0, 7); c.fill(); var g = c.createRadialGradient(x, by, 0, x, by, 20); g.addColorStop(0, cols[i % 4]); g.addColorStop(1, "rgba(0,0,0,0)"); c.globalAlpha = tw * .35; c.fillStyle = g; c.fillRect(x - 20, by - 20, 40, 40); c.globalAlpha = 1; }
     for (i = 0; i < 46; i++) { var z = .4 + _frnd(i) * .9, sx = ((_frnd(i + 7) * (w + 60)) + Math.sin(t * .8 + i) * 22 * z - 30), sy = ((t * (22 + z * 34) + _frnd(i + 2) * h) % (h + 20)) - 10; c.fillStyle = "rgba(255,255,255," + (.45 + z * .4) + ")"; c.beginPath(); c.arc(sx, sy, 1.4 + z * 2.2, 0, 7); c.fill(); }
   },
-  cny: function (c, w, h, t) {
-    var i, ground = h - FX_NAV;
-    [[34, 64], [98, 48], [w - 98, 52], [w - 34, 68]].forEach(function (l, k) { fxLantern(c, l[0], 0, l[1] * 1.15, Math.sin(t * 1.25 + k * 1.7) * .1, true); });
+  cny: function (c, w, h, t, top) {
+    top = top || 0; var i, ground = h - FX_NAV;
+    [[34, 64], [98, 48], [w - 98, 52], [w - 34, 68]].forEach(function (l, k) { fxLantern(c, l[0], top, l[1] * 1.15, Math.sin(t * 1.25 + k * 1.7) * .1, true); });
     for (i = 0; i < 26; i++) { var sx = _frnd(i) * w + Math.sin(t + i) * 10, sy = ((t * (14 + _frnd(i + 3) * 18) + _frnd(i + 8) * h) % (h + 10)); c.fillStyle = "rgba(252,211,77," + (.25 + .6 * Math.abs(Math.sin(t * 3 + i))) + ")"; c.beginPath(); c.arc(sx, sy, 1.2 + _frnd(i + 4) * 1.8, 0, 7); c.fill(); }
     var S = Math.min(1.45, w / 300), L = 38 * 13 * S + 260, hx = ((t * 46) % (w + L + 140)) - 60;
     fxDragon(c, hx, ground - 100 - 34 * S, S, t);
     fxLion(c, Math.min(120, w * .27), ground - 4, Math.min(112, w * .27), t);
   },
-  arcade: function (c, w, h, t) {
+  arcade: function (c, w, h, t, top) {
     var i, yH = h - 210, sx = w / 2, R = 76 + Math.sin(t * 2) * 2;
     c.save(); c.beginPath(); c.rect(0, 0, w, yH); c.clip();
     var sg = c.createLinearGradient(0, yH - R, 0, yH); sg.addColorStop(0, "#fde047"); sg.addColorStop(.55, "#fb7185"); sg.addColorStop(1, "#c026d3");
@@ -254,7 +254,7 @@ var FX_SCENES = {
     for (i = -9; i <= 9; i++) { c.beginPath(); c.moveTo(sx + i * 12, yH); c.lineTo(sx + i * (w / 7.5), h); c.stroke(); }
     for (i = 0; i < 9; i++) { var f = ((i + t * .45) % 9) / 9, y = yH + f * f * (h - yH); c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
     for (i = 0; i < 20; i++) { var tw = Math.max(0, Math.sin(t * (1.5 + _frnd(i) * 2) + i * 2)); c.fillStyle = "rgba(34,211,238," + tw + ")"; c.shadowColor = "#e879f9"; c.shadowBlur = 8; c.fillRect(_frnd(i + 1) * w, _frnd(i + 4) * (yH - 40), 2.4, 2.4); } c.shadowBlur = 0;
-    var ss = (t % 9) / 1.4; if (ss < 1) { var qx = w * (.2 + ss * .6), qy = 60 + ss * 120; c.strokeStyle = "rgba(255,255,255," + (1 - ss) + ")"; c.lineWidth = 2; c.beginPath(); c.moveTo(qx, qy); c.lineTo(qx - 50, qy - 24); c.stroke(); }
+    var ss = (t % 9) / 1.4; if (ss < 1) { var qx = w * (.2 + ss * .6), qy = (top || 0) + 30 + ss * 120; c.strokeStyle = "rgba(255,255,255," + (1 - ss) + ")"; c.lineWidth = 2; c.beginPath(); c.moveTo(qx, qy); c.lineTo(qx - 50, qy - 24); c.stroke(); }
   }
 };
 
@@ -282,19 +282,31 @@ function fxOrb(c, x, y, r, stars, t) {
 }
 function _fxCloud(c, x, y, s, col) { c.fillStyle = col; c.beginPath(); c.arc(x, y, 14 * s, 0, 7); c.arc(x + 16 * s, y - 6 * s, 18 * s, 0, 7); c.arc(x + 36 * s, y, 15 * s, 0, 7); c.arc(x + 18 * s, y + 6 * s, 16 * s, 0, 7); c.fill(); }
 
-/** A golden-yellow cloud that carries along: soft swirled puffs, a curling tail and little puffs falling behind it */
+/** A flat cartoon golden cloud: bumpy lobes with darker crescents under each, a few nicks, and a long curling tail that trails behind
+    while it flies right. (x, y) = centre of the body, s = size, t = seconds. */
 function _fxGoldCloud(c, x, y, s, t) {
-  var bob = Math.sin(t * 2.2) * 3 * s;
-  for (var i = 0; i < 5; i++) { var p = (t * .8 + i * .2) % 1; c.fillStyle = "rgba(253,224,71," + (.4 * (1 - p)) + ")"; c.beginPath(); c.arc(x - 30 * s - p * 80 * s, y + 14 * s + p * 8 * s + bob, (7 + (1 - p) * 8) * s, 0, 7); c.fill(); }
-  var puffs = [[0, 0, 26], [34, -10, 30], [68, 0, 26], [34, 10, 28], [-18, 10, 18], [88, 8, 18]];
-  c.save(); c.translate(x, y + bob);
-  puffs.forEach(function (p) { var g = c.createRadialGradient((p[0] - 6) * s, (p[1] - 8) * s, 2, p[0] * s, p[1] * s, p[2] * s); g.addColorStop(0, "#fffbc8"); g.addColorStop(.55, "#fde047"); g.addColorStop(1, "#f59e0b"); c.fillStyle = g; c.strokeStyle = "rgba(180,83,9,.55)"; c.lineWidth = 1.6 * s; c.beginPath(); c.arc(p[0] * s, p[1] * s, p[2] * s, 0, 7); c.fill(); c.stroke(); });
-  c.strokeStyle = "rgba(180,83,9,.55)"; c.lineWidth = 2 * s; c.lineCap = "round"; [[26, -4, 7], [50, 4, 6], [34, 12, 5]].forEach(function (u) { c.beginPath(); c.arc(u[0] * s, u[1] * s, u[2] * s, Math.PI * .1, Math.PI * 1.6); c.stroke(); });
+  var k = s * .78, bob = Math.sin(t * 2.2) * 3 * s, sway = Math.sin(t * 3) * 5;
+  var L = [[-40, 2, 34], [-6, -14, 38], [30, -8, 34], [58, 8, 30], [-54, 24, 26], [-12, 24, 34], [26, 28, 32], [52, 30, 24]];
+  c.save(); c.translate(x, y + bob); c.scale(-k, k); c.lineJoin = "round"; c.lineCap = "round";
+  // tail (drawn first so the body overlaps it): a tapered curl
+  var tg = c.createLinearGradient(60, 0, 160, 30); tg.addColorStop(0, "#facc15"); tg.addColorStop(1, "#eab308");
+  c.fillStyle = tg; c.strokeStyle = "#c28a00"; c.lineWidth = 3; c.beginPath(); c.moveTo(56, 12); c.bezierCurveTo(92, 34 + sway * .4, 128, 36 + sway, 156, 10 + sway * 1.2);
+  c.bezierCurveTo(160, 2 + sway, 150, -2 + sway, 148, 6 + sway); c.bezierCurveTo(132, 22 + sway * .6, 100, 22, 66, 4); c.closePath(); c.fill(); c.stroke();
+  // outline pass, then fill pass: the union gets one clean edge
+  c.strokeStyle = "#c28a00"; c.lineWidth = 7; L.forEach(function (l) { c.beginPath(); c.arc(l[0], l[1], l[2], 0, 7); c.stroke(); });
+  c.fillStyle = "#facc15"; L.forEach(function (l) { c.beginPath(); c.arc(l[0], l[1], l[2], 0, 7); c.fill(); });
+  // light tops: every lobe lit from the upper left, leaving a darker crescent at its lower right
+  c.save(); c.beginPath(); L.forEach(function (l) { c.moveTo(l[0] + l[2], l[1]); c.arc(l[0], l[1], l[2], 0, 7); }); c.clip();
+  c.fillStyle = "#fde668"; L.forEach(function (l) { c.beginPath(); c.arc(l[0] - 5, l[1] - 8, l[2] - 3, 0, 7); c.fill(); });
+  c.fillStyle = "#fff4a8"; L.forEach(function (l) { c.beginPath(); c.arc(l[0] - 9, l[1] - 13, l[2] * .45, 0, 7); c.fill(); });
+  // cartoon nicks where the lobes meet
+  c.strokeStyle = "#d89a00"; c.lineWidth = 4.2; [[-22, -2, 11, .95], [16, -8, 12, .85], [46, 8, 10, .95], [-28, 26, 11, .95], [10, 24, 12, .85]].forEach(function (n) { c.beginPath(); c.arc(n[0], n[1], n[2], Math.PI * n[3], Math.PI * (n[3] + .5)); c.stroke(); });
+  c.restore();
   c.restore();
 }
 
-FX_SCENES.ninja = function (c, w, h, t) {
-  var i, base = h - FX_NAV, cx = w / 2, pulse = 1 + Math.sin(t * 3.2) * .07;
+FX_SCENES.ninja = function (c, w, h, t, top) {
+  top = top || 0; var i, base = h - FX_NAV, cx = w / 2, pulse = 1 + Math.sin(t * 3.2) * .07;
   // golden halo behind the aura
   var hg = c.createRadialGradient(cx, base - 30, 0, cx, base - 30, 300 * pulse); hg.addColorStop(0, "rgba(250,204,21,.38)"); hg.addColorStop(.5, "rgba(245,158,11,.14)"); hg.addColorStop(1, "rgba(245,158,11,0)"); c.fillStyle = hg; c.fillRect(0, base - 340, w, 380);
   // dark rooftops
@@ -309,25 +321,25 @@ FX_SCENES.ninja = function (c, w, h, t) {
   // sparks lifting off the aura
   for (i = 0; i < 26; i++) { var p = (t * (.05 + _frnd(i) * .07) + _frnd(i + 7)) % 1, sx = cx + (_frnd(i + 2) - .5) * w * .95 + Math.sin(t * 2 + i) * 10, sy = base - p * (h * .7); c.fillStyle = "rgba(254,240,138," + (.8 * (1 - p)) + ")"; c.beginPath(); c.arc(sx, sy, 1.4 + _frnd(i + 5) * 2, 0, 7); c.fill(); }
   // yellow lightning every few seconds
-  var lp = (t % 3.4) / .35; if (lp < 1) { var lx = w * (.2 + .6 * _frnd(Math.floor(t / 3.4) + 3)), ly = 0, a = 1 - lp; c.save(); c.shadowColor = "#facc15"; c.shadowBlur = 16; c.strokeStyle = "rgba(255,251,200," + a + ")"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(lx, ly);
-    for (i = 1; i < 9; i++) { lx += (_frnd(i + Math.floor(t / 3.4) * 7) - .5) * 60; ly = i * (base / 8.2); c.lineTo(lx, ly); } c.stroke(); c.restore(); }
+  var lp = (t % 3.4) / .35; if (lp < 1) { var lx = w * (.2 + .6 * _frnd(Math.floor(t / 3.4) + 3)), ly = top, a = 1 - lp; c.save(); c.shadowColor = "#facc15"; c.shadowBlur = 16; c.strokeStyle = "rgba(255,251,200," + a + ")"; c.lineWidth = 3; c.lineJoin = "round"; c.beginPath(); c.moveTo(lx, ly);
+    for (i = 1; i < 9; i++) { lx += (_frnd(i + Math.floor(t / 3.4) * 7) - .5) * 60; ly = top + i * ((base - top) / 8.2); c.lineTo(lx, ly); } c.stroke(); c.restore(); }
   // flash streaks that zip across
-  for (i = 0; i < 3; i++) { var fp = (t * .5 + i * .33) % 1; if (fp < .16) { var u = fp / .16, fy = 120 + i * 190 + _frnd(i + 4) * 40, fx = -80 + u * (w + 160), fa = Math.sin(u * Math.PI); var lg = c.createLinearGradient(fx - 160, 0, fx, 0); lg.addColorStop(0, "rgba(250,204,21,0)"); lg.addColorStop(1, "rgba(255,251,200," + fa + ")"); c.strokeStyle = lg; c.lineWidth = 4; c.beginPath(); c.moveTo(fx - 160, fy); c.lineTo(fx, fy); c.stroke(); c.fillStyle = "rgba(255,255,255," + fa + ")"; c.beginPath(); c.arc(fx, fy, 3.4, 0, 7); c.fill(); } }
+  for (i = 0; i < 3; i++) { var fp = (t * .5 + i * .33) % 1; if (fp < .16) { var u = fp / .16, fy = top + 70 + i * 190 + _frnd(i + 4) * 40, fx = -80 + u * (w + 160), fa = Math.sin(u * Math.PI); var lg = c.createLinearGradient(fx - 160, 0, fx, 0); lg.addColorStop(0, "rgba(250,204,21,0)"); lg.addColorStop(1, "rgba(255,251,200," + fa + ")"); c.strokeStyle = lg; c.lineWidth = 4; c.beginPath(); c.moveTo(fx - 160, fy); c.lineTo(fx, fy); c.stroke(); c.fillStyle = "rgba(255,255,255," + fa + ")"; c.beginPath(); c.arc(fx, fy, 3.4, 0, 7); c.fill(); } }
 };
 
-FX_SCENES.orbs = function (c, w, h, t) {
-  var i;
-  for (i = 0; i < 3; i++) _fxCloud(c, ((t * (5 + i * 2) + i * 170) % (w + 220)) - 90, 60 + i * 150, .9 + i * .12, "rgba(255,255,255,.12)");
+FX_SCENES.orbs = function (c, w, h, t, top) {
+  top = top || 0; var i;
+  for (i = 0; i < 3; i++) _fxCloud(c, ((t * (5 + i * 2) + i * 170) % (w + 220)) - 90, top + 20 + i * 150, .9 + i * .12, "rgba(255,255,255,.12)");
   // golden aura at the bottom: spiky flames that sway and pulse
   var cx = w / 2, by = h - FX_NAV + 6, pulse = 1 + Math.sin(t * 3) * .08;
   for (i = 0; i < 11; i++) { var k = (i - 5) / 5, bw = 26, hh = (110 - Math.abs(k) * 60) * pulse + Math.sin(t * 6 + i * 1.7) * 14, bx = cx + k * 150, tipx = bx + Math.sin(t * 5 + i) * 14 + k * 24;
     var fg = c.createLinearGradient(0, by, 0, by - hh); fg.addColorStop(0, "rgba(251,191,36,.85)"); fg.addColorStop(.6, "rgba(253,224,71,.55)"); fg.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = fg;
     c.beginPath(); c.moveTo(bx - bw, by); c.quadraticCurveTo(bx - bw * .4, by - hh * .55, tipx, by - hh); c.quadraticCurveTo(bx + bw * .4, by - hh * .55, bx + bw, by); c.closePath(); c.fill(); }
   // seven orbs drifting, each with its stars
-  for (i = 0; i < 7; i++) { var ph = t * .25 + i * .9, ox = w * (.1 + i * .13) + Math.sin(ph) * 10, oy = 120 + (i % 4) * 118 + Math.sin(t * 1.4 + i) * 14; fxOrb(c, ox, oy, 15, i + 1, t + i); }
+  for (i = 0; i < 7; i++) { var ph = t * .25 + i * .9, ox = w * (.1 + i * .13) + Math.sin(ph) * 10, oy = top + 70 + (i % 4) * 118 + Math.sin(t * 1.4 + i) * 14; fxOrb(c, ox, oy, 15, i + 1, t + i); }
   // two golden-yellow clouds carrying along: a big one in front, a small one further back, bobbing and shedding puffs
   [[.9, 46, 150, 22, 1.05], [.55, 24, 80, 14, .6]].forEach(function (L, n) {
-    var speed = L[2] * .5 * (n ? .55 : 1), x = ((t * speed + n * 210) % (w + 300)) - 130, y = h * (n ? .3 : .52) + Math.sin(t * 1.3 + n) * 12;
+    var speed = L[2] * .5 * (n ? .55 : 1), x = ((t * speed + n * 210) % (w + 300)) - 130, y = Math.max(top + 50, h * (n ? .3 : .52)) + Math.sin(t * 1.3 + n) * 12;
     _fxGoldCloud(c, x, y, L[4], t + n * 2);
   });
   for (i = 0; i < 18; i++) { var tw = Math.max(0, Math.sin(t * 2 + i * 1.9)); c.fillStyle = "rgba(255,255,255," + tw * .8 + ")"; c.fillRect(_frnd(i + 1) * w, _frnd(i + 6) * (h - 200), 2.4, 2.4); }
@@ -370,12 +382,12 @@ function fxShip(c, x, y, s, t) {
   c.restore();
 }
 
-FX_SCENES.pirate = function (c, w, h, t) {
-  var i, horizon = h - 270;
+FX_SCENES.pirate = function (c, w, h, t, top) {
+  top = top || 0; var i, horizon = h - 270;
   // storm: dark clouds drifting, a lightning flash now and then
-  for (i = 0; i < 4; i++) _fxCloud(c, ((t * (9 + i * 3) + i * 150) % (w + 260)) - 120, 50 + i * 55, 2.4 + i * .3, "rgba(8,20,48,.55)");
-  var lf = (t % 6.5) / .5; if (lf < 1) { c.fillStyle = "rgba(220,235,255," + (Math.sin(lf * Math.PI) * .22) + ")"; c.fillRect(0, 0, w, h); var lx = w * .35 + _frnd(Math.floor(t / 6.5)) * w * .4; c.strokeStyle = "rgba(255,255,255," + Math.sin(lf * Math.PI) + ")"; c.lineWidth = 3; c.beginPath(); c.moveTo(lx, 0); for (i = 1; i < 7; i++) c.lineTo(lx + (_frnd(i + 3) - .5) * 70, i * (horizon / 6.5)); c.stroke(); }
-  for (i = 0; i < 4; i++) { var gx = ((t * (26 + i * 9) + i * 130) % (w + 80)) - 40, gy = 130 + i * 50 + Math.sin(t * 2 + i) * 10; c.strokeStyle = "rgba(240,249,255,.7)"; c.lineWidth = 2.2; c.beginPath(); c.moveTo(gx - 12, gy); c.quadraticCurveTo(gx - 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx, gy); c.quadraticCurveTo(gx + 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx + 12, gy); c.stroke(); }
+  for (i = 0; i < 4; i++) _fxCloud(c, ((t * (9 + i * 3) + i * 150) % (w + 260)) - 120, top + 30 + i * 55, 2.4 + i * .3, "rgba(8,20,48,.55)");
+  var lf = (t % 6.5) / .5; if (lf < 1) { c.fillStyle = "rgba(220,235,255," + (Math.sin(lf * Math.PI) * .22) + ")"; c.fillRect(0, 0, w, h); var lx = w * .35 + _frnd(Math.floor(t / 6.5)) * w * .4; c.strokeStyle = "rgba(255,255,255," + Math.sin(lf * Math.PI) + ")"; c.lineWidth = 3; c.beginPath(); c.moveTo(lx, top); for (i = 1; i < 7; i++) c.lineTo(lx + (_frnd(i + 3) - .5) * 70, top + i * ((horizon - top) / 6.5)); c.stroke(); }
+  for (i = 0; i < 4; i++) { var gx = ((t * (26 + i * 9) + i * 130) % (w + 80)) - 40, gy = top + 90 + i * 50 + Math.sin(t * 2 + i) * 10; c.strokeStyle = "rgba(240,249,255,.7)"; c.lineWidth = 2.2; c.beginPath(); c.moveTo(gx - 12, gy); c.quadraticCurveTo(gx - 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx, gy); c.quadraticCurveTo(gx + 6, gy - 8 - Math.sin(t * 9 + i) * 5, gx + 12, gy); c.stroke(); }
   var sx = ((t * 62) % (w + 520)) - 260, sy = horizon + 30 + Math.sin(t * 2.2) * 9; fxShip(c, sx, sy, Math.min(1, w / 430) * .9, t);
   [["rgba(15,76,129,.6)", 20, 60, 1.6, 0], ["rgba(14,90,150,.6)", 26, 52, 2.2, 40], ["rgba(8,47,87,.82)", 32, 46, 3.0, 80]].forEach(function (L, n) {
     c.fillStyle = L[0]; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 10; x += 8) c.lineTo(x, horizon + 52 + n * 38 + Math.sin(x / L[2] + t * L[3] + L[4]) * L[1] * .45); c.lineTo(w, h); c.closePath(); c.fill();
@@ -383,11 +395,11 @@ FX_SCENES.pirate = function (c, w, h, t) {
   for (i = 0; i < 14; i++) { var tw = Math.max(0, Math.sin(t * 3 + i * 1.3)); c.fillStyle = "rgba(255,255,255," + tw * .6 + ")"; c.fillRect(_frnd(i + 3) * w, horizon + 70 + _frnd(i + 9) * 150, 2.6, 2.6); }
 };
 
-FX_SCENES.reaper = function (c, w, h, t) {
-  var i, mx = w - 80, my = 110, glow = c.createRadialGradient(mx, my, 0, mx, my, 200 + Math.sin(t * 1.3) * 10); glow.addColorStop(0, "rgba(255,255,255,.28)"); glow.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = glow; c.fillRect(0, 0, w, 330);
+FX_SCENES.reaper = function (c, w, h, t, top) {
+  top = top || 0; var i, mx = w - 80, my = top + 70, glow = c.createRadialGradient(mx, my, 0, mx, my, 200 + Math.sin(t * 1.3) * 10); glow.addColorStop(0, "rgba(255,255,255,.28)"); glow.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = glow; c.fillRect(0, top, w, 330);
   c.fillStyle = "#fafafa"; c.beginPath(); c.arc(mx, my, 62, 0, 7); c.fill(); c.fillStyle = "#0a0a0f"; c.beginPath(); c.arc(mx - 26, my - 6, 56, 0, 7); c.fill();
   for (i = 0; i < 26; i++) { var p = (t * (.03 + _frnd(i) * .04) + _frnd(i + 7)) % 1, ex = _frnd(i + 2) * w + Math.sin(t + i) * 12, ey = h - FX_NAV - p * (h - FX_NAV); c.fillStyle = "rgba(255," + (180 + (i % 3) * 25) + "," + (120 + (i % 4) * 30) + "," + (.55 * (1 - p)) + ")"; c.beginPath(); c.arc(ex, ey, 1.4 + _frnd(i + 5) * 1.8, 0, 7); c.fill(); }
-  for (i = 0; i < 5; i++) { var ph = (t * .12 + i * .21) % 1, bx = -30 + ph * (w + 80), by = 130 + i * 110 + Math.sin(t * 1.6 + i * 2) * 36; fxButterfly(c, bx, by, 1.05 - i * .1, t * 7 + i, "#1f1f2b"); c.strokeStyle = "rgba(249,115,22,.25)"; c.lineWidth = 2; c.beginPath(); c.moveTo(bx - 4, by); c.quadraticCurveTo(bx - 40, by + 14, bx - 80, by + 4); c.stroke(); }
+  for (i = 0; i < 5; i++) { var ph = (t * .12 + i * .21) % 1, bx = -30 + ph * (w + 80), by = top + 90 + i * 110 + Math.sin(t * 1.6 + i * 2) * 36; fxButterfly(c, bx, by, 1.05 - i * .1, t * 7 + i, "#1f1f2b"); c.strokeStyle = "rgba(249,115,22,.25)"; c.lineWidth = 2; c.beginPath(); c.moveTo(bx - 4, by); c.quadraticCurveTo(bx - 40, by + 14, bx - 80, by + 4); c.stroke(); }
   var sl = (t % 6) / .5; if (sl < 1) { var a = sl < .5 ? sl * 2 : (1 - sl) * 2; c.strokeStyle = "rgba(255,255,255," + a * .9 + ")"; c.lineWidth = 3; c.beginPath(); c.moveTo(w * .1, h * .28); c.lineTo(w * .1 + w * .8 * Math.min(1, sl * 2.2), h * .28 + h * .3 * Math.min(1, sl * 2.2)); c.stroke(); }
   c.strokeStyle = "rgba(255,255,255,.1)"; c.lineWidth = 1.2; for (i = 0; i < 4; i++) { c.beginPath(); c.moveTo(0, h - FX_NAV - 6 - i * 6); c.lineTo(w, h - FX_NAV - 6 - i * 6); c.stroke(); }
 };
@@ -409,7 +421,7 @@ function _fxFrame(ts) {
   _fx.last = ts; if (!_fx.t0) _fx.t0 = ts;
   var c = _fx.ctx, t = _fx.still ? 3.2 : (ts - _fx.t0) / 1000;
   c.setTransform(_fx.dpr, 0, 0, _fx.dpr, 0, 0); c.clearRect(0, 0, _fx.w, _fx.h);
-  var scene = FX_SCENES[_fx.id]; if (scene) scene(c, _fx.w, _fx.h, t);
+  var hd = document.querySelector(".app-header"), scene = FX_SCENES[_fx.id]; if (scene) scene(c, _fx.w, _fx.h, t, hd ? hd.offsetHeight : 0);
 }
 function fxStop() {
   if (_fx.raf) cancelAnimationFrame(_fx.raf);

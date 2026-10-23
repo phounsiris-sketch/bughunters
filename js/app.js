@@ -68,6 +68,14 @@ function setSpecial(id) {
   if (typeof refreshCurrentPage === "function") refreshCurrentPage("theme");
 }
 
+/** Decorations hang from the bottom edge of the app bar: publish its real height (it grows with the phone's top inset) */
+function _syncHeaderVar() {
+  var hd = document.querySelector(".app-header");
+  if (hd) document.documentElement.style.setProperty("--hdr-h", hd.offsetHeight + "px");
+}
+window.addEventListener("resize", _syncHeaderVar);
+window.addEventListener("load", _syncHeaderVar);
+
 /** Apply theme + dark style to the page and the phone's status bar */
 function applyTheme() {
   document.body.setAttribute("data-theme", currentTheme);
@@ -80,6 +88,7 @@ function applyTheme() {
   var sp = !light && currentSpecial ? SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0] : null;
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", sp ? sp[3] : pal[3]);
+  _syncHeaderVar();
   _fxLayer(sp);
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.innerHTML = icon(currentTheme === "dark" ? "sun" : "moon", 18);
@@ -461,7 +470,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v173"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v174"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
