@@ -57,7 +57,7 @@ function renderSettings() {
   if (page === "profile-sub") {
     var ps = document.getElementById("profileSubContent");
     if (!ps) return;
-    if (document.activeElement && /^(pf|ab|story)/.test(document.activeElement.id || '')) return;   // do not wipe a form being typed in
+    if (document.activeElement && /^(pf|ab|story|h[A-Z])/.test(document.activeElement.id || '')) return;   // do not wipe a form being typed in
     ps.innerHTML = _renderProfileSub();
     if (pfSub === "qr") _fillQrCard();
     return;
@@ -113,14 +113,18 @@ function _pfRow(id, iconName, title, hint) {
 /** One profile page: Personal info, My gear or Payment QR */
 function _renderProfileSub() {
   var me = currentUser ? currentUser.uid : "";
-  var title = pfSub === "gear" ? t("myGear") : pfSub === "qr" ? t("pfQr") : t("pfPersonal");
-  var iconName = pfSub === "gear" ? "shuttle" : pfSub === "qr" ? "qr" : "user";
+  var title = pfSub === "gear" ? t("myGear") : pfSub === "qr" ? t("pfQr") : pfSub === "health" ? t("healthDetails") : t("pfPersonal");
+  var iconName = pfSub === "gear" ? "shuttle" : pfSub === "qr" ? "qr" : pfSub === "health" ? "chart" : "user";
   var body = "";
   if (pfSub === "personal") body = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml() : "");
   else if (pfSub === "gear") body = typeof gearCardHtml === "function" ? gearCardHtml(me, true) : "";
+  else if (pfSub === "health") {
+    if (typeof _myPrivate !== "undefined" && _myPrivate === null) { loadMyHealth(function () { if (pfSub === "health" && currentPage === "profile-sub") renderSettings(); }); body = ""; }
+    else body = healthPageHtml();
+  }
   else { qrOwner = me; body = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
   setBreadcrumb([{ label: t("myProfile"), action: "showPage('profile')" }, { label: title }]);
-  return _meTitleHtml(iconName, pfSub === "gear" ? "myGear" : pfSub === "qr" ? "pfQr" : "pfPersonal") + body;
+  return _meTitleHtml(iconName, pfSub === "gear" ? "myGear" : pfSub === "qr" ? "pfQr" : pfSub === "health" ? "healthDetails" : "pfPersonal") + body;
 }
 
 function _renderProfileTab() {
@@ -149,7 +153,7 @@ function _renderProfileTab() {
   if (GROUPS_ON && typeof badgesHtml === "function" && me) html += badgesHtml(me, true);
 
   // My details: one row each, each opens its own page
-  var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
+  var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["health", "chart", t("healthDetails"), t("healthDetailsHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
   html += '<div class="card nav-rows">' + rows.map(function (r) { return _pfRow(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
   return html;
 }

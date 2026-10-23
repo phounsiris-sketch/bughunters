@@ -414,6 +414,7 @@ function lsTap(side, delta, fromRemote) {
   if (!fromRemote) _lsRemoteResume();   // a tap is the user gesture iOS needs to start the silent audio
   var before = live.sa + live.sb;
   live = lsApply(live, side, delta, maxPoints());
+  if (delta > 0 && before === 0 && live.sa + live.sb > 0 && !live.firstAt) live.firstAt = Date.now();   // the clock for health starts at the first point
   if (delta > 0 && live.sa + live.sb !== before) { try { if (navigator.vibrate) navigator.vibrate(live.over ? [60, 40, 60] : 25); } catch (e) {} }
   lsSave();
   lsRender();
@@ -466,6 +467,12 @@ function lsExit() {
   }, { danger: true, yes: t("confirm") });
 }
 
+/** When a live game really ran: from its first point to the save, in whole minutes (1 to 180). Waiting before the first point is not counted. */
+function lsGameWindow(st, now) {
+  var startAt = st.firstAt || st.startedAt || now, endAt = now;
+  return { startAt: startAt, endAt: endAt, minutes: Math.max(1, Math.min(180, Math.round((endAt - startAt) / 60000))) };
+}
+
 /** Save the finished game like "Add game score" does, then continue or finish */
 function lsSaveGame(next) {
   if (live && live.test) return;   // practice games are never saved
@@ -473,8 +480,9 @@ function lsSaveGame(next) {
   if (!s || !live.over) return;
   var a = live.sa, b = live.sb, p = scoreProblem(a, b);
   if (p) { showToast(p); return; }
+  var win = lsGameWindow(live, Date.now());
   var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
-    minutes: Math.max(1, Math.min(180, Math.round((Date.now() - (live.startedAt || Date.now())) / 60000))) };
+    minutes: win.minutes, startAt: win.startAt, endAt: win.endAt };
   fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
     court: null, shuttles: 0, createdBy: currentUser.uid, createdAt: Date.now(), confirmed: false, live: true })))
     .then(function () {
@@ -483,7 +491,7 @@ function lsSaveGame(next) {
         var winner = live.over, decided = lsMatchDecided(live, winner);
         live.gl = decided ? [] : (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
         live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, winner);   // a decided match starts again from 0\u20130
-        live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now();
+        live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now(); live.firstAt = null;
         lsSave(); liveMode = "count"; lsRender();   // the same pairs play on; Settings \u2192 change teams to swap players
       } else {
         live = null; lsSave(); liveMode = "count";   // session over: leave nothing behind, the next open starts from a clean page

@@ -703,6 +703,7 @@ function sessionGamesTabHtml(s) {
   var html = '<div class="games-mode"><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
   if (_canAddGames(s) && sessionStep(s) < 3) html += '<button type="button" class="live-launch" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 22) + '<span><b>' + t("lsTitle") + '</b><small>' + t("lsRule4") + '</small></span>' + icon("chevron", 18) + '</button>';
   if (_canAddGames(s)) html += '<div id="gameFormBox">' + _gameFormHtml(s) + '</div>';
+  if (typeof healthCardHtml === "function") html += healthCardHtml(s);
   html += '<div id="sgList">' + _gamesListHtml(s) + '</div>';
   return html;
 }

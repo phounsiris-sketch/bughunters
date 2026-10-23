@@ -45,3 +45,29 @@ Rules: owner read/write; group read only if `shareWithGroup`; numeric bounds (mi
 - Health data is sensitive: rules must be tested in the Rules Playground; privacy policy needed before any store build.
 - Plugin may not expose all fields on both platforms; spike decides.
 - Lao text unreviewed.
+
+## Addendum 2026-10-23 — Profile "Health details" and the estimate (planned, not built)
+Mockup (example numbers): published as a private artifact in the session; source copy `docs/mockups/health-mockup.html` if the owner wants it kept.
+
+### Profile > Health details (only me)
+Stored in `userPrivate/{uid}.health` (same place as the private date of birth; only the owner can read it).
+- `weightKg` (needed for calories), `heightCm` (optional), `sex` (optional: male / female / prefer not to say, tunes estimates only), `restHr` (optional), `maxHr` (optional override; default = 208 − 0.7 × age from the existing birth year), `notes` (free text, e.g. injuries), `weeklyGoal` (sessions or minutes).
+- Never public. Share switch (off by default) shares totals only (sessions, minutes, kcal), never weight, height or heart rate. BMI is not shown by default.
+- Wellness estimate, not medical advice (said on the card).
+
+### Estimate model (when no watch is connected)
+- Session length = booked duration. Warm-up 10 min. Game length = live-score minutes when saved, else 15 min per recreational doubles game. On court = games played × game length; rest = session − warm-up − on court.
+- kcal = MET × kg × hours. Social badminton ≈ 5.5 MET, warm-up ≈ 4, resting ≈ 2 (activity compendium values; re-check before shipping). Example 70 kg, 3 h, 9 games: ≈ 994 kcal total, ≈ 784 above resting.
+- Heart rate curve (illustration): warm-up ramps to ~125; each game settles near 75% of max (≈ 137 bpm at max 183); a close game (margin ≤ 2) adds up to +12 bpm and a late peak; a blowout (margin > 8) −4; rest decays toward ~105 bpm. With a watch connected, real readings replace the curve.
+- Zones from max HR: Z2 60–70%, Z3 70–80%, Z4 80–90%, Z5 > 90%.
+
+### Build order (after phase 1 of the plan above)
+1. Health details page + private storage + rules (owner only, bounds on numbers).
+2. Estimate card on the session result (duration, on court, kcal, curve marked "estimate").
+3. Feed live-score minutes and final scores into the estimate.
+4. Profile Health tab with period totals and trend (same All / month / 3m / 6m / 1y filters).
+
+### Decisions from the owner's feedback (same day)
+1. **Duration comes from the live score**, not a guess. Today `lsSaveGame` stores `minutes` per saved game as (save time − `live.startedAt`), and `startedAt` restarts when the previous game is saved. That number includes the wait before the first point of each game (rest, team change). To make it a correct measure, a later step stores `startAt` (first point) and `endAt` on each live match document (new fields; `matches` rules do not whitelist fields on create, the recorder can still fix until confirmed) and keeps `minutes = endAt − startAt`. Matches typed in by hand without minutes are left out of health totals instead of being guessed. Per player: on court = sum of the minutes of the matches they played; waiting = session span (first `startAt` to last `endAt`, else booked time) − on court.
+2. **Heart rate zones are personal.** Zones are computed per user from their own resting and max heart rate (Karvonen: Zn = rest + share × (max − rest), shares 50 / 60 / 70 / 80 / 90 %). Max heart rate = the value the user entered, else 208 − 0.7 × age (Tanaka) from the stored birth year, else zones are hidden until age or max is known. Example: a 35-year-old resting at 62 has Z3 at 147–160; a 52-year-old resting at 74 has Z3 at 143–152. Zones are never one shared table. Watch-measured max (highest sustained reading) may later offer to replace the entered value.
+3. **Estimated curve** is generated as a share of each player's own heart rate reserve, so two players on the same night get different bpm and different minutes in each zone.
