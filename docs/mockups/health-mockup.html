@@ -1,0 +1,261 @@
+<title>Godsmash Health Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column report. Summary first, then the session graph, then the per-game table, then the profile fields and the plan.
+   Palette: court green (accent), shuttle amber (close games), heart red (heart rate line), ink and paper neutrals with a green bias. */
+:root {
+  --bg: #f1f5f1; --card: #ffffff; --fg: #12231a; --fg-dim: #4b5f54; --line: #cfdad2;
+  --accent: #15803d; --accent-soft: #dcfce7; --amber: #b45309; --amber-soft: #fef3c7; --heart: #dc2626; --heart-soft: rgba(220,38,38,.14);
+  --zone2: rgba(21,128,61,.07); --zone3: rgba(234,179,8,.10); --zone4: rgba(249,115,22,.11); --zone5: rgba(220,38,38,.10);
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif; --font-body: "Barlow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1510; --card: #12231a; --fg: #eaf5ee; --fg-dim: #a7bdb0; --line: #2a4535;
+  --accent: #4ade80; --accent-soft: rgba(74,222,128,.16); --amber: #fbbf24; --amber-soft: rgba(251,191,36,.16); --heart: #f87171; --heart-soft: rgba(248,113,113,.18);
+  --zone2: rgba(74,222,128,.07); --zone3: rgba(250,204,21,.08); --zone4: rgba(251,146,60,.10); --zone5: rgba(248,113,113,.10); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0b1510; --card: #12231a; --fg: #eaf5ee; --fg-dim: #a7bdb0; --line: #2a4535;
+  --accent: #4ade80; --accent-soft: rgba(74,222,128,.16); --amber: #fbbf24; --amber-soft: rgba(251,191,36,.16); --heart: #f87171; --heart-soft: rgba(248,113,113,.18);
+  --zone2: rgba(74,222,128,.07); --zone3: rgba(250,204,21,.08); --zone4: rgba(251,146,60,.10); --zone5: rgba(248,113,113,.10); color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 20px 48px; }
+main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: .02em; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: 34px; } h2 { font-size: 24px; } h3 { font-size: 18px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-dim); }
+p { margin: 0; } .dim { color: var(--fg-dim); } .small { font-size: 13px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; min-width: 0; }
+.tile b { font-family: var(--font-display); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile small { color: var(--fg-dim); font-size: 12px; margin-top: 4px; }
+.tile.hot b { color: var(--heart); }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--fg-dim); font-family: var(--font-body); font-size: 11px; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .lbl-strong { fill: var(--fg); font-weight: 600; }
+.chart .hr { fill: none; stroke: var(--heart); stroke-width: 2.2; stroke-linejoin: round; }
+.chart .hr-fill { fill: var(--heart-soft); stroke: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--fg-dim); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+th:first-child, td:first-child { text-align: left; } th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dim); font-weight: 600; }
+tr.close td { background: var(--amber-soft); }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.field { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.field label { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dim); font-weight: 600; }
+.field .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.field .h { font-size: 12px; color: var(--fg-dim); }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; letter-spacing: .04em; }
+.lock { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--fg-dim); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; }
+.flist { display: flex; flex-direction: column; }
+.frow { display: grid; grid-template-columns: minmax(120px, 1.1fr) 90px minmax(0, 2fr); gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.frow:last-child { border-bottom: 0; } .frow b { font-weight: 600; } .frow .req { font-size: 12px; color: var(--fg-dim); }
+@media (max-width: 560px) { .frow { grid-template-columns: 1fr; } }
+ol.plan { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.formula { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-x: auto; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 3px; align-self: flex-start; }
+.seg button { font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 999px; padding: 6px 16px; background: transparent; color: var(--fg); cursor: pointer; min-height: 36px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+td.sel { background: var(--accent-soft); font-weight: 600; }
+.zmins { display: flex; flex-direction: column; gap: 8px; }
+.zrow { display: grid; grid-template-columns: 34px 1fr 64px; gap: 10px; align-items: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.zrow b { text-align: right; font-weight: 600; }
+.zbar { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.zbar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; }
+</style>
+
+<main>
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <span class="tag">Mockup, example numbers</span>
+    <h1>Health in Godsmash</h1>
+    <p class="dim">What a 3 hour badminton night could look like on Profile and on the session card. Game minutes and scores come from the live score; the heart rate curve and calories are estimates for an example player (70 kg, 35 years old). Example numbers, not real data.</p>
+  </header>
+
+  <section class="card" aria-labelledby="s1">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">
+      <h2 id="s1">Friday night session</h2>
+      <span class="dim small">18:00 to 21:00 · Bangkok Arena · doubles</span>
+    </div>
+    <div class="seg" role="group" aria-label="Show this player"><button type="button" data-k="a" id="pa" aria-pressed="true">Ton, 35</button><button type="button" data-k="b" id="pb" aria-pressed="false">Noi, 52</button></div>
+    <p class="dim small" id="who"></p>
+    <div class="tiles" id="tiles"></div>
+    <div>
+      <h3 style="margin-bottom:6px">Heart rate through the night</h3>
+      <svg class="chart" id="chart" viewBox="0 0 720 330" role="img" aria-label="Heart rate over 180 minutes with nine games shaded; close games are marked and show higher peaks."></svg>
+      <div class="legend" style="margin-top:8px">
+        <span><i style="background:var(--heart)"></i>Heart rate (bpm)</span>
+        <span><i style="background:var(--accent-soft);outline:1px solid var(--accent)"></i>Game on court</span>
+        <span><i style="background:var(--amber-soft);outline:1px solid var(--amber)"></i>Close game (2 points or less)</span>
+        <span><i style="background:var(--zone4)"></i>Heart rate zones (personal, bpm shown on the right edge)</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="s2">
+    <h2 id="s2">Closer score, higher heart rate</h2>
+    <p class="dim small">Average heart rate for each game next to the final margin. Games decided by a few points keep the rallies tight and the pulse up.</p>
+    <svg class="chart" id="bars" viewBox="0 0 720 230" role="img" aria-label="Average heart rate per game, higher for closer games."></svg>
+    <div class="scroll"><table id="tbl"><thead><tr><th>Game</th><th>Score</th><th>Margin</th><th>Minutes</th><th>Avg bpm</th><th>Peak bpm</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="s2b">
+    <h2 id="s2b">Zones are personal</h2>
+    <p class="dim small">Same night, two players. Zones come from each player's resting and max heart rate (share of the heart rate reserve), so the same 150 bpm is hard work for one player and steady for the other. Switch players at the top to see the chart change.</p>
+    <div class="scroll"><table id="ztbl" style="min-width:360px"><thead><tr><th>Zone</th><th>Ton, 35 (rest 62, max 184)</th><th>Noi, 52 (rest 74, max 172)</th></tr></thead><tbody></tbody></table></div>
+    <h3>Minutes in each zone, selected player</h3>
+    <div id="zmins" class="zmins"></div>
+  </section>
+
+  <section class="card" aria-labelledby="s3">
+    <h2 id="s3">Profile: Health details</h2>
+    <div class="lock"><span aria-hidden="true">&#128274;</span><span>Only you can see this page. Nothing here is shared with your group unless you switch sharing on.</span></div>
+    <div class="field-grid">
+      <div class="field"><label>Weight</label><span class="v">70 kg</span><span class="h">Needed for calories</span></div>
+      <div class="field"><label>Height</label><span class="v">172 cm</span><span class="h">Optional</span></div>
+      <div class="field"><label>Age</label><span class="v">35 <span class="pill">from birth year</span></span><span class="h">Already in your profile</span></div>
+      <div class="field"><label>Sex for estimates</label><span class="v">Prefer not to say</span><span class="h">Optional, only tunes calories</span></div>
+      <div class="field"><label>Resting heart rate</label><span class="v">62 bpm</span><span class="h">Optional, from watch if connected</span></div>
+      <div class="field"><label>Max heart rate</label><span class="v">184 bpm <span class="pill">auto</span></span><span class="h">208 minus 0.7 x age. Edit it if a test or your watch shows a different max.</span></div>
+    </div>
+    <p class="dim small">Body mass index is not shown anywhere by default. Calories and heart rate zones are the useful numbers; a BMI figure adds pressure and little else.</p>
+  </section>
+
+  <section class="card" aria-labelledby="s4">
+    <h2 id="s4">How the estimate works</h2>
+    <div class="flist">
+      <div class="frow"><b>Session length</b><span class="req">you set it</span><span>The booked time (3 h here). Warm-up 10 min is counted at the start.</span></div>
+      <div class="frow"><b>Game length</b><span class="req">from live score</span><span>Live score times every game, so the minutes are real, not guessed. Close games run longer (here 19 to 22 min against 10 to 11 for the easy ones). A game typed in by hand without minutes is left out of the estimate.</span></div>
+      <div class="frow"><b>On court</b><span class="req">from live score</span><span>The sum of your games' minutes. Rest and waiting is the session minus warm-up minus on court.</span></div>
+      <div class="frow"><b>Calories</b><span class="req">calculated</span><span>MET x weight x hours. Badminton social play is about 5.5 MET, warm-up 4, resting about 2 (activity compendium values, to be re-checked before shipping).</span></div>
+      <div class="frow"><b>Heart rate zones</b><span class="req">personal</span><span>Z1 to Z5 are 50, 60, 70, 80 and 90% of your heart rate reserve above your resting rate (Karvonen). Max heart rate is the one you enter, else 208 minus 0.7 x age. Nobody shares the same zones unless their age and resting rate match.</span></div>
+      <div class="frow"><b>Heart rate shape</b><span class="req">illustration</span><span>Calculated as a share of your own heart rate reserve (max minus resting), so every player gets their own bpm. Warm-up ramps up, each game settles near 60% of reserve, rest drops toward 30%. A close game adds up to 10% of reserve and a late peak, a blowout lowers it. With a watch connected, real readings replace this curve.</span></div>
+    </div>
+    <div class="formula">kcal = MET x kg x hours   ·   example: Ton: 5.5 x 70 kg x 2.42 h = 931 (on court, 145 min) + 4 x 70 x 0.17 h = 47 + 2 x 70 x 0.42 h = 59  =  1035, 825 above resting.   Noi (62 kg) gets 917 / 731 from the same night.</div>
+  </section>
+
+  <section class="card" aria-labelledby="s5">
+    <h2 id="s5">Suggested fields and plan</h2>
+    <div class="flist">
+      <div class="frow"><b>Weight, height</b><span class="req">weight needed</span><span>Private page, stored in your own private profile record like your date of birth. Used only for calories.</span></div>
+      <div class="frow"><b>Birth year</b><span class="req">reuse</span><span>Already collected. Gives age and the default max heart rate.</span></div>
+      <div class="frow"><b>Resting and max heart rate</b><span class="req">optional</span><span>Makes the zones personal. Auto values are shown until you edit them.</span></div>
+      <div class="frow"><b>Injuries or notes</b><span class="req">optional</span><span>Free text only you see, for example "left knee". Suggested, not required for any number.</span></div>
+      <div class="frow"><b>Weekly goal</b><span class="req">optional</span><span>Sessions or minutes per week, with a small progress ring on Home.</span></div>
+      <div class="frow"><b>Share with group</b><span class="req">off</span><span>One switch that shares only totals (sessions, minutes, kcal), never weight, height or heart rate.</span></div>
+    </div>
+    <ol class="plan">
+      <li>Add the private Health details page to Profile and store it with the private profile data.</li>
+      <li>Add an estimate card to each session result: duration, on court, calories, heart rate curve marked as an estimate.</li>
+      <li>Let live score minutes and final scores feed the estimate, so close games show higher heart rate.</li>
+      <li>Show a Health tab on Profile with period totals and trend, using the same All, month, 3m, 6m, 1y filters.</li>
+      <li>Later, with the native app and a watch, replace the estimate with real readings (see the health tracking plan).</li>
+    </ol>
+    <p class="dim small">This is a wellness estimate for fun and motivation. It is not medical advice, and the app will say so on the card.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var PLAYERS = {
+    a: { name: "Ton", age: 35, kg: 70, rest: 62, maxNote: "auto: 208 - 0.7 x 35" },
+    b: { name: "Noi", age: 52, kg: 62, rest: 74, maxNote: "auto: 208 - 0.7 x 52" }
+  };
+  Object.keys(PLAYERS).forEach(function (k) { var p = PLAYERS[k]; p.max = Math.round(208 - 0.7 * p.age); p.hrr = p.max - p.rest; });
+  var ZONES = [["Z1", .5, .6, "recovery"], ["Z2", .6, .7, "easy"], ["Z3", .7, .8, "steady"], ["Z4", .8, .9, "hard"], ["Z5", .9, 1, "max"]];
+  var zoneBpm = function (p, z) { return [Math.round(p.rest + z[1] * p.hrr), Math.round(p.rest + z[2] * p.hrr)]; };   // Karvonen: share of the heart rate reserve
+  var WARM = 10, total = 180;
+  var games = [[21,15],[21,19],[21,12],[22,20],[21,17],[19,21],[21,10],[21,20],[21,18]];
+  var mins = [14, 19, 11, 22, 15, 18, 10, 20, 16];   // minutes per game, as the live score measured them
+  var sumMin = mins.reduce(function (a, b) { return a + b; }, 0);
+  var noise = function (i) { var x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  var t = WARM, segs = [], restLen = (total - WARM - sumMin - 3) / (games.length - 1);
+  games.forEach(function (g, i) { var margin = Math.abs(g[0] - g[1]); segs.push({ i: i + 1, s: t, e: t + mins[i], len: mins[i], score: g, margin: margin, close: margin <= 2 }); t += mins[i] + (i < games.length - 1 ? restLen : 0); });
+  var endPlay = t;
+  var fmtH = function (m) { return Math.floor(m / 60) + " h " + (m % 60) + " min"; };
+
+  function series(p) {   // heart rate as a share of THIS player's reserve, so every player gets their own bpm
+    var pts = [], f = .22, m, seg;
+    for (m = 0; m <= total; m += 0.5) {
+      seg = segs.filter(function (x) { return m >= x.s && m < x.e; })[0];
+      var target;
+      if (m < WARM) target = .22 + (m / WARM) * .34;
+      else if (seg) {
+        var into = (m - seg.s) / seg.len, c = Math.max(0, 1 - seg.margin / 10);
+        target = .60 + .10 * c - (seg.margin > 8 ? .03 : 0) + (seg.close ? .07 * Math.pow(into, 3) : 0) + Math.sin(m * 2.3) * .03 + (noise(m * 2) - .5) * .05;
+        target = Math.min(target, f + .06 * (into < .2 ? 2 : 1) + .05);
+      } else if (m >= endPlay) target = .08 - (m - endPlay) * .02;
+      else target = .30 + Math.sin(m) * .015;
+      f += (target - f) * (seg ? .35 : .22);
+      pts.push([m, p.rest + f * p.hrr]);
+    }
+    return pts;
+  }
+
+  var W = 720, H = 330, L = 44, R = 12, T = 14, B = 66, YMIN = 60, YMAX = 190;
+  var X = function (m) { return L + (W - L - R) * m / total; }, Y = function (v) { return T + (H - T - B) * (1 - (v - YMIN) / (YMAX - YMIN)); };
+
+  function render(key) {
+    var p = PLAYERS[key], pts = series(p), s = "", v, m;
+    segs.forEach(function (g) {
+      var inside = pts.filter(function (q) { return q[0] >= g.s && q[0] < g.e; }).map(function (q) { return q[1]; });
+      g.avg = Math.round(inside.reduce(function (a, b) { return a + b; }, 0) / inside.length); g.peak = Math.round(Math.max.apply(null, inside));
+    });
+    var allAvg = Math.round(pts.reduce(function (a, q) { return a + q[1]; }, 0) / pts.length), allPeak = Math.round(Math.max.apply(null, pts.map(function (q) { return q[1]; })));
+    var rest = total - WARM - sumMin;
+    var kcalTotal = Math.round(5.5 * p.kg * sumMin / 60 + 4 * p.kg * WARM / 60 + 2 * p.kg * rest / 60), kcalActive = kcalTotal - Math.round(p.kg * total / 60);
+    // minutes in each zone for this player
+    var zmin = ZONES.map(function (z) { var b = zoneBpm(p, z); return Math.round(pts.filter(function (q) { return q[1] >= b[0] && q[1] < (z[0] === "Z5" ? 999 : b[1]); }).length / 2); });
+    
+
+    document.getElementById("tiles").innerHTML = [[fmtH(180).replace(" 0 min", ""), "Session"], [fmtH(sumMin), "On court, " + games.length + " games"], [kcalActive + "", "Active kcal (est.)"], [allAvg + "", "Average bpm (est.)"], [allPeak + "", "Peak bpm (est.)", 1], [(zmin[2] + zmin[3] + zmin[4]) + " min", "In your Z3 or above"]]
+      .map(function (x) { return '<div class="tile' + (x[2] ? ' hot' : '') + '"><b>' + x[0] + '</b><small>' + x[1] + '</small></div>'; }).join("");
+
+    ZONES.forEach(function (z, k) {
+      var b = zoneBpm(p, z), lo = Math.max(YMIN, b[0]), hi = Math.min(YMAX, b[1]);
+      if (hi > lo && k > 0) s += '<rect x="' + L + '" y="' + Y(hi) + '" width="' + (W - L - R) + '" height="' + (Y(lo) - Y(hi)) + '" fill="var(--zone' + (k + 1) + ')"/><text x="' + (W - R - 4) + '" y="' + (Y(hi) + 12) + '" text-anchor="end">' + z[0] + ' ' + b[0] + '-' + b[1] + '</text>';
+    });
+    for (v = 60; v <= 180; v += 20) s += '<line class="gl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text x="' + (L - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '</text>';
+    segs.forEach(function (g) {
+      s += '<rect x="' + X(g.s) + '" y="' + T + '" width="' + (X(g.e) - X(g.s)) + '" height="' + (H - T - B) + '" fill="' + (g.close ? 'var(--amber-soft)' : 'var(--accent-soft)') + '"/>';
+      s += '<text x="' + (X(g.s) + X(g.e)) / 2 + '" y="' + (H - B + 16) + '" text-anchor="middle" class="lbl-strong">G' + g.i + '</text><text x="' + (X(g.s) + X(g.e)) / 2 + '" y="' + (H - B + 30) + '" text-anchor="middle"' + (g.close ? ' class="lbl-strong" style="fill:var(--amber)"' : '') + '>' + g.score[0] + '-' + g.score[1] + '</text>';
+    });
+    var path = pts.map(function (q, k) { return (k ? "L" : "M") + X(q[0]).toFixed(1) + " " + Y(q[1]).toFixed(1); }).join(" ");
+    s += '<path class="hr-fill" d="' + path + ' L' + X(total) + " " + Y(YMIN) + " L" + X(0) + " " + Y(YMIN) + ' Z"/><path class="hr" d="' + path + '"/>';
+    var pk = pts.reduce(function (a, q) { return q[1] > a[1] ? q : a; }, pts[0]);
+    s += '<circle cx="' + X(pk[0]) + '" cy="' + Y(pk[1]) + '" r="4.5" fill="var(--heart)"/><text x="' + (X(pk[0]) - 8) + '" y="' + (Y(pk[1]) - 8) + '" text-anchor="end" class="lbl-strong">peak ' + Math.round(pk[1]) + '</text>';
+    for (m = 0; m <= total; m += 30) s += '<text x="' + X(m) + '" y="' + (H - 18) + '" text-anchor="middle">' + (18 + Math.floor(m / 60)) + ':' + (m % 60 ? '30' : '00') + '</text>';
+    s += '<text x="' + X(WARM / 2) + '" y="' + (T + 12) + '" text-anchor="middle">warm-up</text>';
+    document.getElementById("chart").innerHTML = s;
+    document.getElementById("who").textContent = p.name + ", " + p.age + " years, " + p.kg + " kg · resting " + p.rest + " · max " + p.max + " bpm";
+
+    // bars
+    var bw = 720, bh = 230, bl = 44, bt = 16, bb = 52, n = segs.length, slot = (bw - bl - 12) / n, bars = "";
+    var lo2 = Math.floor((p.rest + 20) / 20) * 20, hi2 = lo2 + 80;
+    var BY = function (q) { return bt + (bh - bt - bb) * (1 - (q - lo2) / (hi2 - lo2)); };
+    for (v = lo2; v <= hi2; v += 20) bars += '<line class="gl" x1="' + bl + '" x2="' + (bw - 12) + '" y1="' + BY(v) + '" y2="' + BY(v) + '"/><text x="' + (bl - 8) + '" y="' + (BY(v) + 4) + '" text-anchor="end">' + v + '</text>';
+    segs.forEach(function (g, k) {
+      var x = bl + k * slot + slot * .16, w = slot * .68;
+      bars += '<rect x="' + x + '" y="' + BY(g.avg) + '" width="' + w + '" height="' + (BY(lo2) - BY(g.avg)) + '" rx="4" fill="' + (g.close ? 'var(--amber)' : 'var(--accent)') + '"/>';
+      bars += '<text x="' + (x + w / 2) + '" y="' + (BY(g.avg) - 6) + '" text-anchor="middle" class="lbl-strong">' + g.avg + '</text>';
+      bars += '<text x="' + (x + w / 2) + '" y="' + (bh - bb + 16) + '" text-anchor="middle" class="lbl-strong">G' + g.i + '</text><text x="' + (x + w / 2) + '" y="' + (bh - bb + 30) + '" text-anchor="middle">+' + g.margin + '</text>';
+    });
+    bars += '<text x="' + (bl - 8) + '" y="' + (bh - 8) + '" text-anchor="end">margin</text>';
+    document.getElementById("bars").innerHTML = bars;
+    document.querySelector("#tbl tbody").innerHTML = segs.map(function (g) { return '<tr' + (g.close ? ' class="close"' : '') + '><td>G' + g.i + '</td><td>' + g.score[0] + ' - ' + g.score[1] + '</td><td>' + g.margin + '</td><td>' + g.len + '</td><td>' + g.avg + '</td><td>' + g.peak + '</td></tr>'; }).join("");
+
+    // personal zones: both players side by side, the selected one highlighted
+    document.querySelector("#ztbl tbody").innerHTML = ZONES.map(function (z) {
+      var ba = zoneBpm(PLAYERS.a, z), bb2 = zoneBpm(PLAYERS.b, z);
+      return '<tr><td>' + z[0] + ' ' + z[3] + '</td><td' + (key === "a" ? ' class="sel"' : '') + '>' + ba[0] + ' - ' + ba[1] + '</td><td' + (key === "b" ? ' class="sel"' : '') + '>' + bb2[0] + ' - ' + bb2[1] + '</td></tr>';
+    }).join("");
+    document.getElementById("zmins").innerHTML = ZONES.map(function (z, k) { return '<div class="zrow"><span>' + z[0] + '</span><div class="zbar"><i style="width:' + Math.round(zmin[k] / 1.8) + '%"></i></div><b>' + zmin[k] + ' min</b></div>'; }).join("");
+    [].forEach.call(document.querySelectorAll(".seg button"), function (bt2) { bt2.setAttribute("aria-pressed", bt2.dataset.k === key ? "true" : "false"); });
+  }
+  [].forEach.call(document.querySelectorAll(".seg button"), function (bt2) { bt2.addEventListener("click", function () { render(bt2.dataset.k); }); });
+  render("a");
+})();
+</script>
