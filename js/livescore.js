@@ -24,10 +24,14 @@ var LS_THEMES = [
   ["Halloween", "#ea580c", "#fb923c", "#4c1d95", "#7c3aed"],
   ["Christmas", "#b91c1c", "#ef4444", "#166534", "#22c55e"],
   ["Chinese New Year", "#dc2626", "#f87171", "#b45309", "#fcd34d"],
-  ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"]
+  ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"],
+  ["Ninja", "#ea580c", "#fb923c", "#1e3a8a", "#3b82f6"],
+  ["Dragon Orbs", "#d97706", "#fcd34d", "#1d4ed8", "#60a5fa"],
+  ["Pirate Seas", "#dc2626", "#f87171", "#0e7490", "#22d3ee"],
+  ["Soul Reaper", "#ea580c", "#fb923c", "#18181b", "#52525b"]
 ];
 /** A special theme gives the live score its own team colours, until the player picks one by hand */
-var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9 };
+var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9, ninja: 10, orbs: 11, pirate: 12, reaper: 13 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null

@@ -20,6 +20,6 @@ ctx.SPECIALS.forEach(function (sp) {
 console.log("special-themes OK (" + ctx.SPECIALS.length + " themes)");
 // every special theme has an animated background scene
 var fxSrc = fs.readFileSync("js/fx.js", "utf8");
-ctx.SPECIALS.forEach(function (sp) { assert.ok(new RegExp("^  " + sp[0] + ": function \\(c, w, h, t\\)", "m").test(fxSrc), sp[0] + " has an fx scene in js/fx.js"); });
+ctx.SPECIALS.forEach(function (sp) { assert.ok(new RegExp("^  " + sp[0] + ": function \\(c, w, h, t\\)|^FX_SCENES\\." + sp[0] + " = function \\(c, w, h, t\\)", "m").test(fxSrc), sp[0] + " has an fx scene in js/fx.js"); });
 assert.ok(/z-index:-1/.test(fxSrc), "the animated background sits behind the app (z-index -1)");
 console.log("fx scenes OK");
