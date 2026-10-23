@@ -6037,3 +6037,30 @@ body.live-on .app-header { z-index: 100; }   /* the live score covers the whole 
 
 /* v167: no blur behind the app bar (iOS) */
 .app-header { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+/* ===== v169: ranking card alignment, solid app bar ===== */
+.mh-top { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; grid-template-areas: "av id acts" "rate rate rate"; align-items: center; gap: 8px 12px; }
+.mh-top > :first-child { grid-area: av; }
+.mh-id { grid-area: id; min-width: 0; }
+.mh-acts { grid-area: acts; display: flex; gap: 8px; align-items: center; }
+.mh-top .how-btn + .how-btn { margin-left: 0; }
+.mh-name { flex-wrap: nowrap; gap: 8px; overflow-wrap: normal; font-size: 18px; line-height: 1.25; }
+.mh-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mh-name .level-badge { flex: none; }
+.mh-sub { flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.mh-rank { font-size: 18px; font-weight: 800; }
+.mh-sub .rk-side { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mh-rate { grid-area: rate; display: flex; flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 10px; text-align: left; padding-top: 4px; border-top: 1px solid var(--border); }
+.mh-rate small { margin-right: auto; }
+.mh-rate b { font-size: 44px; line-height: 1; }
+.mh-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 44px; gap: 8px; }
+.mh-facts .mh-chip { min-width: 0; justify-content: flex-start; padding: 6px 10px; }
+.mh-facts .mh-chip > span { min-width: 0; } .mh-facts .mh-chip small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-facts .mh-go { margin-left: 0; justify-self: end; }
+/* the app bar is solid in every special theme, so nothing shows or smears through it */
+body[data-special="halloween"]:not([data-theme="light"]) .app-header { background: #1b0f45; }
+body[data-special="christmas"]:not([data-theme="light"]) .app-header { background: #0c2e1b; }
+body[data-special="cny"]:not([data-theme="light"]) .app-header { background: #4a0a0a; border-bottom: 1px solid #e0a43a; }
+body[data-special="arcade"]:not([data-theme="light"]) .app-header { background: #160630; }
+.mh-sub .level-badge { flex: none; }
+.mh-sub .rk-side { flex-direction: row; flex-wrap: nowrap; white-space: nowrap; }
