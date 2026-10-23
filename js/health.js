@@ -164,6 +164,19 @@ function healthRangeBounds(kind, offset, today) {
   return { kind: kind, from: _isoLocal(from), to: _isoLocal(to), fromDate: from, toDate: to, buckets: buckets };
 }
 
+/** This month cut into blocks of 7 days (days 1-7, 8-14, 15-21, 22-28, 29-end): minutes and sessions per block, and which block today is in */
+function healthMonthWeeks(workouts, today) {
+  var y = today.getFullYear(), m = today.getMonth(), days = new Date(y, m + 1, 0).getDate(), n = Math.ceil(days / 7), out = [], i;
+  for (i = 0; i < n; i++) out.push({ n: i + 1, from: i * 7 + 1, to: Math.min(days, (i + 1) * 7), min: 0, sessions: 0, now: false });
+  var prefix = y + "-" + ("0" + (m + 1)).slice(-2) + "-";
+  workouts.forEach(function (w) {
+    if (!w.date || w.date.indexOf(prefix) !== 0) return;
+    var k = Math.min(n - 1, Math.floor((parseInt(w.date.slice(8, 10), 10) - 1) / 7)); out[k].min += w.totalMin; out[k].sessions++;
+  });
+  out[Math.min(n - 1, Math.floor((today.getDate() - 1) / 7))].now = true;
+  return out;
+}
+
 /** Totals for one range: duration, kcal, average bpm (weighted by duration), sessions, minutes per zone, minutes per bucket */
 function healthRangeSummary(workouts, range) {
   var items = workouts.filter(function (w) { return w.date >= range.from && w.date <= range.to; });

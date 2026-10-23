@@ -5996,7 +5996,12 @@ body[data-theme="light"] { --hl-dur: #0e7490; --hl-kcal: #6d28d9; --hl-hr: #be18
 .hd-path { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--control-border); background: var(--chip-bg); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
 .hd-path span { flex: 1; min-width: 0; } .hd-path .si:first-child { color: var(--accent-text); }
 .hs-health { background: linear-gradient(135deg, #0f766e, #15803d); }
-.hs-health-bars { display: flex; align-items: flex-end; gap: 5px; height: 44px; margin: 10px 0 8px; } .hs-health-bars i { flex: 1; border-radius: 3px; background: rgba(255, 255, 255, .75); }
+.hs-health-bars { display: flex; align-items: stretch; gap: 8px; height: 64px; margin: 10px 0 8px; }
+.hs-health-bars .hw { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
+.hs-health-bars .hw i { display: block; width: 100%; border-radius: 4px; background: rgba(255, 255, 255, .5); min-height: 4px; }
+.hs-health-bars .hw.now i { background: #fff; }
+.hs-health-bars .hw small { font-size: 11px; line-height: 1; opacity: .85; white-space: nowrap; }
+.hs-health-bars .hw.now small { opacity: 1; font-weight: 700; }
 .hs-health .hs-sub { font-size: 13px; opacity: .92; }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-health, body[data-special="halloween"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #3b0764, #c2410c); }
 body[data-special="christmas"]:not([data-theme="light"]) .hs-health, body[data-special="christmas"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #14532d, #991b1b); }

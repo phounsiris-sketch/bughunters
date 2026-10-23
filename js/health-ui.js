@@ -163,13 +163,13 @@ function healthDashCardHtml() {
     path("chart", t("healthZonesTitle"), "openHealth('week','hvZones')") + path("user", t("healthDetails"), "openPfSub('health')") + path("share", t("shareMyCard"), "openShareCard()") + '</div></div>';
 }
 
-/** Home swipe card */
+/** Home swipe card: this month, one bar per week of the month (W1 to W4/W5), the current week brightest */
 function homeHealthCardHtml() {
-  var sum = healthRangeSummary(myWorkouts(), healthRangeBounds("week", 0, new Date()));
-  var bars = sum.buckets.map(function (b) { var m = Math.max.apply(null, sum.buckets.map(function (x) { return x.min; })) || 1; return '<i style="height:' + Math.max(b.min ? 14 : 5, Math.round(b.min / m * 100)) + '%"></i>'; }).join("");
-  return '<button type="button" class="hs-card hs-health" onclick="openHealth(\'week\')"><div class="hs-title">' + icon("chart", 16) + ' ' + t("healthTitle") + '</div>' +
-    '<div class="hs-big">' + _hmm(sum.totalMin) + ' <small>' + t("healthThisWeek") + '</small></div><div class="hs-health-bars" aria-hidden="true">' + bars + '</div>' +
-    '<div class="hs-sub">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + ' · ' : '') + sum.sessions + ' ' + t("healthSessions") + '</div></button>';
+  var ws = myWorkouts(), today = new Date(), sum = healthRangeSummary(ws, healthRangeBounds("month", 0, today)), weeks = healthMonthWeeks(ws, today), top = Math.max.apply(null, weeks.map(function (x) { return x.min; })) || 1;
+  var bars = weeks.map(function (x) { return '<span class="hw' + (x.now ? ' now' : '') + '"><i style="height:' + Math.max(x.min ? 8 : 4, Math.round(x.min / top * 42)) + 'px"></i><small>' + t("healthWeekShort").replace("{n}", x.n) + '</small></span>'; }).join("");
+  return '<button type="button" class="hs-card hs-health" onclick="openHealth(\'month\')"><div class="hs-title">' + icon("chart", 16) + ' ' + t("healthTitle") + '</div>' +
+    '<div class="hs-big">' + _hmm(sum.totalMin) + ' <small>' + t("healthThisMonth") + '</small></div><div class="hs-health-bars" aria-hidden="true">' + bars + '</div>' +
+    '<div class="hs-sub">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + ' \u00B7 ' : '') + sum.sessions + ' ' + t("healthSessions") + '</div></button>';
 }
 
 /** Dashboard: my most recent workout (the same estimate card that used to sit in a session); nothing until I have a timed game */
