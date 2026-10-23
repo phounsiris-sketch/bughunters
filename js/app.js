@@ -47,7 +47,7 @@ var SPECIALS = [
   ["christmas", "spChristmas", ["#07200f", "#143d26", "#b91c1c", "#fde68a"], "#0c2e1b", "snow", 26, ["12-15", "01-02"]],
   ["cny", "spCny", ["#2a0606", "#4f1010", "#b91c1c", "#fcd34d"], "#4a0a0a", "lanterns", 10, ["01-20", "02-25"]],
   ["arcade", "spArcade", ["#0a0418", "#1c0b3d", "#a21caf", "#22d3ee"], "#160630", "sparks", 18, null],
-  ["ninja", "spNinja", ["#0c0902", "#241a08", "#b45309", "#facc15"], "#14100a", "aura", 11, null],
+  ["ninja", "spNinja", ["#0a1033", "#17235a", "#c2410c", "#fb923c"], "#0f1a4a", "village", 8, null],
   ["orbs", "spOrbs", ["#06224d", "#104a98", "#c2410c", "#fbbf24"], "#0d3f8f", "orbs", 7, null],
   ["pirate", "spPirate", ["#071634", "#133573", "#dc2626", "#fbbf24"], "#0d2552", "waves", 3, null],
   ["reaper", "spReaper", ["#08080c", "#1b1b24", "#c2410c", "#fafafa"], "#121218", "butterflies", 5, null]
@@ -470,7 +470,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v177"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v179"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

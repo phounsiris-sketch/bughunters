@@ -75,12 +75,12 @@ var ICON_THEMES = ["classic", "line", "tiles", "emoji"];
 var currentIconTheme = "classic";
 try { var _it = localStorage.getItem("iconTheme"); if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
 var _iconCtx = false;
-var ICON_EMOJI = { trophy: "\uD83C\uDFC6", medal: "\uD83E\uDD47", crown: "\uD83D\uDC51", target: "\uD83C\uDFAF", ranking: "\uD83D\uDCCA", chart: "\uD83D\uDCC8", dashboard: "\uD83D\uDCCA",
+var ICON_EMOJI = { trophy: "\uD83C\uDFC6", medal: "\uD83E\uDD47", crown: "\uD83D\uDC51", target: "\uD83C\uDFAF", ranking: "\uD83D\uDCCA", chart: "\uD83D\uDCC8", dashboard: "\uD83C\uDFE0", settings: "\u2699\uFE0F",
   bill: "\uD83E\uDDFE", wallet: "\uD83D\uDCB0", card: "\uD83D\uDCB3", court: "\uD83C\uDFF8", shuttle: "\uD83C\uDFF8", dinner: "\uD83C\uDF7D\uFE0F", other: "\uD83D\uDED2", percent: "\uD83C\uDFF7\uFE0F",
   users: "\uD83D\uDC65", user: "\uD83D\uDC64", calendar: "\uD83D\uDCC5", clock: "\u23F1\uFE0F", history: "\uD83D\uDD58", pin: "\uD83D\uDCCD", noshow: "\uD83D\uDEAB", polls: "\uD83D\uDDF3\uFE0F", vote: "\uD83D\uDDF3\uFE0F",
   sessions: "\uD83D\uDDD3\uFE0F", scoreboard: "\uD83D\uDD22", calc: "\uD83E\uDDEE", warning: "\u26A0\uFE0F", check: "\u2705", lock: "\uD83D\uDD12", key: "\uD83D\uDD11", mail: "\u2709\uFE0F", phone: "\uD83D\uDCF1",
   bell: "\uD83D\uDD14", camera: "\uD83D\uDCF7", globe: "\uD83C\uDF10", sun: "\u2600\uFE0F", moon: "\uD83C\uDF19", watch: "\u231A", route: "\uD83E\uDDED", qr: "\uD83D\uDCF1", manual: "\u270D\uFE0F", question: "\u2753" };
-var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, settings: 1, link: 1, device: 1 };   // controls keep their normal look
+var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls keep their normal look
 
 function _iconSvg(name, size, cls, extra) {
   var body = SOLAR[name];
@@ -95,7 +95,7 @@ function iconAs(theme, name, size, cls) {
   size = size || 18;
   if (theme === "line") return _iconSvg(name, size, cls, "ico-line");
   if (theme === "tiles" && !ICON_PLAIN[name]) { var tile = Math.round(size * 1.65); return '<span class="ico-tile ico-t' + _iconHash(name) + '" style="width:' + tile + 'px;height:' + tile + 'px">' + _iconSvg(name, size, cls) + '</span>'; }
-  if (theme === "emoji" && ICON_EMOJI[name]) return '<span class="ico-emoji" style="font-size:' + Math.round(size * .95) + 'px;width:' + Math.round(size * 1.1) + 'px" aria-hidden="true">' + ICON_EMOJI[name] + '</span>';
+  if (theme === "emoji" && ICON_EMOJI[name]) { var chip = Math.round(size * 1.6); return '<span class="ico-chip" style="width:' + chip + 'px;height:' + chip + 'px"><span class="ico-emoji" style="font-size:' + Math.round(size * .92) + 'px" aria-hidden="true">' + ICON_EMOJI[name] + '</span></span>'; }
   return _iconSvg(name, size, cls);
 }
 
@@ -104,10 +104,22 @@ function icon(name, size, cls) {
   return iconAs(_iconCtx ? currentIconTheme : "classic", name, size, cls);
 }
 
+/** The nav bar and the app bar are drawn once at startup; on the Dashboard page they take the chosen style too, and go back to classic on any other page */
+var _chromeKey = "";
+function applyChromeIcons(page) {
+  var on = page === "dashboard" && currentIconTheme !== "classic", key = on ? currentIconTheme : "";
+  if (key === _chromeKey) return;
+  _chromeKey = key;
+  try { document.body.setAttribute("data-icons", key); } catch (e) {}
+  var prev = _iconCtx; _iconCtx = on;
+  try { ["bottom-nav", "app-header"].forEach(function (cls) { var root = document.querySelector("." + cls); if (root && typeof fillStaticIcons === "function") fillStaticIcons(root); }); } finally { _iconCtx = prev; }
+}
+
 function setIconTheme(id) {
   if (ICON_THEMES.indexOf(id) < 0) return;
   currentIconTheme = id;
   try { localStorage.setItem("iconTheme", id); } catch (e) {}
+  _chromeKey = "reset"; if (typeof currentPage !== "undefined") applyChromeIcons(currentPage);
   if (typeof renderSettings === "function") renderSettings();
 }
 

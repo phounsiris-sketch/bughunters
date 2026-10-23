@@ -308,31 +308,6 @@ function _fxGoldCloud(c, x, y, s, t, trail) {
   c.restore(); c.restore();
 }
 
-/** Height of the rooftop line at x (same zigzag the scene draws), so the ninja runs on the roofs */
-function _fxRoofAt(x, base) {
-  var seg = Math.floor(x / 40), x0 = seg * 40, up = function (i) { return (i % 3 === 1) ? 38 : 18; };
-  var y0 = base - up(seg) + 12, yp = base - up(seg) - 10, y1 = base - up(seg + 1) + 12, f = (x - x0) / 40;
-  return f < .5 ? y0 + (yp - y0) * (f / .5) : yp + (y1 - yp) * ((f - .5) / .5);
-}
-
-/** A ninja silhouette seen from the side: forward lean, flowing headband tails and scarf, swinging arms and a run cycle.
-    (x, y) = feet, s = size, ph = run phase, air = 0..1 jump factor, alpha for clones, scarf/band colours, dir = 1 right, -1 left. */
-function fxNinja(c, x, y, s, t, ph, air, alpha, scarf, band, dir) {
-  var lean = .28 + air * .1, hip = -17 * s - air * 8 * s; scarf = scarf || "#dc2626"; band = band || "#e2e8f0";
-  c.save(); c.translate(x, y); if (dir < 0) c.scale(-1, 1); c.globalAlpha = alpha == null ? 1 : alpha; c.lineCap = "round"; c.lineJoin = "round";
-  c.shadowColor = band; c.shadowBlur = 7; c.strokeStyle = "#04060b"; c.fillStyle = "#04060b";
-  var leg = function (k) { var a = Math.sin(ph + k * Math.PI), kx = Math.sin(a) * 9 * s * (1 - air * .5), ky = Math.max(0, Math.cos(ph + k * Math.PI)) * 6 * s; c.lineWidth = 4.6 * s; c.beginPath(); c.moveTo(0, hip); c.lineTo(kx * .6 + 2 * s, hip + 9 * s - ky * .5 - air * 3 * s); c.lineTo(kx + (air ? 3 : 0) * s, -ky * (1 - air) - air * 4 * s); c.stroke(); };
-  leg(0); leg(1);
-  c.save(); c.translate(0, hip); c.rotate(lean);
-  c.lineWidth = 9 * s; c.beginPath(); c.moveTo(0, 0); c.lineTo(1 * s, -13 * s); c.stroke();
-  c.beginPath(); c.arc(2.5 * s, -20 * s, 6.2 * s, 0, 7); c.fill();
-  c.lineWidth = 3 * s; [-1, 1].forEach(function (k) { var sw = Math.sin(ph + (k > 0 ? 0 : Math.PI)) * .9; c.beginPath(); c.moveTo(1 * s, -12 * s); c.lineTo(Math.cos(sw) * 8 * s + (k > 0 ? 4 : -2) * s, -12 * s + Math.sin(sw) * 8 * s + 4 * s); c.stroke(); });
-  c.strokeStyle = band; c.lineWidth = 2.2 * s; for (var i = 0; i < 2; i++) { c.beginPath(); c.moveTo(-2 * s, (-22 + i * 2) * s); c.bezierCurveTo(-12 * s, (-24 + i * 3) * s + Math.sin(t * 9 + i) * 3 * s, -20 * s, (-22 + i * 5) * s + Math.sin(t * 9 + i * 2) * 5 * s, -30 * s, (-22 + i * 8) * s + Math.sin(t * 8 + i) * 6 * s); c.stroke(); }
-  c.strokeStyle = scarf; c.lineWidth = 4 * s; c.beginPath(); c.moveTo(0, -13 * s); c.bezierCurveTo(-12 * s, -12 * s + Math.sin(t * 7) * 4 * s, -24 * s, -8 * s + Math.sin(t * 7 + 1) * 6 * s, -38 * s, -6 * s + Math.sin(t * 6) * 8 * s); c.stroke();
-  c.fillStyle = "#e5e7eb"; c.fillRect(0.2 * s, -24.6 * s, 6 * s, 3.2 * s);
-  c.restore(); c.restore();
-}
-
 function fxKunai(c, x, y, s, rot, trail) {
   c.save(); c.translate(x, y); c.rotate(rot);
   if (trail) { var g = c.createLinearGradient(-trail, 0, 0, 0); g.addColorStop(0, "rgba(226,232,240,0)"); g.addColorStop(1, "rgba(226,232,240,.5)"); c.fillStyle = g; c.fillRect(-trail, -1.6 * s, trail, 3.2 * s); }
@@ -347,44 +322,39 @@ function _fxPoof(c, x, y, r, p) {
 }
 
 FX_SCENES.ninja = function (c, w, h, t, top) {
-  top = top || 0; var i, base = h - FX_NAV, cx = w / 2;
-  // big pale moon under the app bar
-  var mx = w - 70, my = top + 60, mg = c.createRadialGradient(mx, my, 0, mx, my, 150); mg.addColorStop(0, "rgba(226,232,240,.35)"); mg.addColorStop(1, "rgba(226,232,240,0)"); c.fillStyle = mg; c.fillRect(mx - 160, top, 320, 260);
-  c.fillStyle = "#f1f5f9"; c.beginPath(); c.arc(mx, my, 34, 0, 7); c.fill(); c.fillStyle = "rgba(148,163,184,.45)"; c.beginPath(); c.arc(mx - 10, my - 6, 8, 0, 7); c.arc(mx + 12, my + 12, 6, 0, 7); c.fill();
+  top = top || 0; var i, base = h - FX_NAV, hor = base - 44, sx = w * .64, sy = hor - 124;
+  // dusk glow and a big setting sun with slowly turning rays
+  var g = c.createRadialGradient(sx, hor, 0, sx, hor, 360); g.addColorStop(0, "rgba(251,146,60,.5)"); g.addColorStop(.5, "rgba(194,65,12,.18)"); g.addColorStop(1, "rgba(194,65,12,0)"); c.fillStyle = g; c.fillRect(0, hor - 360, w, 440);
+  c.save(); c.translate(sx, sy); c.rotate(t * .06); c.fillStyle = "rgba(253,186,116,.1)"; for (i = 0; i < 14; i++) { var ra = i / 14 * Math.PI * 2; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 330, ra, ra + .13); c.closePath(); c.fill(); } c.restore();
+  var sg = c.createRadialGradient(sx - 14, sy - 14, 4, sx, sy, 78); sg.addColorStop(0, "#fff1d6"); sg.addColorStop(.5, "#fdba74"); sg.addColorStop(1, "#f97316"); c.fillStyle = sg; c.beginPath(); c.arc(sx, sy, 76, 0, 7); c.fill();
+  for (i = 0; i < 16; i++) { var tw = Math.max(0, Math.sin(t * 1.8 + i * 2.3)); c.fillStyle = "rgba(255,255,255," + tw * .8 + ")"; c.fillRect(_frnd(i + 1) * w, top + 6 + _frnd(i + 8) * (hor - top - 220), 2.2, 2.2); }
+  // mountains
+  [["#0f1a55", 130, 70, 23, 11], ["#0a1240", 84, 48, 31, 7]].forEach(function (m, n) { c.fillStyle = m[0]; c.beginPath(); c.moveTo(0, base); for (var x = 0; x <= w + 10; x += 10) c.lineTo(x, hor - m[1] + Math.sin(x / m[2] + n * 2) * 34 + Math.sin(x / m[3]) * m[4] + (n ? 14 : 0)); c.lineTo(w, base); c.closePath(); c.fill(); });
+  // wooden rooftops of the village, a torii gate and a ramen stall
+  c.fillStyle = "#070a1c"; c.beginPath(); c.moveTo(0, h); for (var x2 = 0; x2 <= w + 40; x2 += 40) { var up = (x2 / 40) % 3 === 1 ? 38 : 18; c.lineTo(x2, base - up + 12); c.lineTo(x2 + 20, base - up - 10); } c.lineTo(w, h); c.closePath(); c.fill();
+  var tx = w * .8; c.fillStyle = "#991b1b"; c.fillRect(tx - 24, base - 82, 7, 84); c.fillRect(tx + 17, base - 82, 7, 84); c.beginPath(); c.moveTo(tx - 40, base - 80); c.quadraticCurveTo(tx, base - 94, tx + 40, base - 80); c.lineTo(tx + 38, base - 70); c.quadraticCurveTo(tx, base - 82, tx - 38, base - 70); c.closePath(); c.fill(); c.fillRect(tx - 30, base - 62, 60, 5); c.fillStyle = "#450a0a"; c.fillRect(tx - 26, base - 4, 11, 8); c.fillRect(tx + 15, base - 4, 11, 8);
+  var rx = w * .2, ry = base + 2; c.fillStyle = "#1c1030"; c.fillRect(rx - 40, ry - 34, 80, 36); c.fillStyle = "#b91c1c"; c.beginPath(); c.moveTo(rx - 50, ry - 34); c.lineTo(rx + 50, ry - 34); c.lineTo(rx + 40, ry - 52); c.lineTo(rx - 40, ry - 52); c.closePath(); c.fill(); c.fillStyle = "#fef3c7"; for (i = 0; i < 4; i++) c.fillRect(rx - 38 + i * 20, ry - 52, 8, 7);
+  for (i = 0; i < 3; i++) { var nw = Math.sin(t * 2.4 + i) * 2; c.fillStyle = "#fef3c7"; c.fillRect(rx - 30 + i * 22 + nw, ry - 34, 14, 17); c.fillStyle = "#b91c1c"; c.fillRect(rx - 26 + i * 22 + nw, ry - 28, 6, 3); }
+  c.fillStyle = "#7c2d12"; c.fillRect(rx - 40, ry - 14, 80, 6); c.fillStyle = "#fff7ed"; [[-18, 0], [14, 0]].forEach(function (b) { c.beginPath(); c.arc(rx + b[0], ry - 15, 7, 0, Math.PI); c.fill(); });
+  for (i = 0; i < 8; i++) { var sp = (t * .55 + i / 8) % 1, sxx = rx + (i % 2 ? 14 : -18) + Math.sin(t * 2 + i) * 4; c.fillStyle = "rgba(255,255,255," + (.55 * (1 - sp)) + ")"; c.beginPath(); c.arc(sxx, ry - 20 - sp * 38, 3 + sp * 8, 0, 7); c.fill(); }
+  // strings of paper lanterns that flicker
+  for (var str = 0; str < 2; str++) { var y0 = base - 74 - str * 34, y1 = base - 90 - str * 30; c.strokeStyle = "rgba(30,20,40,.9)"; c.lineWidth = 1.6; c.beginPath(); for (var xx = 0; xx <= w; xx += 8) { var f = xx / w, yy = y0 + (y1 - y0) * f + Math.sin(f * Math.PI) * 20; if (xx) c.lineTo(xx, yy); else c.moveTo(xx, yy); } c.stroke();
+    for (i = 1; i < 8; i++) { var lf = i / 8 + str * .06, lx = lf * w, ly = y0 + (y1 - y0) * lf + Math.sin(lf * Math.PI) * 20 + 7, fl = .72 + .28 * Math.sin(t * 5 + i * 1.7 + str); var gl = c.createRadialGradient(lx, ly, 0, lx, ly, 26); gl.addColorStop(0, "rgba(251,146,60," + (.5 * fl) + ")"); gl.addColorStop(1, "rgba(251,146,60,0)"); c.fillStyle = gl; c.fillRect(lx - 26, ly - 26, 52, 52); c.fillStyle = "rgba(254,215,170," + fl + ")"; c.strokeStyle = "#7c2d12"; c.lineWidth = 1.4; c.beginPath(); c.ellipse(lx, ly, 6, 8, 0, 0, 7); c.fill(); c.stroke(); } }
   // chakra sphere: a spinning ball of light with spiral arms and orbiting sparks
-  var sx0 = w * .2, sy0 = top + 190 + Math.sin(t * 1.3) * 16, sr = 26;
-  var sg = c.createRadialGradient(sx0, sy0, 2, sx0, sy0, sr * 2.4); sg.addColorStop(0, "rgba(255,255,255,.9)"); sg.addColorStop(.35, "rgba(147,197,253,.5)"); sg.addColorStop(1, "rgba(59,130,246,0)"); c.fillStyle = sg; c.beginPath(); c.arc(sx0, sy0, sr * 2.4, 0, 7); c.fill();
-  c.save(); c.translate(sx0, sy0); c.rotate(t * 7); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 2.4; for (var arm = 0; arm < 3; arm++) { c.beginPath(); for (var k = 0; k < 22; k++) { var a = k * .24 + arm * 2.094, r = 2 + k * (sr / 22); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); } c.restore();
-  for (i = 0; i < 7; i++) { var oa = t * 3 + i * .9, orr = sr * 1.5 + Math.sin(t * 2 + i) * 6; c.fillStyle = "rgba(191,219,254," + (.5 + .4 * Math.sin(t * 5 + i)) + ")"; c.beginPath(); c.arc(sx0 + Math.cos(oa) * orr, sy0 + Math.sin(oa) * orr * .6, 2.2, 0, 7); c.fill(); }
-  // leaf vortex and drifting paper tags
-  for (i = 0; i < 26; i++) { var la = t * 1.7 + i * .42, lr = 14 + ((i * 7 + t * 12) % 70), lx = w * .8 + Math.cos(la) * lr * 1.4, ly = base - 190 + Math.sin(la) * lr * .7 - ((i * 5) % 40); c.save(); c.translate(lx, ly); c.rotate(la * 2); c.fillStyle = i % 3 ? "rgba(74,222,128,.6)" : "rgba(251,146,60,.6)"; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.restore(); }
-  for (i = 0; i < 5; i++) { var tp = (t * (.05 + _frnd(i) * .03) + _frnd(i + 3)) % 1, tx = w * (.1 + i * .2) + Math.sin(t * 1.4 + i) * 18, ty = top + 20 + tp * (base - top); c.save(); c.translate(tx, ty); c.rotate(Math.sin(t * 2 + i) * .5); c.fillStyle = "#fef3c7"; c.strokeStyle = "#b91c1c"; c.lineWidth = 1.4; c.fillRect(-5, -13, 10, 26); c.strokeRect(-5, -13, 10, 26); c.beginPath(); c.moveTo(-3, -8); c.lineTo(3, -8); c.moveTo(0, -8); c.lineTo(0, 8); c.moveTo(-3, 0); c.lineTo(3, 3); c.stroke(); c.restore(); }
-  // summoning circle with an unrolling scroll (cyan), shown for a few seconds every 14 s
-  var cyc3 = t % 14; if (cyc3 > 7 && cyc3 < 11.5) { var sp2 = (cyc3 - 7) / 4.5, sa = Math.sin(sp2 * Math.PI), ccx = cx, ccy = base - 78, rr = 78;
-    c.save(); c.translate(ccx, ccy); c.scale(1, .3); c.globalAlpha = sa; c.shadowColor = "#67e8f9"; c.shadowBlur = 14; c.strokeStyle = "#67e8f9"; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, rr, 0, 7); c.stroke(); c.beginPath(); c.arc(0, 0, rr * .72, 0, 7); c.stroke();
-    c.rotate(t * .9); c.lineWidth = 2.4; for (i = 0; i < 6; i++) { var ga = i / 6 * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(ga) * rr * .72, Math.sin(ga) * rr * .72); c.lineTo(Math.cos(ga + 2.094) * rr * .72, Math.sin(ga + 2.094) * rr * .72); c.stroke(); c.fillStyle = "#e0f2fe"; c.fillRect(Math.cos(ga) * rr * .86 - 3, Math.sin(ga) * rr * .86 - 8, 6, 16); }
-    c.restore();
-    var sw2 = 150 * Math.min(1, sp2 * 2.2) * (sa > .02 ? 1 : 0); c.globalAlpha = Math.min(1, sa * 2); c.fillStyle = "#fef3c7"; c.strokeStyle = "#7f1d1d"; c.lineWidth = 2; c.fillRect(ccx - sw2 / 2, ccy - 62, sw2, 22); c.strokeRect(ccx - sw2 / 2, ccy - 62, sw2, 22);
-    c.fillStyle = "#7f1d1d"; c.beginPath(); c.arc(ccx - sw2 / 2, ccy - 51, 7, 0, 7); c.arc(ccx + sw2 / 2, ccy - 51, 7, 0, 7); c.fill(); c.strokeStyle = "#1c1917"; c.lineWidth = 1.8; for (i = 0; i < 8; i++) { var gx = ccx - sw2 / 2 + 12 + i * (sw2 - 24) / 7; c.beginPath(); c.moveTo(gx - 3, ccy - 56); c.lineTo(gx + 3, ccy - 56); c.moveTo(gx, ccy - 56); c.lineTo(gx, ccy - 46); c.stroke(); } c.globalAlpha = 1; }
-  // dark rooftops
-  c.fillStyle = "#0a0702"; c.beginPath(); c.moveTo(0, h); for (var x = 0; x <= w + 40; x += 40) { var up = (x / 40) % 3 === 1 ? 38 : 18; c.lineTo(x, base - up + 12); c.lineTo(x + 20, base - up - 10); } c.lineTo(w, h); c.closePath(); c.fill();
-  // two ninja: the hero runs right and leaps, a rival in blue runs left; where they cross, their blades clash in a spark burst
-  var run = 66, S = 1.7, nx = ((t * run) % (w + 240)) - 120, jp = (t * run / 150) % 1, air = jp > .62 ? Math.sin((jp - .62) / .38 * Math.PI) : 0, ny = _fxRoofAt(nx, base) - air * 60;
-  var rx = w + 120 - ((t * 58) % (w + 240)), ry = _fxRoofAt(rx, base);
-  fxNinja(c, rx, ry, S * .95, t, -t * 12 + 2, 0, 1, "#3b82f6", "#93c5fd", -1);
-  var cyc = t % 9, clones = cyc > 5.5 && cyc < 7.4 ? Math.sin((cyc - 5.5) / 1.9 * Math.PI) : 0, ph = t * 12;
-  if (clones > 0) { [[-90], [86]].forEach(function (o, n) { var cxn = nx + o[0], cyn = _fxRoofAt(cxn, base); fxNinja(c, cxn, cyn, S * .95, t, ph + n * 1.4, 0, .85 * clones); if (cyc < 5.9 || cyc > 7.0) _fxPoof(c, cxn, cyn - 22, 26, cyc < 5.9 ? (cyc - 5.5) / .4 : (cyc - 7.0) / .4); }); }
-  fxNinja(c, nx, ny, S, t, ph, air, 1);
-  var dd = Math.abs(nx - rx); if (dd < 44) { var ci = 1 - dd / 44, ccx2 = (nx + rx) / 2, ccy2 = Math.min(ny, ry) - 34; c.save(); c.translate(ccx2, ccy2); c.strokeStyle = "rgba(255,255,255," + ci + ")"; c.lineWidth = 2.6; c.lineCap = "round"; for (i = 0; i < 10; i++) { var ra = i / 10 * Math.PI * 2 + t * 9, r1 = 6 + (1 - ci) * 6, r2 = r1 + 14 + (i % 2) * 10; c.beginPath(); c.moveTo(Math.cos(ra) * r1, Math.sin(ra) * r1); c.lineTo(Math.cos(ra) * r2, Math.sin(ra) * r2); c.stroke(); }
-    c.strokeStyle = "rgba(147,197,253," + ci + ")"; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, 10 + (1 - ci) * 26, 0, 7); c.stroke(); c.fillStyle = "rgba(255,255,255," + ci + ")"; c.beginPath(); c.arc(0, 0, 6, 0, 7); c.fill(); c.restore(); }
-  // kunai thrown every four seconds
-  var kp = ((t - 1.2) % 4) / 1.5; if (kp > 0 && kp < 1) { var kx = nx + 10 + kp * (w - nx + 80), ky = ny - 40 - Math.sin(kp * Math.PI) * 90; fxKunai(c, kx, ky, 1.5, -.12 + kp * .5, 46); }
-  // fire-style jutsu: every ten seconds the hero spits a big fireball that streaks right, trailing flames
-  var fl = ((t - 4) % 10) / 1.9; if (fl > 0 && fl < 1) {
-    var lt = t - fl * 1.9, ox = ((lt * run) % (w + 240)) - 120 + 22, oy = _fxRoofAt(ox, base) - 34 * S, fx = ox + fl * (w + 160 - ox), fy = oy - Math.sin(fl * Math.PI) * 40, fr = 10 + fl * 30;
-    for (i = 0; i < 7; i++) { var tl = i / 7, tx2 = fx - tl * fr * 3.2, ty2 = fy + Math.sin(t * 20 + i * 2) * fr * .25 * tl, tr = fr * (1 - tl * .7); var tg = c.createRadialGradient(tx2, ty2, 0, tx2, ty2, tr); tg.addColorStop(0, "rgba(251,146,60," + (.8 * (1 - tl)) + ")"); tg.addColorStop(1, "rgba(220,38,38,0)"); c.fillStyle = tg; c.beginPath(); c.arc(tx2, ty2, tr, 0, 7); c.fill(); }
-    var bg = c.createRadialGradient(fx - fr * .2, fy - fr * .2, 0, fx, fy, fr); bg.addColorStop(0, "#fff7ae"); bg.addColorStop(.4, "#fb923c"); bg.addColorStop(1, "rgba(220,38,38,.9)"); c.fillStyle = bg; c.beginPath(); c.arc(fx, fy, fr, 0, 7); c.fill();
-    c.strokeStyle = "rgba(255,237,160,.9)"; c.lineWidth = 2.4; for (i = 0; i < 6; i++) { var fa = i / 6 * Math.PI * 2 + t * 6; c.beginPath(); c.moveTo(fx + Math.cos(fa) * fr * .9, fy + Math.sin(fa) * fr * .9); c.lineTo(fx + Math.cos(fa) * fr * 1.35, fy + Math.sin(fa) * fr * 1.35); c.stroke(); } }
+  var cx0 = w * .2, cy0 = top + 190 + Math.sin(t * 1.3) * 16, sr = 26;
+  var cg = c.createRadialGradient(cx0, cy0, 2, cx0, cy0, sr * 2.4); cg.addColorStop(0, "rgba(255,255,255,.9)"); cg.addColorStop(.35, "rgba(147,197,253,.5)"); cg.addColorStop(1, "rgba(59,130,246,0)"); c.fillStyle = cg; c.beginPath(); c.arc(cx0, cy0, sr * 2.4, 0, 7); c.fill();
+  c.save(); c.translate(cx0, cy0); c.rotate(t * 7); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 2.4; for (var arm = 0; arm < 3; arm++) { c.beginPath(); for (var k = 0; k < 22; k++) { var a = k * .24 + arm * 2.094, r = 2 + k * (sr / 22); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); } c.restore();
+  for (i = 0; i < 7; i++) { var oa = t * 3 + i * .9, orr = sr * 1.5 + Math.sin(t * 2 + i) * 6; c.fillStyle = "rgba(191,219,254," + (.5 + .4 * Math.sin(t * 5 + i)) + ")"; c.beginPath(); c.arc(cx0 + Math.cos(oa) * orr, cy0 + Math.sin(oa) * orr * .6, 2.2, 0, 7); c.fill(); }
+  // leaf wind: a gust with a swirl of leaves crossing the sky, plus a vortex of leaves on the right
+  var gp = (t * .22) % 1, gx = -60 + gp * (w + 160);
+  for (i = 0; i < 18; i++) { var u = i / 18, lx2 = gx - u * 150 + Math.sin(t * 6 + i) * 6, ly2 = top + 330 + Math.sin(gp * 8 + u * 5) * 50 + u * 30, rot = t * 6 + i; c.save(); c.translate(lx2, ly2); c.rotate(rot); c.fillStyle = i % 3 ? "rgba(74,222,128," + (.75 - u * .5) + ")" : "rgba(251,146,60," + (.75 - u * .5) + ")"; c.beginPath(); c.ellipse(0, 0, 7, 3, 0, 0, 7); c.fill(); c.restore(); }
+  c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 2; c.lineCap = "round"; for (i = 0; i < 3; i++) { c.beginPath(); c.moveTo(gx - 200, top + 320 + i * 18); c.quadraticCurveTo(gx - 100, top + 300 + i * 18 + Math.sin(t * 3) * 6, gx, top + 330 + i * 18); c.stroke(); }
+  for (i = 0; i < 24; i++) { var la = t * 1.7 + i * .45, lr = 12 + ((i * 7 + t * 12) % 60), lx3 = w * .78 + Math.cos(la) * lr * 1.3, ly3 = top + 150 + Math.sin(la) * lr * .6 - ((i * 5) % 30); c.save(); c.translate(lx3, ly3); c.rotate(la * 2); c.fillStyle = i % 3 ? "rgba(74,222,128,.6)" : "rgba(251,146,60,.6)"; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.restore(); }
+  // paper tags drifting down, shadow-clone smoke pops over the rooftops, shuriken and a kunai flying through
+  for (i = 0; i < 5; i++) { var tp = (t * (.05 + _frnd(i) * .03) + _frnd(i + 3)) % 1, tx2 = w * (.1 + i * .2) + Math.sin(t * 1.4 + i) * 18, ty = top + 20 + tp * (base - top); c.save(); c.translate(tx2, ty); c.rotate(Math.sin(t * 2 + i) * .5); c.fillStyle = "#fef3c7"; c.strokeStyle = "#b91c1c"; c.lineWidth = 1.4; c.fillRect(-5, -13, 10, 26); c.strokeRect(-5, -13, 10, 26); c.beginPath(); c.moveTo(-3, -8); c.lineTo(3, -8); c.moveTo(0, -8); c.lineTo(0, 8); c.moveTo(-3, 0); c.lineTo(3, 3); c.stroke(); c.restore(); }
+  var pidx = Math.floor(t / 3), pp = (t % 3) / 1.1; if (pp < 1) _fxPoof(c, w * (.1 + _frnd(pidx + 2) * .8), base - 64, 24, pp);
+  for (i = 0; i < 2; i++) { var fp = (t * .3 + i * .5) % 1, fx = -30 + fp * (w + 60), fy = top + 90 + i * 150 + Math.sin(fp * 5 + i) * 26; for (var tr = 3; tr >= 0; tr--) { c.globalAlpha = .12 * (4 - tr); fxShuriken(c, fx - tr * 16, fy, 13, t * 14 + i, "#cbd5e1"); } c.globalAlpha = 1; fxShuriken(c, fx, fy, 15, t * 14 + i, "#e2e8f0"); }
+  var kp = ((t - 1.2) % 5) / 1.8; if (kp > 0 && kp < 1) fxKunai(c, -30 + kp * (w + 60), top + 260 - Math.sin(kp * Math.PI) * 110, 1.6, -.1 + kp * .5, 52);
 };
 
 /** A round white-and-teal dome house with windows, a door and a tiny glowing antenna (x = centre, y = ground, r = radius) */
