@@ -1324,3 +1324,5 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v165 — Chinese New Year replaces Songkran
 - The special theme id `songkran` is now `cny` ("Chinese New Year", `spCny*` texts). Red and gold palette, hanging lanterns at the top, a lion dance head and a dragon along the bottom (SVG data URIs, no files), a small lantern hanging on every card, floating lanterns rising (`fx-lanterns`), red/gold home cards and live-score colour set, red/gold share card with lanterns, lion and dragon drawn on the canvas (`_scLantern`, `_scLion`).
 - Seasonal "Try it" card on Home from Jan 20 to Feb 25 (the date moves each year: 2026-02-17, 2027-02-06, 2028-01-26). A saved choice of `songkran` falls back to the normal style.
+## v164 — bottom nav
+- Removed the coloured strip on top of the active bottom-nav tab (added in v157). The active tab stays bold and in the accent colour.
