@@ -3102,9 +3102,8 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 
 /* ========== Splash screen: Mars's gauntlet drives the shuttle into the logo, the floor breaks ========== */
 /* The scene is drawn on one canvas by js/splash.js. The logo and the name are plain HTML above it: they never move. */
-#splash { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #050304; transition: opacity 0.45s ease, visibility 0.45s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#splash { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #050304; transition: opacity 0.25s ease, visibility 0.25s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 #splash.hide { opacity: 0; visibility: hidden; }
-#splash.sp-blue { background: #03060e; }
 #sp3fx { position: absolute; left: 0; top: 0; }
 .sp3-brand { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 #sp3logo { display: block; width: 120px; height: 120px; border-radius: 28px; background: #0b1220; box-shadow: 0 14px 34px rgba(0, 0, 0, .6), 0 0 0 1.5px rgba(255, 255, 255, .22); }

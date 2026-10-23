@@ -1,5 +1,5 @@
 /* ============================================================
-   splash.js — opening scene (a serious, cinematic one)
+   splash.js — opening scene (a serious, cinematic one, one design in the colours of the chosen theme, under 1 second)
    The logo never moves. A huge armoured gauntlet (Mars, never shown in full)
    swings in from the top corner, its shadow sweeping the stone floor, and
    drives a shuttlecock into the middle of the logo. Time slows for an instant,
@@ -13,11 +13,36 @@
   var splash = document.getElementById("splash"), cv = document.getElementById("sp3fx"), logo = document.getElementById("sp3logo");
   if (!splash || !cv || !logo) return;
 
+  /* One scene, coloured by the theme the person picked (v188). hot = the glow, hot2 = the flash, stone = the floor, deep = the dark edges.
+     Same ids as the dark styles, light styles and special themes in js/app.js. */
   var PALS = {
-    red:  { hot: [255, 74, 48], hot2: [255, 196, 170], stone: [20, 12, 13], deep: [8, 3, 5] },
-    blue: { hot: [64, 164, 255], hot2: [196, 235, 255], stone: [11, 15, 26], deep: [3, 6, 14] }
+    navy:     { hot: [20, 184, 166], hot2: [187, 247, 208], stone: [8, 18, 32], deep: [3, 8, 16] },
+    violet:   { hot: [124, 77, 255], hot2: [214, 200, 255], stone: [17, 14, 26], deep: [8, 6, 14] },
+    court:    { hot: [59, 130, 246], hot2: [186, 222, 255], stone: [10, 18, 32], deep: [4, 8, 16] },
+    clean:    { hot: [59, 116, 217], hot2: [196, 225, 255], stone: [20, 20, 20], deep: [8, 8, 8] },
+    midnight: { hot: [91, 77, 255], hot2: [200, 196, 255], stone: [12, 14, 28], deep: [5, 6, 14] },
+    mint:     { hot: [13, 148, 136], hot2: [187, 247, 208], stone: [10, 24, 28], deep: [4, 12, 14] },
+    lilac:    { hot: [109, 74, 255], hot2: [221, 214, 254], stone: [18, 14, 30], deep: [8, 6, 16] },
+    sky:      { hot: [29, 95, 209], hot2: [186, 222, 255], stone: [10, 18, 34], deep: [4, 8, 18] },
+    paper:    { hot: [47, 111, 214], hot2: [200, 225, 255], stone: [22, 22, 24], deep: [10, 10, 12] },
+    sunrise:  { hot: [234, 88, 12], hot2: [254, 215, 170], stone: [30, 16, 10], deep: [14, 7, 4] },
+    halloween: { hot: [251, 146, 60], hot2: [253, 224, 171], stone: [18, 10, 46], deep: [8, 4, 24] },
+    christmas: { hot: [220, 38, 38], hot2: [253, 230, 138], stone: [7, 32, 15], deep: [3, 16, 8] },
+    cny:      { hot: [220, 38, 38], hot2: [252, 211, 77], stone: [42, 6, 6], deep: [22, 3, 3] },
+    arcade:   { hot: [232, 121, 249], hot2: [103, 232, 249], stone: [16, 6, 36], deep: [8, 3, 20] },
+    ninja:    { hot: [251, 146, 60], hot2: [186, 215, 255], stone: [10, 16, 51], deep: [5, 8, 28] },
+    orbs:     { hot: [251, 191, 36], hot2: [190, 242, 255], stone: [10, 59, 63], deep: [4, 28, 32] },
+    pirate:   { hot: [220, 38, 38], hot2: [253, 224, 120], stone: [7, 22, 52], deep: [3, 10, 28] },
+    reaper:   { hot: [251, 146, 60], hot2: [245, 245, 245], stone: [12, 12, 18], deep: [4, 4, 8] }
   };
-  var theme = splash.classList.contains("sp-blue") ? "blue" : "red", P = PALS[theme];
+  function pickPal() {
+    var g = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    var light = g("theme") === "light", sp = g("special");
+    if (!light && sp && PALS[sp]) return PALS[sp];
+    return PALS[light ? g("paletteLight") : g("palette")] || (light ? PALS.mint : PALS.navy);
+  }
+  var P = pickPal();
+  splash.style.background = "rgb(" + P.deep.join(",") + ")";
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var q = (location.search || "").match(/[?&]seed=(\d+)/);
   var seed = q ? +q[1] : (Math.random() * 1e9) | 0;
@@ -30,7 +55,7 @@
   /* timeline, real milliseconds */
   var T_LOOM = 260, T_SWING = 640, T_CONTACT = 900, T_IMPACT = 1000, SLOW_MS = 150, SLOW_K = 0.4;   // a soft hit-stop (v120: the hard 0.16 stop looked like a stutter)
   var T_BREAK = 1650, T_HOLD = 2300;
-  var SPEED = 2.2;   // the scene is played this much faster than its timeline (v101, v121): about 1 s on screen
+  var SPEED = 3.3;   // the scene is played this much faster than its timeline (v188): the hit lands at 0.3 s and the floor breaks at 0.5 s, so the whole thing is under 1 s on screen
 
   var ctx = cv.getContext("2d");
   var W = 0, H = 0, DPR = 1, C = { x: 0, y: 0 }, floor = null, vign = null;

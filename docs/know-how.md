@@ -1421,3 +1421,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 ## v187 — Home health card shows the month by weeks
 - The Health & exercise swipe card on Home now shows **this month**: the month's total time as the big number, **one bar per week of the month** (`healthMonthWeeks`: blocks of 7 days, days 1-7 = W1 ... 29-end = W5; February has four) with a label under each bar, today's block drawn solid white and the others softer, then kcal and sessions for the month. Tapping it opens the Health overview on the Month tab. The Dashboard card still shows the current week.
+
+## v188 — one splash, in the colours of the chosen theme, under one second
+- The opening scene (gauntlet, shuttlecock, flash, shock ring, shards) is the only design. It no longer alternates red and blue at each launch: `pickPal()` in `js/splash.js` reads the saved choice (`special` first, in dark mode; otherwise `palette` or `paletteLight`) and uses that theme's glow, flash and stone colours; the page behind it gets the theme's dark colour. All 5 dark styles, 5 light styles and 8 special themes have a palette (`tests/splash.test.js` checks every id in app.js has one).
+- Faster: `SPEED` 2.2 -> 3.3 (the hit lands at 0.3 s, the floor breaks at 0.5 s), the minimum time on screen is 700 ms (350 ms with reduced motion) plus a 0.25 s fade (was 1000 ms + 0.45 s), so it is under 1 s once the app is ready. A tap still skips it. If the app needs longer to start (sign-in check, slow network), the splash waits for it, as before.

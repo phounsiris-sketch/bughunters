@@ -20,7 +20,7 @@
 <body data-theme="dark">
 
 <!-- Splash: shown until we know whether someone is signed in -->
-<div id="splash" class="sp-red" data-nokb aria-live="polite" onclick="skipSplash()">
+<div id="splash" data-nokb aria-live="polite" onclick="skipSplash()">
   <canvas id="sp3fx" aria-hidden="true"></canvas>
   <div class="sp3-brand">
     <img id="sp3logo" src="icons/icon-512.png" width="120" height="120" alt="Godsmash">
@@ -29,7 +29,6 @@
   </div>
 </div>
 <script>try{var _l=localStorage.getItem("lang")||"la";document.documentElement.lang=_l==="en"?"en":"lo";}catch(e){}</script>
-<script>try{var _s=document.getElementById("splash"),_k="godsmash_splash",_n=localStorage.getItem(_k)==="red"?"blue":"red";localStorage.setItem(_k,_n);_s.className="sp-"+_n;}catch(e){}</script>
 <script src="js/splash.js"></script>
 
 
