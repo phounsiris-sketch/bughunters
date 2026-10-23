@@ -655,7 +655,11 @@ function loadGroupSettings() {
   var box = document.getElementById("groupSettingsContent");
   if (!box) return;
   if (!isGroupAdminMe()) {
-    box.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>';
+    // A member only sees the invite box (unless an admin switched member invites off)
+    if (currentGroup.adminOnlyInvite) { box.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; return; }
+    box.innerHTML = '<div id="groupInviteBox"></div>';
+    _renderInviteBox();
+    fsdb.collection("groupSecrets").doc(currentGroupId).get().then(function (doc) { _groupSecret = doc.exists ? doc.data() : null; _renderInviteBox(); }).catch(function () { _groupSecret = null; var bx = document.getElementById("groupInviteBox"); if (bx) bx.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; });
     return;
   }
   var owner = isSuperAdmin() || (currentGroup.ownerId === currentUser.uid);
@@ -681,9 +685,17 @@ function _renderInviteBox() {
     (code ? '<div class="invite-qr" id="inviteQr"></div>' +
       '<input class="form-input" value="' + escapeHtml(link) + '" readonly onclick="this.select()" style="margin:10px 0 8px">' +
       '<div class="map-actions"><button class="btn-primary map-btn" onclick="shareInvite()">' + icon("link", 15) + ' ' + t("shareInvite") + '</button>' +
-      '<button class="btn-secondary map-btn" onclick="resetInviteCode()">' + t("resetCode") + '</button></div>'
+      (isGroupAdminMe() ? '<button class="btn-secondary map-btn" onclick="resetInviteCode()">' + t("resetCode") + '</button>' : '') + '</div>' +
+      (isGroupAdminMe() ? '<label class="form-hint" style="display:flex;gap:8px;align-items:center;margin-top:12px"><input type="checkbox" ' + (currentGroup.adminOnlyInvite ? '' : 'checked ') + 'onchange="setMembersInvite(this.checked)"> ' + t("membersMayInvite") + '</label>' : '')
       : '<div class="empty-state" style="padding:8px">' + t("loading") + '</div>') + '</div>';
   if (code) renderQr("inviteQr", link, 180);
+}
+
+/** Admin switch: may every member share the invite link and QR (default yes) */
+function setMembersInvite(on) {
+  fsdb.collection("groups").doc(currentGroupId).update({ adminOnlyInvite: !on }).then(function () {
+    currentGroup.adminOnlyInvite = !on; showToast(t(on ? "membersInviteOn" : "membersInviteOff"));
+  }).catch(function (e) { showToast(_permError(e)); _renderInviteBox(); });
 }
 
 function shareInvite() {

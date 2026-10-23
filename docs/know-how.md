@@ -1447,3 +1447,10 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Art is original: generic bows, hearts, bells, propellers, a door, talismans, a torii gate, cursed-energy ribbons. No characters or logos; the franchise names only appear in the "X style" subtitle.
 - New fx helpers: `fxHeart`, `fxBow`, `fxSparkle`, `fxBell`, `fxCopter`, `fxTalisman`.
 - Not checked: contrast audit (`tools/contrast`) on the new palettes, animation speed on real phones, Lao wording.
+
+
+## v192 - members can invite
+
+- Any active member can open Settings -> "Invite friends" (group-settings page) and share the invite link / QR. Admins keep: reset code, and a checkbox "Members can invite friends with this link" (writes `groups/{gid}.adminOnlyInvite`; absent = members may invite).
+- `firestore.rules` `groupSecrets` read: admin OR (active member AND group not `adminOnlyInvite`). Create/update stay admin only. **Rules must be published again by hand** (dry run first); until then members see the "admins only" note.
+- Trade-off: the invite code is a secret shared by link; a member who leaks it needs an admin to reset the code (existing button).

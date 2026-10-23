@@ -212,6 +212,7 @@ function _renderSettingsPage() {
     var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
     rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
     if (admin) rows.push(_navRow("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint")));
+    else if (!currentGroup.adminOnlyInvite) rows.push(_navRow("showPage('group-settings')", "link", t("invitePlayers"), t("inviteGroupHint")));
     rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
     rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
     rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
