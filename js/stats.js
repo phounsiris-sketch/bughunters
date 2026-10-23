@@ -238,6 +238,7 @@ function _myStatsCard() {
   html += '<div class="mh-top">' + avatarHtml(me, 56) + '<div class="mh-id"><div class="mh-name">' + getUserName(me) + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
     '<div class="mh-sub">' + (rk ? '<b>#' + rk + '</b> ' + _rankTrend(st.rankChange.players[me], p.rating, p.monthStart) : t("notRankedYet")) + '</div></div>' +
     '<div class="mh-rate"><small>' + t("homeRating") + '</small><b>' + (p && p.comp ? Math.round(p.rating) : '\u2013') + '</b>' + (p && p.comp ? _provTag(p.comp, RANK_MIN_MATCHES) : '') + '</div>' +
+    '<button class="how-btn" aria-label="' + t("shareMyCard") + '" title="' + t("shareMyCard") + '" onclick="openShareCard()">' + icon("share", 14) + '</button>' +
     '<button class="how-btn" aria-label="' + t("howRankingWorks") + '" onclick="showRankingHelp()">?</button></div>';
   html += '<div class="mh-scope">' + scopeChipsHtml() + '</div>';
   // Facts for the chosen period: icon + number chips (the words are in the tooltip)

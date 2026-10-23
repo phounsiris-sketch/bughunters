@@ -5964,3 +5964,11 @@ body[data-special="arcade"]:not([data-theme="light"]) .live-screen .ls-half::bef
 body[data-special="arcade"]:not([data-theme="light"]) .live-screen .ls-score { text-shadow: 0 0 22px rgba(232, 121, 249, .7), 0 0 4px rgba(255,255,255,.8); }
 body[data-special="halloween"]:not([data-theme="light"]) .live-screen { background: radial-gradient(circle 60px at calc(100% - 40px) 60px, #ffe9b8 0, #f9c06b 70%, transparent 100%), var(--bg); }
 body[data-special]:not([data-special="none"]):not([data-theme="light"]) { --danger-text: #fca5a5; --ok-text: #86efac; }
+
+/* v161: share card */
+.pf-share { margin-top: 12px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.sc-sheet { max-height: 92vh; overflow-y: auto; }
+.sc-prev { display: flex; justify-content: center; margin: 10px 0; }
+.sc-prev canvas { max-width: 100%; max-height: 48vh; width: auto; height: auto; border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+.sc-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+.mh-top .how-btn + .how-btn { margin-left: 6px; }
