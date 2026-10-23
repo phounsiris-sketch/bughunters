@@ -231,13 +231,16 @@ function removeStoryPhoto(i) {
   var me = currentUserProfile || {};
   var list = (me.story || []).slice();
   var it = list[i];
-  if (!it || !confirm(t("delete") + "?")) return;
-  list.splice(i, 1);
-  dbUpdateUser(currentUser.uid, { story: list }).then(function () {
-    me.story = list;
-    _rerenderStory();
-    if (isImgRef(it.img)) fsdb.collection("images").doc(it.img.slice(4)).delete().catch(function () {});
-  }).catch(function (e) { showToast(_permError(e)); });
+  if (!it) return;
+  askYes(t("delete") + "?", function () {
+
+    list.splice(i, 1);
+    dbUpdateUser(currentUser.uid, { story: list }).then(function () {
+      me.story = list;
+      _rerenderStory();
+      if (isImgRef(it.img)) fsdb.collection("images").doc(it.img.slice(4)).delete().catch(function () {});
+    }).catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 function setStoryVis(v) {
@@ -298,14 +301,15 @@ var MAX_LISTINGS = 3;
 
 /** Sold: the item leaves the market AND my gear list (it is gone, not just unlisted) */
 function markGearSold(id) {
-  if (!confirm(t("markSoldQ"))) return;
-  fsdb.collection("gear").doc(id).delete().then(function () {
-    showToast(t("soldWord") + " \u2714");
-    if (typeof _gearBoard !== "undefined") _gearBoard = null;
-    if (typeof currentPage !== "undefined" && currentPage === "public" && typeof loadMarket === "function") loadMarket();
-    return loadGear(currentUser.uid);
-  }).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(currentUser.uid, true); if (typeof renderSettings === "function") renderSettings(); })
-    .catch(function (e) { showToast(_permError(e)); });
+  askYes(t("markSoldQ"), function () {
+    fsdb.collection("gear").doc(id).delete().then(function () {
+      showToast(t("soldWord") + " \u2714");
+      if (typeof _gearBoard !== "undefined") _gearBoard = null;
+      if (typeof currentPage !== "undefined" && currentPage === "public" && typeof loadMarket === "function") loadMarket();
+      return loadGear(currentUser.uid);
+    }).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(currentUser.uid, true); if (typeof renderSettings === "function") renderSettings(); })
+      .catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("confirm") });
 }
 /** Take it off sale without selling */
 function removeFromSale(id) { _updateSale(id, { forSale: false }, t("removeSale")); }
@@ -414,12 +418,13 @@ function showGearModal(id) {
 }
 
 function deleteGear(id) {
-  if (!confirm(t("delete") + "?")) return;
-  fsdb.collection("gear").doc(id).delete().then(function () {
-    closeModal();
-    return loadGear(currentUser.uid);
-  }).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(currentUser.uid, true); })
-    .catch(function (e) { showToast(_permError(e)); });
+  askYes(t("delete") + "?", function () {
+    fsdb.collection("gear").doc(id).delete().then(function () {
+      closeModal();
+      return loadGear(currentUser.uid);
+    }).then(function () { var box = document.getElementById("gearCard"); if (box) box.outerHTML = gearCardHtml(currentUser.uid, true); })
+      .catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- On someone's profile page ---------- */

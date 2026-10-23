@@ -882,9 +882,10 @@ function _whenShort(ms) {
 }
 
 function deleteMatch(id) {
-  if (!confirm(t("deleteMatchConfirm"))) return;
-  fsdb.collection("matches").doc(id).delete().then(function () { showToast(t("delete") + " ✔"); })
-    .catch(function (e) { showToast(_permError(e)); });
+  askYes(t("deleteMatchConfirm"), function () {
+    fsdb.collection("matches").doc(id).delete().then(function () { showToast(t("delete") + " ✔"); })
+      .catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /** Play mode + game type fields (poll and session forms). `name` is the global holding the form state. */

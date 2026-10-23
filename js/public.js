@@ -262,18 +262,20 @@ function toggleGame(id) {
 }
 
 function cancelGame(id) {
-  if (!confirm(t("cancelGameConfirm"))) return;
-  fsdb.collection("openGames").doc(id).update({ status: "cancelled", cancelledAt: Date.now() })
-    .then(function () { showToast(t("cancelGame") + " ✔"); })
-    .catch(function (e) { showToast(_permError(e)); });
+  askYes(t("cancelGameConfirm"), function () {
+    fsdb.collection("openGames").doc(id).update({ status: "cancelled", cancelledAt: Date.now() })
+      .then(function () { showToast(t("cancelGame") + " ✔"); })
+      .catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** Host removes the card for good (players are not told; use Cancel to tell them) */
 function deletePublicGame(id) {
-  if (!confirm(t("deleteGameConfirm"))) return;
-  fsdb.collection("openGames").doc(id).delete()
-    .then(function () { showToast(t("delete") + " \u2714"); })
-    .catch(function (e) { showToast(_permError(e)); });
+  askYes(t("deleteGameConfirm"), function () {
+    fsdb.collection("openGames").doc(id).delete()
+      .then(function () { showToast(t("delete") + " \u2714"); })
+      .catch(function (e) { showToast(_permError(e)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 /* ---------- Host a public game ---------- */

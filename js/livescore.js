@@ -20,8 +20,14 @@ var LS_THEMES = [
   ["Forest", "#16a34a", "#4ade80", "#0f766e", "#2dd4bf"],
   ["Ocean", "#0891b2", "#22d3ee", "#4338ca", "#818cf8"],
   ["Night", "#db2777", "#f472b6", "#1e293b", "#475569"],
-  ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"]
+  ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"],
+  ["Halloween", "#ea580c", "#fb923c", "#4c1d95", "#7c3aed"],
+  ["Christmas", "#b91c1c", "#ef4444", "#166534", "#22c55e"],
+  ["Songkran", "#0284c7", "#38bdf8", "#d97706", "#fcd34d"],
+  ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"]
 ];
+/** A special theme gives the live score its own team colours, until the player picks one by hand */
+var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, songkran: 8, arcade: 9 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null
@@ -83,7 +89,12 @@ function lsSave() {
   if (live) lsShare(); else lsUnshare();
 }
 function lsLoad() { try { var s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (s && s.bo > 3) s.bo = 3; return s && s.sid ? s : null; } catch (e) { return null; } }
-function lsThemeIdx() { var i = 0; try { i = parseInt(localStorage.getItem(LS_THEME_KEY), 10) || 0; } catch (e) {} return i >= 0 && i < LS_THEMES.length ? i : 0; }
+function lsThemeIdx() {
+  var raw = null; try { raw = localStorage.getItem(LS_THEME_KEY); } catch (e) {}
+  var i = parseInt(raw, 10);
+  if (isNaN(i)) i = (typeof currentSpecial !== "undefined" && currentSpecial && currentTheme === "dark" && LS_SPECIAL_IDX[currentSpecial]) || 0;
+  return i >= 0 && i < LS_THEMES.length ? i : 0;
+}
 
 function _lsSessions() {
   var today = _todayIso();
@@ -431,9 +442,10 @@ function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live
 
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
-  if (!confirm(t("lsResetConfirm"))) return;   // always ask: the button sits next to the ones you tap all game
-  live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
-  lsSave(); liveMode = "count"; lsRender();
+  askYes(t("lsResetConfirm"), function () {
+    live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
+    lsSave(); liveMode = "count"; lsRender();
+  }, { danger: true, yes: t("confirm") });
 }
 
 function lsTestAgain() {
@@ -447,10 +459,11 @@ function lsTestAgain() {
 /** Quit: ask first, then clear this live game (nothing counted is kept) */
 function lsExit() {
   if (liveMode === "watch") { lsWatchStop(); return; }
-  if (!confirm(t(live && live.test ? "lsExitTestConfirm" : "lsExitConfirm"))) return;   // always ask, whatever the score: an accidental tap must not end the game
-  live = null; lsSave();
-  liveMode = "count";
-  lsClose();
+  askYes(t(live && live.test ? "lsExitTestConfirm" : "lsExitConfirm"), function () {
+    live = null; lsSave();
+    liveMode = "count";
+    lsClose();
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** Save the finished game like "Add game score" does, then continue or finish */
@@ -482,9 +495,10 @@ function lsSaveGame(next) {
 
 /** Drop a half-counted game from the Home banner (asks first) */
 function lsCancelSaved() {
-  if (!confirm(t("lsExitConfirm"))) return;
-  live = null; lsSave();
-  if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+  askYes(t("lsExitConfirm"), function () {
+    live = null; lsSave();
+    if (typeof refreshCurrentPage === "function") refreshCurrentPage("live");
+  }, { danger: true, yes: t("confirm") });
 }
 
 /** A game is still being counted on this phone (for the Home banner) */

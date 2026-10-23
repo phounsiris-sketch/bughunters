@@ -40,16 +40,59 @@ function _savedPalette(key, list, fallback) {
 var currentPalette = _savedPalette("palette", PALETTES, "navy");
 var currentLightPalette = _savedPalette("paletteLight", LIGHT_PALETTES, "mint");
 
+/* Special (gimmick) themes: a separate choice from the Dark / Light styles. Dark mode only.
+   [id, name key, swatch colours, header colour, effect, effect count, date window "MM-DD".."MM-DD"] */
+var SPECIALS = [
+  ["halloween", "spHalloween", ["#120a2e", "#251650", "#c2410c", "#fdba74"], "#1b0f45", "bats", 3, ["10-20", "11-02"]],
+  ["christmas", "spChristmas", ["#07200f", "#143d26", "#b91c1c", "#fde68a"], "#0c2e1b", "snow", 26, ["12-15", "01-02"]],
+  ["songkran", "spSongkran", ["#052f4a", "#0a4d74", "#0369a1", "#fcd34d"], "#0a5a85", "bubbles", 14, ["04-10", "04-20"]],
+  ["arcade", "spArcade", ["#0a0418", "#1c0b3d", "#a21caf", "#22d3ee"], "#160630", "sparks", 18, null]
+];
+var currentSpecial = _savedPalette("special", SPECIALS, "");
+
+/** Effects layer for the special theme: bats / snow / bubbles / sparks (CSS only, off when motion is reduced) */
+function _fxLayer(sp) {
+  var el = document.getElementById("fxLayer");
+  if (!sp) { if (el) el.remove(); return; }
+  if (el && el.getAttribute("data-sp") === sp[0]) return;
+  if (el) el.remove();
+  el = document.createElement("div"); el.id = "fxLayer"; el.className = "fx-" + sp[4]; el.setAttribute("data-sp", sp[0]); el.setAttribute("aria-hidden", "true");
+  var html = "";
+  for (var i = 0; i < sp[5]; i++) {
+    var r = (i * 37 % 100), d = (i * 53 % 17), dur = 9 + (i * 29 % 12), sz = 4 + (i * 13 % 9);
+    if (sp[4] === "snow") html += '<i style="left:' + r + '%;animation-duration:' + dur + 's;animation-delay:-' + d + 's;width:' + (3 + sz % 5) + 'px;height:' + (3 + sz % 5) + 'px"></i>';
+    else if (sp[4] === "bubbles") html += '<i style="left:' + r + '%;width:' + (8 + sz * 2) + 'px;height:' + (8 + sz * 2) + 'px;animation-duration:' + (dur + 6) + 's;animation-delay:-' + d + 's"></i>';
+    else if (sp[4] === "sparks") html += '<i style="left:' + r + '%;top:' + ((i * 61) % 90) + '%;animation-duration:' + (2 + dur % 4) + 's;animation-delay:-' + d + 's"></i>';
+    else html += "<i></i>";
+  }
+  el.innerHTML = html;
+  document.body.appendChild(el);
+}
+
+/** Pick a special theme ("" = back to the normal styles). Specials are dark designs, so this switches to dark mode */
+function setSpecial(id) {
+  currentSpecial = id || "";
+  if (id) currentTheme = "dark";
+  try { localStorage.removeItem("godsmash_live_theme"); } catch (e) {}   // the live score follows the new theme
+  try { localStorage.setItem("special", currentSpecial); if (id) localStorage.setItem("theme", "dark"); } catch (e) {}
+  applyTheme();
+  if (typeof renderSettings === "function") renderSettings();
+  if (typeof refreshCurrentPage === "function") refreshCurrentPage("theme");
+}
+
 /** Apply theme + dark style to the page and the phone's status bar */
 function applyTheme() {
   document.body.setAttribute("data-theme", currentTheme);
   document.body.setAttribute("data-palette", currentPalette);
+  document.body.setAttribute("data-special", currentSpecial || "none");
   document.body.setAttribute("data-lpalette", currentLightPalette);
   var light = currentTheme === "light";
   var list = light ? LIGHT_PALETTES : PALETTES, id = light ? currentLightPalette : currentPalette;
   var pal = list.filter(function (p) { return p[0] === id; })[0] || list[0];
+  var sp = !light && currentSpecial ? SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0] : null;
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", pal[3]);
+  if (meta) meta.setAttribute("content", sp ? sp[3] : pal[3]);
+  _fxLayer(sp);
   var themeBtn = document.getElementById("themeBtn");
   if (themeBtn) themeBtn.innerHTML = icon(currentTheme === "dark" ? "sun" : "moon", 18);
 }
@@ -426,7 +469,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v158"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v160"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

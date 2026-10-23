@@ -689,8 +689,8 @@ function shareLocation(courtId) {
   var url = mapsUrl(c.lat, c.lng), text = c.name + " \u2014 " + url;
   if (navigator.share) { navigator.share({ title: c.name, text: c.name, url: url }).catch(function () {}); return; }
   var done = function () { showToast(t("copied")); };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { prompt(t("shareLocation"), text); });
-  else prompt(t("shareLocation"), text);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { askCopy(t("shareLocation"), text); });
+  else askCopy(t("shareLocation"), text);
 }
 
 /** No pin yet: open the court with its map ready, then come back here */
@@ -1707,10 +1707,13 @@ function _billPreview(data, onOk) {
 function setTransferSettled(sessionId, key, value) {
   var s = currentSession && currentSession.id === sessionId ? currentSession : _findSession(sessionId);
   if (!s) return Promise.resolve();
-  if (!value && !confirm(t("confirmUnmark"))) return Promise.resolve();
-  return settleTransfers(s, [key], value)
-    .then(function () { showToast(value ? t("paid") + " \u2714" : t("unpaid")); })
-    .catch(function (error) { showToast(_permError(error)); });
+  var run = function () {
+    return settleTransfers(s, [key], value)
+      .then(function () { showToast(value ? t("paid") + " \u2714" : t("unpaid")); })
+      .catch(function (error) { showToast(_permError(error)); });
+  };
+  if (value) return run();
+  return new Promise(function (res) { askConfirm({ title: t("confirmUnmark"), kind: "warn", yes: t("unpaid"), onNo: function () { res(); } }, function () { res(run()); }); });
 }
 
 function _findSession(id) {
@@ -1738,19 +1741,20 @@ function settleTransfers(s, keys, value) {
    ────────────────────────────────────────────────────────── */
 
 function deleteSessionById(sessionId) {
-  if (!confirm(t("deleteConfirm"))) return;
-  var s = (currentSession && currentSession.id === sessionId) ? currentSession : null;
-  lastSessions.forEach(function (x) { if (x.id === sessionId) s = x; });
-  if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
-  sessionEditing = false;
+  askYes(t("deleteConfirm"), function () {
+    var s = (currentSession && currentSession.id === sessionId) ? currentSession : null;
+    lastSessions.forEach(function (x) { if (x.id === sessionId) s = x; });
+    if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
+    sessionEditing = false;
 
-  // To the trash (30 days) with Undo
-  trashDoc("session", "sessions", sessionId, trashLabelSession(s))
-    .then(function () {
-      currentSessionId = null;
-      showPage("sessions", false);
-    })
-    .catch(function (error) { showToast(_permError(error)); });
+    // To the trash (30 days) with Undo
+    trashDoc("session", "sessions", sessionId, trashLabelSession(s))
+      .then(function () {
+        currentSessionId = null;
+        showPage("sessions", false);
+      })
+      .catch(function (error) { showToast(_permError(error)); });
+  }, { danger: true, yes: t("delete") });
 }
 
 function trashLabelSession(s) {
