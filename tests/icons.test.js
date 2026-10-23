@@ -3,8 +3,9 @@ var fs = require("fs"), vm = require("vm"), assert = require("assert");
 var ctx = { localStorage: { getItem: function () { return "line"; }, setItem: function () {} } }; vm.createContext(ctx);
 vm.runInContext(fs.readFileSync("js/icons.js", "utf8"), ctx);
 vm.runInContext(fs.readFileSync("js/icons-sets.js", "utf8"), ctx);
+vm.runInContext(fs.readFileSync("js/icons-solar-bold.js", "utf8"), ctx);
 assert.strictEqual(ctx.currentIconTheme, "line", "saved style is read");
-assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["classic", "line", "duo", "tiles"]));
+assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["box", "classic", "line", "duo", "tiles"]));
 var classic = ctx.iconAs("classic", "trophy", 20);
 assert.ok(/^<svg class="si"/.test(classic) && classic.indexOf("viewBox=\"0 0 24 24\"") > 0 && classic.indexOf("ico-") < 0, "classic is the Solar svg");
 assert.strictEqual(ctx.icon("trophy", 20), classic, "outside Home and the dashboard every page keeps the classic icon, whatever the setting");
@@ -16,6 +17,12 @@ assert.notStrictEqual(duo, line); assert.notStrictEqual(ctx.iconAs("tiles", "tro
 var tile = ctx.iconAs("tiles", "bill", 20); assert.ok(/ico-tile ico-t\d/.test(tile) && tile.indexOf("<svg class=\"si ph\"") > 0, "tiles wrap a filled icon");
 ["chevron", "back", "plus", "close", "search", "edit"].forEach(function (n) { ["tiles", "duo"].forEach(function (th) { assert.ok(/^<svg class="si ph/.test(ctx.iconAs(th, n, 18)) && ctx.iconAs(th, n, 18).indexOf("ico-") < 0, n + " stays a plain line icon in " + th); }); });
 assert.strictEqual(ctx.icon("does-not-exist", 18), "", "unknown icon");
+var bxIcon = ctx.iconAs("box", "calendar", 22); assert.ok(/ico-bx ico-bx0/.test(bxIcon) && bxIcon.indexOf("viewBox=\"0 0 24 24\"") > 0, "box = the Solar glyph on a coloured 3D box (calendar is green)");
+assert.ok(bxIcon.indexOf("opacity") < 0 && bxIcon.indexOf("fill-rule") > 0 || bxIcon.indexOf("fill=\"currentColor\"") > 0, "the glyph inside the box is the solid Solar Bold one");
+assert.ok(/ico-bx1/.test(ctx.iconAs("box", "clock", 18)) && /ico-bx2/.test(ctx.iconAs("box", "users", 18)), "colour follows the meaning (clock red, users teal)");
+assert.ok(/^<svg/.test(ctx.iconAs("box", "calendar", 12)), "tiny inline icons are not boxed");
+["chevron", "plus", "close", "search"].forEach(function (n) { assert.ok(/^<svg/.test(ctx.iconAs("box", n, 20)), n + " control stays plain in box"); });
+Object.keys(ctx.ICON_BOX).forEach(function (n) { if (ctx.SOLAR[n]) assert.ok(ctx.SOLAR_BOLD[n], "Solar Bold glyph for the boxed icon " + n); });
 // every icon the app draws has a place in all three Phosphor sets
 var used = {}; ["dashboard.js", "home.js", "health-ui.js", "payments.js", "stats.js", "sessions.js", "polls.js", "settings.js", "public.js", "sharecard.js"].forEach(function (f) { (fs.readFileSync("js/" + f, "utf8").match(/\bicon\("([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(6, -1)] = 1; }); });
 (fs.readFileSync("index.html", "utf8").match(/data-icon="([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(11, -1)] = 1; });
@@ -36,6 +43,8 @@ calls.length = 0; ctx.applyChromeIcons("dashboard"); assert.strictEqual(calls.le
 ctx.applyChromeIcons("stats"); assert.ok(calls.some(function (c) { return c[0] === ".bottom-nav" && c[1] === false; }), "leaving the dashboard: back to classic");
 assert.strictEqual(ctx._iconCtx, false, "context is always switched off again");
 ctx.currentIconTheme = "classic"; ctx._chromeKey = ""; calls.length = 0; ctx.applyChromeIcons("dashboard"); assert.strictEqual(calls.length, 0, "classic style changes nothing");
+ctx.currentIconTheme = "box"; ctx._chromeKey = ""; calls.length = 0; ctx.applyChromeIcons("settings");
+assert.ok(calls.some(function (c) { return c[0] === ".bottom-nav" && c[1] === true; }), "box style: the nav bar is boxed on every page, even Settings");
 // the dashboard is wrapped, other pages are not
 var dash = fs.readFileSync("js/dashboard.js", "utf8");
 assert.ok(/function _renderDashboard\(\) \{\s*_iconCtx = true;\s*try \{ _renderDashboardInner\(\); \} finally \{ _iconCtx = false; \}/.test(dash), "dashboard render switches the style on and always off again");
@@ -43,5 +52,5 @@ var homeSrc = fs.readFileSync("js/home.js", "utf8");
 assert.ok(/function renderHome\(\) \{\s*_iconCtx = true;\s*try \{ _renderHomeInner\(\); \} finally \{ _iconCtx = false; \}/.test(homeSrc), "home render switches the style on and always off again");
 assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "home.js" && f !== "icons.js"; }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_iconCtx = true") < 0; }), "no other page switches it on");
 var i18n = fs.readFileSync("js/i18n.js", "utf8");
-["iconStyle", "iconStyleHint", "icon_classic", "icon_line", "icon_duo", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+["iconStyle", "iconStyleHint", "icon_box", "icon_classic", "icon_line", "icon_duo", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("icons OK");
