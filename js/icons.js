@@ -72,11 +72,10 @@ var SOLAR = {
 /* Icon styles for the Home and Dashboard pages (the Settings card "Icon style"). Four real icon sets, not filters:
    classic = the Solar duotone set used everywhere else, line = Phosphor Regular, duo = Phosphor Duotone in a colour per icon,
    tiles = Phosphor Fill, white on a glossy rounded tile, box = the Solar Bold glyph in white on a 3D candy box (the default), neu = the glyph in its colour on a soft raised neumorphic plate, glass = a tinted plate that is 80% see-through. ICON_SETS (js/icons-sets.js) holds the Phosphor paths.
-   Saved in localStorage "iconTheme"; _iconCtx is switched on only while Home or the Dashboard render. */
+   Saved in localStorage "iconTheme". Since v190 the chosen style applies to every icon on every page. */
 var ICON_THEMES = ["box", "neu", "glass", "classic", "line", "duo", "tiles"];
 var currentIconTheme = "box";
 try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji") _it = "duo"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
-var _iconCtx = false;
 var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
 
 function _iconSvg(name, size, cls, extra) {
@@ -115,25 +114,24 @@ function iconAs(theme, name, size, cls) {
 
 function icon(name, size, cls) {
   if (!SOLAR[name]) return "";
-  return iconAs(_iconCtx ? currentIconTheme : "classic", name, size, cls);
+  return iconAs(currentIconTheme, name, size, cls);
 }
 
-/** The nav bar and the app bar are drawn once at startup; on the Home and Dashboard pages they take the chosen style too (the 3D box style is on the nav bar of every page), and go back to classic on any other page */
+/** The nav bar and the app bar are drawn once at startup from the page shell: when the style changes they are drawn again */
 var _chromeKey = "";
-function applyChromeIcons(page) {
-  var on = currentIconTheme === "box" || ((page === "dashboard" || page === "home") && currentIconTheme !== "classic"), key = on ? currentIconTheme : "";
+function applyChromeIcons() {
+  var key = currentIconTheme;
   if (key === _chromeKey) return;
   _chromeKey = key;
   try { document.body.setAttribute("data-icons", key); } catch (e) {}
-  var prev = _iconCtx; _iconCtx = on;
-  try { ["bottom-nav", "app-header"].forEach(function (cls) { var root = document.querySelector("." + cls); if (root && typeof fillStaticIcons === "function") fillStaticIcons(root); }); } finally { _iconCtx = prev; }
+  try { ["bottom-nav", "app-header"].forEach(function (cls) { var root = document.querySelector("." + cls); if (root && typeof fillStaticIcons === "function") fillStaticIcons(root); }); } catch (e) {}
 }
 
 function setIconTheme(id) {
   if (ICON_THEMES.indexOf(id) < 0) return;
   currentIconTheme = id;
   try { localStorage.setItem("iconTheme", id); } catch (e) {}
-  _chromeKey = "reset"; if (typeof currentPage !== "undefined") applyChromeIcons(currentPage);
+  _chromeKey = "reset"; applyChromeIcons();
   if (typeof renderSettings === "function") renderSettings();
 }
 

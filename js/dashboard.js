@@ -58,13 +58,7 @@ function _periodLabel() {
 
 /* ---------- Main render ---------- */
 
-/** The dashboard is the only page that follows the chosen icon style (js/icons.js) */
 function _renderDashboard() {
-  _iconCtx = true;
-  try { _renderDashboardInner(); } finally { _iconCtx = false; }
-}
-
-function _renderDashboardInner() {
   var container = document.getElementById("dashboardContent");
   if (!container) return;
 

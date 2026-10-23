@@ -306,13 +306,7 @@ function _homePulseTick() {
 }
 function _homePulseStart() { if (!_homePulse) _homePulse = setInterval(_homePulseTick, 20000); }
 
-/** Home and the Dashboard are the two pages that follow the chosen icon style (js/icons.js) */
 function renderHome() {
-  _iconCtx = true;
-  try { _renderHomeInner(); } finally { _iconCtx = false; }
-}
-
-function _renderHomeInner() {
   var el = document.getElementById("homeContent");
   if (!el || !currentUser) return;
   var me = currentUser.uid, groups = typeof GROUPS_ON !== "undefined" && GROUPS_ON;
