@@ -459,6 +459,56 @@ FX_SCENES.reaper = function (c, w, h, t, top) {
   c.strokeStyle = "rgba(255,255,255,.1)"; c.lineWidth = 1.2; for (i = 0; i < 4; i++) { c.beginPath(); c.moveTo(0, h - FX_NAV - 6 - i * 6); c.lineTo(w, h - FX_NAV - 6 - i * 6); c.stroke(); }
 };
 
+/* v191 helpers + scenes: Kitty Pink, Sky Pocket, Valentine, Cursed Night (original art: generic bows, bells, hearts, talismans) */
+function fxHeart(c, x, y, s, col) { c.fillStyle = col; c.beginPath(); c.moveTo(x, y + s * .35); c.bezierCurveTo(x - s * .9, y - s * .3, x - s * .45, y - s * .95, x, y - s * .4); c.bezierCurveTo(x + s * .45, y - s * .95, x + s * .9, y - s * .3, x, y + s * .35); c.fill(); }
+function fxBow(c, x, y, s, rot, col) { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s); c.fillStyle = col; [-1, 1].forEach(function (k) { c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(k * 26, -22, k * 30, -4); c.quadraticCurveTo(k * 30, 18, 0, 0); c.fill(); }); c.fillStyle = "rgba(255,255,255,.55)"; c.beginPath(); c.arc(0, 0, 6, 0, 7); c.fill(); c.restore(); }
+function fxSparkle(c, x, y, r, a, col) { c.fillStyle = col.replace("A", a); c.beginPath(); c.moveTo(x, y - r); c.quadraticCurveTo(x, y, x + r, y); c.quadraticCurveTo(x, y, x, y + r); c.quadraticCurveTo(x, y, x - r, y); c.quadraticCurveTo(x, y, x, y - r); c.fill(); }
+function fxBell(c, x, y, s, swing) { c.save(); c.translate(x, y); c.rotate(swing); c.scale(s, s); var g = c.createLinearGradient(-14, -14, 14, 14); g.addColorStop(0, "#fff3b0"); g.addColorStop(1, "#f59e0b"); c.fillStyle = g; c.strokeStyle = "#b45309"; c.lineWidth = 1.6; c.beginPath(); c.arc(0, 0, 14, 0, 7); c.fill(); c.stroke(); c.beginPath(); c.moveTo(-12, 3); c.lineTo(12, 3); c.stroke(); c.fillStyle = "#92400e"; c.beginPath(); c.arc(0, 8, 3, 0, 7); c.fill(); c.restore(); }
+function fxCopter(c, x, y, s, t) { c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = "#fde047"; c.fillRect(-2, -2, 4, 22); c.fillStyle = "#e11d48"; c.beginPath(); c.arc(0, 20, 6, 0, 7); c.fill(); var sp = Math.sin(t * 22); c.fillStyle = "rgba(255,255,255,.9)"; c.beginPath(); c.ellipse(0, -4, 34 * Math.abs(sp) + 6, 4, 0, 0, 7); c.fill(); c.fillStyle = "#38bdf8"; c.fillRect(-3, -8, 6, 6); c.restore(); }
+function fxTalisman(c, x, y, s, rot, t) { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s); c.fillStyle = "rgba(245,240,225,.92)"; c.fillRect(-9, -22, 18, 44); c.strokeStyle = "#b91c1c"; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-5, -14); c.lineTo(5, -14); c.moveTo(0, -14); c.lineTo(0, -2); c.moveTo(-5, 4); c.lineTo(5, 10); c.moveTo(5, 4); c.lineTo(-5, 10); c.moveTo(-4, 16); c.lineTo(4, 16); c.stroke(); c.restore(); }
+
+FX_SCENES.kitty = function (c, w, h, t, top) {
+  top = top || 0; var i, g = c.createRadialGradient(w * .5, top + 120, 0, w * .5, top + 120, 380); g.addColorStop(0, "rgba(249,168,212,.3)"); g.addColorStop(1, "rgba(249,168,212,0)"); c.fillStyle = g; c.fillRect(0, top, w, 520);
+  for (i = 0; i < 3; i++) _fxCloud(c, ((t * (6 + i * 3) + i * 170) % (w + 240)) - 120, top + 60 + i * 120, 2 + i * .3, "rgba(255,214,235,.14)");
+  for (i = 0; i < 8; i++) { var p = (t * (.025 + _frnd(i) * .03) + _frnd(i + 4)) % 1, bx = _frnd(i + 8) * w + Math.sin(t * .9 + i * 2) * 24, by = h - FX_NAV - p * (h - FX_NAV - top); fxBow(c, bx, by, .6 + _frnd(i + 2) * .7, Math.sin(t + i) * .35, "rgba(244,114,182," + (.55 * Math.min(1, (1 - p) * 3)) + ")"); }
+  for (i = 0; i < 10; i++) { var q = (t * (.03 + _frnd(i + 20) * .03) + _frnd(i + 30)) % 1; fxHeart(c, _frnd(i + 40) * w + Math.sin(t + i) * 14, h - FX_NAV - q * (h - FX_NAV - top), 7 + _frnd(i + 50) * 9, "rgba(255,182,215," + (.5 * (1 - q)) + ")"); }
+  for (i = 0; i < 16; i++) fxSparkle(c, _frnd(i + 60) * w, top + 30 + _frnd(i + 70) * (h - top - 120), 3 + _frnd(i + 80) * 4, Math.max(0, Math.sin(t * 2.4 + i * 1.7)) * .8, "rgba(255,255,255,A)");
+};
+
+FX_SCENES.doraemon = function (c, w, h, t, top) {
+  top = top || 0; var i;
+  var sky = c.createLinearGradient(0, top, 0, h); sky.addColorStop(0, "rgba(125,211,252,.22)"); sky.addColorStop(1, "rgba(14,116,244,0)"); c.fillStyle = sky; c.fillRect(0, top, w, h - top);
+  for (i = 0; i < 18; i++) { var tw = Math.max(0, Math.sin(t * 2.2 + i * 1.9)); c.fillStyle = "rgba(255,255,255," + tw * .7 + ")"; c.fillRect(_frnd(i + 3) * w, top + _frnd(i + 9) * (h * .6), 2.4, 2.4); }
+  for (i = 0; i < 5; i++) _fxCloud(c, ((t * (10 + i * 4) + i * 140) % (w + 280)) - 140, top + 50 + i * 95, 2.2 + (i % 3) * .5, "rgba(255,255,255," + (.18 + (i % 2) * .08) + ")");
+  for (i = 0; i < 4; i++) { var ph = (t * .05 + i * .27) % 1; fxCopter(c, ph * (w + 120) - 60, top + 110 + i * 130 + Math.sin(t * 1.4 + i * 2) * 22, .8 - i * .08, t + i); }
+  for (i = 0; i < 6; i++) fxBell(c, _frnd(i + 12) * (w - 40) + 20, top + 60 + _frnd(i + 18) * (h - top - 220) + Math.sin(t * 1.3 + i) * 10, .7 + _frnd(i + 22) * .5, Math.sin(t * 2.4 + i * 1.3) * .35);
+  var dx = w * .5 - 22, dy = h - FX_NAV - 120; c.fillStyle = "rgba(255,255,255,.25)"; c.fillRect(0, h - FX_NAV - 10, w, 10);
+  c.fillStyle = "rgba(244,114,182,.7)"; c.fillRect(dx, dy, 44, 76); var open = (Math.sin(t * .8) + 1) / 2; c.fillStyle = "rgba(253,224,71," + (open * .8) + ")"; c.fillRect(dx + 4, dy + 4, 36, 68); c.fillStyle = "rgba(255,255,255,.9)"; c.beginPath(); c.arc(dx + 36, dy + 40, 2.5, 0, 7); c.fill();
+};
+
+FX_SCENES.valentine = function (c, w, h, t, top) {
+  top = top || 0; var i, pulse = 1 + Math.sin(t * 3) * .06;
+  var g = c.createRadialGradient(w * .5, top + 200, 0, w * .5, top + 200, 420); g.addColorStop(0, "rgba(251,113,133,.28)"); g.addColorStop(1, "rgba(251,113,133,0)"); c.fillStyle = g; c.fillRect(0, top, w, 640);
+  fxHeart(c, w * .5, top + 180, 110 * pulse, "rgba(225,29,72,.22)");
+  for (i = 0; i < 14; i++) { var p = (t * (.04 + _frnd(i) * .05) + _frnd(i + 4)) % 1; fxHeart(c, _frnd(i + 8) * w + Math.sin(t * 1.2 + i) * 20, h - FX_NAV - p * (h - FX_NAV - top), (8 + _frnd(i + 2) * 22) * (1 + Math.sin(t * 4 + i) * .06), "rgba(" + (i % 3 ? "251,113,133" : "244,63,94") + "," + (.6 * Math.min(1, (1 - p) * 3)) + ")"); }
+  for (i = 0; i < 12; i++) { var q = (t * (.05 + _frnd(i + 20) * .04) + _frnd(i + 30)) % 1, px = _frnd(i + 40) * w + Math.sin(t * 1.5 + i) * 30, py = top + q * (h - top - FX_NAV); c.save(); c.translate(px, py); c.rotate(t * 1.4 + i); c.fillStyle = "rgba(190,18,60,.7)"; c.beginPath(); c.ellipse(0, 0, 7, 4, 0, 0, 7); c.fill(); c.restore(); }
+  var ap = (t % 7) / 7, ax = -60 + ap * (w + 160), ay = top + 150 + Math.sin(ap * 6.3) * 40, ang = Math.cos(ap * 6.3) * .25;
+  c.save(); c.translate(ax, ay); c.rotate(ang); c.strokeStyle = "rgba(255,230,235,.9)"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-34, 0); c.lineTo(26, 0); c.stroke(); c.strokeStyle = "rgba(251,113,133,.35)"; c.lineWidth = 3; c.beginPath(); c.moveTo(-34, 0); c.quadraticCurveTo(-80, 10, -130, 0); c.stroke(); fxHeart(c, 30, 0, 9, "#fb7185"); c.fillStyle = "#fecdd3"; c.beginPath(); c.moveTo(-34, 0); c.lineTo(-44, -7); c.lineTo(-40, 0); c.lineTo(-44, 7); c.fill(); c.restore();
+  for (i = 0; i < 14; i++) fxSparkle(c, _frnd(i + 60) * w, top + 30 + _frnd(i + 70) * (h - top - 120), 3 + _frnd(i + 80) * 3, Math.max(0, Math.sin(t * 2.6 + i * 1.5)) * .75, "rgba(255,225,230,A)");
+};
+
+FX_SCENES.jujutsu = function (c, w, h, t, top) {
+  top = top || 0; var i, base = h - FX_NAV;
+  var g = c.createRadialGradient(w * .5, base - 120, 0, w * .5, base - 120, 460); g.addColorStop(0, "rgba(124,58,237,.38)"); g.addColorStop(1, "rgba(124,58,237,0)"); c.fillStyle = g; c.fillRect(0, top, w, h);
+  for (i = 0; i < 3; i++) { var rp = ((t * .18 + i / 3) % 1); c.strokeStyle = "rgba(56,189,248," + (.35 * (1 - rp)) + ")"; c.lineWidth = 2; c.beginPath(); c.arc(w * .5, base - 120, 40 + rp * 340, 0, 7); c.stroke(); }
+  for (i = 0; i < 4; i++) { c.strokeStyle = "rgba(" + (i % 2 ? "167,139,250" : "56,189,248") + ",.4)"; c.lineWidth = 3 - i * .3; c.beginPath(); for (var y = base; y >= top; y -= 10) { var x = w * (.15 + i * .24) + Math.sin(y / 46 + t * 1.6 + i * 2) * (16 + (base - y) * .05); if (y === base) c.moveTo(x, y); else c.lineTo(x, y); } c.stroke(); }
+  for (i = 0; i < 5; i++) { var p = (t * (.04 + _frnd(i) * .03) + _frnd(i + 4)) % 1; fxTalisman(c, _frnd(i + 8) * w + Math.sin(t * 1.1 + i * 2) * 26, top + p * (h - top), .8 + _frnd(i + 2) * .4, Math.sin(t * 1.3 + i) * .6, t); }
+  var mx = w - 70, my = top + 80; c.fillStyle = "rgba(230,230,250,.9)"; c.beginPath(); c.arc(mx, my, 34, 0, 7); c.fill(); c.fillStyle = "#0a0716"; c.beginPath(); c.arc(mx - 12, my - 4, 30, 0, 7); c.fill();
+  c.fillStyle = "rgba(8,6,20,.92)"; var gx = w * .5, gy = base - 8; c.fillRect(gx - 70, gy - 6, 140, 6); c.fillRect(gx - 56, gy - 90, 12, 90); c.fillRect(gx + 44, gy - 90, 12, 90); c.fillRect(gx - 80, gy - 104, 160, 10); c.fillRect(gx - 64, gy - 78, 128, 7);
+  c.fillStyle = "rgba(167,139,250," + (.35 + Math.sin(t * 2) * .15) + ")"; c.fillRect(gx - 80, gy - 106, 160, 2);
+  var sl = (t % 5) / .45; if (sl < 1) { var a = sl < .5 ? sl * 2 : (1 - sl) * 2; c.strokeStyle = "rgba(125,211,252," + a * .9 + ")"; c.lineWidth = 2.6; c.beginPath(); c.moveTo(w * .12, top + h * .22); c.lineTo(w * .12 + w * .76 * Math.min(1, sl * 2.2), top + h * .22 + h * .26 * Math.min(1, sl * 2.2)); c.stroke(); }
+};
+
 /* ───────────── engine ───────────── */
 
 function _fxSize() {

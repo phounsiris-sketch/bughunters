@@ -57,7 +57,7 @@ function showPage(page, pushHistory) {
   var navOf = { "home": "dashboard", "health": "dashboard", "workout": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
-  if (typeof applyChromeIcons === "function") applyChromeIcons(page);   // nav bar + app bar icons follow the Dashboard icon style on that page only
+  if (typeof applyChromeIcons === "function") applyChromeIcons();   // nav bar + app bar icons follow the chosen icon style
   // Settings lives behind the gear in the header
   var gear = document.getElementById("gearBtn");
   if (gear) gear.classList.toggle("on", /^(settings|config|trash|group-settings|group-members)$/.test(page));

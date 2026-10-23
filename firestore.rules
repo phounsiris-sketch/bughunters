@@ -82,7 +82,8 @@ service cloud.firestore {
     }
 
     match /groupSecrets/{gid} {
-      allow read: if isGroupAdmin(gid);
+      // Admins always; any active member too, unless an admin switched member invites off (groups/{gid}.adminOnlyInvite)
+      allow read: if isGroupAdmin(gid) || (isMember(gid) && get(groupPath(gid)).data.get('adminOnlyInvite', false) != true);
       // Written together with a new group by its owner, then by admins
       allow create: if isAuth() && getAfter(groupPath(gid)).data.ownerId == request.auth.uid;
       allow update: if isGroupAdmin(gid);

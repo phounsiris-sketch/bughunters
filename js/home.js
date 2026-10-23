@@ -120,7 +120,7 @@ function _hwCard() {
   if (!sp) return "";
   var hidden = false; try { hidden = localStorage.getItem("spHidden_" + sp[0]) === "1"; } catch (e) {}
   if (hidden || (currentSpecial === sp[0] && currentTheme === "dark")) return "";
-  var mark = { halloween: "\uD83C\uDF83", christmas: "\uD83C\uDF84", cny: "\uD83C\uDFEE", ninja: "\uD83E\uDD77", orbs: "\uD83D\uDD2E", pirate: "\uD83C\uDFF4\u200D\u2620\uFE0F", reaper: "\uD83E\uDD8B" }[sp[0]] || "\u2728";
+  var mark = { halloween: "\uD83C\uDF83", christmas: "\uD83C\uDF84", cny: "\uD83C\uDFEE", ninja: "\uD83E\uDD77", orbs: "\uD83D\uDD2E", pirate: "\uD83C\uDFF4\u200D\u2620\uFE0F", reaper: "\uD83E\uDD8B", kitty: "\uD83C\uDF80", doraemon: "\uD83D\uDD14", valentine: "\uD83D\uDC9D", jujutsu: "\uD83D\uDC41\uFE0F" }[sp[0]] || "\u2728";
   var hide = "try{localStorage.setItem('spHidden_" + sp[0] + "','1')}catch(e){};";
   return '<div class="hw-card"><span class="hw-pk" aria-hidden="true">' + mark + '</span><span><b>' + t(sp[1] + "Title") + '</b><small>' + t(sp[1] + "Sub") + '</small></span>' +
     '<button type="button" class="hw-go" onclick="' + hide + 'setSpecial(\'' + sp[0] + '\');renderHome()">' + t("hwGo") + '</button>' +
@@ -306,13 +306,7 @@ function _homePulseTick() {
 }
 function _homePulseStart() { if (!_homePulse) _homePulse = setInterval(_homePulseTick, 20000); }
 
-/** Home and the Dashboard are the two pages that follow the chosen icon style (js/icons.js) */
 function renderHome() {
-  _iconCtx = true;
-  try { _renderHomeInner(); } finally { _iconCtx = false; }
-}
-
-function _renderHomeInner() {
   var el = document.getElementById("homeContent");
   if (!el || !currentUser) return;
   var me = currentUser.uid, groups = typeof GROUPS_ON !== "undefined" && GROUPS_ON;

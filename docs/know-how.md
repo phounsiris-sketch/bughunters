@@ -1430,3 +1430,27 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Share cards for health** (`js/sharecard-health.js`). `openShareCard('', 'workout', sessionId)` (the share button on a workout page) draws that day: date and time, the big duration, the **heart-rate line coloured by zone** with the games shaded (close games amber) and a **heart on the peak**, a **zone donut** with the average bpm in the middle, a **calorie flame** with the kcal and **pizza slices** (one per 285 kcal), tiles for peak bpm, games and on-court time, a strip with every game's score (won / lost, a flame on close games), and up to three **badges** (Calorie burner 800+ kcal, Clutch player 3+ close games, Marathon 8+ games, Cardio hero 30+ min in Z3+, Unbeaten). `openShareCard('', 'overview')` (the share paths on the Health page and the Dashboard card) draws the week / month / year on screen: total time, bars with the **best day crowned** and a dashed average line, tiles (sessions, games, kcal, average bpm), the zone mix as one stacked bar, a **fire streak** ("N active days / months") and badges. The profile card (`openShareCard()`) is unchanged. Same themes and story / square formats as the profile card; `shareWorkoutNow` / `shareOverviewNow` (health-ui.js) feed them.
 - **Health overview page**: a new **Heart rate** card under the summary: my own zone bands (Z1 to Z5 with their bpm) always drawn, one point per workout in the period with its average bpm (solid line) and peak bpm (dotted line); "No workouts yet" over the bands when the period is empty (`healthTrendSvg`, `healthTrendPoints`). The zones list stays below.
 - Tests: `tests/health.test.js` (trend points), `tests/sharecard.test.js` (data builders, badges, best day, texts).
+
+
+## v190 - icon style on every page
+
+- The style picked in Settings -> Icon style (3D box, Soft, Glass, Classic, Line, Colour duotone, Colour tiles) now draws every icon in the app. Before, only Home and Dashboard followed it (`_iconCtx` switch). The switch and the `_renderDashboardInner` / `_renderHomeInner` wrappers are gone: `icon()` always uses `currentIconTheme`.
+- `applyChromeIcons()` (called from `showPage`) redraws the nav bar and app bar once per style change, on every page, and sets `body[data-icons]`.
+- Icons that sit inside a button, chip, tab, badge or their own coloured tile (`.nav-row-ico`, `.nav-card-icon`, `.hl-ico`, `.empty-icon`, ...) get no second plate: CSS block at the end of styles.css ("v190") strips plate/shadow/size and keeps the plain glyph in the text colour. If a new container shows a plate inside a plate, add its class to that selector list.
+- Controls (back, chevron, plus, close, search, ...) and icons under 14px stay plain in every style, as before.
+- Not checked on real phones: how each style looks inside every small control. Look at Settings, Stats, Polls, Payments first.
+
+
+## v191 - four more special themes
+
+- New specials in `SPECIALS` (js/app.js): `kitty` (Kitty Pink), `doraemon` (Sky Pocket), `valentine` (date window 02-07..02-15, offered on Home), `jujutsu` (Cursed Night). Each has: CSS block at the end of styles.css, EN + LA texts (`spX`, `spXSub`, `spXTitle`), live-score colour set (`LS_THEMES` 14-17 + `LS_SPECIAL_IDX`), share-card palette (`SC_THEMES`, also the id list and the fx regexp), splash palette, Home card emoji, and an animated canvas scene in js/fx.js (`FX_SCENES.kitty/doraemon/valentine/jujutsu`).
+- Art is original: generic bows, hearts, bells, propellers, a door, talismans, a torii gate, cursed-energy ribbons. No characters or logos; the franchise names only appear in the "X style" subtitle.
+- New fx helpers: `fxHeart`, `fxBow`, `fxSparkle`, `fxBell`, `fxCopter`, `fxTalisman`.
+- Not checked: contrast audit (`tools/contrast`) on the new palettes, animation speed on real phones, Lao wording.
+
+
+## v192 - members can invite
+
+- Any active member can open Settings -> "Invite friends" (group-settings page) and share the invite link / QR. Admins keep: reset code, and a checkbox "Members can invite friends with this link" (writes `groups/{gid}.adminOnlyInvite`; absent = members may invite).
+- `firestore.rules` `groupSecrets` read: admin OR (active member AND group not `adminOnlyInvite`). Create/update stay admin only. **Rules must be published again by hand** (dry run first); until then members see the "admins only" note.
+- Trade-off: the invite code is a secret shared by link; a member who leaks it needs an admin to reset the code (existing button).

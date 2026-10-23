@@ -10,6 +10,10 @@ var SC_THEMES = {
   orbs: { name: "spOrbs", bg: ["#0a3b3f", "#137a6c", "#25a07c"], card: "rgba(16,74,152,.82)", edge: "#fbbf24", text: "#ffffff", dim: "#dbeafe", accent: "#fbbf24", pill: "#c2410c" },
   pirate: { name: "spPirate", bg: ["#040d24", "#0a2152", "#12399a"], card: "rgba(19,53,115,.86)", edge: "#fbbf24", text: "#fff8e7", dim: "#e7ddc2", accent: "#fbbf24", pill: "#dc2626" },
   reaper: { name: "spReaper", bg: ["#050508", "#0c0c14", "#161620"], card: "rgba(27,27,36,.88)", edge: "#a1a1aa", text: "#fafafa", dim: "#d4d4d8", accent: "#fb923c", pill: "#c2410c" },
+  kitty: { name: "spKitty", bg: ["#1f0a16", "#4a1833", "#7a2656"], card: "rgba(90,28,61,.86)", edge: "#f9a8d4", text: "#fff1f8", dim: "#fbcfe8", accent: "#f9a8d4", pill: "#db2777" },
+  doraemon: { name: "spDoraemon", bg: ["#061c44", "#0b4a9e", "#1d7be0"], card: "rgba(15,91,181,.84)", edge: "#fde047", text: "#ffffff", dim: "#dbeafe", accent: "#fde047", pill: "#e11d48" },
+  valentine: { name: "spValentine", bg: ["#1f060d", "#4a0f20", "#7f1636"], card: "rgba(92,18,40,.86)", edge: "#fda4af", text: "#fff1f2", dim: "#fecdd3", accent: "#fda4af", pill: "#e11d48" },
+  jujutsu: { name: "spJujutsu", bg: ["#04030a", "#0f0b22", "#241a52"], card: "rgba(26,20,54,.88)", edge: "#a78bfa", text: "#f5f3ff", dim: "#ddd6fe", accent: "#38bdf8", pill: "#6d28d9" },
   arcade: { name: "spArcade", bg: ["#080314", "#160630", "#2a0b55"], card: "rgba(28,11,61,.86)", edge: "#e879f9", text: "#f7f0ff", dim: "#d6c3f2", accent: "#22d3ee", pill: "#a21caf" }
 };
 
@@ -89,7 +93,7 @@ function _scBackdrop(c, W, H, id, P) {
     for (i = 0; i <= 14; i++) { c.beginPath(); c.moveTo(W / 2 + (i - 7) * 20, H - 400); c.lineTo(W / 2 + (i - 7) * 160, H); c.stroke(); }
     for (i = 0; i < 9; i++) { y = H - 400 + Math.pow(i / 8, 2) * 400; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
     c.fillStyle = "rgba(255,255,255,.04)"; for (y = 0; y < H; y += 6) c.fillRect(0, y, W, 2);
-  } else if (typeof FX_SCENES !== "undefined" && FX_SCENES[id] && /^(ninja|orbs|pirate|reaper)$/.test(id)) {
+  } else if (typeof FX_SCENES !== "undefined" && FX_SCENES[id] && /^(ninja|orbs|pirate|reaper|kitty|doraemon|valentine|jujutsu)$/.test(id)) {
     var k = W / 430; c.save(); c.scale(k, k); FX_SCENES[id](c, 430, H / k, 3.4); c.restore();
   } else {
     glow(W / 2, 300, 620, "rgba(255,255,255,.08)"); glow(W - 100, H - 100, 520, P.accent.charAt(0) === "#" ? P.accent + "33" : "rgba(255,255,255,.06)");
@@ -240,7 +244,7 @@ function openShareCard(uid, mode, arg) {
 }
 
 function _scControls() {
-  var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade", "ninja", "orbs", "pirate", "reaper"], cur = _sc.theme;
+  var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade", "ninja", "orbs", "pirate", "reaper", "kitty", "doraemon", "valentine", "jujutsu"], cur = _sc.theme;
   var box = document.getElementById("scThemes"); if (!box) return;
   box.innerHTML = ids.map(function (k) {
     var label = k === "auto" ? t("scAuto") : k === "default" ? t("scDefault") : t(SC_THEMES[k].name);

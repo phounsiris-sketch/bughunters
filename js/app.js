@@ -50,7 +50,11 @@ var SPECIALS = [
   ["ninja", "spNinja", ["#0a1033", "#17235a", "#c2410c", "#fb923c"], "#0f1a4a", "village", 8, null],
   ["orbs", "spOrbs", ["#06224d", "#104a98", "#c2410c", "#fbbf24"], "#0d3f8f", "orbs", 7, null],
   ["pirate", "spPirate", ["#071634", "#133573", "#dc2626", "#fbbf24"], "#0d2552", "waves", 3, null],
-  ["reaper", "spReaper", ["#08080c", "#1b1b24", "#c2410c", "#fafafa"], "#121218", "butterflies", 5, null]
+  ["reaper", "spReaper", ["#08080c", "#1b1b24", "#c2410c", "#fafafa"], "#121218", "butterflies", 5, null],
+  ["kitty", "spKitty", ["#2a0f1e", "#5a1c3d", "#ec4899", "#fbcfe8"], "#4a1833", "bows", 8, null],
+  ["doraemon", "spDoraemon", ["#082a5c", "#0f5bb5", "#e11d48", "#fde047"], "#0b4a9e", "sky", 6, null],
+  ["valentine", "spValentine", ["#2b0a14", "#5c1228", "#e11d48", "#fecdd3"], "#4a0f20", "hearts", 14, ["02-07", "02-15"]],
+  ["jujutsu", "spJujutsu", ["#07060f", "#1a1436", "#7c3aed", "#38bdf8"], "#0f0b22", "curse", 6, null]
 ];
 var currentSpecial = _savedPalette("special", SPECIALS, "");
 
@@ -470,7 +474,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v189"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v192"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

@@ -28,10 +28,14 @@ var LS_THEMES = [
   ["Ninja Village", "#ea580c", "#fb923c", "#1e3a8a", "#3b82f6"],
   ["Dragon Orbs", "#d97706", "#fcd34d", "#1d4ed8", "#60a5fa"],
   ["Pirate Seas", "#dc2626", "#f87171", "#1d4ed8", "#fbbf24"],
-  ["Soul Reaper", "#ea580c", "#fb923c", "#18181b", "#52525b"]
+  ["Soul Reaper", "#ea580c", "#fb923c", "#18181b", "#52525b"],
+  ["Kitty Pink", "#db2777", "#f9a8d4", "#9d174d", "#f472b6"],
+  ["Sky Pocket", "#0284c7", "#38bdf8", "#dc2626", "#fbbf24"],
+  ["Valentine", "#e11d48", "#fb7185", "#9f1239", "#fda4af"],
+  ["Cursed Night", "#6d28d9", "#a78bfa", "#0369a1", "#38bdf8"]
 ];
 /** A special theme gives the live score its own team colours, until the player picks one by hand */
-var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9, ninja: 10, orbs: 11, pirate: 12, reaper: 13 };
+var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9, ninja: 10, orbs: 11, pirate: 12, reaper: 13, kitty: 14, doraemon: 15, valentine: 16, jujutsu: 17 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null
