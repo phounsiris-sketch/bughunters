@@ -120,7 +120,7 @@ function _hwCard() {
   if (!sp) return "";
   var hidden = false; try { hidden = localStorage.getItem("spHidden_" + sp[0]) === "1"; } catch (e) {}
   if (hidden || (currentSpecial === sp[0] && currentTheme === "dark")) return "";
-  var mark = { halloween: "\uD83C\uDF83", christmas: "\uD83C\uDF84", songkran: "\uD83D\uDCA6" }[sp[0]] || "\u2728";
+  var mark = { halloween: "\uD83C\uDF83", christmas: "\uD83C\uDF84", cny: "\uD83C\uDFEE" }[sp[0]] || "\u2728";
   var hide = "try{localStorage.setItem('spHidden_" + sp[0] + "','1')}catch(e){};";
   return '<div class="hw-card"><span class="hw-pk" aria-hidden="true">' + mark + '</span><span><b>' + t(sp[1] + "Title") + '</b><small>' + t(sp[1] + "Sub") + '</small></span>' +
     '<button type="button" class="hw-go" onclick="' + hide + 'setSpecial(\'' + sp[0] + '\');renderHome()">' + t("hwGo") + '</button>' +

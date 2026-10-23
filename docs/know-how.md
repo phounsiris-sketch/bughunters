@@ -1320,3 +1320,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Paths**: Home swipe card -> overview; Dashboard card (top of the Leaderboard tab) -> week, month, workouts, zones, health details, share card; overview -> a workout; the "My workout" card on a session -> workout detail; Profile > Health details -> overview.
 - Fix found by test: the cool-down after the last game could push the estimated heart rate below resting; it now settles near 12% of the reserve. The test checks every point of every curve stays between resting and max.
 - Lao wording unreviewed.
+
+## v165 — Chinese New Year replaces Songkran
+- The special theme id `songkran` is now `cny` ("Chinese New Year", `spCny*` texts). Red and gold palette, hanging lanterns at the top, a lion dance head and a dragon along the bottom (SVG data URIs, no files), a small lantern hanging on every card, floating lanterns rising (`fx-lanterns`), red/gold home cards and live-score colour set, red/gold share card with lanterns, lion and dragon drawn on the canvas (`_scLantern`, `_scLion`).
+- Seasonal "Try it" card on Home from Jan 20 to Feb 25 (the date moves each year: 2026-02-17, 2027-02-06, 2028-01-26). A saved choice of `songkran` falls back to the normal style.

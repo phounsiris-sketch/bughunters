@@ -23,11 +23,11 @@ var LS_THEMES = [
   ["Royal", "#ca8a04", "#facc15", "#1e3a8a", "#3b82f6"],
   ["Halloween", "#ea580c", "#fb923c", "#4c1d95", "#7c3aed"],
   ["Christmas", "#b91c1c", "#ef4444", "#166534", "#22c55e"],
-  ["Songkran", "#0284c7", "#38bdf8", "#d97706", "#fcd34d"],
+  ["Chinese New Year", "#dc2626", "#f87171", "#b45309", "#fcd34d"],
   ["Arcade", "#c026d3", "#e879f9", "#0891b2", "#22d3ee"]
 ];
 /** A special theme gives the live score its own team colours, until the player picks one by hand */
-var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, songkran: 8, arcade: 9 };
+var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null
