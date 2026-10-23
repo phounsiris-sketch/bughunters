@@ -5749,3 +5749,16 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 .chip.active, .period-btn.active, .seg-btn.active, .day-chip.on { box-shadow: none; font-weight: 700; }
 .vote-hint { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
 .vote-hint + .vote-seg { margin-top: 6px; }
+
+/* ===== v157: contrast sweep (found by rendering every button class in 10 themes) ===== */
+.pw-toggle, .cal-toggle, .cm-fab:not(.add), .nav-item.active, .nav-item:hover, .paid-btn, .crumb { color: var(--accent-text); }
+.nav-item.active { font-weight: 700; box-shadow: inset 0 2px 0 var(--accent-text); }
+.btn-danger, .delete-btn, .notif-clear, .pf-rm, .edit-btn.danger { color: var(--danger-text); }
+.btn-danger, .edit-btn.danger { border-color: var(--danger-text); }
+.btn-share, .btn-share:hover { color: #fff; }
+.btn-share { background: #0f7d42; }
+.btn-share:hover { background: #0c6a38; }
+.btn-secondary, .edit-btn, .dp-nav, .how-btn, .loc-ic, .person-menu-btn, .lang-toggle, .notif-chip:not(.active), .ls-pool-chip, .map-btn.btn-secondary, .cm-go.btn-secondary { border-color: var(--control-border); }
+.edit-btn.danger { border-color: var(--danger-text); }
+button:disabled, .btn-primary:disabled, .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+body[data-theme="light"] { --danger-text: #c81e1e; }

@@ -1272,3 +1272,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - New tokens `--control-border` (3:1 edge against the card) and `--choice-bg`. Resting choice = white/surface fill + visible edge; selected = solid fill + white text (+ check on votes).
 - Same edge applied to `.chip`, `.period-btn`, `.seg-btn`, `.level-opt`, `.day-chip`.
 - Poll shows "Tap your answer to vote" until the user votes (`voteTapHint`).
+
+## v157 — contrast sweep
+- `tools/contrast/` renders every button class in 10 themes and reports weak text contrast / flat edges (see its README).
+- Fixed: accent text on light (pw-toggle, cal-toggle, nav active, crumb, paid link) now uses `--accent-text`; red text uses `--danger-text` (light #c81e1e); share button darker green; secondary/edit/nav/chip controls use `--control-border`; active bottom-nav tab gets a bar + bold; disabled buttons look disabled (`:disabled` opacity).
