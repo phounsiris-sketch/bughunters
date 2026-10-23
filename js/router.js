@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(home|games|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports)$/;
+var GROUP_PAGES = /^(home|games|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports|health|workout)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 /** Header button with my picture (opens My profile) */
@@ -54,7 +54,7 @@ function showPage(page, pushHistory) {
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
   }
-  var navOf = { "home": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
+  var navOf = { "home": "dashboard", "health": "dashboard", "workout": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) activeNav.classList.add("active");
   // Settings lives behind the gear in the header
@@ -118,6 +118,10 @@ function showPage(page, pushHistory) {
     loadPublic();
   } else if (page === "game-create" && typeof loadGameCreate === "function") {
     loadGameCreate();
+  } else if (page === "health" && typeof loadHealthPage === "function") {
+    loadHealthPage();
+  } else if (page === "workout" && typeof loadWorkoutPage === "function") {
+    loadWorkoutPage();
   } else if (page === "stats" && typeof loadStats === "function") {
     loadStats();
   } else if (page === "matches" && typeof loadMatchesPage === "function") {

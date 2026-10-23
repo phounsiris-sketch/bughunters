@@ -80,7 +80,7 @@ function healthSeries(rest, max, segs, totalMin) {
       var into = (m - seg.s) / seg.len, margin = seg.margin == null ? 5 : seg.margin, c = Math.max(0, 1 - margin / 10);
       target = .60 + .10 * c - (margin > 8 ? .03 : 0) + (seg.close ? .07 * Math.pow(into, 3) : 0) + Math.sin(m * 2.3) * .03 + (noise(m * 2) - .5) * .05;
       target = Math.min(target, f + .06 * (into < .2 ? 2 : 1) + .05);
-    } else if (m >= endPlay) target = .08 - (m - endPlay) * .02;
+    } else if (m >= endPlay) target = .12 + .18 * Math.exp(-(m - endPlay) / 8);   // cool-down settles near 12% of the reserve, never below resting
     else target = .30 + Math.sin(m) * .015;
     f += (target - f) * (seg ? .35 : .22);
     pts.push([m, rest + f * hrr]);
@@ -126,6 +126,63 @@ function healthTotals(h, uid, matches, sessions, scope) {
   return out;
 }
 
+
+/* ── Workouts, ranges and zone colours (Samsung Health style summaries) ── */
+var HEALTH_ZONE_COLORS = ["#38bdf8", "#4ade80", "#facc15", "#fb923c", "#ef4444"];   // Z1 blue, Z2 green, Z3 yellow, Z4 orange, Z5 red
+var HEALTH_BELOW = "#9ca3af";
+function _isoLocal(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function _hmm(min) { return Math.floor(min / 60) + ":" + ("0" + Math.round(min % 60)).slice(-2); }
+
+/** One row per session where I have timed games, newest first */
+function healthWorkouts(h, age, uid, matches, sessions) {
+  var by = {};
+  matches.forEach(function (m) { if (m.minutes > 0 && m.sessionId) (by[m.sessionId] = by[m.sessionId] || []).push(m); });
+  var out = [];
+  Object.keys(by).forEach(function (sid) {
+    var ses = (sessions || []).filter(function (x) { return x.id === sid; })[0], d = healthForSession(h, age, uid, by[sid], ses);
+    if (!d) return;
+    var first = d.segs[0].m, date = (ses && ses.date) || first.date || "";
+    var time = ses && ses.time ? ses.time : (first.startAt ? (function (t0) { return ("0" + t0.getHours()).slice(-2) + ":" + ("0" + t0.getMinutes()).slice(-2); })(new Date(first.startAt - HEALTH_WARMUP_MIN * 60000)) : "");
+    out.push({ sid: sid, date: date, time: time, totalMin: d.totalMin, onCourt: d.onCourt, games: d.segs.length, kcal: d.kcal ? d.kcal.active : null, avg: d.avg || null, peak: d.peak || null, zoneMin: d.zoneMin || null, d: d });
+  });
+  return out.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.time).localeCompare(String(a.time)); });
+}
+
+/** Week (Mon-Sun), month or year around today, moved by offset steps: bounds, label parts and empty buckets */
+function healthRangeBounds(kind, offset, today) {
+  var t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()), from, to, buckets = [], i;
+  if (kind === "week") {
+    var dow = (t0.getDay() + 6) % 7; from = new Date(t0); from.setDate(t0.getDate() - dow + offset * 7); to = new Date(from); to.setDate(from.getDate() + 6);
+    for (i = 0; i < 7; i++) { var dd = new Date(from); dd.setDate(from.getDate() + i); buckets.push({ key: _isoLocal(dd), date: dd, min: 0 }); }
+  } else if (kind === "month") {
+    from = new Date(t0.getFullYear(), t0.getMonth() + offset, 1); to = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+    for (i = 0; i < to.getDate(); i++) { var d2 = new Date(from.getFullYear(), from.getMonth(), i + 1); buckets.push({ key: _isoLocal(d2), date: d2, min: 0 }); }
+  } else {
+    from = new Date(t0.getFullYear() + offset, 0, 1); to = new Date(from.getFullYear(), 11, 31);
+    for (i = 0; i < 12; i++) buckets.push({ key: from.getFullYear() + "-" + ("0" + (i + 1)).slice(-2), date: new Date(from.getFullYear(), i, 1), min: 0 });
+  }
+  return { kind: kind, from: _isoLocal(from), to: _isoLocal(to), fromDate: from, toDate: to, buckets: buckets };
+}
+
+/** Totals for one range: duration, kcal, average bpm (weighted by duration), sessions, minutes per zone, minutes per bucket */
+function healthRangeSummary(workouts, range) {
+  var items = workouts.filter(function (w) { return w.date >= range.from && w.date <= range.to; });
+  var out = { items: items, sessions: items.length, totalMin: 0, onCourt: 0, games: 0, kcal: 0, hasKcal: false, avg: null, zoneMin: [0, 0, 0, 0, 0], hasZones: false, buckets: range.buckets.map(function (b) { return { key: b.key, date: b.date, min: 0 }; }) };
+  var hrSum = 0, hrMin = 0;
+  items.forEach(function (w) {
+    out.totalMin += w.totalMin; out.onCourt += w.onCourt; out.games += w.games;
+    if (w.kcal != null) { out.kcal += w.kcal; out.hasKcal = true; }
+    if (w.avg) { hrSum += w.avg * w.totalMin; hrMin += w.totalMin; }
+    if (w.zoneMin) { out.hasZones = true; w.zoneMin.forEach(function (m, k) { out.zoneMin[k] += m; }); }
+    var key = range.kind === "year" ? w.date.slice(0, 7) : w.date;
+    out.buckets.forEach(function (b) { if (b.key === key) b.min += w.totalMin; });
+  });
+  out.avg = hrMin ? Math.round(hrSum / hrMin) : null;
+  var days = out.buckets.filter(function (b) { return b.min > 0; });
+  out.avgBucket = days.length ? Math.round(days.reduce(function (s, b) { return s + b.min; }, 0) / days.length) : 0;
+  return out;
+}
+
 /* ───────────────────────── screens ───────────────────────── */
 
 function myHealth() { return (typeof _myPrivate !== "undefined" && _myPrivate && _myPrivate.health) || {}; }
@@ -160,6 +217,7 @@ function healthCardHtml(s) {
     (d.kcal ? tile(d.kcal.active, t("healthKcal")) : '') + (d.pts ? tile(d.avg, t("healthAvgBpm")) + tile(d.peak, t("healthPeakBpm"), true) : '') +
     (d.zones ? tile(d.zoneMin[2] + d.zoneMin[3] + d.zoneMin[4] + " " + t("minShort"), t("healthZ3Up")) : '') + '</div>';
   if (d.pts) html += healthChartSvg(d) + '<div class="hc-note">' + (d.restAssumed ? t("healthRestAssumed") + ' ' : '') + t("healthNote") + '</div>';
+  html += '<button type="button" class="btn-secondary" onclick="openWorkout(\'' + jsq(s.id) + '\')">' + icon("chart", 16) + ' ' + t("healthSeeWorkout") + '</button>';
   if (!d.kcal || !d.zones) html += '<button type="button" class="btn-secondary" onclick="openPfSub(\'health\')">' + icon("user", 16) + ' ' + t("healthAddDetails") + '</button>';
   return html + '</div>';
 }
@@ -194,7 +252,7 @@ function healthPageHtml() {
     return '<div class="form-group"><label class="form-label" for="' + id + '">' + label + '</label><input type="text" inputmode="decimal" class="form-input" id="' + id + '" value="' + escapeHtml(val == null ? "" : String(val)) + '" placeholder="' + ph + '" maxlength="5">' +
       (hint ? '<div class="form-hint">' + hint + '</div>' : '') + '</div>';
   };
-  var html = '<div class="card"><div class="lock-note">' + icon("lock", 14) + ' ' + t("healthPrivate") + '</div>' +
+  var html = '<button type="button" class="btn-secondary" style="margin-bottom:12px" onclick="openHealth(\'week\')">' + icon("chart", 16) + ' ' + t("healthTitle") + '</button><div class="card"><div class="lock-note">' + icon("lock", 14) + ' ' + t("healthPrivate") + '</div>' +
     num("hWeight", t("healthWeight") + ' (kg)', h.weightKg, "70", t("healthWeightHint")) +
     num("hHeight", t("healthHeight") + ' (cm)', h.heightCm, "172", "") +
     '<div class="form-group"><label class="form-label">' + t("healthSex") + '</label><div class="seg seg-wrap" role="radiogroup">' +

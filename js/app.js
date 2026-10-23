@@ -431,6 +431,10 @@ function _refreshCurrentPageNow(reason) {
     renderGames();
   } else if (currentPage === "dashboard" && typeof _renderDashboard === "function") {
     _renderDashboard();
+  } else if (currentPage === "health" && typeof renderHealthPage === "function") {
+    renderHealthPage();
+  } else if (currentPage === "workout" && typeof renderWorkoutPage === "function") {
+    renderWorkoutPage();
   } else if (currentPage === "stats" && typeof renderStats === "function") {
     renderStats();
   } else if (currentPage === "public" && /^(courts|restaurants)$/.test(reason) && typeof renderPublic === "function") {
@@ -469,7 +473,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v162"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v163"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

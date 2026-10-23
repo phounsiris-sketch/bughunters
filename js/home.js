@@ -338,7 +338,7 @@ function renderHome() {
   var cards = [];
   if (groups) cards.push(_homePlayCard(me));
   cards.push(_homeSpendCard(), _homePayCard());
-  if (groups) cards.push(_homeRatingCard(me), _homeBadgeCard(me));
+  if (groups) cards.push(_homeRatingCard(me), typeof homeHealthCardHtml === "function" ? homeHealthCardHtml() : "", _homeBadgeCard(me));
   html += '<div class="hs-strip" id="homeStrip" onscroll="_homeStripDots()">' + cards.join("") + '</div>' +
     '<div class="hs-dots-nav" id="homeStripDots">' + cards.map(function (c, i) { return '<i class="' + (i === 0 ? 'on' : '') + '"></i>'; }).join("") + '</div>';
 
