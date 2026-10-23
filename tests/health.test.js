@@ -67,6 +67,12 @@ assert.strictEqual(mw.length, 5, "October has 31 days: five blocks"); assert.dee
 assert.ok(mw[3].now && !mw[0].now, "today (23rd) is in the fourth block"); assert.strictEqual(mw[4].from, 29); assert.strictEqual(mw[4].to, 31);
 assert.strictEqual(ctx.healthMonthWeeks([], new Date(2026, 1, 10)).length, 4, "February 2026 has exactly four blocks");
 
+// heart rate trend points for the overview chart
+var rng = ctx.healthRangeBounds("month", 0, new Date(2026, 9, 23)), tp = ctx.healthTrendPoints(ws, rng);
+assert.strictEqual(tp.length, 2); assert.ok(tp[0].x < tp[1].x && tp[0].date === "2026-10-12" && tp[1].date === "2026-10-22", "oldest first, placed by date inside the month");
+assert.ok(tp.every(function (p) { return p.x >= 0 && p.x <= 1 && p.avg < p.peak; }), "inside the range, average below peak");
+assert.strictEqual(ctx.healthTrendPoints([], rng).length, 0, "no workouts, no points (the chart still draws its zone bands)");
+
 // rules and texts
 assert.ok(/function healthOk\(d\)/.test(rules) && /allow write: if isOwner\(uid\) && healthOk\(request\.resource\.data\)/.test(rules), "userPrivate rules bound the health fields");
 var uiSrc = fs.readFileSync("js/health-ui.js", "utf8");

@@ -48,6 +48,25 @@ function healthBarsSvg(sum, range) {
   return '<svg class="hc-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + escapeHtml(t("healthBarsAria")) + '">' + s + '</svg>';
 }
 
+/** Heart rate over the period: my own zone bands in the background, one point per workout with its average and its peak bpm, joined by lines.
+    The bands show even when there is no workout yet, so the page always has its chart. */
+function healthTrendSvg(items, range, zones) {
+  var W = 720, H = 300, L = 46, R = 12, T = 16, B = 44, pts = healthTrendPoints(items, range);
+  if (!zones) return '<div class="form-hint">' + t("healthNoZones") + '</div>';
+  var lo = Math.floor((zones[0].lo - 6) / 10) * 10, hi = Math.ceil((zones[4].hi + 4) / 10) * 10, Zc = HEALTH_ZONE_COLORS;
+  var X = function (f) { return L + (W - L - R) * f; }, Y = function (v) { return T + (H - T - B) * (1 - (v - lo) / (hi - lo)); };
+  var s = '';
+  zones.forEach(function (z, k) { var a = Math.max(lo, z.lo), b = Math.min(hi, z.hi); if (b > a) s += '<rect x="' + L + '" y="' + Y(b) + '" width="' + (W - L - R) + '" height="' + (Y(a) - Y(b)) + '" fill="' + Zc[k] + '" opacity=".16"/><text x="' + (W - R - 4) + '" y="' + (Y(b) + 14) + '" text-anchor="end" class="hc-t">Z' + (k + 1) + ' ' + z.lo + '-' + z.hi + '</text>'; });
+  for (var v = Math.ceil(lo / 20) * 20; v <= hi; v += 20) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" class="hc-gl"/><text x="' + (L - 6) + '" y="' + (Y(v) + 5) + '" text-anchor="end" class="hc-t">' + v + '</text>';
+  var line = function (key, cls) { return pts.length > 1 ? '<path class="' + cls + '" d="' + pts.map(function (p, i) { return (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p[key]).toFixed(1); }).join(" ") + '"/>' : ''; };
+  s += line("peak", "ht-peak") + line("avg", "ht-avg");
+  pts.forEach(function (p) { s += '<circle cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.peak).toFixed(1) + '" r="6" class="ht-peak-dot"/><circle cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.avg).toFixed(1) + '" r="6" class="ht-avg-dot"/>'; });
+  s += '<text x="' + L + '" y="' + (H - 14) + '" text-anchor="start" class="hc-t">' + escapeHtml(_fmtD(range.fromDate, { day: "numeric", month: "short" })) + '</text><text x="' + (W - R) + '" y="' + (H - 14) + '" text-anchor="end" class="hc-t">' + escapeHtml(_fmtD(range.toDate, { day: "numeric", month: "short" })) + '</text>';
+  if (!pts.length) s += '<text x="' + (W / 2) + '" y="' + (H / 2 - 4) + '" text-anchor="middle" class="hc-t hc-b" style="font-size:22px">' + escapeHtml(t("healthNoWorkouts")) + '</text>';
+  return '<svg class="hc-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + escapeHtml(t("healthTrendAria")) + '">' + s + '</svg>' +
+    '<div class="hc-legend"><span class="ht-k ht-k-avg"></span>' + t("healthAvgBpm") + ' <span class="ht-k ht-k-peak"></span>' + t("healthPeakBpm") + '</div>';
+}
+
 function _zoneName(i) { return t("healthZone" + (i + 1)); }
 
 /** Zone rows like Samsung: number, name, a coloured bar as long as the time spent there, my own bpm range */
@@ -100,11 +119,13 @@ function renderHealthPage() {
     '<div class="hv-facts"><div><small>' + t("healthKcal") + '</small><b class="hl-kcal">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") : '–') + '</b></div><div><small>' + t("healthAvgBpm") + '</small><b class="hl-hr">' + (sum.avg || '–') + '</b></div>' +
     '<div><small>' + t("healthSessions") + '</small><b>' + sum.sessions + '</b></div><div><small>' + t("gamesWord") + '</small><b>' + sum.games + '</b></div></div>' +
     healthBarsSvg(sum, range) + '</div>';
+  // heart rate over the period, always shown (zone bands first, then one point per workout)
+  html += '<div class="card" id="hvHeart"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthHeartRate") + '</div>' + healthTrendSvg(sum.items, range, healthZones(h, age)) + '</div>';
   // paths
   html += '<div class="hv-paths"><button type="button" class="hv-path" onclick="document.getElementById(\'hvZones\').scrollIntoView({behavior:\'smooth\'})">' + icon("chart", 18) + '<span>' + t("healthZonesTitle") + '</span></button>' +
     '<button type="button" class="hv-path" onclick="document.getElementById(\'hvList\').scrollIntoView({behavior:\'smooth\'})">' + icon("history", 18) + '<span>' + t("healthWorkouts") + '</span></button>' +
     '<button type="button" class="hv-path" onclick="openPfSub(\'health\')">' + icon("user", 18) + '<span>' + t("healthDetails") + '</span></button>' +
-    '<button type="button" class="hv-path" onclick="openShareCard()">' + icon("share", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
+    '<button type="button" class="hv-path" onclick="openShareCard(\'\',\'overview\')">' + icon("share", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
   // zones for the range
   var zones = healthZones(h, age);
   html += '<div class="card" id="hvZones"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthZonesTitle") + '</div>' +
@@ -133,7 +154,7 @@ function renderWorkoutPage() {
   var d = w.d, h = myHealth();
   var tile = function (cls, label, val, unit) { return '<div class="wk-tile"><small class="' + cls + '">' + label + '</small><b>' + val + (unit ? ' <em>' + unit + '</em>' : '') + '</b></div>'; };
   var date = new Date(w.date + "T00:00:00");
-  var html = '<div class="wk-hero"><button type="button" class="wk-share" aria-label="' + t("shareMyCard") + '" onclick="openShareCard()">' + icon("share", 20) + '</button>' +
+  var html = '<div class="wk-hero"><button type="button" class="wk-share" aria-label="' + t("shareMyCard") + '" onclick="openShareCard(\'\',\'workout\',\'' + jsq(w.sid) + '\')">' + icon("share", 20) + '</button>' +
     '<svg class="wk-shuttle" viewBox="0 0 100 100" aria-hidden="true"><path d="M30 55 L12 8 Q50 -6 88 8 L70 55Z" fill="rgba(255,255,255,.9)"/><path d="M26 40 L74 40 M34 25 L66 25 M40 55 L28 14 M50 55 L50 6 M60 55 L72 14" stroke="rgba(0,0,0,.18)" stroke-width="2" fill="none"/><circle cx="50" cy="68" r="15" fill="#f5deb3"/></svg>' +
     '<div class="wk-title">' + t("healthBadminton") + '</div><div class="wk-dur">' + _hmm(w.totalMin) + '</div><div class="wk-date">' + escapeHtml(_fmtD(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) + (w.time ? " " + w.time : "")) + '</div></div>';
   html += '<div class="card wk-card"><div class="card-title">' + t("healthWorkoutDetails") + '</div><div class="wk-tiles">' +
@@ -160,7 +181,7 @@ function healthDashCardHtml() {
     '<div class="hd-body"><div class="hd-num"><small>' + t("healthThisWeek") + '</small><b>' + _hmm(sum.totalMin) + ' <em>' + t("hShort").trim() + '</em></b>' +
     '<span>' + (sum.hasKcal ? '<span class="hl-kcal">' + sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + '</span> · ' : '') + sum.sessions + ' ' + t("healthSessions") + (sum.avg ? ' · <span class="hl-hr">' + sum.avg + ' bpm</span>' : '') + '</span></div><div class="hd-bars" aria-hidden="true">' + bars + '</div></div>' +
     '<div class="hd-paths">' + path("calendar", t("healthWeek"), "openHealth('week')") + path("history", t("healthMonth"), "openHealth('month')") + path("scoreboard", t("healthWorkouts"), "openHealth('week','hvList')") +
-    path("chart", t("healthZonesTitle"), "openHealth('week','hvZones')") + path("user", t("healthDetails"), "openPfSub('health')") + path("share", t("shareMyCard"), "openShareCard()") + '</div></div>';
+    path("chart", t("healthZonesTitle"), "openHealth('week','hvZones')") + path("user", t("healthDetails"), "openPfSub('health')") + path("share", t("shareMyCard"), "openShareCard('','overview')") + '</div></div>';
 }
 
 /** Home swipe card: this month, one bar per week of the month (W1 to W4/W5), the current week brightest */
@@ -182,4 +203,15 @@ function healthLatestCardHtml() {
   var w = myWorkouts()[0];
   if (!w) return "";
   return healthWorkoutCardHtml(w.d, w.sid, _fmtD(new Date(w.date + "T00:00:00"), { weekday: "short", day: "numeric", month: "short" }));
+}
+
+/* ── Data for the share cards (js/sharecard-health.js) ── */
+function shareWorkoutNow(sid) {
+  var w = myWorkouts().filter(function (x) { return x.sid === sid; })[0]; if (!w) return null;
+  return workoutShareData(w, _fmtD(new Date(w.date + "T00:00:00"), { weekday: "short", day: "numeric", month: "short", year: "numeric" }));
+}
+function shareOverviewNow() {
+  var range = healthRangeBounds(_hk, _hoff, new Date()), sum = healthRangeSummary(myWorkouts(), range);
+  var title = _hk === "week" ? _fmtD(range.fromDate, { day: "numeric", month: "short" }) + " \u2013 " + _fmtD(range.toDate, { day: "numeric", month: "short" }) : _hk === "month" ? _fmtD(range.fromDate, { month: "long", year: "numeric" }) : String(range.fromDate.getFullYear());
+  return overviewShareData(sum, range, title, function (b, i, kind) { return kind === "week" ? _fmtD(b.date, { weekday: "short" }).slice(0, 3) : kind === "year" ? _fmtD(b.date, { month: "short" }).slice(0, 3) : ((i + 1) % 7 === 1 ? String(i + 1) : ""); });
 }

@@ -177,6 +177,14 @@ function healthMonthWeeks(workouts, today) {
   return out;
 }
 
+/** One point per workout in a range for the heart-rate trend: x = how far into the range (0..1), average and peak bpm, oldest first */
+function healthTrendPoints(items, range) {
+  var a = new Date(range.from + "T00:00:00").getTime(), b = new Date(range.to + "T23:59:59").getTime(), span = Math.max(1, b - a);
+  return items.filter(function (w) { return w.avg && w.peak; }).map(function (w) {
+    return { x: Math.min(1, Math.max(0, (new Date(w.date + "T12:00:00").getTime() - a) / span)), date: w.date, avg: w.avg, peak: w.peak, sid: w.sid };
+  }).sort(function (p, q) { return p.x - q.x || p.date.localeCompare(q.date); });
+}
+
 /** Totals for one range: duration, kcal, average bpm (weighted by duration), sessions, minutes per zone, minutes per bucket */
 function healthRangeSummary(workouts, range) {
   var items = workouts.filter(function (w) { return w.date >= range.from && w.date <= range.to; });

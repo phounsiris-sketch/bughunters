@@ -13,7 +13,7 @@ var SC_THEMES = {
   arcade: { name: "spArcade", bg: ["#080314", "#160630", "#2a0b55"], card: "rgba(28,11,61,.86)", edge: "#e879f9", text: "#f7f0ff", dim: "#d6c3f2", accent: "#22d3ee", pill: "#a21caf" }
 };
 
-var _sc = { uid: null, theme: "auto", fmt: "story", canvas: null, avatar: null };
+var _sc = { uid: null, theme: "auto", fmt: "story", canvas: null, avatar: null, mode: "profile", arg: null };
 
 /** All numbers on the card, plain data (no HTML), for the chosen period */
 function shareCardData(uid, scope) {
@@ -213,13 +213,15 @@ function _scLoadAvatar(uid) {
   return fsdb.collection("images").doc(id).get().then(function (doc) { return doc.exists ? toImg(doc.data().data) : null; }).catch(function () { return null; });
 }
 
-function openShareCard(uid) {
+/** openShareCard() = my profile card; openShareCard("", "workout", sessionId) = one workout (that day); openShareCard("", "overview") = the week / month / year shown on the Health page */
+function openShareCard(uid, mode, arg) {
   uid = uid || (currentUser && currentUser.uid); if (!uid) return;
-  _sc.uid = uid; _sc.theme = "auto"; _sc.fmt = "story"; _sc.avatar = null;
+  _sc.uid = uid; _sc.theme = "auto"; _sc.fmt = "story"; _sc.avatar = null; _sc.mode = mode || "profile"; _sc.arg = arg || null;
+  var ttl = _sc.mode === "workout" ? "shareWorkoutTitle" : _sc.mode === "overview" ? "shareOverviewTitle" : "shareCardTitle";
   var old = document.getElementById("shareSheet"); if (old) old.remove();
   var el = document.createElement("div"); el.id = "shareSheet"; el.className = "sheet-wrap";
-  el.innerHTML = '<div class="sheet sc-sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(t("shareCardTitle")) + '"><div class="sheet-grab"></div>' +
-    '<div class="sheet-title">' + escapeHtml(t("shareCardTitle")) + '</div><div class="sc-prev"><canvas id="scCanvas"></canvas></div>' +
+  el.innerHTML = '<div class="sheet sc-sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(t(ttl)) + '"><div class="sheet-grab"></div>' +
+    '<div class="sheet-title">' + escapeHtml(t(ttl)) + '</div><div class="sc-prev"><canvas id="scCanvas"></canvas></div>' +
     '<div class="sc-row" id="scThemes"></div><div class="sc-row" id="scFmt"></div>' +
     '<div class="ask-btns"><button type="button" class="btn-primary" id="scShare">' + icon("share", 18) + ' ' + escapeHtml(t("shareWord")) + '</button>' +
     '<button type="button" class="btn-secondary" id="scSave">' + escapeHtml(t("saveImage")) + '</button><button type="button" class="ask-no" id="scClose">' + escapeHtml(t("close")) + '</button></div></div>';
@@ -232,7 +234,7 @@ function openShareCard(uid) {
   el.querySelector("#scShare").onclick = function () { _scOut(true); };
   el.querySelector("#scSave").onclick = function () { _scOut(false); };
   _scControls();
-  var go = function () { _scLoadAvatar(uid).then(function (im) { _sc.avatar = im; _scRedraw(); }); };
+  var go = function () { if (_sc.mode !== "profile") { _scRedraw(); return; } _scLoadAvatar(uid).then(function (im) { _sc.avatar = im; _scRedraw(); }); };
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
   _scRedraw();
 }
@@ -251,7 +253,9 @@ function _scControls() {
 function _scSet(k, v) { _sc[k] = v; _scControls(); _scRedraw(); }
 function _scRedraw() {
   var cv = document.getElementById("scCanvas"); if (!cv) return;
-  drawShareCard(cv, shareCardData(_sc.uid, statsScope), _scThemeId(), _sc.fmt);
+  if (_sc.mode === "workout" && typeof shareWorkoutNow === "function") { var wd = shareWorkoutNow(_sc.arg); if (wd) drawWorkoutCard(cv, wd, _scThemeId(), _sc.fmt); }
+  else if (_sc.mode === "overview" && typeof shareOverviewNow === "function") drawOverviewCard(cv, shareOverviewNow(), _scThemeId(), _sc.fmt);
+  else drawShareCard(cv, shareCardData(_sc.uid, statsScope), _scThemeId(), _sc.fmt);
   _sc.canvas = cv;
 }
 
