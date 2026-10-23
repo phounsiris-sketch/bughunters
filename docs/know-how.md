@@ -1312,3 +1312,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - **Session Games tab**: "My workout" card for players with timed games: on court, active kcal, average / peak bpm (estimate), minutes in Z3+, chart with the player's own zone bands and close games shaded. Hidden if I have no timed games; asks for weight or age when needed.
 - Estimate maths: MET x kg x hours (play 5.5, warm-up 4 for 10 min, rest 2; check the values against the activity compendium before relying on them); the heart rate curve is built from the player's own reserve; real watch data comes with the native app phase.
 - `tests/health.test.js` covers zones for two different players, matches filtering, kcal reference numbers, close-game effect, live-score minutes, rules and EN + LA texts. Lao text unreviewed.
+
+## v163 — Health & exercise pages (Samsung Health style)
+- New pages `health` (overview) and `workout` (one session), files `js/health-ui.js` + pure helpers in `js/health.js` (`healthWorkouts`, `healthRangeBounds`, `healthRangeSummary`).
+- **Overview**: Week / Month / Year, range arrows, big total time, kcal, average bpm, sessions, games, bar chart per day or month with a dotted average line, my own zones with coloured time bars (Z1 blue, Z2 green, Z3 yellow, Z4 orange, Z5 red), then the workouts list grouped by day (duration in cyan, kcal in purple, time on the right).
+- **Workout detail**: green court hero with big duration and date, Samsung-like detail tiles (duration, active energy, total energy, average and max heart rate, on court), heart rate line coloured by zone with the games shaded (numbers on top), zone rows, games list (close games highlighted), share and "open the session".
+- **Paths**: Home swipe card -> overview; Dashboard card (top of the Leaderboard tab) -> week, month, workouts, zones, health details, share card; overview -> a workout; the "My workout" card on a session -> workout detail; Profile > Health details -> overview.
+- Fix found by test: the cool-down after the last game could push the estimated heart rate below resting; it now settles near 12% of the reserve. The test checks every point of every curve stays between resting and max.
+- Lao wording unreviewed.

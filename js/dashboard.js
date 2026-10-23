@@ -85,6 +85,7 @@ function _renderDashboard() {
   var calculated = lastSessions.filter(function (s) { return s.calculated; });
 
   if (dashTab === "leaders") {
+    if (typeof healthDashCardHtml === "function") html += healthDashCardHtml();
     html += _renderLeaderboard();
     container.innerHTML = html;
     uiMotion(container, dashTab + "|" + dashPeriod + "|" + (dashActivityUser || ""));
