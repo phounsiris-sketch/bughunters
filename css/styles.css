@@ -6135,16 +6135,11 @@ body[data-special="pirate"]:not([data-theme="light"]) .hs-health, body[data-spec
 :root { --hdr-h: 46px; }   /* set from the real height of the app bar by _syncHeaderVar() */
 
 /* ===== v177: icon styles for the Dashboard (classic / line / tiles / emoji) ===== */
-/* duotone lines: the main shapes are a clean 1.6 stroke, the softer second layer of the original icon stays a lighter line */
-.si.ico-line path, .si.ico-line circle, .si.ico-line rect, .si.ico-line ellipse, .si.ico-line line, .si.ico-line polygon { fill: none !important; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.si.ico-line g { fill: none !important; }
-.si.ico-line [opacity] { stroke-width: 1.3; }
 .ico-tile { display: inline-flex; align-items: center; justify-content: center; border-radius: 30%; color: #fff; vertical-align: middle; margin-right: 6px; flex: none; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
 .ico-tile .si { color: #fff !important; }
 .ico-t0 { background: linear-gradient(135deg, #0d9488, #14b8a6); } .ico-t1 { background: linear-gradient(135deg, #2563eb, #60a5fa); } .ico-t2 { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
 .ico-t3 { background: linear-gradient(135deg, #db2777, #f472b6); } .ico-t4 { background: linear-gradient(135deg, #ea580c, #fb923c); } .ico-t5 { background: linear-gradient(135deg, #16a34a, #4ade80); }
 .ico-t6 { background: linear-gradient(135deg, #dc2626, #f87171); } .ico-t7 { background: linear-gradient(135deg, #b45309, #fbbf24); }
-.ico-emoji { display: inline-block; text-align: center; line-height: 1; vertical-align: middle; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 .is-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
 .is-opt { text-align: left; padding: 10px; border-radius: 14px; border: 2px solid var(--control-border); background: var(--chip-bg); color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
 .is-opt.active { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-text) inset; }
@@ -6154,21 +6149,13 @@ body[data-special="pirate"]:not([data-theme="light"]) .hs-health, body[data-spec
 /* v178: richer tiles, emoji chips, and the same styles on the nav bar and app bar while the Dashboard is open */
 .ico-tile { border-radius: 32%; position: relative; box-shadow: 0 3px 8px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .45), inset 0 -2px 0 rgba(0, 0, 0, .18); }
 .ico-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 55%); pointer-events: none; }
-.ico-chip { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(var(--accent-rgb), .16); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .35); vertical-align: middle; margin-right: 6px; flex: none; }
-.ico-chip .ico-emoji { display: block; line-height: 1; text-align: center; }
 body[data-icons] .nav-item .nav-icon { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; }
 body[data-icons="tiles"] .bottom-nav .ico-tile { width: 32px !important; height: 32px !important; margin-right: 0; }
 body[data-icons="tiles"] .bottom-nav .ico-tile .si { width: 18px; height: 18px; }
-body[data-icons="emoji"] .bottom-nav .ico-chip { width: 34px !important; height: 34px !important; margin-right: 0; }
-body[data-icons="emoji"] .bottom-nav .ico-emoji { font-size: 20px !important; }
 body[data-icons="tiles"] .nav-item.active .ico-tile { box-shadow: 0 0 0 2px var(--accent), 0 4px 10px rgba(0, 0, 0, .35); }
-body[data-icons="emoji"] .nav-item.active .ico-chip { background: rgba(var(--accent-rgb), .34); box-shadow: 0 0 0 2px var(--accent); }
-body[data-icons] .nav-center .nav-icon .ico-tile, body[data-icons] .nav-center .nav-icon .ico-chip { background: none; box-shadow: none; }
 body[data-icons] .nav-center .nav-icon .ico-tile::after { display: none; }
-body[data-icons] .app-header .ico-tile, body[data-icons] .app-header .ico-chip { margin: 0; background: transparent; box-shadow: none; }
 body[data-icons] .app-header .ico-tile { width: auto !important; height: auto !important; }
 body[data-icons] .app-header .ico-tile::after { display: none; }
-body[data-icons="emoji"] .app-header .ico-chip { width: auto !important; height: auto !important; }
 
 /* ===== v179: Ninja Village (orange and night blue) ===== */
 body[data-special="ninja"]:not([data-theme="light"]) {
@@ -6197,9 +6184,21 @@ body[data-special="ninja"]:not([data-theme="light"]) .hs-health, body[data-speci
 .is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .is-opt { min-width: 0; overflow: hidden; }
 .is-prev { flex-wrap: wrap; gap: 6px; min-height: 30px; }
-.is-prev .ico-tile, .is-prev .ico-chip { margin-right: 0; }
 .is-opt b { overflow-wrap: anywhere; }
 /* icons that already sit on their own coloured badge or card do not get a second tile or chip behind them */
 .home-sc-ico .ico-tile, .home-new-ico .ico-tile, .hs-card .ico-tile, .mh-ii .ico-tile, .nav-icon .ico-tile.plain { background: none; box-shadow: none; width: auto !important; height: auto !important; margin: 0; }
 .home-sc-ico .ico-tile::after, .home-new-ico .ico-tile::after, .hs-card .ico-tile::after, .mh-ii .ico-tile::after { display: none; }
-.home-sc-ico .ico-chip, .home-new-ico .ico-chip, .hs-card .ico-chip, .mh-ii .ico-chip { background: none; box-shadow: none; width: auto !important; height: auto !important; margin: 0; }
+
+/* v181: real icon sets. Duotone: one colour per icon, the soft second layer comes from the set itself */
+.ico-dc0 { color: #14b8a6; } .ico-dc1 { color: #3b82f6; } .ico-dc2 { color: #8b5cf6; } .ico-dc3 { color: #ec4899; }
+.ico-dc4 { color: #f97316; } .ico-dc5 { color: #22c55e; } .ico-dc6 { color: #ef4444; } .ico-dc7 { color: #eab308; }
+body[data-theme="light"] .ico-dc0 { color: #0f766e; } body[data-theme="light"] .ico-dc1 { color: #1d4ed8; } body[data-theme="light"] .ico-dc2 { color: #6d28d9; } body[data-theme="light"] .ico-dc3 { color: #be185d; }
+body[data-theme="light"] .ico-dc4 { color: #c2410c; } body[data-theme="light"] .ico-dc5 { color: #15803d; } body[data-theme="light"] .ico-dc6 { color: #b91c1c; } body[data-theme="light"] .ico-dc7 { color: #a16207; }
+.si.ph { flex: none; }
+body[data-icons="duo"] .nav-item:not(.active) .si.ph { opacity: .85; }
+body[data-icons="duo"] .nav-item.active .si.ph { filter: drop-shadow(0 0 5px currentColor); }
+body[data-icons="duo"] .nav-center .nav-icon .si.ph, body[data-icons="tiles"] .nav-center .nav-icon .si.ph, body[data-icons="line"] .nav-center .nav-icon .si.ph { color: #fff; }
+body[data-icons="duo"] .app-header .si.ph { color: #fff; }
+
+.is-prev .ico-tile { margin-right: 0; }
+.home-sc-ico .ico-dc, .home-new-ico .ico-dc, .hs-card .ico-dc, .mh-ii .ico-dc, .app-header .ico-dc, .nav-center .ico-dc { color: #fff; }
