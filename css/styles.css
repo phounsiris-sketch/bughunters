@@ -6286,3 +6286,9 @@ body[data-icons="glass"] .nav-item.active .ico-gl { background: rgba(var(--gc), 
 body[data-icons="neu"] .nav-center .nav-icon .ico-neu, body[data-icons="glass"] .nav-center .nav-icon .ico-gl { background: none; box-shadow: none; border: 0; width: auto !important; height: auto !important; backdrop-filter: none; }
 body[data-icons="neu"] .nav-center .nav-icon .si, body[data-icons="glass"] .nav-center .nav-icon .si { color: #fff !important; }
 .is-prev .ico-neu, .is-prev .ico-gl { margin-right: 0; }
+
+/* v189: heart rate trend on the Health overview */
+.ht-avg { fill: none; stroke: var(--accent-text, var(--accent)); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.ht-peak { fill: none; stroke: var(--danger-text, #ef4444); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 2 9; }
+.ht-avg-dot { fill: var(--accent-text, var(--accent)); stroke: var(--card); stroke-width: 3; } .ht-peak-dot { fill: var(--danger-text, #ef4444); stroke: var(--card); stroke-width: 3; }
+.ht-k { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin: 0 6px 0 10px; } .ht-k-avg { background: var(--accent-text, var(--accent)); } .ht-k-peak { background: var(--danger-text, #ef4444); }
