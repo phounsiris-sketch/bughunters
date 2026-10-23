@@ -274,6 +274,7 @@ function _renderPollCard(poll) {
       (vu.length ? '<div class="poll-voters">' + peopleHtml(vu, 22, 8) + '</div>' : '') + '</div>';
   }
   if (isVotable) {
+    if (myAnswer == null || myAnswer < 0) html += '<div class="vote-hint">' + t('voteTapHint') + '</div>';
     html += '<div class="vote-seg" role="radiogroup" aria-label="' + escapeHtml(t('chooseAnswer')) + '">';
     for (var bi = 0; bi < np.answers.length; bi++) {
       var mineB = myAnswer === bi, cnt = _pollAnswerUids(np, bi).length;

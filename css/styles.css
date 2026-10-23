@@ -4412,9 +4412,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .badge-item.earned .badge-bar i { background: #f59e0b; }
 .badge-val { font-size: 12px; color: var(--text-muted); }
 .h2h-total-who { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
-.loc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 0; }
-.loc-actions .loc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; margin: 0; padding: 0 10px; font-size: 13px; text-decoration: none; }
-.loc-actions .loc-btn:only-child { grid-column: 1 / -1; }
 .gear-row { align-items: center; }
 .sale-line { display: flex !important; align-items: center; gap: 4px; color: var(--accent) !important; font-weight: 600; margin-top: 2px; }
 .sale-line.sold { color: var(--text-muted) !important; }
@@ -5139,8 +5136,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 .qty-controls button, .remove-btn, .avatar-edit-btn, .cs-edit, .back-btn, .dp-nav, .how-btn, .person-menu-btn, .cal-nav, .bell-btn, .stepper button, .home-live-x, .image-viewer-close { position: relative; }
 .qty-controls button::after, .remove-btn::after, .avatar-edit-btn::after, .cs-edit::after, .back-btn::after, .dp-nav::after, .how-btn::after, .person-menu-btn::after, .cal-nav::after, .bell-btn::after, .stepper button::after, .home-live-x::after, .image-viewer-close::after { content: ""; position: absolute; inset: -7px; }
 .cal-nav { height: 44px; }
-.chip, .mf-chips .chip, .period-btn, #statsContent .period-btn, .cal-day, .cal-toggle, .loc-actions .loc-btn, .game-card.compact .game-actions .btn-primary, .game-card.compact .game-actions .btn-secondary { min-height: 44px; }
-
+.chip, .mf-chips .chip, .period-btn, #statsContent .period-btn, .cal-day, .cal-toggle, 
 /* type: nothing a person has to read or tap is below 11 px; the bottom bar is 12 px */
 .nav-item, .nav-item .nav-text { font-size: 12px; }
 .bottom-nav .nav-item { font-weight: 600; }
@@ -5725,3 +5721,44 @@ body[data-theme="light"] .rc-add, body[data-theme="light"] .qr-retry, body[data-
 .live-screen { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
 /* entrance animation: only the first 8 rows move, the rest just appear */
 .dash-anim .rank-row:nth-child(n+9), .dash-anim .leader-row:nth-child(n+9) { animation: none; }
+
+/* v155 first-open card */
+.onb-card { margin: 12px 16px; padding: 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border, rgba(127,127,127,.2)); }
+.onb-title { font-weight: 700; margin-bottom: 8px; }
+.onb-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 6px 4px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.onb-row i { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-style: normal; font-size: 12px; font-weight: 700; }
+.onb-row span { flex: 1; }
+.onb-hide { display: block; margin: 6px 0 0 auto; min-height: 36px; background: none; border: 0; color: var(--text-dim); font: inherit; font-size: 12px; cursor: pointer; }
+
+/* ===== v156: choices must look tappable =====
+   Rule: every choice has a visible edge (3:1 against its card) and a clear
+   resting state; the selected one is a solid fill with white text + a check. */
+:root { --control-border: #5f87b8; --choice-bg: var(--surface); }
+[data-theme="light"] { --control-border: #6b7c93; --choice-bg: #ffffff; --poll-option-bg: #ffffff; }
+.vote-seg-btn { background: var(--choice-bg); border: 2px solid var(--control-border); color: var(--text); min-height: 60px; box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+.vote-seg-btn em { color: var(--text-secondary); }
+.vote-seg-btn:hover { border-color: var(--primary); }
+.vote-seg-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: none; }
+.vote-seg-btn.on em { color: rgba(255,255,255,.92); }
+.vote-seg-btn.on.a1, .vote-seg-btn.on.a2 { background: var(--orange); border-color: var(--orange); color: #fff; }
+[data-theme="dark"] .vote-seg-btn.on.a1, [data-theme="dark"] .vote-seg-btn.on.a2, :root:not([data-theme="light"]) .vote-seg-btn.on.a1, :root:not([data-theme="light"]) .vote-seg-btn.on.a2 { color: #1a1204; }
+:root:not([data-theme="light"]) .vote-seg-btn.on.a1 em, :root:not([data-theme="light"]) .vote-seg-btn.on.a2 em { color: rgba(26,18,4,.85); }
+.vote-seg-btn.on { transform: none; }
+.chip:not(.active), .period-btn:not(.active), .seg-btn:not(.active), .level-opt:not(.active), .day-chip:not(.on) { border-color: var(--control-border); }
+.chip:not(.active), .period-btn:not(.active) { color: var(--text); }
+.chip.active, .period-btn.active, .seg-btn.active, .day-chip.on { box-shadow: none; font-weight: 700; }
+.vote-hint { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.vote-hint + .vote-seg { margin-top: 6px; }
+
+/* ===== v157: contrast sweep (found by rendering every button class in 10 themes) ===== */
+.pw-toggle, .cal-toggle, .cm-fab:not(.add), .nav-item.active, .nav-item:hover, .paid-btn, .crumb { color: var(--accent-text); }
+.nav-item.active { font-weight: 700; box-shadow: inset 0 2px 0 var(--accent-text); }
+.btn-danger, .delete-btn, .notif-clear, .pf-rm, .edit-btn.danger { color: var(--danger-text); }
+.btn-danger, .edit-btn.danger { border-color: var(--danger-text); }
+.btn-share, .btn-share:hover { color: #fff; }
+.btn-share { background: #0f7d42; }
+.btn-share:hover { background: #0c6a38; }
+.btn-secondary, .edit-btn, .dp-nav, .how-btn, .loc-ic, .person-menu-btn, .lang-toggle, .notif-chip:not(.active), .ls-pool-chip, .map-btn.btn-secondary, .cm-go.btn-secondary { border-color: var(--control-border); }
+.edit-btn.danger { border-color: var(--danger-text); }
+button:disabled, .btn-primary:disabled, .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+body[data-theme="light"] { --danger-text: #c81e1e; }

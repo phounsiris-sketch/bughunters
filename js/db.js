@@ -169,18 +169,6 @@ function dbGetSessions(callback) {
     }, function (e) { dbOnError(e, "sessions"); });
 }
 
-function dbGetSession(id) {
-  return fsdb.collection("sessions").doc(id).get()
-    .then(function (doc) {
-      if (doc.exists) {
-        var d = doc.data();
-        d.id = doc.id;
-        return d;
-      }
-      return null;
-    });
-}
-
 function dbCreateSession(data) {
   withGroup(data);
   data.createdAt = firebase.firestore.FieldValue.serverTimestamp();

@@ -183,7 +183,10 @@ function fmtShort(n) {
 
 /** "200,000" → 200000 */
 function parseMoney(str) {
-  var n = parseFloat(String(str || "").replace(/[^0-9.]/g, ""));
+  var x = String(str || "").replace(/[^0-9.]/g, "");
+  // "1.234.567" or "1.234": dots are thousands separators (kip has no decimals)
+  if ((x.match(/\./g) || []).length > 1 || /^\d{1,3}\.\d{3}$/.test(x)) x = x.replace(/\./g, "");
+  var n = parseFloat(x);
   return isNaN(n) ? 0 : n;
 }
 
@@ -423,7 +426,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v154"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v157"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {
