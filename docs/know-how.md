@@ -1343,3 +1343,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v169 — Rankings card alignment, solid app bar
 - Rankings "my card" top (`.mh-top`) is a grid: photo, name (one line, ellipsis, never breaks "MartinyBob" into two lines), share and help buttons on the right; level badge, rank and rank change on one row under the name; the rating gets its own row below with a thin divider. The three fact chips and the progress button share one even row.
 - The app bar is opaque in every special theme (it was 55-75% see-through, so scrolled cards smeared through the title and buttons, which looked like blur on iOS).
+
+## v170 — fierce dragon and lion (Chinese New Year)
+- `fxDragon` redesigned: shaded cylinder body with ochre belly plates and overlapping scales, sharp swept-back ridge spikes (dark root to gold tip), clawed legs, a flame-mane streaming from nape and chin, antlered horns with tines, a heavy angled brow over a glowing slit-pupil eye, flared nostril with smoke, upper and lower fangs, and a jaw that drops wide on a roar (`roar = max(0, sin(0.9 t))^3`) while a flickering fire plume (`_fxFire`) shoots from the mouth and the pearl is pushed ahead.
+- `fxLion` redesigned: three layers of spiked flame-mane whipping in the wind, furrowed forehead wrinkles, thick angled brows over glowing glaring eyes under half-lowered lids, a broad flared nose, a roar cycle (`pow(max(0, sin(1.1 t)), 2.2)`) that drops the jaw, shows upper and lower fangs and a tongue, and shakes the head, ragged beard and cheek fur; the cloth body has a gold scale pattern.
+- Same API as before, so the share card keeps using them as still poses.
