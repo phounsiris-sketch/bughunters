@@ -1388,3 +1388,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 ## v179 — Ninja Village (the stick ninjas are gone)
 - Removed both silhouette ninjas, the clones, clash, fireball and summoning circle (and `fxNinja`, `_fxRoofAt`). The theme is orange and night blue again, closer to Naruto's colours. Scene: dusk glow and a big setting sun with turning rays behind two mountain layers; wooden rooftops with a red torii gate and a ramen stall (striped awning, swaying noren, two bowls with rising steam); two strings of paper lanterns that flicker; a chakra sphere; a gust of leaves with wind lines plus a leaf vortex; drifting paper tags; shadow-clone smoke pops over the rooftops; shuriken and a kunai flying through. Card corner motif is a swirl. All original, generic art.
+
+## v180 — icon style fix: Home page too, picker layout
+- Cause of "the icons do not change": the style was switched on only while the **Dashboard** page rendered, but the page most people open (and call the dashboard) is **Home**. `renderHome()` is now wrapped the same way (`_iconCtx` on around `_renderHomeInner()`, always off again) and `applyChromeIcons` treats `home` and `dashboard` alike for the nav bar and the app bar. Other pages stay classic. Texts say "Home and Dashboard pages".
+- The Settings picker fits any phone: columns are `minmax(0, 1fr)`, the preview uses 16 px icons and wraps, nothing can push the page wider. Icons that already sit on their own coloured badge or card (home shortcuts, home swipe cards) do not get a second tile or chip behind them.
+- `tests/icons.test.js` covers the Home wrapper and the nav/app bar on `home`.

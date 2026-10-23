@@ -104,10 +104,10 @@ function icon(name, size, cls) {
   return iconAs(_iconCtx ? currentIconTheme : "classic", name, size, cls);
 }
 
-/** The nav bar and the app bar are drawn once at startup; on the Dashboard page they take the chosen style too, and go back to classic on any other page */
+/** The nav bar and the app bar are drawn once at startup; on the Home and Dashboard pages they take the chosen style too, and go back to classic on any other page */
 var _chromeKey = "";
 function applyChromeIcons(page) {
-  var on = page === "dashboard" && currentIconTheme !== "classic", key = on ? currentIconTheme : "";
+  var on = (page === "dashboard" || page === "home") && currentIconTheme !== "classic", key = on ? currentIconTheme : "";
   if (key === _chromeKey) return;
   _chromeKey = key;
   try { document.body.setAttribute("data-icons", key); } catch (e) {}
