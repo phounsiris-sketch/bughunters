@@ -1534,3 +1534,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 - A confirmed poll now has "Remove session, reopen poll" in its Manage block: asks, moves the session to Recently deleted (30 days, Undo) and sets the poll back to `draft` with `sessionId` cleared and `noAuto: true`. `noAuto` stops `_autoConfirmPolls` from confirming it again at once (the deadline has usually passed); confirm by hand when ready.
 - Deleting the session from its own page does the same for the poll it came from (no dangling "Open session" link). Games already saved in that session stay in the games list. Restoring the session from Recently deleted does not re-link the poll.
+
+
+## v206 - a confirmed poll and its session are removed together
+
+- Changed v205 (reopen) on request: deleting the session of a confirmed poll now removes that poll too (both to Recently deleted, 30 days; two Undo entries). The confirmed poll's Manage block button became "Delete session and poll" (`deleteSessionAndPoll`). Deleting only a poll still leaves its session alone. `noAuto` stays in `_autoConfirmPolls` for polls reopened by v205.
