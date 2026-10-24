@@ -1539,3 +1539,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v206 - a confirmed poll and its session are removed together
 
 - Changed v205 (reopen) on request: deleting the session of a confirmed poll now removes that poll too (both to Recently deleted, 30 days; two Undo entries). The confirmed poll's Manage block button became "Delete session and poll" (`deleteSessionAndPoll`). Deleting only a poll still leaves its session alone. `noAuto` stays in `_autoConfirmPolls` for polls reopened by v205.
+
+
+## v207 - edit / delete inside the poll card
+
+- Poll cards show Edit (pen) and Delete (bin) as two small round buttons on the "created by" row, for anyone who may manage the poll and in every state. The folded "Manage" block under the card now holds only the rarer actions (add votes for others, cancel poll, delete session and poll) and is not drawn when a poll has none (cancelled).

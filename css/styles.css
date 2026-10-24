@@ -6433,3 +6433,12 @@ body[data-theme="light"] .danger-title { color: #b91c1c !important; }
 .ls-half .ls-chip > span:last-child { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.15; font-size: 15px; text-align: left; }
 .ls-half .ls-head { width: 100%; }
 .ls-half .ls-chips { max-width: 74%; width: 100%; }
+
+/* v207: edit / delete as small round buttons inside the poll card, next to "created by" */
+.poll-by { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.poll-by-who { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.poll-quick { display: inline-flex; gap: 8px; flex: none; }
+.poll-q { width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--control-border, var(--border)); background: var(--chip-bg, var(--surface)); color: var(--text-secondary); cursor: pointer; padding: 0; }
+.poll-q.danger { color: #f87171; border-color: rgba(248, 113, 113, .5); }
+body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
+.poll-q .si { color: inherit; }
