@@ -99,6 +99,7 @@
   var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles"];
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
+    if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
     var T = themes(); if (CONFIG.themes) T = T.filter(function (x) { return CONFIG.themes.indexOf(x.n) >= 0; }); var ti = 0, ii = 0, pi = 0;
     function step() {
       var t0 = Date.now();

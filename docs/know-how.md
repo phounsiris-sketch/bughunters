@@ -1515,3 +1515,27 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v202 - share-card panels 90% transparent
 
 - `_scPalette()` rewrites each theme's panel colour to alpha `SC_CARD_ALPHA` = 0.10 (90% see-through) for every share card (profile, workout, week, overview); the theme art shows through the panels, edges and text stay. Change the one constant to tune it.
+
+
+## v203 - admins can edit and delete a poll in any state
+
+- Bug: the poll "Manage" block (add votes, edit, cancel) only rendered for open polls and there was no delete at all, so an admin saw nothing on a completed (confirmed) or cancelled poll. Now it renders for anyone who may manage the poll (admin, owner, `createPoll` right, creator): edit for every state, cancel for open ones, and a new Delete (confirm sheet, goes to Recently deleted for 30 days with Undo). A session created from the poll is not touched. Rules already allowed it (`polls` delete: `canIn('createPoll')`), so nothing to republish. Test: tests/poll-manage.test.js.
+
+
+## v204 - confirm before a poll becomes a session, more "are you sure", full names in live score
+
+- Why a new poll could not be edited: with enough players the deadline auto-confirms it into a session (`confirmPoll(id, true)`), and the Manage block used to exist only for open polls (v203 fixed that for every state). The Manage block is now open by default and Edit also covers minimum players and the note.
+- The "Confirm plan" button asks first (`askConfirmPoll`: players, date, court). Only the deadline auto-confirm calls `confirmPoll` directly.
+- Audit of one-tap actions (script: every `onclick` function that writes and has no `askYes`/`askConfirm`): now asking first: approve member, cancel my join request, remove group logo, remove my photo, withdraw an invite, take a gear item off sale. Live score: changing teams, game type or session while a score is counted asks first (`_lsGuard`). Left as is on purpose: answering an invite / dinner (changeable), saving a finished game (the "over" screen), undo.
+- Live score on a phone: player names wrap and show in full (`.ls-half .ls-chip`), the chip column is 74% wide instead of shrinking to the icon width; before it cut "Kone Vong...".
+
+
+## v205 - take back a confirmed poll (remove its session)
+
+- A confirmed poll now has "Remove session, reopen poll" in its Manage block: asks, moves the session to Recently deleted (30 days, Undo) and sets the poll back to `draft` with `sessionId` cleared and `noAuto: true`. `noAuto` stops `_autoConfirmPolls` from confirming it again at once (the deadline has usually passed); confirm by hand when ready.
+- Deleting the session from its own page does the same for the poll it came from (no dangling "Open session" link). Games already saved in that session stay in the games list. Restoring the session from Recently deleted does not re-link the poll.
+
+
+## v206 - a confirmed poll and its session are removed together
+
+- Changed v205 (reopen) on request: deleting the session of a confirmed poll now removes that poll too (both to Recently deleted, 30 days; two Undo entries). The confirmed poll's Manage block button became "Delete session and poll" (`deleteSessionAndPoll`). Deleting only a poll still leaves its session alone. `noAuto` stays in `_autoConfirmPolls` for polls reopened by v205.

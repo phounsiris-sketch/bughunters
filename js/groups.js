@@ -567,6 +567,9 @@ function joinGroup(gid, code, opts) {
 }
 
 function cancelJoinRequest(gid) {
+  askYes(t("confirmCancelRequest"), function () { _cancelJoinRequestNow(gid); }, { danger: true, yes: t("confirm") });
+}
+function _cancelJoinRequestNow(gid) {
   fsdb.collection("members").doc(gid + "_" + currentUser.uid).delete().then(function () {
     delete myMemberships[gid];
     refreshCurrentPage("group");
@@ -742,6 +745,9 @@ function groupLogoChosen(input) {
 }
 
 function removeGroupLogo() {
+  askYes(t("confirmRemovePhoto"), _removeGroupLogoNow, { danger: true, yes: t("confirm") });
+}
+function _removeGroupLogoNow() {
   fsdb.collection("groups").doc(currentGroupId).update({ logo: null }).then(function () { showToast(t("removePhoto") + " \u2714"); })
     .catch(function (e) { showToast(_permError(e)); });
 }
@@ -802,6 +808,10 @@ function memberBadges(m) {
 }
 
 function approveMember(mid) {
+  var m = groupMembers.filter(function (x) { return x.id === mid; })[0], nm = m ? getUserName(m.uid) : "";
+  askYes(t("confirmApproveMember").replace("{name}", nm), function () { _approveMemberNow(mid); }, { yes: t("approve") });
+}
+function _approveMemberNow(mid) {
   fsdb.collection("members").doc(mid).update({ status: "active", approvedAt: Date.now(), approvedBy: currentUser.uid }).then(function () { showToast(t("approve") + " ✔"); })
     .catch(function (e) { showToast(_permError(e)); });
 }

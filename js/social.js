@@ -344,6 +344,9 @@ function answerInvite(id, status) {
 }
 
 function withdrawInvite(id) {
+  askYes(t("confirmWithdrawInvite"), function () { _withdrawInviteNow(id); }, { danger: true, yes: t("confirm") });
+}
+function _withdrawInviteNow(id) {
   fsdb.collection("invites").doc(id).delete().catch(function (e) { showToast(_permError(e)); });
 }
 

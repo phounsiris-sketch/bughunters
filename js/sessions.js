@@ -1750,6 +1750,9 @@ function deleteSessionById(sessionId) {
     // To the trash (30 days) with Undo
     trashDoc("session", "sessions", sessionId, trashLabelSession(s))
       .then(function () {
+        // a confirmed poll and its session go together: the poll this session came from is removed too (deleting only a poll is fine and leaves the session)
+        var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
+        if (pl && pl.status === "confirmed" && pl.sessionId === sessionId) trashDoc("poll", "polls", pl.id, trashLabelSession(s)).catch(function () {});
         currentSessionId = null;
         showPage("sessions", false);
       })

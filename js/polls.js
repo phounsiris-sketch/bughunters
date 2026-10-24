@@ -46,7 +46,7 @@ function _autoConfirmPolls() {
   if (!currentUser || typeof canManagePoll !== "function") return;
   var now = Date.now();
   lastPolls.forEach(function (p) {
-    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers) return;
+    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers || p.noAuto) return;   // noAuto: kept for polls reopened by an earlier version
     if (now < pollClosesAt(p) || !canManagePoll(p)) return;
     var np = normalizePoll(p);
     if (np.date && np.date < _todayIso()) return;
@@ -288,7 +288,7 @@ function _renderPollCard(poll) {
   }
 
   if (isOpen && isCreator && enough) {
-    html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + jsq(poll.id) + '\')">' + icon("check", 16) + ' ' +
+    html += '<button class="btn-primary" style="margin-top:10px" onclick="askConfirmPoll(\'' + jsq(poll.id) + '\')">' + icon("check", 16) + ' ' +
       t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
   } else if (isOpen && isCreator) {
     html += '<div style="font-size:13px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
@@ -298,11 +298,14 @@ function _renderPollCard(poll) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + jsq(poll.sessionId) + '\')">' + t('openSession') + ' →</button>';
   }
 
-  if (isOpen && isCreator) {
-    html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
-      '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' +
-      (poll.answers ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
-      '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button></div></details>';
+  // Whoever runs polls (admins included) can edit and delete a poll in any state: open, confirmed (completed) or cancelled
+  if (isCreator) {
+    html += '<details class="poll-manage" open><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
+      (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
+      (poll.answers || !isOpen ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
+      (poll.status === 'confirmed' ? '<button class="edit-btn danger" onclick="deleteSessionAndPoll(\'' + jsq(poll.id) + '\')">' + icon("history", 14) + ' ' + t('unconfirmPoll') + '</button>' : '') +
+      (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '') +
+      '<button class="edit-btn danger" onclick="deletePoll(\'' + jsq(poll.id) + '\')">' + icon("trash", 14) + ' ' + t('deletePoll') + '</button></div></details>';
   }
 
   html += '</div>';
@@ -458,6 +461,14 @@ function _proxyPick(btn, idx) {
 }
 
 /* ---------- Confirm poll (creator only, needs >= minPlayers joining) ---------- */
+/** A tap on "Confirm plan" asks first (it creates a real session and tells the players); the deadline auto-confirm calls confirmPoll directly */
+function askConfirmPoll(pollId) {
+  var poll = _findPoll(pollId); if (!poll) return;
+  var np = normalizePoll(poll), n = _pollAnswerUids(np, 0).length;
+  var when = fmtDate(np.date) + (np.time ? " " + np.time : "") + (np.courtName ? " \u00b7 " + np.courtName : "");
+  askConfirm({ title: t("confirmPlanAsk").replace("{n}", n).replace("{when}", when), kind: "ask", yes: t("confirmPlan") }, function () { confirmPoll(pollId); });
+}
+
 function confirmPoll(pollId, auto) {
   if (!currentUser) return;
   var pollRef = fsdb.collection("polls").doc(pollId);
@@ -526,7 +537,9 @@ function showEditPoll(pollId) {
     '<div class="form-row">' +
       '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" id="mPolCourt" data-cs-type="court">' + opts + '</select></div>' +
       '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" id="mPolDur" min="0.5" step="0.5" value="' + (np.duration || 2) + '"></div>' +
-    '</div>';
+    '</div>' +
+    '<div class="form-row"><div class="form-group" style="flex:1"><label class="form-label">' + t("minPlayersLabel") + '</label><input type="number" class="form-input" id="mPolMin" min="2" max="40" step="1" value="' + (poll.minPlayers || minPlayersSetting()) + '"></div></div>' +
+    '<div class="form-group"><label class="form-label">' + t("note") + '</label><textarea class="form-input" id="mPolNote" rows="2">' + escapeHtml(poll.note || '') + '</textarea></div>';
   modalCallback = function () {
     var court = dbFindById(DB_CACHE.courts, document.getElementById("mPolCourt").value);
     var duration = parseFloat(document.getElementById("mPolDur").value) || 0;
@@ -536,6 +549,8 @@ function showEditPoll(pollId) {
     delete _autoTried[pollId];
     dbUpdatePoll(pollId, {
       date: date, time: time, duration: duration, courtId: court.id, courtName: court.name,
+      minPlayers: Math.max(2, parseInt(document.getElementById("mPolMin").value, 10) || minPlayersSetting()),
+      note: (document.getElementById("mPolNote").value || "").trim() || null,
       closesAt: defaultCloseAt(date, time, Date.now())
     }).then(function () { closeModal(); showToast(t("save") + " ✔"); })
       .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); });
@@ -544,6 +559,30 @@ function showEditPoll(pollId) {
 }
 
 /* ---------- Cancel poll ---------- */
+/** Delete a poll in any state: it goes to Recently deleted for 30 days with Undo. A session made from it stays. */
+function deletePoll(pollId) {
+  var poll = _findPoll(pollId);
+  if (!poll || !canManagePoll(poll)) { showToast(t("noPermission")); return; }
+  var label = (poll.title ? poll.title + " \u00b7 " : "") + fmtDate(poll.date) + (poll.time ? " " + poll.time : "");
+  askConfirm({ title: t("deletePollConfirm").replace("{name}", label), kind: "danger", yes: t("delete") }, function () {
+    trashDoc("poll", "polls", pollId, label).catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
+  });
+}
+
+/** A confirmed poll and the session made from it go together: both move to Recently deleted (30 days, Undo). Deleting only the poll (Delete poll) leaves the session alone. */
+function deleteSessionAndPoll(pollId) {
+  var poll = _findPoll(pollId);
+  if (!poll || !canManagePoll(poll)) { showToast(t("noPermission")); return; }
+  var sid = poll.sessionId, ses = null;
+  lastSessions.forEach(function (x) { if (x.id === sid) ses = x; });
+  var label = ses && typeof trashLabelSession === "function" ? trashLabelSession(ses) : fmtDate(poll.date);
+  askConfirm({ title: t("unconfirmPollAsk").replace("{name}", label), kind: "danger", yes: t("unconfirmPollYes") }, function () {
+    var pollGo = function () { return trashDoc("poll", "polls", pollId, label); };
+    var go = sid && ses ? trashDoc("session", "sessions", sid, label).then(pollGo) : pollGo();
+    go.catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
+  });
+}
+
 function cancelPoll(pollId) {
   askYes(t("cancelPoll") + "?", function () {
     dbUpdatePoll(pollId, { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: currentUser.uid })

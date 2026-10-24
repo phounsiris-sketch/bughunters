@@ -434,13 +434,16 @@ function lsFullscreen() {
 }
 function lsMenu(on) { liveMode = on === false ? "count" : "menu"; lsRender(); }
 function lsOpenSettings() { liveMode = "settings"; lsRender(); }
-function lsEditTeams() { live.a = []; live.b = []; lsSave(); liveMode = "setup"; lsRender(); }
+/** Anything that would throw away a score already counted asks first */
+function _lsHasScore() { return !!(live && (live.sa > 0 || live.sb > 0 || (live.gl && live.gl.length) || (live.sw && (live.sw.A || live.sw.B)))); }
+function _lsGuard(fn) { if (_lsHasScore()) askYes(t("lsLoseScoreConfirm"), fn, { danger: true, yes: t("confirm") }); else fn(); }
+function lsEditTeams() { _lsGuard(function () { live.a = []; live.b = []; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.gl = []; live.sw = { A: 0, B: 0 }; lsSave(); liveMode = "setup"; lsRender(); }); }
 function lsSetTheme(i) { try { localStorage.setItem(LS_THEME_KEY, String(i)); } catch (e) {} lsRender(); }
 function lsPickSession(id) {
   if (id === live.sid) return;
-  live = _lsBlank(id, live.type); lsSave(); liveMode = "setup"; lsRender();
+  _lsGuard(function () { live = _lsBlank(id, live.type); lsSave(); liveMode = "setup"; lsRender(); });
 }
-function lsType(x) { live.type = x; live.a = []; live.b = []; lsSave(); lsRender(); }
+function lsType(x) { if (live.type === x) return; _lsGuard(function () { live.type = x; live.a = []; live.b = []; lsSave(); lsRender(); }); }
 function lsAdd(uid) {
   var size = live.type === "singles" ? 1 : 2;
   if (live.a.length < size) live.a.push(uid); else if (live.b.length < size) live.b.push(uid);

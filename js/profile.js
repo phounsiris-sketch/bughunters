@@ -312,7 +312,7 @@ function markGearSold(id) {
   }, { danger: true, yes: t("confirm") });
 }
 /** Take it off sale without selling */
-function removeFromSale(id) { _updateSale(id, { forSale: false }, t("removeSale")); }
+function removeFromSale(id) { askYes(t("confirmRemoveSale"), function () { _updateSale(id, { forSale: false }, t("removeSale")); }, { danger: true, yes: t("confirm") }); }
 
 function _updateSale(id, upd, label) {
   fsdb.collection("gear").doc(id).update(upd).then(function () {
