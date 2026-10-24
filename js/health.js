@@ -38,17 +38,18 @@ function healthMatchMargin(m) {
 function healthSegments(uid, matches, session) {
   var mine = matches.filter(function (m) { return m.minutes > 0 && ((m.teamA || []).indexOf(uid) >= 0 || (m.teamB || []).indexOf(uid) >= 0); })
     .sort(function (a, b) { return (a.startAt || a.createdAt || 0) - (b.startAt || b.createdAt || 0); });
-  if (!mine.length) return { segs: [], onCourt: 0, totalMin: 0 };
+  if (!mine.length) return { segs: [], onCourt: 0, totalMin: 0, playMin: 0 };
   var sumMin = mine.reduce(function (s, m) { return s + m.minutes; }, 0);
-  var booked = session && session.duration > 0 ? Math.round(session.duration * 60) : 0;
+  // The booked hours of the session are NOT used: the live score is the truth (first game start to last game end)
   var real = mine.every(function (m) { return m.startAt && m.endAt; });
-  var segs = [], t0, totalMin;
+  var segs = [], t0, totalMin, playMin;
   if (real) {
     t0 = mine[0].startAt - HEALTH_WARMUP_MIN * 60000;
-    totalMin = Math.max(booked, Math.round((mine[mine.length - 1].endAt - t0) / 60000) + 3);
+    totalMin = Math.round((mine[mine.length - 1].endAt - t0) / 60000) + 3;
+    playMin = Math.max(sumMin, Math.round((mine[mine.length - 1].endAt - mine[0].startAt) / 60000));   // exact: first point to last game saved
     mine.forEach(function (m, i) { segs.push({ s: (m.startAt - t0) / 60000, e: (m.endAt - t0) / 60000, len: m.minutes, m: m }); });
   } else {
-    totalMin = Math.max(booked, HEALTH_WARMUP_MIN + sumMin + 3);
+    totalMin = HEALTH_WARMUP_MIN + sumMin + 3; playMin = sumMin;   // no timestamps saved: the games back to back
     var gap = mine.length > 1 ? (totalMin - HEALTH_WARMUP_MIN - sumMin - 3) / (mine.length - 1) : 0, t = HEALTH_WARMUP_MIN;
     mine.forEach(function (m) { segs.push({ s: t, e: t + m.minutes, len: m.minutes, m: m }); t += m.minutes + Math.max(0, gap); });
   }
@@ -58,7 +59,7 @@ function healthSegments(uid, matches, session) {
     var a = gs.reduce(function (s, x) { return s + (x.a || 0); }, 0), b = gs.reduce(function (s, x) { return s + (x.b || 0); }, 0);
     g.mine = onA ? a : b; g.their = onA ? b : a; g.won = g.mine > g.their;
   });
-  return { segs: segs, onCourt: sumMin, totalMin: totalMin };
+  return { segs: segs, onCourt: sumMin, totalMin: totalMin, playMin: playMin };
 }
 
 /** Calories (estimate): MET x kg x hours for play, warm-up and the rest of the session; "active" removes the 1 MET the body burns anyway */
@@ -92,7 +93,7 @@ function healthSeries(rest, max, segs, totalMin) {
 function healthForSession(h, age, uid, matches, session) {
   var sg = healthSegments(uid, matches, session);
   if (!sg.segs.length) return null;
-  var out = { segs: sg.segs, onCourt: sg.onCourt, totalMin: sg.totalMin, close: sg.segs.filter(function (g) { return g.close; }).length };
+  var out = { segs: sg.segs, onCourt: sg.onCourt, totalMin: sg.totalMin, playMin: sg.playMin, close: sg.segs.filter(function (g) { return g.close; }).length };
   out.kcal = h && h.weightKg > 0 ? healthKcal(h.weightKg, sg.onCourt, sg.totalMin) : null;
   var max = healthMaxHr(h, age), zones = healthZones(h, age);
   out.max = max; out.zones = zones;
@@ -143,7 +144,7 @@ function healthWorkouts(h, age, uid, matches, sessions) {
     if (!d) return;
     var first = d.segs[0].m, date = (ses && ses.date) || first.date || "";
     var time = ses && ses.time ? ses.time : (first.startAt ? (function (t0) { return ("0" + t0.getHours()).slice(-2) + ":" + ("0" + t0.getMinutes()).slice(-2); })(new Date(first.startAt - HEALTH_WARMUP_MIN * 60000)) : "");
-    out.push({ sid: sid, date: date, time: time, totalMin: d.totalMin, onCourt: d.onCourt, games: d.segs.length, kcal: d.kcal ? d.kcal.active : null, avg: d.avg || null, peak: d.peak || null, zoneMin: d.zoneMin || null, d: d });
+    out.push({ sid: sid, date: date, time: time, totalMin: d.playMin, timeMin: d.totalMin, onCourt: d.onCourt, games: d.segs.length, kcal: d.kcal ? d.kcal.active : null, avg: d.avg || null, peak: d.peak || null, zoneMin: d.zoneMin || null, d: d });
   });
   return out.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)) || String(b.time).localeCompare(String(a.time)); });
 }
