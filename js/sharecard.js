@@ -35,8 +35,10 @@ function shareCardData(uid, scope) {
   };
 }
 
+var SC_CARD_ALPHA = 0.1;   // card panels: 90% transparent
 function _scPalette(id) {
-  var P = SC_THEMES[id] || { name: "scDefault", bg: ["#052e22", "#0b4f36", "#15803d"], card: "rgba(4,36,26,.82)", edge: "#86efac", text: "#ffffff", dim: "#d1fae5", accent: "#fde047", pill: "#15803d" };
+  var P = Object.assign({}, SC_THEMES[id] || { name: "scDefault", bg: ["#052e22", "#0b4f36", "#15803d"], card: "rgba(4,36,26,.82)", edge: "#86efac", text: "#ffffff", dim: "#d1fae5", accent: "#fde047", pill: "#15803d" });
+  P.card = P.card.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, "rgba($1,$2,$3," + SC_CARD_ALPHA + ")");   // panels are 90% see-through (alpha .10)
   P.line = id === "default" || !SC_THEMES[id] ? "rgba(255,255,255,.34)" : "rgba(255,255,255,.2)";
   return P;
 }

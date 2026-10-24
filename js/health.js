@@ -35,7 +35,7 @@ function healthMatchMargin(m) {
 }
 
 /** The matches of one session that this player took part in AND that have live-score minutes, oldest first, placed on a minute timeline.
-    Real start/end times are used when the live score saved them, else the games follow each other with the rest spread evenly. */
+    Game length = the live-score minutes; rest between games = the real gap when clock times show one, at least HEALTH_REST_GAP_MIN. */
 function healthSegments(uid, matches, session) {
   var mine = matches.filter(function (m) { return m.minutes > 0 && ((m.teamA || []).indexOf(uid) >= 0 || (m.teamB || []).indexOf(uid) >= 0); })
     .sort(function (a, b) { return (a.startAt || a.createdAt || 0) - (b.startAt || b.createdAt || 0); });
@@ -43,18 +43,14 @@ function healthSegments(uid, matches, session) {
   var sumMin = mine.reduce(function (s, m) { return s + m.minutes; }, 0);
   // The booked hours of the session are NOT used: the live score is the truth (first game start to last game end)
   var real = mine.every(function (m) { return m.startAt && m.endAt; });
-  var segs = [], t0, totalMin, playMin;
-  if (real) {
-    t0 = mine[0].startAt - HEALTH_WARMUP_MIN * 60000;
-    totalMin = Math.round((mine[mine.length - 1].endAt - t0) / 60000) + 3;
-    playMin = Math.max(sumMin, Math.round((mine[mine.length - 1].endAt - mine[0].startAt) / 60000));   // exact: first point to last game saved
-    mine.forEach(function (m, i) { segs.push({ s: (m.startAt - t0) / 60000, e: (m.endAt - t0) / 60000, len: m.minutes, m: m }); });
-  } else {
-    // no clock times saved: exact minutes of each game + an estimated rest between them
-    var gap = HEALTH_REST_GAP_MIN, t = HEALTH_WARMUP_MIN;
-    playMin = sumMin + (mine.length - 1) * gap; totalMin = HEALTH_WARMUP_MIN + playMin + 3;
-    mine.forEach(function (m) { segs.push({ s: t, e: t + m.minutes, len: m.minutes, m: m }); t += m.minutes + Math.max(0, gap); });
-  }
+  // Each game keeps its exact live-score minutes. Between two of my games the rest is the real gap when the clock times show one,
+  // and never less than HEALTH_REST_GAP_MIN (games logged back to back still had a breather; without clock times: the estimate)
+  var segs = [], t = HEALTH_WARMUP_MIN;
+  mine.forEach(function (m, i) {
+    if (i) { var prev = mine[i - 1], real = m.startAt && prev.endAt ? (m.startAt - prev.endAt) / 60000 : 0; t += Math.max(HEALTH_REST_GAP_MIN, real); }
+    segs.push({ s: t, e: t + m.minutes, len: m.minutes, m: m }); t += m.minutes;
+  });
+  var playMin = Math.round(segs[segs.length - 1].e - segs[0].s), totalMin = Math.round(segs[segs.length - 1].e) + 3;   // playMin: exact game minutes + rest
   segs.forEach(function (g) {
     var mm = g.m, onA = (mm.teamA || []).indexOf(uid) >= 0, gs = mm.games || [];
     g.margin = healthMatchMargin(mm); g.close = g.margin != null && g.margin <= 2;
