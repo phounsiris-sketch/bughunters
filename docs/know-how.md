@@ -1491,3 +1491,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v198 - round icon holders show a plain glyph
 
 - Achievement badges (and about 25 other round holders: floating buttons, chips, tags, remove / share buttons) showed the square icon plate half outside their circle. One block at the end of styles.css lists every round holder found by scanning `icon(` calls against `border-radius: 50%` rules and strips the plate there (glyph takes the holder's text colour). A new round holder needs its class added to that list; tools/uimatrix/driver.js reports `plate-in-circle` when one slips through.
+
+
+## v199 - theme x icon-style x page matrix, and what it found
+
+- New manual tool `tools/uimatrix` (see its README): 1,870 renders (every palette, light palette and special theme x 5 icon styles x 17 pages, phone width 390) with 200,000 elements checked. First clean run had about 3,000 findings, mostly test noise (previews and folded content, a window wider than 390). Real ones fixed here: icon plates inside `.view-btn`, `.hs-card`, `.home-sc-ico`, `.mh-ii`, `.app-header` in the light themes (a light-theme neumorphic rule out-ranked the neutralising rule), `.perm-badge.super` and `.danger-title` text under 3:1 in light themes. Last run: 0 layout problems; only the big empty-state icon on Groups (intentional).
+- Blind spots: sheets, modals, share cards, real data, real devices.

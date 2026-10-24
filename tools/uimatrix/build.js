@@ -12,4 +12,5 @@ var stub = fs.readFileSync(path.join(__dirname, "stub.js"), "utf8"), driver = fs
 html = html.replace(/<script defer src="[^"]*js\/app\.js"><\/script>/, function (m) { return m + "\n<script defer src=\"file://" + path.join(__dirname, "driver.js") + "\"></script>"; });
 html = html.replace("</head>", "<script>" + stub + "</script></head>");
 fs.writeFileSync(path.join(outDir, "harness.html"), html);
+fs.writeFileSync(path.join(outDir, "wrapper.html"), '<!doctype html><meta charset=utf-8><body style="margin:0"><iframe id=f style="width:' + (process.env.UIM_W || 390) + 'px;height:' + (process.env.UIM_H || 844) + 'px;border:0"></iframe><script>var h=location.hash;document.getElementById("f").src="harness.html"+h;addEventListener("message",function(e){if(e.data&&e.data.uimRes){var p=document.createElement("pre");p.id="res";p.textContent=e.data.uimRes;document.body.appendChild(p);document.title="DONE"}})</script>');
 console.log("harness written", path.join(outDir, "harness.html"));

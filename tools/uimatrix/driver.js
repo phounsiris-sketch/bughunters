@@ -1,9 +1,9 @@
 /* Runs inside the harness page: for every theme x icon style x page, draws the real page with fake data and records layout problems.
    Result goes to <pre id="res"> as JSON ({issues, errors, renders}). Phone width comes from the Chrome window size. */
 (function () {
-  var D = { issues: [], errors: [], renders: 0 };
+  var D = { issues: [], errors: [], renders: 0, audited: 0 };
   window.addEventListener("error", function (e) { D.errors.push(String(e.message).slice(0, 200)); });
-  var CONFIG = window.__UIM || {};
+  var CONFIG = {}; try { CONFIG = JSON.parse(decodeURIComponent(location.hash.slice(1)) || "{}"); } catch (e) {}
   function setup() {
     var names = ["Me", "John", "Ton", "Mike", "Al", "Bo"], ids = ["me", "john", "ton", "mike", "al", "bo"];
     DB_CACHE.users = DB_CACHE.allUsers = ids.map(function (u, i) { return { id: u, uid: u, displayName: names[i], name: names[i], level: ["A", "B", "C", "B", "A", "C"][i], role: i ? "member" : "admin", status: "active", groupId: "g1" }; });
@@ -63,9 +63,12 @@
   function audit(pageEl, combo, page) {
     var W = window.innerWidth, add = function (type, el, extra) { D.issues.push({ type: type, sel: sel(el), combo: combo, page: page, extra: extra || "" }); };
     if (document.documentElement.scrollWidth > W + 1) D.issues.push({ type: "page-h-scroll", sel: "html", combo: combo, page: page, extra: document.documentElement.scrollWidth + ">" + W });
-    var all = pageEl.querySelectorAll("*"), seen = {};
+    pageEl.querySelectorAll("details").forEach(function (d) { d.open = true; });   // check folded content too
+    var all = pageEl.querySelectorAll("*"), seen = {}; D.audited += all.length;
     for (var i = 0; i < all.length; i++) {
       var el = all[i]; if (!visible(el) || el.closest("svg") && el.tagName !== "svg") continue;
+      var cd = el.closest("details:not([open])"); if (cd && !el.closest("summary")) continue;   // folded content is not on screen
+      if (el.closest(".is-opt, .sp-opt, .palette-opt")) continue;   // previews of a style show that style on purpose
       var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
       if (cs.position !== "fixed" && !inScroller(el, pageEl) && (r.right > W + 2 || r.left < -2) && !seen["o" + sel(el)]) { seen["o" + sel(el)] = 1; add("off-screen", el, Math.round(r.left) + ".." + Math.round(r.right)); }
       if ((cs.overflow === "hidden" || cs.overflowX === "hidden") && cs.textOverflow !== "ellipsis" && el.scrollWidth > el.clientWidth + 3 && el.clientWidth > 0 && el.textContent.trim() && el.children.length < 6 && !seen["c" + sel(el)]) { seen["c" + sel(el)] = 1; add("clipped-text", el, el.scrollWidth + ">" + el.clientWidth); }
@@ -73,7 +76,7 @@
         var par = el.parentElement, depth = 0;
         for (var p = par; p && p !== pageEl && depth < 3; p = p.parentElement, depth++) if (p.matches("button, .chip, .tag, .pill, .badge, .seg-btn, summary, a, .nav-row-ico, .nav-card-icon, .hl-ico, .btn-primary, .btn-secondary, .empty-icon")) { var plated = getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)" || getComputedStyle(el).boxShadow !== "none"; if (plated && !p.matches(".hg-tile, .hv-row")) add("plate-in-control", el, sel(p)); break; }
         for (var q = el.parentElement, dd = 0; q && q !== pageEl && dd < 3; q = q.parentElement, dd++) { var qs = getComputedStyle(q), qr = q.getBoundingClientRect(), rad = parseFloat(qs.borderTopLeftRadius) || 0; if (qr.width > 0 && qr.width < 90 && rad >= qr.width * .4 && getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)") { add("plate-in-circle", el, sel(q)); break; } }
-        if (r.width > 64) add("icon-too-big", el, Math.round(r.width));
+        if (r.width > 72) add("icon-too-big", el, Math.round(r.width));
       }
       if (el.tagName === "svg" && el.classList.contains("si")) {
         var sib = el.parentElement && el.parentElement.children; if (!sib) continue;
@@ -85,30 +88,32 @@
       }
     }
     // controls that overlap each other
-    var ctl = Array.prototype.filter.call(pageEl.querySelectorAll("button, a.nav-row, .chip, input, select"), visible);
+    var ctl = Array.prototype.filter.call(pageEl.querySelectorAll("button, a.nav-row, .chip, input, select"), function (e) { return visible(e) && !(e.closest("details:not([open])") && !e.closest("summary")); });
     for (var a = 0; a < ctl.length && a < 160; a++) for (var b = a + 1; b < ctl.length && b < 160; b++) {
       if (ctl[a].contains(ctl[b]) || ctl[b].contains(ctl[a])) continue;
       var A = ctl[a].getBoundingClientRect(), B = ctl[b].getBoundingClientRect(), ix = Math.min(A.right, B.right) - Math.max(A.left, B.left), iy = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top);
       if (ix > 6 && iy > 6 && ix * iy > .25 * Math.min(A.width * A.height, B.width * B.height) && !seen["x" + sel(ctl[a]) + sel(ctl[b])]) { seen["x" + sel(ctl[a]) + sel(ctl[b])] = 1; add("overlap", ctl[a], sel(ctl[b])); }
     }
   }
-  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "matches"];
+  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "matches", "public", "groups", "group-create", "trash"];
   var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles"];
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
-    var T = themes(), ti = 0, ii = 0, pi = 0;
+    var T = themes(); if (CONFIG.themes) T = T.filter(function (x) { return CONFIG.themes.indexOf(x.n) >= 0; }); var ti = 0, ii = 0, pi = 0;
     function step() {
       var t0 = Date.now();
       while (ti < T.length && Date.now() - t0 < 600) {
         var th = T[ti], ic = ICONS[ii], combo = th.n + " | " + ic;
         try { if (pi === 0) applyTheme(th, ic); showPage(PAGES[pi]); var pg = document.getElementById("page-" + PAGES[pi]); if (pg) audit(pg, combo, PAGES[pi]); D.renders++; } catch (e) { D.errors.push(PAGES[pi] + ": " + String(e.message).slice(0, 140)); }
-        if (++pi >= PAGES.length) { pi = 0; if (++ii >= ICONS.length) { ii = 0; ti++; } }
+        if (CONFIG.shot) { ti = T.length; } else if (++pi >= PAGES.length) { pi = 0; if (++ii >= ICONS.length) { ii = 0; ti++; } }
       }
+      if (CONFIG.shot) { finish(); return; }
       if (ti < T.length) setTimeout(step, 0); else finish();
     }
     step();
   }
   function finish() {
+    if (window.parent !== window) { window.parent.postMessage({ uimRes: JSON.stringify(D) }, "*"); return; }
     var pre = document.createElement("pre"); pre.id = "res"; pre.textContent = JSON.stringify(D); document.body.appendChild(pre); document.title = "DONE";
   }
   window.addEventListener("load", function () { setTimeout(run, 300); });

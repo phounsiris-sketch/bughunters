@@ -4,12 +4,12 @@
   var P;
   var h = {
     get: function (_, k) {
-      if (k === "then" || k === Symbol.toPrimitive) return undefined;
+      if (k === "then" || typeof k === "symbol") return undefined;
       if (k === "get") return function () { return Promise.resolve(empty()); };
       if (k === "onSnapshot") return function (a, b) { var cb = typeof a === "function" ? a : b; try { cb(empty()); } catch (e) {} return function () {}; };
       if (k === "onAuthStateChanged" || k === "onIdTokenChanged") return function () { return function () {}; };
       if (k === "currentUser") return null;
-      if (k === "isSupported") return function () { return false; };
+      if (/^is[A-Z]/.test(k)) return function () { return false; };
       if (k === "commit" || k === "set" || k === "update" || k === "delete" || k === "add") return function () { return Promise.resolve(); };
       return P;
     },
