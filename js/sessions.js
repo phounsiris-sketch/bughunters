@@ -1750,6 +1750,9 @@ function deleteSessionById(sessionId) {
     // To the trash (30 days) with Undo
     trashDoc("session", "sessions", sessionId, trashLabelSession(s))
       .then(function () {
+        // the poll this session came from goes back to open (no dangling "Open session" link, no instant re-confirm)
+        var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
+        if (pl && pl.status === "confirmed" && pl.sessionId === sessionId) dbUpdatePoll(pl.id, { status: "draft", sessionId: null, confirmedPlayers: null, confirmedAt: null, noAuto: true }).catch(function () {});
         currentSessionId = null;
         showPage("sessions", false);
       })

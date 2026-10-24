@@ -22,3 +22,10 @@ var css = fs.readFileSync("css/styles.css", "utf8");
 assert.ok(/\.ls-half \.ls-chip > span:last-child \{[^}]*white-space: normal/.test(css), "live score names wrap instead of being cut with an ellipsis");
 ["confirmPlanAsk", "confirmApproveMember", "confirmCancelRequest", "confirmRemovePhoto", "confirmWithdrawInvite", "confirmRemoveSale", "lsLoseScoreConfirm"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("confirmations OK");
+
+// v205: take back a confirmed poll
+assert.ok(/onclick="unconfirmPoll\(/.test(src) && /function unconfirmPoll\([\s\S]*noAuto: true[\s\S]*trashDoc\("session", "sessions"/.test(src), "confirmed poll: remove the session and reopen, without auto re-confirm");
+assert.ok(/p\.noAuto\) return/.test(src), "a poll taken back by hand is not auto-confirmed again");
+assert.ok(/pl\.status === "confirmed" && pl\.sessionId === sessionId/.test(fs.readFileSync("js/sessions.js", "utf8")), "deleting the session by hand reopens its poll");
+["unconfirmPoll", "unconfirmPollAsk", "unconfirmPollYes", "pollReopened"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+console.log("unconfirm OK");

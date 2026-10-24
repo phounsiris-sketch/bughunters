@@ -46,7 +46,7 @@ function _autoConfirmPolls() {
   if (!currentUser || typeof canManagePoll !== "function") return;
   var now = Date.now();
   lastPolls.forEach(function (p) {
-    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers) return;
+    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers || p.noAuto) return;   // noAuto: the plan was taken back by hand
     if (now < pollClosesAt(p) || !canManagePoll(p)) return;
     var np = normalizePoll(p);
     if (np.date && np.date < _todayIso()) return;
@@ -303,6 +303,7 @@ function _renderPollCard(poll) {
     html += '<details class="poll-manage" open><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
       (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
       (poll.answers || !isOpen ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
+      (poll.status === 'confirmed' ? '<button class="edit-btn danger" onclick="unconfirmPoll(\'' + jsq(poll.id) + '\')">' + icon("history", 14) + ' ' + t('unconfirmPoll') + '</button>' : '') +
       (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '') +
       '<button class="edit-btn danger" onclick="deletePoll(\'' + jsq(poll.id) + '\')">' + icon("trash", 14) + ' ' + t('deletePoll') + '</button></div></details>';
   }
@@ -565,6 +566,20 @@ function deletePoll(pollId) {
   var label = (poll.title ? poll.title + " \u00b7 " : "") + fmtDate(poll.date) + (poll.time ? " " + poll.time : "");
   askConfirm({ title: t("deletePollConfirm").replace("{name}", label), kind: "danger", yes: t("delete") }, function () {
     trashDoc("poll", "polls", pollId, label).catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
+  });
+}
+
+/** A confirmed poll made a session by mistake: remove that session (to Recently deleted, Undo) and open the poll again. It will not auto-confirm again; confirm it by hand when ready. */
+function unconfirmPoll(pollId) {
+  var poll = _findPoll(pollId);
+  if (!poll || !canManagePoll(poll)) { showToast(t("noPermission")); return; }
+  var sid = poll.sessionId, ses = null;
+  lastSessions.forEach(function (x) { if (x.id === sid) ses = x; });
+  var label = ses && typeof trashLabelSession === "function" ? trashLabelSession(ses) : fmtDate(poll.date);
+  askConfirm({ title: t("unconfirmPollAsk").replace("{name}", label), kind: "danger", yes: t("unconfirmPollYes") }, function () {
+    var reopen = function () { return dbUpdatePoll(pollId, { status: "draft", sessionId: null, confirmedPlayers: null, confirmedAt: null, noAuto: true }); };
+    var go = sid && ses ? trashDoc("session", "sessions", sid, label).then(reopen) : reopen();
+    go.then(function () { showToast(t("pollReopened") + " \u2714"); }).catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
   });
 }
 

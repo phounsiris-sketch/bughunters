@@ -1528,3 +1528,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - The "Confirm plan" button asks first (`askConfirmPoll`: players, date, court). Only the deadline auto-confirm calls `confirmPoll` directly.
 - Audit of one-tap actions (script: every `onclick` function that writes and has no `askYes`/`askConfirm`): now asking first: approve member, cancel my join request, remove group logo, remove my photo, withdraw an invite, take a gear item off sale. Live score: changing teams, game type or session while a score is counted asks first (`_lsGuard`). Left as is on purpose: answering an invite / dinner (changeable), saving a finished game (the "over" screen), undo.
 - Live score on a phone: player names wrap and show in full (`.ls-half .ls-chip`), the chip column is 74% wide instead of shrinking to the icon width; before it cut "Kone Vong...".
+
+
+## v205 - take back a confirmed poll (remove its session)
+
+- A confirmed poll now has "Remove session, reopen poll" in its Manage block: asks, moves the session to Recently deleted (30 days, Undo) and sets the poll back to `draft` with `sessionId` cleared and `noAuto: true`. `noAuto` stops `_autoConfirmPolls` from confirming it again at once (the deadline has usually passed); confirm by hand when ready.
+- Deleting the session from its own page does the same for the poll it came from (no dangling "Open session" link). Games already saved in that session stay in the games list. Restoring the session from Recently deleted does not re-link the poll.
