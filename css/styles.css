@@ -6427,3 +6427,9 @@ body[data-theme="light"] .danger-title { color: #b91c1c !important; }
 
 /* v200: on-court + rest line under the big duration */
 .wk-sub { font-size: 13px; opacity: .85; margin-top: 2px; font-weight: 600; }
+
+/* v204: live score shows the FULL player name (wraps on a narrow phone instead of "Kone Vong...") */
+.ls-half .ls-chip { max-width: 94%; height: auto; align-items: center; border-radius: 20px; padding-right: 14px; }
+.ls-half .ls-chip > span:last-child { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.15; font-size: 15px; text-align: left; }
+.ls-half .ls-head { width: 100%; }
+.ls-half .ls-chips { max-width: 74%; width: 100%; }

@@ -303,6 +303,9 @@ function handleAvatarUpload(input) {
 }
 
 function removeAvatar() {
+  askYes(t("confirmRemovePhoto"), _removeAvatarNow, { danger: true, yes: t("confirm") });
+}
+function _removeAvatarNow() {
   dbUpdateUser(currentUser.uid, { avatarUrl: null })
     .then(function () { currentUserProfile.avatarUrl = null; renderSettings(); if (typeof updateMeBtn === "function") setTimeout(updateMeBtn, 800); })
     .catch(function (error) { showToast(_permError(error)); });

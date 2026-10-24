@@ -288,7 +288,7 @@ function _renderPollCard(poll) {
   }
 
   if (isOpen && isCreator && enough) {
-    html += '<button class="btn-primary" style="margin-top:10px" onclick="confirmPoll(\'' + jsq(poll.id) + '\')">' + icon("check", 16) + ' ' +
+    html += '<button class="btn-primary" style="margin-top:10px" onclick="askConfirmPoll(\'' + jsq(poll.id) + '\')">' + icon("check", 16) + ' ' +
       t('confirmPlan') + ' (' + joined.length + ' ' + t('playersWord') + ')</button>';
   } else if (isOpen && isCreator) {
     html += '<div style="font-size:13px;color:var(--text-muted);margin-top:8px">' + t('needMinPlayers').replace('{n}', minPlayers) + '</div>';
@@ -300,7 +300,7 @@ function _renderPollCard(poll) {
 
   // Whoever runs polls (admins included) can edit and delete a poll in any state: open, confirmed (completed) or cancelled
   if (isCreator) {
-    html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
+    html += '<details class="poll-manage" open><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
       (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
       (poll.answers || !isOpen ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
       (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '') +
@@ -460,6 +460,14 @@ function _proxyPick(btn, idx) {
 }
 
 /* ---------- Confirm poll (creator only, needs >= minPlayers joining) ---------- */
+/** A tap on "Confirm plan" asks first (it creates a real session and tells the players); the deadline auto-confirm calls confirmPoll directly */
+function askConfirmPoll(pollId) {
+  var poll = _findPoll(pollId); if (!poll) return;
+  var np = normalizePoll(poll), n = _pollAnswerUids(np, 0).length;
+  var when = fmtDate(np.date) + (np.time ? " " + np.time : "") + (np.courtName ? " \u00b7 " + np.courtName : "");
+  askConfirm({ title: t("confirmPlanAsk").replace("{n}", n).replace("{when}", when), kind: "ask", yes: t("confirmPlan") }, function () { confirmPoll(pollId); });
+}
+
 function confirmPoll(pollId, auto) {
   if (!currentUser) return;
   var pollRef = fsdb.collection("polls").doc(pollId);
@@ -528,7 +536,9 @@ function showEditPoll(pollId) {
     '<div class="form-row">' +
       '<div class="form-group" style="flex:2"><label class="form-label">' + t("court") + '</label><select class="form-select" id="mPolCourt" data-cs-type="court">' + opts + '</select></div>' +
       '<div class="form-group" style="flex:1"><label class="form-label">' + t("duration") + ' (h)</label><input type="number" class="form-input" id="mPolDur" min="0.5" step="0.5" value="' + (np.duration || 2) + '"></div>' +
-    '</div>';
+    '</div>' +
+    '<div class="form-row"><div class="form-group" style="flex:1"><label class="form-label">' + t("minPlayersLabel") + '</label><input type="number" class="form-input" id="mPolMin" min="2" max="40" step="1" value="' + (poll.minPlayers || minPlayersSetting()) + '"></div></div>' +
+    '<div class="form-group"><label class="form-label">' + t("note") + '</label><textarea class="form-input" id="mPolNote" rows="2">' + escapeHtml(poll.note || '') + '</textarea></div>';
   modalCallback = function () {
     var court = dbFindById(DB_CACHE.courts, document.getElementById("mPolCourt").value);
     var duration = parseFloat(document.getElementById("mPolDur").value) || 0;
@@ -538,6 +548,8 @@ function showEditPoll(pollId) {
     delete _autoTried[pollId];
     dbUpdatePoll(pollId, {
       date: date, time: time, duration: duration, courtId: court.id, courtName: court.name,
+      minPlayers: Math.max(2, parseInt(document.getElementById("mPolMin").value, 10) || minPlayersSetting()),
+      note: (document.getElementById("mPolNote").value || "").trim() || null,
       closesAt: defaultCloseAt(date, time, Date.now())
     }).then(function () { closeModal(); showToast(t("save") + " ✔"); })
       .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); });

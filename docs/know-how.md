@@ -1520,3 +1520,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v203 - admins can edit and delete a poll in any state
 
 - Bug: the poll "Manage" block (add votes, edit, cancel) only rendered for open polls and there was no delete at all, so an admin saw nothing on a completed (confirmed) or cancelled poll. Now it renders for anyone who may manage the poll (admin, owner, `createPoll` right, creator): edit for every state, cancel for open ones, and a new Delete (confirm sheet, goes to Recently deleted for 30 days with Undo). A session created from the poll is not touched. Rules already allowed it (`polls` delete: `canIn('createPoll')`), so nothing to republish. Test: tests/poll-manage.test.js.
+
+
+## v204 - confirm before a poll becomes a session, more "are you sure", full names in live score
+
+- Why a new poll could not be edited: with enough players the deadline auto-confirms it into a session (`confirmPoll(id, true)`), and the Manage block used to exist only for open polls (v203 fixed that for every state). The Manage block is now open by default and Edit also covers minimum players and the note.
+- The "Confirm plan" button asks first (`askConfirmPoll`: players, date, court). Only the deadline auto-confirm calls `confirmPoll` directly.
+- Audit of one-tap actions (script: every `onclick` function that writes and has no `askYes`/`askConfirm`): now asking first: approve member, cancel my join request, remove group logo, remove my photo, withdraw an invite, take a gear item off sale. Live score: changing teams, game type or session while a score is counted asks first (`_lsGuard`). Left as is on purpose: answering an invite / dinner (changeable), saving a finished game (the "over" screen), undo.
+- Live score on a phone: player names wrap and show in full (`.ls-half .ls-chip`), the chip column is 74% wide instead of shrinking to the icon width; before it cut "Kone Vong...".
