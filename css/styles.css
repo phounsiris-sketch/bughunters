@@ -6406,3 +6406,21 @@ body[data-special="jujutsu"]:not([data-theme="light"]) .hs-health, body[data-spe
 .ico-cl6 .clay-g path { fill: url(#clayG6); }
 .ico-cl7 .clay-g path { fill: url(#clayG7); }
 .ico-clay { flex: none; vertical-align: middle; overflow: visible; }
+
+/* v197: the round Home button of the nav bar never shows a second (square) plate inside it, whatever the icon style */
+.nav-center .nav-icon :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) { background: none !important; box-shadow: none !important; border: 0 !important; width: auto !important; height: auto !important; margin: 0 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.nav-center .nav-icon :is(.ico-bx, .ico-tile)::after { display: none !important; }
+.nav-center .nav-icon .si { color: #fff !important; filter: none !important; }
+
+/* v198: every round icon holder (badge, chip, floating button, tag...) shows a plain glyph, never a square plate peeking out of the circle */
+:is(.badge-icon, .avatar-edit-btn, .cm-fab, .cm-ic, .cm-qx, .gear-photo-change, .home-live-x, .home-next-tag, .hs-badge, .hv-nav, .image-viewer-close, .loc-ic, .ls-chip, .ls-mid-btn, .ls-pill, .ls-test, .mh-go, .pay-item-btn, .paynote-ic, .perm-badge, .rc-x, .remove-btn, .wk-share, .hv-ico, .ask-ico) :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) { background: none !important; box-shadow: none !important; border: 0 !important; width: auto !important; height: auto !important; margin: 0 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+:is(.badge-icon, .avatar-edit-btn, .cm-fab, .cm-ic, .cm-qx, .gear-photo-change, .home-live-x, .home-next-tag, .hs-badge, .hv-nav, .image-viewer-close, .loc-ic, .ls-chip, .ls-mid-btn, .ls-pill, .ls-test, .mh-go, .pay-item-btn, .paynote-ic, .perm-badge, .rc-x, .remove-btn, .wk-share, .hv-ico, .ask-ico) :is(.ico-bx, .ico-tile)::after { display: none !important; }
+:is(.badge-icon, .avatar-edit-btn, .cm-fab, .cm-ic, .cm-qx, .gear-photo-change, .home-live-x, .home-next-tag, .hs-badge, .hv-nav, .image-viewer-close, .loc-ic, .ls-chip, .ls-mid-btn, .ls-pill, .ls-test, .mh-go, .pay-item-btn, .paynote-ic, .perm-badge, .rc-x, .remove-btn, .wk-share, .hv-ico, .ask-ico) :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) .si { color: inherit !important; filter: none !important; }
+.badge-item .badge-icon { width: 44px; height: 44px; }
+
+/* v199 (found by tools/uimatrix): plates never show inside these holders, in light themes either; light-theme text colours that were under 3:1 */
+:is(.home-sc-ico, .home-new-ico, .hs-card, .mh-ii, .app-header, .view-btn) :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) { background: none !important; box-shadow: none !important; border: 0 !important; width: auto !important; height: auto !important; margin: 0 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+:is(.home-sc-ico, .home-new-ico, .hs-card, .mh-ii, .app-header, .view-btn) :is(.ico-bx, .ico-tile)::after { display: none !important; }
+:is(.view-btn) :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) .si { color: inherit !important; filter: none !important; }
+body[data-theme="light"] .perm-badge.super { color: #92400e; border-color: rgba(180, 83, 9, .55); background: rgba(245, 158, 11, .16); }
+body[data-theme="light"] .danger-title { color: #b91c1c !important; }

@@ -193,15 +193,31 @@ function drawShareCard(canvas, d, id, fmt) {
     c.fillText(pn, 130, y + 100); c.textAlign = "right"; c.fillStyle = P.accent; c.font = font(60, 800); c.fillText(d.partner.rate + "%", W - 130, y + 90);
     c.fillStyle = P.dim; c.font = font(24, 600); c.fillText(d.partner.n + " " + t("gamesWord"), W - 130, y + 118); c.textAlign = "center"; y += 130 + (sq ? 36 : 40);
   }
-  // trend + form
-  if (!sq && d.trend) {
-    var lo = Math.min.apply(null, d.trend), hi = Math.max.apply(null, d.trend), x1 = 130, x2 = W - 130, yy = y, hh = 120;
-    c.strokeStyle = P.accent; c.lineWidth = 8; c.lineJoin = "round"; c.beginPath();
-    d.trend.forEach(function (v, k) { var px = x1 + (x2 - x1) * k / (d.trend.length - 1), py = yy + hh - (hi === lo ? hh / 2 : (v - lo) / (hi - lo) * hh); if (k) c.lineTo(px, py); else c.moveTo(px, py); }); c.stroke();
-    y += hh + 50;
+  // trend + form, in panels drawn from the theme (card, edge, accent, pill)
+  if (!sq && d.trend && d.trend.length > 1) {
+    var lo = Math.min.apply(null, d.trend), hi = Math.max.apply(null, d.trend), ph = 160, px0 = 130, px1 = W - 130, gy0 = y + 50, gh = ph - 90;
+    c.fillStyle = P.card; _scRound(c, 90, y, W - 180, ph, 36); c.fill(); c.strokeStyle = P.edge; c.lineWidth = 3; c.stroke();
+    c.textAlign = "left"; c.fillStyle = P.dim; c.font = font(24, 700); c.fillText(t("homeRating").toUpperCase(), 130, y + 40);
+    var X = function (k) { return px0 + (px1 - px0) * k / (d.trend.length - 1); }, Y = function (v) { return gy0 + gh - (hi === lo ? gh / 2 : (v - lo) / (hi - lo) * gh); };
+    var lg = c.createLinearGradient(0, gy0, 0, gy0 + gh + 20); lg.addColorStop(0, P.accent); lg.addColorStop(1, "rgba(0,0,0,0)"); c.save(); c.globalAlpha = .28; c.fillStyle = lg;
+    c.beginPath(); c.moveTo(X(0), gy0 + gh + 20); d.trend.forEach(function (v, k) { c.lineTo(X(k), Y(v)); }); c.lineTo(X(d.trend.length - 1), gy0 + gh + 20); c.closePath(); c.fill(); c.restore();
+    var sg = c.createLinearGradient(px0, 0, px1, 0); sg.addColorStop(0, P.pill); sg.addColorStop(1, P.accent);
+    c.save(); c.shadowColor = P.accent; c.shadowBlur = 16; c.strokeStyle = sg; c.lineWidth = 8; c.lineJoin = "round"; c.lineCap = "round"; c.beginPath();
+    d.trend.forEach(function (v, k) { if (k) c.lineTo(X(k), Y(v)); else c.moveTo(X(k), Y(v)); }); c.stroke(); c.restore();
+    var lx = X(d.trend.length - 1), ly = Y(d.trend[d.trend.length - 1]); c.fillStyle = P.text; c.beginPath(); c.arc(lx, ly, 11, 0, 7); c.fill(); c.strokeStyle = P.accent; c.lineWidth = 5; c.stroke();
+    c.textAlign = "right"; c.fillStyle = P.text; c.font = font(26, 800); c.fillText(String(Math.round(d.trend[d.trend.length - 1])), W - 130, y + 40); c.textAlign = "center";
+    y += ph + 24;
   }
   if (d.form.length) {
-    var fxs = W / 2 - (d.form.length * 84 - 20) / 2; d.form.forEach(function (w, k) { c.fillStyle = w ? "#16a34a" : "#dc2626"; _scRound(c, fxs + k * 84, y, 64, 64, 18); c.fill(); c.fillStyle = "#fff"; c.font = font(32, 800); c.fillText(w ? t("winShort") : t("lossShort"), fxs + k * 84 + 32, y + 44); });
+    var fw = 84, fgap = 18, fh = 100, fpw = Math.min(W - 180, d.form.length * fw + (d.form.length - 1) * fgap + 80);
+    c.fillStyle = P.card; _scRound(c, (W - fpw) / 2, y, fpw, fh, 36); c.fill(); c.strokeStyle = P.edge; c.lineWidth = 3; c.stroke();
+    var fxs = W / 2 - (d.form.length * fw + (d.form.length - 1) * fgap) / 2;
+    d.form.forEach(function (w, k) {
+      var bx = fxs + k * (fw + fgap), by = y + (fh - 64) / 2;
+      if (w) { c.fillStyle = P.pill; _scRound(c, bx, by, fw, 64, 20); c.fill(); c.strokeStyle = P.accent; c.lineWidth = 3; c.stroke(); c.fillStyle = "#fff"; }
+      else { c.strokeStyle = P.dim; c.lineWidth = 3; c.setLineDash([8, 7]); _scRound(c, bx, by, fw, 64, 20); c.stroke(); c.setLineDash([]); c.fillStyle = P.dim; }
+      c.font = font(32, 800); c.fillText(w ? t("winShort") : t("lossShort"), bx + fw / 2, by + 44);
+    });
   }
   c.fillStyle = P.dim; c.font = font(26, 600); c.fillText("phounsiris-sketch.github.io/bughunters", W / 2, H - (sq ? 40 : 70));
 }

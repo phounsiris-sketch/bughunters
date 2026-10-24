@@ -14,7 +14,7 @@ function _schHm(min) { return Math.floor(min / 60) + ":" + ("0" + Math.round(min
 function workoutShareData(w, dateLabel) {
   var d = w.d;
   return {
-    dateKey: w.date, date: dateLabel || w.date, time: w.time || "", totalMin: w.totalMin, onCourt: w.onCourt, games: w.games, kcal: w.kcal, avg: w.avg, peak: w.peak,
+    dateKey: w.date, date: dateLabel || w.date, time: w.time || "", totalMin: w.totalMin, timeMin: w.timeMin || w.totalMin, onCourt: w.onCourt, games: w.games, kcal: w.kcal, avg: w.avg, peak: w.peak,
     zoneMin: d.zoneMin || null, zones: d.zones || null, pts: d.pts || null, close: d.close || 0, restAssumed: !!d.restAssumed,
     segs: d.segs.map(function (g) { return { mine: g.mine, their: g.their, won: !!g.won, close: !!g.close, len: g.len, s: g.s, e: g.e }; })
   };
@@ -66,7 +66,7 @@ function _schFlame(c, x, y, s) {
 
 /** Heart rate line coloured by zone with the games shaded behind it and a heart on the peak */
 function _schChart(c, P, x, y, w, h, x0) {
-  var Z = _schZoneColors(), pts = x0.pts, segs = x0.segs, total = x0.totalMin;
+  var Z = _schZoneColors(), pts = x0.pts, segs = x0.segs, total = x0.timeMin || x0.totalMin;
   var vals = pts.map(function (p) { return p[1]; }), lo = Math.floor((Math.min.apply(null, vals) - 4) / 10) * 10, hi = Math.ceil((x0.peak + 8) / 10) * 10;
   var px = x + 34, pw = w - 68, py = y + 56, ph = h - 96;
   var X = function (m) { return px + pw * m / total; }, Y = function (v) { return py + ph * (1 - (v - lo) / (hi - lo)); };
