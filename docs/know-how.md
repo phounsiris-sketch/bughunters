@@ -1486,3 +1486,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v197 - no square plate inside the round Home button
 
 - Colour tiles style drew its rounded-square tile inside the round centre Home button of the nav bar. One rule at the end of styles.css (`.nav-center .nav-icon :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile)`) now removes any plate there in every style, so the glyph sits directly on the circle. Rule of thumb: an icon that lives in a circle gets a plain glyph, never a plate.
+
+
+## v198 - round icon holders show a plain glyph
+
+- Achievement badges (and about 25 other round holders: floating buttons, chips, tags, remove / share buttons) showed the square icon plate half outside their circle. One block at the end of styles.css lists every round holder found by scanning `icon(` calls against `border-radius: 50%` rules and strips the plate there (glyph takes the holder's text colour). A new round holder needs its class added to that list; tools/uimatrix/driver.js reports `plate-in-circle` when one slips through.
