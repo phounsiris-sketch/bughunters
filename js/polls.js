@@ -298,11 +298,13 @@ function _renderPollCard(poll) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + jsq(poll.sessionId) + '\')">' + t('openSession') + ' →</button>';
   }
 
-  if (isOpen && isCreator) {
+  // Whoever runs polls (admins included) can edit and delete a poll in any state: open, confirmed (completed) or cancelled
+  if (isCreator) {
     html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
-      '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' +
-      (poll.answers ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
-      '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button></div></details>';
+      (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
+      (poll.answers || !isOpen ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
+      (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '') +
+      '<button class="edit-btn danger" onclick="deletePoll(\'' + jsq(poll.id) + '\')">' + icon("trash", 14) + ' ' + t('deletePoll') + '</button></div></details>';
   }
 
   html += '</div>';
@@ -544,6 +546,16 @@ function showEditPoll(pollId) {
 }
 
 /* ---------- Cancel poll ---------- */
+/** Delete a poll in any state: it goes to Recently deleted for 30 days with Undo. A session made from it stays. */
+function deletePoll(pollId) {
+  var poll = _findPoll(pollId);
+  if (!poll || !canManagePoll(poll)) { showToast(t("noPermission")); return; }
+  var label = (poll.title ? poll.title + " \u00b7 " : "") + fmtDate(poll.date) + (poll.time ? " " + poll.time : "");
+  askConfirm({ title: t("deletePollConfirm").replace("{name}", label), kind: "danger", yes: t("delete") }, function () {
+    trashDoc("poll", "polls", pollId, label).catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
+  });
+}
+
 function cancelPoll(pollId) {
   askYes(t("cancelPoll") + "?", function () {
     dbUpdatePoll(pollId, { status: 'cancelled', cancelledAt: Date.now(), cancelledBy: currentUser.uid })

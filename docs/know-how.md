@@ -1515,3 +1515,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v202 - share-card panels 90% transparent
 
 - `_scPalette()` rewrites each theme's panel colour to alpha `SC_CARD_ALPHA` = 0.10 (90% see-through) for every share card (profile, workout, week, overview); the theme art shows through the panels, edges and text stay. Change the one constant to tune it.
+
+
+## v203 - admins can edit and delete a poll in any state
+
+- Bug: the poll "Manage" block (add votes, edit, cancel) only rendered for open polls and there was no delete at all, so an admin saw nothing on a completed (confirmed) or cancelled poll. Now it renders for anyone who may manage the poll (admin, owner, `createPoll` right, creator): edit for every state, cancel for open ones, and a new Delete (confirm sheet, goes to Recently deleted for 30 days with Undo). A session created from the poll is not touched. Rules already allowed it (`polls` delete: `canIn('createPoll')`), so nothing to republish. Test: tests/poll-manage.test.js.
