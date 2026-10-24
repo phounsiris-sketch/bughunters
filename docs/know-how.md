@@ -1504,3 +1504,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - A player's session duration is now the exact minutes of their games plus the rest between them: with saved clock times it is first game start to last game end (real rest); without them each gap is estimated at `HEALTH_REST_GAP_MIN` (4 min). Booked hours stay ignored. `healthSegments` returns `playMin`; the chart timeline still adds the 10 min warm-up and 3 min cool-down.
 - Cards and the workout page show "on court 1:55 + rest 1:14" under the big duration. The old "On court" tile became "W-L" record (and the week card tile also names the games count).
 - Test: tests/health.test.js (estimated and real-clock cases).
+
+
+## v201 - rest between games on the heart-rate graph
+
+- Bug: when the live score saved games back to back (clock times touching), the graph had no rest between them, so six games drew one flat high block. `healthSegments` now builds the timeline from each game's exact live-score minutes and puts a rest before every next game: the real gap when the clock times show one, never less than `HEALTH_REST_GAP_MIN` (4 min). Total (`playMin`) = game minutes + those rests; the heart rate dips between games again.
+- Example (6 games x 13 min logged back to back): 78 min on court + 20 min rest = 1:38 (was 1:19 with a flat curve).

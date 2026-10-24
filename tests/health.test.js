@@ -87,5 +87,7 @@ var GM = function (id, minutes, startAt, endAt) { return { id: id, minutes: minu
 var est = ctx.healthSegments("me", [GM("1", 20), GM("2", 20), GM("3", 20)], { duration: 3 });
 assert.strictEqual(est.onCourt, 60, "exact game minutes"); assert.strictEqual(est.playMin, 60 + 2 * ctx.HEALTH_REST_GAP_MIN, "plus an estimated rest between the 3 games"); assert.ok(est.playMin < 180, "a 3 h booking is not the duration");
 var T0 = 1760000000000, mn = 60000, real = ctx.healthSegments("me", [GM("1", 20, T0, T0 + 20 * mn), GM("2", 20, T0 + 35 * mn, T0 + 55 * mn), GM("3", 20, T0 + 70 * mn, T0 + 90 * mn)], { duration: 3 });
-assert.strictEqual(real.playMin, 90, "real clock times: first start to last end = 60 min of play + 30 min of real rest"); assert.strictEqual(real.onCourt, 60);
+assert.strictEqual(real.playMin, 90, "real clock times: 60 min of play + 30 min of real rest"); assert.strictEqual(real.onCourt, 60);
+var tight = ctx.healthSegments("me", [GM("1", 13, T0, T0 + 13 * mn), GM("2", 13, T0 + 13 * mn, T0 + 26 * mn), GM("3", 13, T0 + 26 * mn, T0 + 39 * mn)], {});
+assert.strictEqual(tight.playMin, 39 + 2 * ctx.HEALTH_REST_GAP_MIN, "games logged back to back still get the minimum rest"); assert.ok(tight.segs[1].s - tight.segs[0].e >= ctx.HEALTH_REST_GAP_MIN, "a gap between the games on the chart");
 console.log("health total duration OK");
