@@ -1,16 +1,16 @@
 /* Run: node tests/icons.test.js — icon styles: the chosen style applies to every icon on every page (v190) */
 var fs = require("fs"), vm = require("vm"), assert = require("assert");
-var ctx = { localStorage: { getItem: function () { return "line"; }, setItem: function () {} } }; vm.createContext(ctx);
+var ctx = { localStorage: { getItem: function () { return "tiles"; }, setItem: function () {} } }; vm.createContext(ctx);
 vm.runInContext(fs.readFileSync("js/icons.js", "utf8"), ctx);
 vm.runInContext(fs.readFileSync("js/icons-sets.js", "utf8"), ctx);
 vm.runInContext(fs.readFileSync("js/icons-solar-bold.js", "utf8"), ctx);
-assert.strictEqual(ctx.currentIconTheme, "line", "saved style is read");
-assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["box", "neu", "glass", "classic", "line", "duo", "tiles"]));
+assert.strictEqual(ctx.currentIconTheme, "tiles", "saved style is read");
+assert.deepStrictEqual(JSON.stringify(ctx.ICON_THEMES), JSON.stringify(["box", "neu", "glass", "classic", "tiles"]));
 var classic = ctx.iconAs("classic", "trophy", 20);
 assert.ok(/^<svg class="si"/.test(classic) && classic.indexOf("viewBox=\"0 0 24 24\"") > 0 && classic.indexOf("ico-") < 0, "classic is the Solar svg");
 assert.notStrictEqual(ctx.icon("trophy", 20), classic, "icon() follows the chosen style on every page (no per-page switch)");
 assert.strictEqual(ctx._iconCtx, undefined, "no per-page icon context any more");
-var line = ctx.icon("trophy", 20);
+var line = ctx.iconAs("line", "trophy", 20);
 assert.ok(line.indexOf("viewBox=\"0 0 256 256\"") > 0 && line.indexOf("class=\"si ph\"") > 0 && line !== classic, "line is a different icon set (Phosphor regular)");
 var duo = ctx.iconAs("duo", "trophy", 20); assert.ok(/ico-dc ico-dc\d/.test(duo) && duo.indexOf("opacity=\"0.2\"") > 0, "duotone keeps its soft second layer and gets a colour class");
 assert.notStrictEqual(duo, line); assert.notStrictEqual(ctx.iconAs("tiles", "trophy", 20), line);
@@ -32,10 +32,10 @@ assert.ok(/ico-neu ico-nc3/.test(ctx.iconAs("neu", "ranking", 20, "bx3")) && /ic
 var used = {}; ["dashboard.js", "home.js", "health-ui.js", "payments.js", "stats.js", "sessions.js", "polls.js", "settings.js", "public.js", "sharecard.js"].forEach(function (f) { (fs.readFileSync("js/" + f, "utf8").match(/\bicon\("([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(6, -1)] = 1; }); });
 (fs.readFileSync("index.html", "utf8").match(/data-icon="([a-z0-9]+)"/g) || []).forEach(function (m) { used[m.slice(11, -1)] = 1; });
 Object.keys(used).forEach(function (n) { if (!ctx.SOLAR[n]) return; ["line", "duo", "fill"].forEach(function (set) { assert.ok(ctx.ICON_SETS[set][n], "icon set " + set + " has " + n); }); });
-ctx.setIconTheme("nope"); assert.strictEqual(ctx.currentIconTheme, "line", "an unknown style is ignored");
+ctx.setIconTheme("nope"); assert.strictEqual(ctx.currentIconTheme, "tiles", "an unknown style is ignored");
 ctx.setIconTheme("tiles"); assert.strictEqual(ctx.currentIconTheme, "tiles");
 var old = { localStorage: { getItem: function () { return "emoji"; }, setItem: function () {} } }; vm.createContext(old); vm.runInContext(fs.readFileSync("js/icons.js", "utf8"), old);
-assert.strictEqual(old.currentIconTheme, "duo", "an old saved emoji style becomes duotone");
+assert.strictEqual(old.currentIconTheme, "box", "an old saved emoji / line / duotone style falls back to the box style");
 // nav bar + app bar follow the style on every page
 var calls = []; ctx.document = { body: { setAttribute: function (k, v) { calls.push(["attr", k, v]); } }, querySelector: function (sel) { return { sel: sel }; } };
 ctx.fillStaticIcons = function (root) { calls.push([root.sel]); };
@@ -48,5 +48,19 @@ ctx.currentIconTheme = "box"; ctx._chromeKey = ""; calls.length = 0; ctx.applyCh
 assert.ok(calls.some(function (c) { return c[0] === ".bottom-nav"; }), "box style: the nav bar is boxed on every page, even Settings");
 assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f); }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_iconCtx") < 0; }), "no page switches an icon context any more");
 var i18n = fs.readFileSync("js/i18n.js", "utf8");
-["iconStyle", "iconStyleHint", "icon_box", "icon_neu", "icon_glass", "icon_classic", "icon_line", "icon_duo", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+["iconStyle", "iconStyleHint", "icon_box", "icon_neu", "icon_glass", "icon_classic", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("icons OK");
+ctx.document.getElementById = function () { return {}; };   // the hidden defs already "exist" in this fake page
+// dashboard pack "3D clay": dashboard only
+assert.strictEqual(ctx.currentDashPack, "clay", "clay is the default dashboard pack");
+assert.ok(/ico-clay ico-cl6/.test(ctx.iconAs("clay", "trophy", 22)) && ctx.iconAs("clay", "trophy", 22).indexOf('filter="url(#clayF)"') > 0, "clay icon: colour class by meaning + the clay filter");
+assert.ok(ctx.iconAs("clay", "shuttle", 22).indexOf("clayCork") > 0 && ctx.iconAs("clay", "court", 22).indexOf("clayG2") > 0, "badminton icons are hand drawn (shuttlecock, racket)");
+["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-clay/.test(ctx.iconAs("clay", n, 20)), n + " control stays plain in clay"); });
+assert.ok(!/ico-clay/.test(ctx.iconAs("clay", "calendar", 12)), "tiny icons stay plain in clay");
+assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "outside the Dashboard the chosen style is used");
+ctx._dashCtx = true; assert.ok(/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the clay pack is used"); ctx.currentDashPack = "same"; assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "pack 'same' follows the chosen style"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
+var dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
+assert.ok(/function _renderDashboard\(\) \{\s*_dashCtx = true;\s*try \{ _renderDashboardInner\(\); \} finally \{ _dashCtx = false; \}/.test(dashSrc), "only the Dashboard render switches the pack on, and always off again");
+assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "icons.js"; }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx = true") < 0; }), "no other page switches it on");
+(["dashPack", "dashPackHint", "dashPackClay", "dashPackSame"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+console.log("clay pack OK");

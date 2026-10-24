@@ -213,5 +213,11 @@ function shareWorkoutNow(sid) {
 function shareOverviewNow() {
   var range = healthRangeBounds(_hk, _hoff, new Date()), sum = healthRangeSummary(myWorkouts(), range);
   var title = _hk === "week" ? _fmtD(range.fromDate, { day: "numeric", month: "short" }) + " \u2013 " + _fmtD(range.toDate, { day: "numeric", month: "short" }) : _hk === "month" ? _fmtD(range.fromDate, { month: "long", year: "numeric" }) : String(range.fromDate.getFullYear());
-  return overviewShareData(sum, range, title, function (b, i, kind) { return kind === "week" ? _fmtD(b.date, { weekday: "short" }).slice(0, 3) : kind === "year" ? _fmtD(b.date, { month: "short" }).slice(0, 3) : ((i + 1) % 7 === 1 ? String(i + 1) : ""); });
+  var x = overviewShareData(sum, range, title, function (b, i, kind) { return kind === "week" ? _fmtD(b.date, { weekday: "short" }).slice(0, 3) : kind === "year" ? _fmtD(b.date, { month: "short" }).slice(0, 3) : ((i + 1) % 7 === 1 ? String(i + 1) : ""); });
+  // every game day in the range, oldest first: the share sheet lets me pick one
+  x.list = sum.items.slice().sort(function (a, b) { return (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")); }).map(function (w) {
+    var dl = _fmtD(new Date(w.date + "T00:00:00"), { weekday: "short", day: "numeric", month: "short" });
+    return { sid: w.sid, label: dl + (w.time ? " \u00b7 " + w.time : ""), data: workoutShareData(w, dl) };
+  });
+  return x;
 }

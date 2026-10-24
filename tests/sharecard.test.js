@@ -36,3 +36,16 @@ assert.strictEqual(ov.best, 1, "the best day is crowned"); assert.strictEqual(ov
 assert.strictEqual(hs.overviewBadges({ kind: "week", sessions: 3, games: 5, kcal: 100, zoneMin: null })[0][1], "wbConsistent");
 ["shareWorkoutTitle", "shareOverviewTitle", "wbBurner", "wbClutch", "wbMarathon", "wbCardio", "wbUnbeaten", "wbFresh", "wbConsistent", "scActiveDays", "scActiveMonths"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("sharecard-health OK");
+
+// week card: one picked game day + "my week" level gimmick
+assert.strictEqual(wsd.dateKey, "2026-10-22", "workout data keeps its date key to light its bar");
+var L = function (min, kind) { return vm.runInContext("_schLevel", hs)({ totalMin: min, kind: kind || "week" }); };
+assert.strictEqual(L(30).lv, 0); assert.strictEqual(L(30).left, 30); assert.strictEqual(L(60).lv, 1); assert.strictEqual(L(200).lv, 2); assert.strictEqual(L(400).lv, 3); assert.strictEqual(L(400).next, null); assert.strictEqual(L(100, "month").lv, 0, "a month needs 4x the minutes");
+["scPickAll", "scMyRange", "scSessionOf", "scLv0", "scLv1", "scLv2", "scLv3", "scToNext", "scMaxLevel"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+// the card draws without throwing in both formats (recording canvas)
+var calls = 0, rec = new Proxy(function () {}, { get: function (_, k) { if (k === "measureText") return function () { return { width: 100 }; }; if (k === "createLinearGradient" || k === "createRadialGradient") return function () { return { addColorStop: function () {} }; }; return rec; }, set: function () { return true; }, apply: function () { calls++; return rec; } });
+var full = { t: function (k) { return k; }, HEALTH_ZONE_COLORS: hs.HEALTH_ZONE_COLORS, document: { createElement: function () { return { getContext: function () { return rec; }, width: 0, height: 0 }; } }, Math: Math, Image: function () {}, FX_SCENES: {}, console: console }; vm.createContext(full);
+vm.runInContext(src, full); vm.runInContext(fs.readFileSync("js/sharecard-health.js", "utf8"), full);
+var ovd = { kind: "week", title: "Oct 19 - Oct 25", totalMin: 400, buckets: [{ key: "2026-10-22", label: "Thu", min: 189 }, { key: "2026-10-23", label: "Fri", min: 0 }], list: [] };
+["story", "square"].forEach(function (f) { try { full.drawWeekSessionCard({ width: 0, height: 0, getContext: function () { return rec; } }, wsd, Object.assign({}, ovd, { list: [{}] }), 0, "default", f); } catch (e) { assert.fail("drawWeekSessionCard " + f + ": " + e.message); } });
+console.log("week card OK");

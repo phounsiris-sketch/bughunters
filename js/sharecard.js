@@ -17,7 +17,7 @@ var SC_THEMES = {
   arcade: { name: "spArcade", bg: ["#080314", "#160630", "#2a0b55"], card: "rgba(28,11,61,.86)", edge: "#e879f9", text: "#f7f0ff", dim: "#d6c3f2", accent: "#22d3ee", pill: "#a21caf" }
 };
 
-var _sc = { uid: null, theme: "auto", fmt: "story", canvas: null, avatar: null, mode: "profile", arg: null };
+var _sc = { uid: null, theme: "auto", fmt: "story", canvas: null, avatar: null, mode: "profile", arg: null, pick: "" };
 
 /** All numbers on the card, plain data (no HTML), for the chosen period */
 function shareCardData(uid, scope) {
@@ -220,13 +220,13 @@ function _scLoadAvatar(uid) {
 /** openShareCard() = my profile card; openShareCard("", "workout", sessionId) = one workout (that day); openShareCard("", "overview") = the week / month / year shown on the Health page */
 function openShareCard(uid, mode, arg) {
   uid = uid || (currentUser && currentUser.uid); if (!uid) return;
-  _sc.uid = uid; _sc.theme = "auto"; _sc.fmt = "story"; _sc.avatar = null; _sc.mode = mode || "profile"; _sc.arg = arg || null;
+  _sc.uid = uid; _sc.theme = "auto"; _sc.fmt = "story"; _sc.avatar = null; _sc.mode = mode || "profile"; _sc.arg = arg || null; _sc.pick = "";
   var ttl = _sc.mode === "workout" ? "shareWorkoutTitle" : _sc.mode === "overview" ? "shareOverviewTitle" : "shareCardTitle";
   var old = document.getElementById("shareSheet"); if (old) old.remove();
   var el = document.createElement("div"); el.id = "shareSheet"; el.className = "sheet-wrap";
   el.innerHTML = '<div class="sheet sc-sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(t(ttl)) + '"><div class="sheet-grab"></div>' +
     '<div class="sheet-title">' + escapeHtml(t(ttl)) + '</div><div class="sc-prev"><canvas id="scCanvas"></canvas></div>' +
-    '<div class="sc-row" id="scThemes"></div><div class="sc-row" id="scFmt"></div>' +
+    (_sc.mode === "overview" ? '<div class="sc-row" id="scPick"></div>' : '') + '<div class="sc-row" id="scThemes"></div><div class="sc-row" id="scFmt"></div>' +
     '<div class="ask-btns"><button type="button" class="btn-primary" id="scShare">' + icon("share", 18) + ' ' + escapeHtml(t("shareWord")) + '</button>' +
     '<button type="button" class="btn-secondary" id="scSave">' + escapeHtml(t("saveImage")) + '</button><button type="button" class="ask-no" id="scClose">' + escapeHtml(t("close")) + '</button></div></div>';
   var close = function () { document.removeEventListener("keydown", onKey, true); el.remove(); };
@@ -244,6 +244,12 @@ function openShareCard(uid, mode, arg) {
 }
 
 function _scControls() {
+  var pk = document.getElementById("scPick");
+  if (pk && typeof shareOverviewNow === "function") {
+    var lst = shareOverviewNow().list || [];
+    pk.innerHTML = lst.length ? [["", t("scPickAll")]].concat(lst.map(function (i) { return [i.sid, i.label]; })).map(function (o) {
+      return '<button type="button" class="chip' + (_sc.pick === o[0] ? ' active' : '') + '" onclick="_scSet(\'pick\',\'' + jsq(o[0]) + '\')">' + escapeHtml(o[1]) + '</button>'; }).join("") : "";
+  }
   var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade", "ninja", "orbs", "pirate", "reaper", "kitty", "doraemon", "valentine", "jujutsu"], cur = _sc.theme;
   var box = document.getElementById("scThemes"); if (!box) return;
   box.innerHTML = ids.map(function (k) {
@@ -258,7 +264,10 @@ function _scSet(k, v) { _sc[k] = v; _scControls(); _scRedraw(); }
 function _scRedraw() {
   var cv = document.getElementById("scCanvas"); if (!cv) return;
   if (_sc.mode === "workout" && typeof shareWorkoutNow === "function") { var wd = shareWorkoutNow(_sc.arg); if (wd) drawWorkoutCard(cv, wd, _scThemeId(), _sc.fmt); }
-  else if (_sc.mode === "overview" && typeof shareOverviewNow === "function") drawOverviewCard(cv, shareOverviewNow(), _scThemeId(), _sc.fmt);
+  else if (_sc.mode === "overview" && typeof shareOverviewNow === "function") {
+    var ov = shareOverviewNow(), pi = -1; ov.list.forEach(function (i, k) { if (i.sid === _sc.pick) pi = k; });
+    if (pi >= 0) drawWeekSessionCard(cv, ov.list[pi].data, ov, pi, _scThemeId(), _sc.fmt); else drawOverviewCard(cv, ov, _scThemeId(), _sc.fmt);
+  }
   else drawShareCard(cv, shareCardData(_sc.uid, statsScope), _scThemeId(), _sc.fmt);
   _sc.canvas = cv;
 }
