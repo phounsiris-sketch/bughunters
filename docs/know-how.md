@@ -1497,3 +1497,10 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 - New manual tool `tools/uimatrix` (see its README): 1,870 renders (every palette, light palette and special theme x 5 icon styles x 17 pages, phone width 390) with 200,000 elements checked. First clean run had about 3,000 findings, mostly test noise (previews and folded content, a window wider than 390). Real ones fixed here: icon plates inside `.view-btn`, `.hs-card`, `.home-sc-ico`, `.mh-ii`, `.app-header` in the light themes (a light-theme neumorphic rule out-ranked the neutralising rule), `.perm-badge.super` and `.danger-title` text under 3:1 in light themes. Last run: 0 layout problems; only the big empty-state icon on Groups (intentional).
 - Blind spots: sheets, modals, share cards, real data, real devices.
+
+
+## v200 - total duration = exact game minutes + rest
+
+- A player's session duration is now the exact minutes of their games plus the rest between them: with saved clock times it is first game start to last game end (real rest); without them each gap is estimated at `HEALTH_REST_GAP_MIN` (4 min). Booked hours stay ignored. `healthSegments` returns `playMin`; the chart timeline still adds the 10 min warm-up and 3 min cool-down.
+- Cards and the workout page show "on court 1:55 + rest 1:14" under the big duration. The old "On court" tile became "W-L" record (and the week card tile also names the games count).
+- Test: tests/health.test.js (estimated and real-clock cases).
