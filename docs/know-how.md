@@ -1467,3 +1467,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Share sheet of the Health overview (week / month / year) has a new row of chips: "Whole range" (the old overview card) and one chip per game day in that range. Picking a day draws `drawWeekSessionCard` (js/sharecard-health.js): big duration, calorie flame with pizza slices, the zone-coloured heart-rate line, avg / peak / on-court tiles, and the "my stats" gimmick: the range as bars with the picked day lit, "game day n of m", and a level bar (week: Warm-up, Rally 1 h, Smasher 3 h, Legend 6 h; a month needs 4x, a year 48x) with minutes to the next level.
 - Data: `shareOverviewNow()` now returns `list` (game days oldest first, each with `workoutShareData`); `workoutShareData` carries `dateKey` to light the matching bar. `_sc.pick` holds the chosen session id.
 - Test draws the card in both formats with a recording canvas (tests/sharecard.test.js). Looked at once in headless Chrome, not on a phone.
+
+
+## v195 - "3D clay" dashboard icon pack
+
+- Asked for the look of Iconscout's 3D badminton icons. The page returned 403 to us and its files may not be bundled in an app, so the pack is original: the Solar Bold glyphs get a puffy clay look from one SVG filter (`#clayF`: blurred bevel, specular light, soft shadow) and a light-to-dark gradient per colour class (`ico-clN`, same colour-by-meaning map as the box style). `CLAY_ART` holds hand-drawn shuttlecock (`shuttle`), racket (`court`) and `scoreboard`. The defs live in a hidden `#clayDefs` div created on first use.
+- Dashboard only: `_renderDashboard()` wraps `_renderDashboardInner()` and sets `_dashCtx`; `icon()` uses clay while it is on and `currentDashPack === "clay"`. Every other page keeps the chosen icon style. Controls (chevron, plus, ...) and icons under 14px stay plain.
+- Setting: Settings -> Icon style -> "Dashboard icons": 3D clay (default) or Same as above (localStorage `dashPack`).
+- If a new Dashboard icon looks flat, add it to `SOLAR_BOLD` or hand-draw it in `CLAY_ART`.

@@ -6395,3 +6395,14 @@ body[data-special="jujutsu"]:not([data-theme="light"]) .hs-health, body[data-spe
 .set-fold .set-fold-ch { transition: transform .2s; flex: none; }
 .set-fold[open] .set-fold-ch { transform: rotate(90deg); }
 .set-fold-b { padding: 0 16px 16px; }
+
+/* v195: dashboard pack "3D clay": gradient per colour class, filter from js/icons.js (#clayF) */
+.ico-cl0 .clay-g path { fill: url(#clayG0); }
+.ico-cl1 .clay-g path { fill: url(#clayG1); }
+.ico-cl2 .clay-g path { fill: url(#clayG2); }
+.ico-cl3 .clay-g path { fill: url(#clayG3); }
+.ico-cl4 .clay-g path { fill: url(#clayG4); }
+.ico-cl5 .clay-g path { fill: url(#clayG5); }
+.ico-cl6 .clay-g path { fill: url(#clayG6); }
+.ico-cl7 .clay-g path { fill: url(#clayG7); }
+.ico-clay { flex: none; vertical-align: middle; overflow: visible; }

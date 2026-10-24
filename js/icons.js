@@ -94,10 +94,46 @@ var ICON_BOX = { calendar: 0, sessions: 0, check: 0, pin: 0, vote: 0, polls: 0, 
   chart: 3, ranking: 3, dashboard: 3, scoreboard: 3, calc: 3, card: 3, bill: 4, wallet: 4, dinner: 4, other: 4, percent: 4, phone: 4, mail: 4, qr: 5, key: 5, lock: 5, camera: 5, manual: 5, watch: 5,
   trophy: 6, medal: 6, crown: 6, sun: 6, moon: 6, question: 7, settings: 3 };
 
+
+/* ───── Dashboard pack "3D clay" (v195): the Dashboard page only. Original art, not a download: the Solar Bold glyphs get a puffy clay
+   look from one SVG filter (blurred bevel + specular light + soft shadow) and a light-to-dark gradient per colour; the badminton
+   icons (shuttle = shuttlecock, court = racket) are drawn by hand. Same colour-by-meaning map as the box style. ───── */
+var DASH_PACKS = ["clay", "same"];
+var currentDashPack = "clay";
+try { var _dp = localStorage.getItem("dashPack"); if (DASH_PACKS.indexOf(_dp) >= 0) currentDashPack = _dp; } catch (e) {}
+var _dashCtx = false;   // true only while the Dashboard page is being drawn
+var CLAY_COLORS = [["#bbf7d0", "#16a34a"], ["#fecaca", "#dc2626"], ["#99f6e4", "#0d9488"], ["#bfdbfe", "#2563eb"], ["#fed7aa", "#ea580c"], ["#e9d5ff", "#9333ea"], ["#fef08a", "#d97706"], ["#fbcfe8", "#db2777"]];
+var CLAY_ART = {
+  shuttle: '<g transform="rotate(32 12 12)"><path d="M8.6 15.8 4.6 3.9Q12 1.6 19.4 3.9L15.4 15.8Z" fill="url(#clayW)"/><path d="M8.6 15.8 6.6 3.4M12 15.8V2.6M15.4 15.8 17.4 3.4M10.3 15.8 9.2 3M13.7 15.8 14.8 3" fill="none" stroke="#94a3b8" stroke-width=".6"/><path d="M5.6 6.9Q12 8.6 18.4 6.9" fill="none" stroke="#f97316" stroke-width="1.1" stroke-linecap="round"/><circle cx="12" cy="18.1" r="3.3" fill="url(#clayCork)"/></g>',
+  court: '<g transform="rotate(-38 12 12)"><ellipse cx="12" cy="8.2" rx="5.8" ry="7.2" fill="none" stroke="url(#clayG2)" stroke-width="2.6"/><path d="M12 1.3V15.1M6.6 8.2H17.4M7.6 4.2Q12 5.6 16.4 4.2M7.6 12.2Q12 10.8 16.4 12.2" fill="none" stroke="#e2e8f0" stroke-width=".55"/><path d="M12 15.2V22" stroke="url(#clayG4)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M12 18.6V21.6" stroke="#1e293b" stroke-width="3.2" stroke-linecap="round" fill="none"/></g>',
+  scoreboard: '<rect x="2" y="4" width="20" height="14" rx="3.5" fill="url(#clayG3)"/><path d="M12 6.5V15.5" stroke="#fff" stroke-width=".9" opacity=".7"/><path d="M5.6 15.2V9M5.6 9 4.6 9.9M16.6 9.2h2.6v2.8h-2.6v2.8h2.6M8.4 9h2.2v6.2H8.4z" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 19.5H16" stroke="url(#clayG3)" stroke-width="2.4" stroke-linecap="round"/>'
+};
+function _clayDefs() {
+  if (typeof document === "undefined" || !document.body || document.getElementById("clayDefs")) return;
+  var g = CLAY_COLORS.map(function (c, i) { return '<linearGradient id="clayG' + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c[0] + '"/><stop offset="1" stop-color="' + c[1] + '"/></linearGradient>'; }).join("");
+  var d = document.createElement("div"); d.id = "clayDefs"; d.setAttribute("aria-hidden", "true"); d.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  d.innerHTML = '<svg width="0" height="0"><defs>' + g + '<linearGradient id="clayW" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cbd5e1"/></linearGradient><linearGradient id="clayCork" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fdba74"/><stop offset="1" stop-color="#c2410c"/></linearGradient>' +
+    '<filter id="clayF" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation=".7" result="b"/><feSpecularLighting in="b" surfaceScale="2.4" specularConstant=".95" specularExponent="24" lighting-color="#fff" result="s"><fePointLight x="-6" y="-10" z="20"/></feSpecularLighting><feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/><feComposite in="SourceGraphic" in2="s2" operator="arithmetic" k1="0" k2="1" k3=".8" k4="0" result="lit"/><feDropShadow in="lit" dx="0" dy="1.1" stdDeviation=".8" flood-color="#000" flood-opacity=".38"/></filter></defs></svg>';
+  document.body.insertBefore(d, document.body.firstChild);
+}
+function _claySvg(name, size, cls) {
+  _clayDefs();
+  var ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)), px = Math.round(size * 1.35);
+  var body = CLAY_ART[name] || '<g class="clay-g">' + ((typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name]) || SOLAR[name]) + '</g>';
+  return '<svg class="si ico-clay ico-cl' + ci + (cls ? ' ' + cls : '') + '" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" aria-hidden="true"><g filter="url(#clayF)">' + body + '</g></svg>';
+}
+function setDashPack(id) {
+  if (DASH_PACKS.indexOf(id) < 0) return;
+  currentDashPack = id;
+  try { localStorage.setItem("dashPack", id); } catch (e) {}
+  if (typeof renderSettings === "function") renderSettings();
+}
+
 /** One icon in a given style (used by the Settings preview too); falls back to the classic icon when a set lacks the name */
 function iconAs(theme, name, size, cls) {
   if (!SOLAR[name]) return "";
   size = size || 18;
+  if (theme === "clay") return (ICON_PLAIN[name] || size < 14) ? _iconSvg(name, size, cls) : _claySvg(name, size, cls);
   var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
   if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
   if (theme === "neu" || theme === "glass") {
@@ -114,7 +150,7 @@ function iconAs(theme, name, size, cls) {
 
 function icon(name, size, cls) {
   if (!SOLAR[name]) return "";
-  return iconAs(currentIconTheme, name, size, cls);
+  return iconAs(_dashCtx && currentDashPack === "clay" ? "clay" : currentIconTheme, name, size, cls);
 }
 
 /** The nav bar and the app bar are drawn once at startup from the page shell: when the style changes they are drawn again */

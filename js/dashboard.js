@@ -58,7 +58,13 @@ function _periodLabel() {
 
 /* ---------- Main render ---------- */
 
+/** The Dashboard draws its icons in the dashboard pack (js/icons.js, "3D clay"); every other page keeps the chosen icon style */
 function _renderDashboard() {
+  _dashCtx = true;
+  try { _renderDashboardInner(); } finally { _dashCtx = false; }
+}
+
+function _renderDashboardInner() {
   var container = document.getElementById("dashboardContent");
   if (!container) return;
 
