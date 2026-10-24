@@ -14,7 +14,7 @@ function _schHm(min) { return Math.floor(min / 60) + ":" + ("0" + Math.round(min
 function workoutShareData(w, dateLabel) {
   var d = w.d;
   return {
-    date: dateLabel || w.date, time: w.time || "", totalMin: w.totalMin, onCourt: w.onCourt, games: w.games, kcal: w.kcal, avg: w.avg, peak: w.peak,
+    dateKey: w.date, date: dateLabel || w.date, time: w.time || "", totalMin: w.totalMin, onCourt: w.onCourt, games: w.games, kcal: w.kcal, avg: w.avg, peak: w.peak,
     zoneMin: d.zoneMin || null, zones: d.zones || null, pts: d.pts || null, close: d.close || 0, restAssumed: !!d.restAssumed,
     segs: d.segs.map(function (g) { return { mine: g.mine, their: g.their, won: !!g.won, close: !!g.close, len: g.len, s: g.s, e: g.e }; })
   };
@@ -166,5 +166,56 @@ function drawOverviewCard(canvas, x0, id, fmt) {
     y += (sq ? 120 : 150) + 22; }
   c.textAlign = "center"; c.fillStyle = P.text; c.font = _schFont(sq ? 44 : 54, 800); c.fillText("🔥 " + x0.active + " " + t(x0.kind === "year" ? "scActiveMonths" : "scActiveDays"), W / 2, y + 40); y += sq ? 64 : 90;
   _schBadges(c, P, y, overviewBadges(x0), W);
+  _schFoot(c, P, W, H, sq);
+}
+
+/** Level of the whole range by minutes played (a week: 1 h Rally, 3 h Smasher, 6 h Legend; a month x4, a year x48) */
+function _schLevel(x) {
+  var k = x.kind === "year" ? 48 : x.kind === "month" ? 4 : 1, steps = [0, 60 * k, 180 * k, 360 * k], lv = 0;
+  steps.forEach(function (s, i) { if (x.totalMin >= s) lv = i; });
+  var next = lv < 3 ? steps[lv + 1] : null;
+  return { lv: lv, emoji: ["\uD83C\uDF31", "\uD83C\uDFF8", "\uD83D\uDCA5", "\uD83D\uDC51"][lv], next: next, left: next ? Math.ceil(next - x.totalMin) : 0, pct: next ? (x.totalMin - steps[lv]) / (next - steps[lv]) : 1 };
+}
+
+/** One game day picked from the week (duration, calories, heart-rate line) plus a "my week" gimmick: the days as bars with this day lit, and a level bar */
+function drawWeekSessionCard(canvas, w, x0, idx, id, fmt) {
+  var sq = fmt === "square", W = 1080, H = sq ? 1350 : 1920, P = _scPalette(id), c = canvas.getContext("2d"), Z = _schZoneColors();
+  canvas.width = W; canvas.height = H; _scBackdrop(c, W, H, id, P); _scCourt(c, W, H, P);
+  var top = sq ? 66 : 140; _schHead(c, P, W, top, t("healthBadminton"), w.date + (w.time ? "  \u00b7  " + w.time : ""));
+  var y = top + (sq ? 140 : 180), half = (W - 140 - 24) / 2, ph = sq ? 230 : 310;
+  // duration | calories
+  _schPanel(c, P, 70, y, half, ph); c.textAlign = "center"; c.fillStyle = P.dim; c.font = _schFont(26, 700); c.fillText(t("healthDuration").toUpperCase(), 70 + half / 2, y + 52);
+  c.save(); c.shadowColor = P.accent; c.shadowBlur = 30; c.fillStyle = P.text; c.font = _schFont(sq ? 110 : 128, 800); c.fillText(_schHm(w.totalMin), 70 + half / 2, y + ph / 2 + (sq ? 38 : 44)); c.restore();
+  c.fillStyle = P.dim; c.font = _schFont(26, 600); c.fillText(w.games + " " + t("gamesWord"), 70 + half / 2, y + ph - 28);
+  var rx = 70 + half + 24; _schPanel(c, P, rx, y, half, ph);
+  if (w.kcal != null) { _schFlame(c, rx + half / 2, y + (sq ? 66 : 84), sq ? 86 : 110); c.textAlign = "center"; c.fillStyle = P.text; c.font = _schFont(sq ? 76 : 92, 800); c.fillText(String(w.kcal), rx + half / 2, y + (sq ? 168 : 222)); c.fillStyle = P.dim; c.font = _schFont(26, 600); c.fillText(t("healthKcal") + (w.kcal >= 285 ? "  \u00b7  " + "\uD83C\uDF55".repeat(Math.min(5, Math.round(w.kcal / 285))) : ""), rx + half / 2, y + ph - 26); }
+  else { c.textAlign = "center"; c.fillStyle = P.dim; c.font = _schFont(28, 600); c.fillText(t("healthAddDetails"), rx + half / 2, y + ph / 2); }
+  y += ph + 24;
+  // heart-rate line
+  var ch = sq ? 260 : 360; _schPanel(c, P, 70, y, W - 140, ch);
+  if (w.pts) _schChart(c, P, 70, y, W - 140, ch, w); else { c.textAlign = "center"; c.fillStyle = P.dim; c.font = _schFont(30, 600); c.fillText(t("healthAddDetails"), W / 2, y + ch / 2); }
+  y += ch + 24;
+  // avg / peak / on court
+  var bw = (W - 140 - 48) / 3, th = sq ? 110 : 140;
+  [[String(w.avg || "\u2013"), t("healthAvgBpm")], [String(w.peak || "\u2013"), t("healthPeakBpm")], [_schHm(w.onCourt), t("healthOnCourtTile")]].forEach(function (f, k) { var xx = 70 + k * (bw + 24); _schPanel(c, P, xx, y, bw, th); c.textAlign = "center"; c.fillStyle = P.text; c.font = _schFont(sq ? 54 : 66, 800); c.fillText(f[0], xx + bw / 2, y + (sq ? 66 : 82)); c.fillStyle = P.dim; c.font = _schFont(22, 600); c.fillText(f[1], xx + bw / 2, y + th - 20); });
+  y += th + 24;
+  // my week gimmick
+  var gh = sq ? 300 : 410, lvl = _schLevel(x0); _schPanel(c, P, 70, y, W - 140, gh);
+  c.textAlign = "left"; c.fillStyle = P.accent; c.font = _schFont(28, 800); c.fillText(t("scMyRange").toUpperCase() + "  \u00b7  " + x0.title, 104, y + 48);
+  c.textAlign = "right"; c.fillStyle = P.dim; c.font = _schFont(26, 700); c.fillText(t("scSessionOf").replace("{n}", idx + 1).replace("{m}", x0.list.length), W - 104, y + 48);
+  var n = x0.buckets.length, px = 104, pw = W - 208, py = y + 78, bh0 = gh - (sq ? 190 : 230), slot = pw / n, bwid = Math.min(46, slot * .62), mx = Math.max.apply(null, x0.buckets.map(function (b) { return b.min; }).concat([60]));
+  var mine = x0.buckets.map(function (b) { return w.dateKey && b.key === w.dateKey; });
+  x0.buckets.forEach(function (b, k) { var bh = b.min ? Math.max(10, bh0 * b.min / mx) : 0, xx = px + k * slot + (slot - bwid) / 2, lit = !!mine[k];
+    if (b.min) { var g = c.createLinearGradient(0, py + bh0 - bh, 0, py + bh0); g.addColorStop(0, lit ? P.accent : "rgba(255,255,255,.5)"); g.addColorStop(1, lit ? P.pill : "rgba(255,255,255,.18)"); c.save(); if (lit) { c.shadowColor = P.accent; c.shadowBlur = 26; } c.fillStyle = g; _scRound(c, xx, py + bh0 - bh, bwid, bh, Math.min(12, bwid / 2)); c.fill(); c.restore(); }
+    else { c.fillStyle = "rgba(255,255,255,.14)"; c.fillRect(xx, py + bh0 - 5, bwid, 5); }
+    if (b.label) { c.fillStyle = lit ? P.text : P.dim; c.font = _schFont(n > 12 ? 20 : 24, lit ? 800 : 600); c.textAlign = "center"; c.fillText(b.label, xx + bwid / 2, py + bh0 + 34); }
+    if (lit) { c.font = _schFont(34, 400); c.textAlign = "center"; c.fillText("\uD83C\uDFF8", xx + bwid / 2, py + bh0 - bh - 10); } });
+  // level bar
+  var ly = y + gh - (sq ? 66 : 82); c.fillStyle = "rgba(255,255,255,.14)"; _scRound(c, 104, ly, W - 208, 24, 12); c.fill();
+  var lg = c.createLinearGradient(104, 0, W - 104, 0); lg.addColorStop(0, P.pill); lg.addColorStop(1, P.accent); c.fillStyle = lg; _scRound(c, 104, ly, Math.max(24, (W - 208) * lvl.pct), 24, 12); c.fill();
+  c.textAlign = "left"; c.fillStyle = P.text; c.font = _schFont(28, 800); c.fillText(lvl.emoji + "  " + t("scLv" + lvl.lv), 104, ly + 58);
+  c.textAlign = "right"; c.fillStyle = P.dim; c.font = _schFont(24, 600); c.fillText(lvl.next ? t("scToNext").replace("{min}", lvl.left).replace("{name}", t("scLv" + (lvl.lv + 1))) : t("scMaxLevel"), W - 104, ly + 58);
+  y += gh + 22;
+  _schBadges(c, P, y, workoutBadges(w), W);
   _schFoot(c, P, W, H, sq);
 }
