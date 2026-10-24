@@ -6424,3 +6424,6 @@ body[data-special="jujutsu"]:not([data-theme="light"]) .hs-health, body[data-spe
 :is(.view-btn) :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) .si { color: inherit !important; filter: none !important; }
 body[data-theme="light"] .perm-badge.super { color: #92400e; border-color: rgba(180, 83, 9, .55); background: rgba(245, 158, 11, .16); }
 body[data-theme="light"] .danger-title { color: #b91c1c !important; }
+
+/* v200: on-court + rest line under the big duration */
+.wk-sub { font-size: 13px; opacity: .85; margin-top: 2px; font-weight: 600; }

@@ -81,3 +81,11 @@ keys = keys.map(function (x) { return x.slice(3, -2); });
 var keysOld = (src.match(/t\("(health[A-Za-z0-9]+|hShort|minShort|gamesWord)"\)/g) || []).map(function (x) { return x.slice(3, -2); });
 keys.concat(["healthSexNone", "healthSexM", "healthSexF"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("health OK");
+
+// total duration = exact game minutes + rest (real gaps, or an estimate when no clock times were saved); booked hours are ignored
+var GM = function (id, minutes, startAt, endAt) { return { id: id, minutes: minutes, teamA: ["me", "x"], teamB: ["y", "z"], startAt: startAt, endAt: endAt, games: [{ a: 21, b: 15 }] }; };
+var est = ctx.healthSegments("me", [GM("1", 20), GM("2", 20), GM("3", 20)], { duration: 3 });
+assert.strictEqual(est.onCourt, 60, "exact game minutes"); assert.strictEqual(est.playMin, 60 + 2 * ctx.HEALTH_REST_GAP_MIN, "plus an estimated rest between the 3 games"); assert.ok(est.playMin < 180, "a 3 h booking is not the duration");
+var T0 = 1760000000000, mn = 60000, real = ctx.healthSegments("me", [GM("1", 20, T0, T0 + 20 * mn), GM("2", 20, T0 + 35 * mn, T0 + 55 * mn), GM("3", 20, T0 + 70 * mn, T0 + 90 * mn)], { duration: 3 });
+assert.strictEqual(real.playMin, 90, "real clock times: first start to last end = 60 min of play + 30 min of real rest"); assert.strictEqual(real.onCourt, 60);
+console.log("health total duration OK");

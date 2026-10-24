@@ -6,6 +6,7 @@
    player's own heart rate reserve. Real watch readings will replace the curve later. Pure functions first, screens below. */
 
 var HEALTH_WARMUP_MIN = 10;
+var HEALTH_REST_GAP_MIN = 4;   // resting time assumed between two of my games when the live score saved no clock times
 var HEALTH_MET = { play: 5.5, warm: 4, rest: 2 };   // activity compendium values for social badminton, warm-up and standing rest
 var HEALTH_ZONES = [["Z1", .5, .6], ["Z2", .6, .7], ["Z3", .7, .8], ["Z4", .8, .9], ["Z5", .9, 1]];
 var _myHealthLoaded = false;
@@ -49,8 +50,9 @@ function healthSegments(uid, matches, session) {
     playMin = Math.max(sumMin, Math.round((mine[mine.length - 1].endAt - mine[0].startAt) / 60000));   // exact: first point to last game saved
     mine.forEach(function (m, i) { segs.push({ s: (m.startAt - t0) / 60000, e: (m.endAt - t0) / 60000, len: m.minutes, m: m }); });
   } else {
-    totalMin = HEALTH_WARMUP_MIN + sumMin + 3; playMin = sumMin;   // no timestamps saved: the games back to back
-    var gap = mine.length > 1 ? (totalMin - HEALTH_WARMUP_MIN - sumMin - 3) / (mine.length - 1) : 0, t = HEALTH_WARMUP_MIN;
+    // no clock times saved: exact minutes of each game + an estimated rest between them
+    var gap = HEALTH_REST_GAP_MIN, t = HEALTH_WARMUP_MIN;
+    playMin = sumMin + (mine.length - 1) * gap; totalMin = HEALTH_WARMUP_MIN + playMin + 3;
     mine.forEach(function (m) { segs.push({ s: t, e: t + m.minutes, len: m.minutes, m: m }); t += m.minutes + Math.max(0, gap); });
   }
   segs.forEach(function (g) {
