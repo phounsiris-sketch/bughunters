@@ -1481,3 +1481,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 - Duration on every health card / page is now the exact live-score time: first game start to last game end (`playMin` from `healthSegments`; `healthWorkouts().totalMin` = that). The booked hours of the session are no longer used (a 3 h booking with 2 h 20 min of play showed 3:00). `timeMin` keeps the longer timeline (10 min warm-up + 3 min cool-down) that the heart-rate chart and kcal estimate use. Games without saved start/end times fall back to the sum of their minutes.
 - Profile share card: the rating trend and the last-5 form now sit in theme panels (card colour + edge), the line is a pill-to-accent gradient with glow, soft area and an end dot; wins are filled pills in the theme colour, losses dashed outlines (no more fixed green / red).
+
+
+## v197 - no square plate inside the round Home button
+
+- Colour tiles style drew its rounded-square tile inside the round centre Home button of the nav bar. One rule at the end of styles.css (`.nav-center .nav-icon :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile)`) now removes any plate there in every style, so the glyph sits directly on the circle. Rule of thumb: an icon that lives in a circle gets a plain glyph, never a plate.

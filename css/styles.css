@@ -6406,3 +6406,8 @@ body[data-special="jujutsu"]:not([data-theme="light"]) .hs-health, body[data-spe
 .ico-cl6 .clay-g path { fill: url(#clayG6); }
 .ico-cl7 .clay-g path { fill: url(#clayG7); }
 .ico-clay { flex: none; vertical-align: middle; overflow: visible; }
+
+/* v197: the round Home button of the nav bar never shows a second (square) plate inside it, whatever the icon style */
+.nav-center .nav-icon :is(.ico-bx, .ico-neu, .ico-gl, .ico-tile) { background: none !important; box-shadow: none !important; border: 0 !important; width: auto !important; height: auto !important; margin: 0 !important; filter: none !important; transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.nav-center .nav-icon :is(.ico-bx, .ico-tile)::after { display: none !important; }
+.nav-center .nav-icon .si { color: #fff !important; filter: none !important; }
