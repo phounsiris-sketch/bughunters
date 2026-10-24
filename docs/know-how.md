@@ -1510,3 +1510,8 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 
 - Bug: when the live score saved games back to back (clock times touching), the graph had no rest between them, so six games drew one flat high block. `healthSegments` now builds the timeline from each game's exact live-score minutes and puts a rest before every next game: the real gap when the clock times show one, never less than `HEALTH_REST_GAP_MIN` (4 min). Total (`playMin`) = game minutes + those rests; the heart rate dips between games again.
 - Example (6 games x 13 min logged back to back): 78 min on court + 20 min rest = 1:38 (was 1:19 with a flat curve).
+
+
+## v202 - share-card panels 90% transparent
+
+- `_scPalette()` rewrites each theme's panel colour to alpha `SC_CARD_ALPHA` = 0.10 (90% see-through) for every share card (profile, workout, week, overview); the theme art shows through the panels, edges and text stay. Change the one constant to tune it.
