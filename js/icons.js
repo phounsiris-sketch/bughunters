@@ -73,9 +73,9 @@ var SOLAR = {
    classic = the Solar duotone set used everywhere else, line = Phosphor Regular, duo = Phosphor Duotone in a colour per icon,
    tiles = Phosphor Fill, white on a glossy rounded tile, box = the Solar Bold glyph in white on a 3D candy box (the default), neu = the glyph in its colour on a soft raised neumorphic plate, glass = a tinted plate that is 80% see-through. ICON_SETS (js/icons-sets.js) holds the Phosphor paths.
    Saved in localStorage "iconTheme". Since v190 the chosen style applies to every icon on every page. */
-var ICON_THEMES = ["box", "neu", "glass", "classic", "line", "duo", "tiles"];
+var ICON_THEMES = ["box", "neu", "glass", "classic", "tiles"];
 var currentIconTheme = "box";
-try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji") _it = "duo"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
+try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji" || _it === "line" || _it === "duo") _it = "box"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
 var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
 
 function _iconSvg(name, size, cls, extra) {

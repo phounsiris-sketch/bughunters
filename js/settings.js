@@ -41,6 +41,13 @@ function _configTabs() {
    Render
    ────────────────────────────────────────────────────────── */
 
+/** A settings card folded behind one row: title + current choice; open state survives a redraw */
+var _setFold = {};
+function _fold(id, ico, title, current, inner) {
+  return '<details class="card set-fold"' + (_setFold[id] ? ' open' : '') + ' ontoggle="_setFold[\'' + id + '\']=this.open"><summary><span class="set-fold-t">' + icon(ico, 14) + ' ' + title + '</span>' +
+    '<span class="set-fold-v">' + current + '</span>' + icon("chevron", 14, "set-fold-ch") + '</summary><div class="set-fold-b">' + inner + '</div></details>';
+}
+
 function renderSettings() {
   var page = typeof currentPage !== "undefined" ? currentPage : "";
   if (page === "config") { _renderConfigPage(); return; }
@@ -233,37 +240,39 @@ function _renderSettingsPage() {
   html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
   html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';
-  html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("appearance") + '</div>';
-  html += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
-  html += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
+  var ap = '';
+  ap += '<div class="settings-label" style="margin-bottom:8px">' + t("theme") + '</div>';
+  ap += _seg([["dark", icon("moon", 14) + " " + t("themeDark")], ["light", icon("sun", 14) + " " + t("themeLight")]], currentTheme, "setThemeMode");
   var light = currentTheme === 'light';
-  html += '<div class="settings-label" style="margin:14px 0 0">' + t(light ? "lightStyle" : "darkStyle") + '</div>';
-  html += '<div class="palette-grid">';
+  ap += '<div class="settings-label" style="margin:14px 0 0">' + t(light ? "lightStyle" : "darkStyle") + '</div>';
+  ap += '<div class="palette-grid">';
   (light ? LIGHT_PALETTES : PALETTES).forEach(function (p) {
     var on = (light ? currentLightPalette : currentPalette) === p[0];
-    html += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
+    ap += '<button class="palette-opt' + (on ? ' active' : '') + '" onclick="setPalette(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
       '<span class="palette-swatch">' + p[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') +
       (on ? '<i class="palette-check">' + icon("check", 11) + '</i>' : '') + '</span>' +
       '<span class="palette-name">' + t(p[1]) + '</span></button>';
   });
-  html += '</div></div>';
+  ap += '</div>';
+  html += _fold('app', 'dashboard', t('appearance'), (light ? t('themeLight') : t('themeDark')), ap);
   // Icon style: applies to the Dashboard page only
-  html += '<div class="card"><div class="card-title">' + icon("dashboard", 14) + ' ' + t("iconStyle") + '</div><div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
+  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
     ICON_THEMES.map(function (id) {
       var on = currentIconTheme === id;
       return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
         ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
-    }).join("") + '</div></div>';
+    }).join("") + '</div>');
   // Special (gimmick) themes: separate from the styles above, dark mode only
-  html += '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("specialThemes") + '</div>' +
-    '<div class="form-hint">' + t("specialThemesHint") + '</div><div class="sp-grid">';
+  var spH = '<div class="form-hint">' + t("specialThemesHint") + '</div><div class="sp-grid">';
   SPECIALS.forEach(function (sp) {
     var on = currentSpecial === sp[0];
-    html += '<button type="button" class="sp-opt' + (on ? ' active' : '') + '" onclick="setSpecial(\'' + sp[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
+    spH += '<button type="button" class="sp-opt' + (on ? ' active' : '') + '" onclick="setSpecial(\'' + sp[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '>' +
       '<span class="sp-swatch">' + sp[2].map(function (c) { return '<span style="background:' + c + '"></span>'; }).join('') + '</span>' +
       '<b>' + t(sp[1]) + '</b><small>' + t(sp[1] + "Sub") + '</small></button>';
   });
-  html += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '') + '</div>';
+  spH += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '');
+  var spCur = SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0];
+  html += _fold('special', 'medal', t("specialThemes"), spCur ? t(spCur[1]) : t("specialOff"), spH);
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");

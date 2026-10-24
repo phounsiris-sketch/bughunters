@@ -1454,3 +1454,9 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 - Any active member can open Settings -> "Invite friends" (group-settings page) and share the invite link / QR. Admins keep: reset code, and a checkbox "Members can invite friends with this link" (writes `groups/{gid}.adminOnlyInvite`; absent = members may invite).
 - `firestore.rules` `groupSecrets` read: admin OR (active member AND group not `adminOnlyInvite`). Create/update stay admin only. **Rules must be published again by hand** (dry run first); until then members see the "admins only" note.
 - Trade-off: the invite code is a secret shared by link; a member who leaks it needs an admin to reset the code (existing button).
+
+
+## v193 - fewer icon styles, folded settings
+
+- Icon styles "Line" and "Colour duotone" removed from `ICON_THEMES` (now box, neu, glass, classic, tiles). A saved line / duo / emoji choice falls back to the box style. The Phosphor line/duo sets stay in js/icons-sets.js: controls and tiles still use them. The EN/LA `icon_line` / `icon_duo` texts remain unused.
+- Settings: Appearance (dark/light + palette), Icon style and Special themes are each one folded row (`_fold()` in settings.js, `<details class="set-fold">`) showing the current choice; tap to open. Open state is kept in `_setFold` so a redraw after picking does not close it.
