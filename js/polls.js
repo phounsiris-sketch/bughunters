@@ -243,7 +243,10 @@ function _renderPollCard(poll) {
     '<div class="poll-top-main"><div class="poll-court">' + escapeHtml(np.courtName || '') + (court ? ' ' + courtMapLink(court) : '') + '</div>' +
     '<div class="poll-stats">' + iconStatHtml("clock", escapeHtml(np.time || '') + (np.duration ? ' (' + fmtHours(np.duration) + ')' : '')) +
     iconStatHtml("users", inN + '/' + minPlayers) + '</div></div>' + pillHtml(kind, statusLabel) + '</div>';
-  html += '<div class="poll-by">' + t('createdBy') + ' ' + personHtml(poll.createdBy, 22) + '</div>';
+  // Edit and delete sit in the card itself (small round buttons next to "created by"); rarer actions are in "Manage" below
+  html += '<div class="poll-by"><span class="poll-by-who">' + t('createdBy') + ' ' + personHtml(poll.createdBy, 22) + '</span>' + (isCreator ?
+    '<span class="poll-quick"><button type="button" class="poll-q" aria-label="' + t('editPoll') + '" title="' + t('editPoll') + '" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 16) + '</button>' +
+    '<button type="button" class="poll-q danger" aria-label="' + t('deletePoll') + '" title="' + t('deletePoll') + '" onclick="deletePoll(\'' + jsq(poll.id) + '\')">' + icon("trash", 16) + '</button></span>' : '') + '</div>';
 
   // The plan: mode tags and a note (the date, time and court are above)
   if ((typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) || poll.note) {
@@ -298,15 +301,11 @@ function _renderPollCard(poll) {
     html += '<button class="btn-secondary" style="margin-top:10px" onclick="showSessionDetail(\'' + jsq(poll.sessionId) + '\')">' + t('openSession') + ' →</button>';
   }
 
-  // Whoever runs polls (admins included) can edit and delete a poll in any state: open, confirmed (completed) or cancelled
-  if (isCreator) {
-    html += '<details class="poll-manage" open><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' +
-      (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
-      (poll.answers || !isOpen ? '<button class="edit-btn" onclick="showEditPoll(\'' + jsq(poll.id) + '\')">' + icon("pen", 14) + ' ' + t('editPoll') + '</button>' : '') +
-      (poll.status === 'confirmed' ? '<button class="edit-btn danger" onclick="deleteSessionAndPoll(\'' + jsq(poll.id) + '\')">' + icon("history", 14) + ' ' + t('unconfirmPoll') + '</button>' : '') +
-      (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '') +
-      '<button class="edit-btn danger" onclick="deletePoll(\'' + jsq(poll.id) + '\')">' + icon("trash", 14) + ' ' + t('deletePoll') + '</button></div></details>';
-  }
+  // Edit / delete are in the card header (any state). "Manage" holds the rarer actions and is folded.
+  var extra = (isOpen ? '<button class="edit-btn" onclick="showVoteForOthers(\'' + jsq(poll.id) + '\')">+ ' + t('addVotesForOthers') + '</button>' : '') +
+    (poll.status === 'confirmed' ? '<button class="edit-btn danger" onclick="deleteSessionAndPoll(\'' + jsq(poll.id) + '\')">' + icon("history", 14) + ' ' + t('unconfirmPoll') + '</button>' : '') +
+    (isOpen ? '<button class="edit-btn danger" onclick="cancelPoll(\'' + jsq(poll.id) + '\')">' + t('cancelPoll') + '</button>' : '');
+  if (isCreator && extra) html += '<details class="poll-manage"><summary>' + icon("settings", 14) + ' ' + t('pollManage') + '</summary><div class="poll-manage-btns">' + extra + '</div></details>';
 
   html += '</div>';
   return html;
