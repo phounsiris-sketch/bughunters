@@ -6385,3 +6385,13 @@ body[data-special="jujutsu"]:not([data-theme="light"]) .hs-rating { background: 
 body[data-special="jujutsu"]:not([data-theme="light"]) .home-next, body[data-special="jujutsu"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #6d28d9, #0f0b22); }
 body[data-special="jujutsu"]:not([data-theme="light"]) .live-screen .ls-half::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Crect x='11' y='4' width='18' height='32' fill='%23f1ebd8'/%3E%3Cpath d='M15 10 H25 M20 10 V20 M15 24 L25 30 M25 24 L15 30' stroke='%23b91c1c' stroke-width='2' fill='none'/%3E%3C/svg%3E") right 12px top 8px / 30px 30px no-repeat; }
 body[data-special="jujutsu"]:not([data-theme="light"]) .hs-health, body[data-special="jujutsu"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #0f0b22, #6d28d9); }
+
+/* v193: appearance, icon style and special themes sit behind one folded row each */
+.set-fold { padding: 0; }
+.set-fold > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer; min-height: 48px; }
+.set-fold > summary::-webkit-details-marker { display: none; }
+.set-fold-t { font-weight: 700; display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.set-fold-v { color: var(--text-muted); font-size: 13px; text-align: right; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-fold .set-fold-ch { transition: transform .2s; flex: none; }
+.set-fold[open] .set-fold-ch { transform: rotate(90deg); }
+.set-fold-b { padding: 0 16px 16px; }
