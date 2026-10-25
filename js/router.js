@@ -189,6 +189,7 @@ function hideSplash() {
   var el = document.getElementById("splash");
   if (!el || el.classList.contains("hide")) return;
   _splashReady = true;
+  if (!window.spDone && !_splashSkipped) return;   // the splash scene is still playing: js/splash.js calls hideSplash again when it ends
   var wait = _splashSkipped ? 0 : Math.max(0, SPLASH_MIN_MS - (Date.now() - _splashStart));
   clearTimeout(_splashTimer);
   _splashTimer = setTimeout(function () { el.classList.add("hide"); }, wait);

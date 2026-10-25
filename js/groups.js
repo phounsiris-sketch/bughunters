@@ -659,14 +659,14 @@ function loadGroupSettings() {
   if (!box) return;
   if (!isGroupAdminMe()) {
     // A member only sees the invite box (unless an admin switched member invites off)
-    if (currentGroup.adminOnlyInvite) { box.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; return; }
-    box.innerHTML = '<div id="groupInviteBox"></div>';
+    if (currentGroup.adminOnlyInvite) { box.innerHTML = _groupManageHtml() + '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; return; }
+    box.innerHTML = _groupManageHtml() + '<div id="groupInviteBox"></div>';
     _renderInviteBox();
     fsdb.collection("groupSecrets").doc(currentGroupId).get().then(function (doc) { _groupSecret = doc.exists ? doc.data() : null; _renderInviteBox(); }).catch(function () { _groupSecret = null; var bx = document.getElementById("groupInviteBox"); if (bx) bx.innerHTML = '<div class="perm-note">' + icon("lock", 14) + ' ' + t("adminsOnly") + '</div>'; });
     return;
   }
   var owner = isSuperAdmin() || (currentGroup.ownerId === currentUser.uid);
-  box.innerHTML = '<div id="groupLogoBox"></div><div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>' +
+  box.innerHTML = _groupManageHtml() + '<div id="groupLogoBox"></div><div id="groupInviteBox"></div><div class="settings-section">' + t("groupDetails") + '</div><div id="groupFormBox"></div>' +
     (owner ? '<div class="settings-section danger-title">' + t("dangerZone") + '</div><div class="card danger-card"><div class="form-hint" style="margin-bottom:10px">' +
       t("deleteGroupHint") + '</div><button class="btn-danger" onclick="deleteGroup()">' + icon("trash", 15) + ' ' + t("deleteGroup") + '</button></div>' : '');
   renderGroupForm("groupFormBox", groupEditForm, true);
@@ -764,7 +764,7 @@ function saveGroupSettings() {
 /* ---------- Members & requests (admins) ---------- */
 
 function loadGroupMembers() {
-  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("members") }]);
+  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("groupSettings"), action: "showPage('group-settings')" }, { label: t("members") }]);
   var box = document.getElementById("groupMembersContent");
   if (!box) return;
   var admin = isGroupAdminMe();

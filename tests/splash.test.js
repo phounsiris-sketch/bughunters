@@ -10,7 +10,7 @@ assert.ok(ids.length >= 17, "found the style ids: " + ids.length);
 ids.forEach(function (id) { var p = pal[id]; assert.ok(p && ["hot", "hot2", "stone", "deep"].every(function (k) { return p[k] && p[k].length === 3 && p[k].every(function (v) { return v >= 0 && v <= 255; }); }), "the splash has colours for " + id); });
 assert.ok(splash.indexOf("pickPal()") > 0 && /localStorage\.getItem\(k\)/.test(splash), "the colours come from the saved theme");
 assert.ok(html.indexOf("godsmash_splash") < 0 && html.indexOf("sp-blue") < 0 && html.indexOf("sp-red") < 0, "no more red/blue alternation");
-assert.ok(html.indexOf("sp3fx") < 0 && splash.indexOf("getContext") < 0 && splash.indexOf("requestAnimationFrame") < 0, "no canvas: the splash is plain CSS");
+assert.ok(html.indexOf("sp3fx") < 0 && splash.indexOf("getContext") < 0, "no canvas: the splash is plain CSS");
 assert.ok(/class="sp-court"/.test(html) && (html.match(/<path pathLength="1" d="M[^"]*"\/>/g) || []).length === 18 && /class="cb" transform="rotate\(180 305 670\)"/.test(html), "the badminton court is drawn from the top left and, turned half a turn, from the bottom right corner");
 var courtMs = +css.match(/animation: sp-draw ([\d.]+)s/)[1], ringMs = +css.match(/animation: sp-ring ([\d.]+)s/)[1];
 assert.ok(courtMs > ringMs * 2, "the court is drawn slower than the line round the logo (" + courtMs + " s vs " + ringMs + " s)");
@@ -18,4 +18,7 @@ assert.ok(/prefers-reduced-motion: reduce\) \{\s*#splash::before/.test(css), "re
 var min = +router.match(/\? (\d+) : (\d+);\s*\/\/ the court takes about 1\.65 s to draw; plus a \.25 s fade/)[2];
 assert.ok(min + 250 <= 2000, "minimum on screen " + min + " ms + 250 ms fade stays under 2 s");
 assert.ok(/#splash \{[^}]*transition: opacity 0\.25s/.test(css), "fade is 0.25 s");
+assert.ok(/window\.spDone/.test(splash) && /classList\.add\("go"\)/.test(splash) && /getAnimations/.test(splash), "the splash starts on the first painted frame and reports when every animation has ended");
+assert.ok(/if \(!window\.spDone && !_splashSkipped\) return;/.test(router), "the splash leaves only after the scene has played (a tap still skips)");
+assert.ok(/#splash:not\(\.go\)[^{]*\{[^}]*animation-play-state: paused/.test(css), "animations wait for .go");
 console.log("splash OK");

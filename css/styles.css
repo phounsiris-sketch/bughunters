@@ -3104,6 +3104,8 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 /* Plain CSS, no canvas: a soft glow in the theme colour, the badminton court drawn as thin lines, the logo eases in with a line drawn round it, the name opens up. Colours come from js/splash.js. */
 #splash { --deep: 3, 8, 16; --hot: 20, 184, 166; --hot2: 187, 247, 208; position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: rgb(var(--deep)); transition: opacity 0.25s ease, visibility 0.25s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; will-change: opacity; }
 #splash.hide { opacity: 0; visibility: hidden; }
+/* the animations start on the first painted frame (js/splash.js adds .go), so a busy page start never eats the first part of the court drawing */
+#splash:not(.go), #splash:not(.go) *, #splash:not(.go)::before { animation-play-state: paused !important; }
 #splash::before { content: ""; position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; translate: -50% -50%; background: radial-gradient(closest-side, rgba(var(--hot), .30), rgba(var(--hot), .08) 55%, transparent); opacity: 0; animation: sp-glow 3.2s ease-in-out .05s infinite; }
 .sp-court { position: absolute; left: 50%; top: 50%; width: min(88%, calc(84vh * .4552)); height: auto; aspect-ratio: 610 / 1340; translate: -50% -50%; overflow: visible; opacity: 0; animation: sp-court-in .5s ease .02s forwards; }
 .sp-court path { fill: none; stroke: rgb(var(--hot2)); stroke-opacity: .9; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw 1.5s cubic-bezier(.45, 0, .2, 1) .15s forwards, sp-dim .6s ease 1.2s forwards; }

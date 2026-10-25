@@ -125,7 +125,7 @@ function renderHealthPage() {
   html += '<div class="hv-paths"><button type="button" class="hv-path" onclick="document.getElementById(\'hvZones\').scrollIntoView({behavior:\'smooth\'})">' + icon("chart", 18) + '<span>' + t("healthZonesTitle") + '</span></button>' +
     '<button type="button" class="hv-path" onclick="document.getElementById(\'hvList\').scrollIntoView({behavior:\'smooth\'})">' + icon("history", 18) + '<span>' + t("healthWorkouts") + '</span></button>' +
     '<button type="button" class="hv-path" onclick="openPfSub(\'health\')">' + icon("user", 18) + '<span>' + t("healthDetails") + '</span></button>' +
-    '<button type="button" class="hv-path" onclick="openShareCard(\'\',\'overview\')">' + icon("share", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
+    '<button type="button" class="hv-path" onclick="openShareCard(\'\',\'overview\')">' + icon("shareOut", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
   // zones for the range
   var zones = healthZones(h, age);
   html += '<div class="card" id="hvZones"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthZonesTitle") + '</div>' +
@@ -154,7 +154,7 @@ function renderWorkoutPage() {
   var d = w.d, h = myHealth();
   var tile = function (cls, label, val, unit) { return '<div class="wk-tile"><small class="' + cls + '">' + label + '</small><b>' + val + (unit ? ' <em>' + unit + '</em>' : '') + '</b></div>'; };
   var date = new Date(w.date + "T00:00:00");
-  var html = '<div class="wk-hero"><button type="button" class="wk-share" aria-label="' + t("shareMyCard") + '" onclick="openShareCard(\'\',\'workout\',\'' + jsq(w.sid) + '\')">' + icon("share", 20) + '</button>' +
+  var html = '<div class="wk-hero"><button type="button" class="wk-share" aria-label="' + t("shareMyCard") + '" onclick="openShareCard(\'\',\'workout\',\'' + jsq(w.sid) + '\')">' + icon("shareOut", 20) + '</button>' +
     '<svg class="wk-shuttle" viewBox="0 0 100 100" aria-hidden="true"><path d="M30 55 L12 8 Q50 -6 88 8 L70 55Z" fill="rgba(255,255,255,.9)"/><path d="M26 40 L74 40 M34 25 L66 25 M40 55 L28 14 M50 55 L50 6 M60 55 L72 14" stroke="rgba(0,0,0,.18)" stroke-width="2" fill="none"/><circle cx="50" cy="68" r="15" fill="#f5deb3"/></svg>' +
     '<div class="wk-title">' + t("healthBadminton") + '</div><div class="wk-dur">' + _hmm(w.totalMin) + '</div><div class="wk-sub">' + t("healthOnCourtTile") + ' ' + _hmm(w.onCourt) + ' + ' + t("healthRestTile") + ' ' + _hmm(Math.max(0, w.totalMin - w.onCourt)) + '</div><div class="wk-date">' + escapeHtml(_fmtD(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) + (w.time ? " " + w.time : "")) + '</div></div>';
   html += '<div class="card wk-card"><div class="card-title">' + t("healthWorkoutDetails") + '</div><div class="wk-tiles">' +

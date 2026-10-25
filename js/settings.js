@@ -76,9 +76,11 @@ function renderSettings() {
 function _renderConfigPage() {
   var container = document.getElementById("configContent");
   if (!container) return;
-  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("configuration") }]);
   var tabs = _configTabs();
   if (!tabs.some(function (x) { return x[0] === settingsTab; })) settingsTab = 'players';
+  var curTab = tabs.filter(function (x) { return x[0] === settingsTab; })[0];
+  if (typeof currentGroup !== "undefined" && currentGroup) setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("groupSettings"), action: "showPage('group-settings')" }, { label: t(curTab[1]) }]);
+  else setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("configuration") }]);
 
   var tabsEl = document.getElementById("configTabs");
   if (tabsEl) {
@@ -152,7 +154,7 @@ function _renderProfileTab() {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
     html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
-    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("share", 16) + ' ' + t("shareMyCard") + '</button>';
+    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("shareOut", 16) + ' ' + t("shareMyCard") + '</button>';
   }
   html += '</div>';
 
@@ -205,6 +207,21 @@ function showConfigTab(tab) {
   showPage('config');
 }
 
+/** The group's own pages, one list (v213): who is in it, courts and prices, shuttlecocks, players without the app, their QR, general rules */
+function _groupManageHtml() {
+  if (!currentGroup) return "";
+  var admin = isGroupAdminMe(), cfg = typeof can === "function" && can("editConfig");
+  var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
+  var rows = [];
+  rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
+  rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
+  rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
+  rows.push(_navRow("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint")));
+  if (cfg) rows.push(_navRow("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint")));
+  rows.push(_navRow("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint")));
+  return '<div class="card nav-rows">' + rows.join('') + '</div>';
+}
+
 function _renderSettingsPage() {
   var html = '';
   // How many reports wait for the admins (counted in the background)
@@ -218,14 +235,8 @@ function _renderSettingsPage() {
     var admin = isGroupAdminMe();
     var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
     rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
-    if (admin) rows.push(_navRow("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint")));
-    else if (!currentGroup.adminOnlyInvite) rows.push(_navRow("showPage('group-settings')", "link", t("invitePlayers"), t("inviteGroupHint")));
-    rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
-    rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
-    rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
-    rows.push(_navRow("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint")));
-    if (cfg) rows.push(_navRow("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint")));
-    rows.push(_navRow("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint")));
+    // Members, courts, shuttlecocks, players, QR and general now live on the Group settings page (v213)
+    rows.push(_navRow("showPage('group-settings')", "settings", t("groupSettings"), t("groupHubHint") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : '')));
     if (admin && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));
   } else {
     if (GROUPS_ON) rows.push(_navRow("showPage('groups')", "users", t("yourGroups"), t("createGroupHint")));

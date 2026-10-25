@@ -10,6 +10,7 @@ var SOLAR = {
 "search": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"M16 16l4.500 4.500\"/></g>",
 "target": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"7\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></g><circle cx=\"12\" cy=\"12\" r=\"2.4\" fill=\"currentColor\"/>",
 "share": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3\"/><path d=\"M7.5 7.5L12 3l4.5 4.5\"/><path d=\"M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12\"/></g>",
+"shareOut": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 15V3\"/><path d=\"M7.5 7.5L12 3l4.5 4.5\"/><path d=\"M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12\"/></g>",
 "route": "<g fill=\"currentColor\"><path d=\"M21.7 11.3L12.7 2.3a1 1 0 0 0-1.4 0l-9 9a1 1 0 0 0 0 1.4l9 9a1 1 0 0 0 1.4 0l9-9a1 1 0 0 0 0-1.4z\" /></g><path d=\"M8.5 14v-2.5A1.5 1.5 0 0 1 10 10h5.5M13 7.5L15.5 10 13 12.5\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",
 "trophy": "<g fill=\"currentColor\"><path d=\"M7 3h10v6.5a5 5 0 0 1-10 0V3z\"/><path opacity=\".5\" d=\"M10.8 14.6h2.4V18h-2.4z\"/><path d=\"M8 19h8a1 1 0 0 1 1 1v1H7v-1a1 1 0 0 1 1-1z\"/></g><path d=\"M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>",
 "close": "<g fill=\"currentColor\"><path d=\"M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z\" opacity=\".5\"/><path d=\"M8.96967 8.96967C9.26256 8.67678 9.73744 8.67678 10.0303 8.96967L12 10.9394L13.9697 8.96969C14.2626 8.6768 14.7374 8.6768 15.0303 8.96969C15.3232 9.26258 15.3232 9.73746 15.0303 10.0304L13.0607 12L15.0303 13.9696C15.3232 14.2625 15.3232 14.7374 15.0303 15.0303C14.7374 15.3232 14.2625 15.3232 13.9696 15.0303L12 13.0607L10.0304 15.0303C9.73746 15.3232 9.26258 15.3232 8.96969 15.0303C8.6768 14.7374 8.6768 14.2626 8.96969 13.9697L10.9394 12L8.96967 10.0303C8.67678 9.73744 8.67678 9.26256 8.96967 8.96967Z\"/></g>",
@@ -76,7 +77,7 @@ var SOLAR = {
 var ICON_THEMES = ["box", "neu", "glass", "classic", "tiles"];
 var currentIconTheme = "box";
 try { var _it = localStorage.getItem("iconTheme"); if (_it === "emoji" || _it === "line" || _it === "duo") _it = "box"; if (ICON_THEMES.indexOf(_it) >= 0) currentIconTheme = _it; } catch (e) {}
-var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
+var ICON_PLAIN = { chevron: 1, back: 1, prev: 1, next: 1, plus: 1, minus: 1, add: 1, close: 1, search: 1, filter: 1, share: 1, shareOut: 1, edit: 1, pen: 1, trash: 1, trash2: 1, link: 1, device: 1 };   // controls stay plain line icons
 
 function _iconSvg(name, size, cls, extra) {
   return '<svg class="si' + (cls ? ' ' + cls : '') + (extra ? ' ' + extra : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' + SOLAR[name] + '</svg>';

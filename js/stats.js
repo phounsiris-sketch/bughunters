@@ -237,7 +237,7 @@ function _myStatsCard() {
   // Who I am, my place and my rating (the one big number)
   html += '<div class="mh-top">' + avatarHtml(me, 56) + '<div class="mh-id"><div class="mh-name"><span class="mh-nm">' + getUserName(me) + '</span></div>' +
     '<div class="mh-sub">' + (lvl ? levelBadgeHtml(lvl, true) : '') + (rk ? '<b class="mh-rank">#' + rk + '</b> ' + _rankTrend(st.rankChange.players[me], p.rating, p.monthStart) : t("notRankedYet")) + '</div></div>' +
-    '<div class="mh-acts"><button class="how-btn" aria-label="' + t("shareMyCard") + '" title="' + t("shareMyCard") + '" onclick="openShareCard()">' + icon("share", 14) + '</button>' +
+    '<div class="mh-acts"><button class="how-btn" aria-label="' + t("shareMyCard") + '" title="' + t("shareMyCard") + '" onclick="openShareCard()">' + icon("shareOut", 14) + '</button>' +
     '<button class="how-btn" aria-label="' + t("howRankingWorks") + '" onclick="showRankingHelp()">?</button></div>' +
     '<div class="mh-rate"><small>' + t("homeRating") + '</small><b>' + (p && p.comp ? Math.round(p.rating) : '\u2013') + '</b>' + (p && p.comp ? _provTag(p.comp, RANK_MIN_MATCHES) : '') + '</div></div>';
   html += '<div class="mh-scope">' + scopeChipsHtml() + '</div>';

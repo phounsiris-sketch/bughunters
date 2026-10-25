@@ -1566,3 +1566,11 @@ Rules (published by hand, dry run first): `liveGames` need small ints and short 
 ## v212: one shuttlecock in every icon style
 
 The shuttlecock is the default (classic Solar) drawing in every style. Before, box / neu / glass used the bold glyph, tiles the Phosphor one, and the clay and sticker packs a hand-drawn one. Now `iconAs` draws `SOLAR.shuttle` for all of them; box, neu, glass and tiles still put it on their plate, and clay and sticker show it plain (nothing else in the Dashboard packs is changed). The hand-drawn `CLAY_ART.shuttle` stays in the file but is not used.
+
+## v213: group pages moved into Group settings
+
+The Settings page (Group section) keeps only the group switcher, one Group settings row (with the pending-requests badge for admins) and Reports for admins. Members, Courts and prices, Shuttlecocks, Players, Player QR (editConfig) and General are now one list at the top of the Group settings page (`_groupManageHtml()` in js/settings.js, used by `loadGroupSettings` for admins and for members). Members see the list too, plus the invite box when members may invite. Breadcrumbs of the config tabs and Members are now Settings > Group settings > page. Without a group, the old Configuration row stays. EN and LA key `groupHubHint` (Lao unreviewed).
+
+Also in v213:
+- **Splash plays in full.** The animations start on the first painted frame (js/splash.js adds `.go`; CSS holds them paused until then), and the splash leaves only when every finite animation has ended (`window.spDone`, set from `getAnimations().finished`; fallback 5 s). `hideSplash()` in js/router.js returns early until then and js/splash.js calls it again; a tap still skips. Checked in real Chrome over the debugging protocol: app ready at 0.1 s, the splash left at about 1.95 s (court 1.5 s + .15 s delay, dim to 1.8 s, plus 120 ms).
+- **Share my card icon.** The four "Share my card" buttons (Settings profile, Stats card, Health) use the new `shareOut` icon (arrow up out of a tray) instead of `share` (three connected dots). `share` is still used by the card picture sheet and the court location button. Note: `js/icons.js` has two `"share"` keys in `SOLAR`; the later (nodes) one wins.
