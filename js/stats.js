@@ -732,6 +732,8 @@ function sessionGamesTabHtml(s) {
   var mode = s.mode || "competition";
   var html = '<div class="games-mode"><span class="tag mode-' + cssId(mode) + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
   // Two buttons (v216): Live score first, Add score opens the form
+  // Tournament (v235): its button lives here in the session's Games tab, not on the list card
+  if (typeof tourCardHtml === "function") html += tourCardHtml(s);
   if (_gfSession !== s.id) { _gfSession = s.id; _gfOpen = false; }
   if (gameForm && gameForm.id) _gfOpen = true;
   if (_canAddGames(s)) {

@@ -500,13 +500,26 @@ function tourClose() {
   var el = document.getElementById("tnScreen"); if (el) el.remove();
   document.body.classList.remove("tn-open");
   document.removeEventListener("keydown", _tnKey, true);
+  _tnRefreshHost();
 }
 function _tnScroll(sel) {
   try { setTimeout(function () { var e = document.querySelector(sel); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: _tnReduced() ? "auto" : "smooth", block: "center" }); }, 60); } catch (e) {}
 }
 
 /** Called when sessions change on the server: show the newest tournament unless someone is typing */
+/** v235: the button sits in the session's Games tab; keep its label in step with the newest scores */
+function _tnRefreshHost() {
+  try {
+    if (typeof currentPage === "undefined" || currentPage !== "session-detail" || typeof currentSession === "undefined" || !currentSession) return;
+    var box = document.querySelector(".tn-card");
+    if (!box) return;
+    var fresh = _tnSession(currentSession.id) || currentSession, tmp = document.createElement("div");
+    tmp.innerHTML = tourCardHtml(fresh);
+    if (tmp.firstChild) box.replaceWith(tmp.firstChild); else box.remove();
+  } catch (e) {}
+}
 function tourOnSessions() {
+  _tnRefreshHost();
   if (!_tnSid || !document.getElementById("tnScreen")) return;
   var s = _tnSession(_tnSid);
   if (!s) { tourClose(); return; }

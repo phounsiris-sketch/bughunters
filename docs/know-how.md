@@ -1713,3 +1713,7 @@ All four changes are backward compatible: the app works with the rules published
 
 Found in the live console after the v228-v233 merge: `ReferenceError: jsq is not defined` at storage.js:123 on every start. `warmAtStart` ran while storage.js loaded, before app.js (where `jsq` lives, line 403 of index.html vs 366), so the images kept for the next start (`imgKeep`: group logos, photos) were never read back from IndexedDB into the memory cache. It now waits for DOMContentLoaded (all deferred scripts have run); if the page is already complete it runs at once. Nothing else changed.
 - Tests: tests/fast-start.test.js (load order, no warm-up while storage.js loads, runs once jsq exists).
+
+## v235: tournament button in the session's Games tab
+- The teal tournament strip (`tourCardHtml`) moved from the sessions list card into `sessionGamesTabHtml` (js/stats.js), above Live score / Add score. Everyone sees it; only organisers can press the actions.
+- `_tnRefreshHost()` redraws that strip when sessions change and when the tournament screen closes, so the label (Play game k of G, Random semifinal ...) stays current.

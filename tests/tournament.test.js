@@ -264,7 +264,8 @@ function eightToSemis(seed) {
 var app = fs.readFileSync("js/app.js", "utf8"), sw = fs.readFileSync("sw.js", "utf8"), html = fs.readFileSync("index.html", "utf8"), ses = fs.readFileSync("js/sessions.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8");
 assert.ok(app.match(/APP_VERSION = "(v\d+)"/)[1] === sw.match(/godsmash-(v\d+)/)[1], "version bumped together");
 assert.ok(sw.indexOf("'./js/tournament.js'") > 0 && html.indexOf('src="js/tournament.js"') > 0, "script loaded and precached");
-assert.ok(/tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "session card shows the button; sessions updates refresh the screen");
+var statsSrc = fs.readFileSync("js/stats.js", "utf8");
+assert.ok(/tourCardHtml\(s\)/.test(statsSrc) && !/tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "v235: the button is in the session Games tab, not on the list card; sessions updates refresh it");
 assert.ok(!/\b(confirm|prompt|alert)\s*\(/.test(src.replace(/askConfirm|askYes/g, "")), "no native confirm, prompt or alert");
 assert.ok(!/\beval\s*\(|new Function/.test(src), "no eval, no new Function");
 assert.ok(/askYes\(t\("tourResetTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourCorrect"\)/.test(src), "reset and impact corrections ask first");
