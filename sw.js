@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v216';
+var CACHE_NAME = 'godsmash-v218';
 var ASSETS = [
   './',
   './index.html',
@@ -87,7 +87,10 @@ var ASSETS = [
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) { return cache.addAll(ASSETS); })
+    // 'reload': fetch fresh files, not the browser's 10 minute copy, so a new version never installs old scripts
+    caches.open(CACHE_NAME).then(function(cache) {
+      return Promise.all(ASSETS.map(function(u) { return cache.add(new Request(u, { cache: 'reload' })); }));
+    })
   );
   self.skipWaiting();
 });
@@ -96,7 +99,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(names) {
       return Promise.all(
-        names.filter(function(n) { return n !== CACHE_NAME; })
+        names.filter(function(n) { return n !== CACHE_NAME && n !== 'godsmash-tiles'; })
              .map(function(n) { return caches.delete(n); })
       );
     })
@@ -134,13 +137,22 @@ self.addEventListener('fetch', function(e) {
     }).catch(function () { return Response.error(); }));
     return;
   }
-  e.respondWith(
-    fetch(own ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(function(resp) {
+  // Our own files: cache first, then update in the background (v218). The app opens from this phone with no network round trips
+  // (it used to ask the server about every one of its ~50 files on each start); a new version is downloaded by the new
+  // service worker (cache: 'reload' above) and replaces this cache, and the page reloads once when it takes over.
+  function store(resp) {
+    if (resp && resp.ok && resp.status === 200 && e.request.url.indexOf('oobCode') < 0) {
       var clone = resp.clone();
-      caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
-      return resp;
-    }).catch(function() {
-      return caches.match(e.request).then(function(cached) {
+      caches.open(CACHE_NAME).then(function(cache) { return cache.put(e.request, clone); }).catch(function() {});
+    }
+    return resp;
+  }
+  var key = e.request.mode === 'navigate' ? './index.html' : e.request;
+  e.respondWith(
+    caches.match(key, { ignoreSearch: e.request.mode === 'navigate' }).then(function(cached) {
+      var net = fetch(own ? new Request(e.request, { cache: 'no-cache' }) : e.request).then(store);
+      if (cached && own) { e.waitUntil(net.catch(function() {})); return cached; }
+      return net.catch(function() {
         // Offline: open the app shell for page loads only, never in place of a script
         return cached || (e.request.mode === 'navigate' ? caches.match('./index.html') : Response.error());
       });
