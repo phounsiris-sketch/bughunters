@@ -168,6 +168,26 @@ function modalConfirm() {
 // ── Utility ────────────────────────────────────────────────
 
 /** Safe inside onclick='fn(\'...\')': ids are letters, digits, _ and - only (anything else is dropped) */
+/** Run a stored action string such as "showSessionDetail('abc')" or "publicTab='buddies';showPage('public')" without eval:
+    only calls of existing global functions with simple quoted or numeric arguments (and the one allowed assignment) are run */
+function runAction(src) {
+  String(src || "").split(";").forEach(function (st) {
+    st = st.trim(); if (!st) return;
+    var m = /^([A-Za-z_$][\w$]*)\((.*)\)$/.exec(st), a = /^(publicTab)\s*=\s*'([A-Za-z0-9_\-]*)'$/.exec(st);
+    if (a) { window[a[1]] = a[2]; return; }
+    if (!m || typeof window[m[1]] !== "function") return;
+    var args = [], ok = true;
+    if (m[2].trim()) m[2].split(",").forEach(function (x) {
+      x = x.trim();
+      if (/^'[A-Za-z0-9_\-]*'$/.test(x)) args.push(x.slice(1, -1));
+      else if (/^-?\d+$/.test(x)) args.push(+x);
+      else ok = false;
+    });
+    if (ok) window[m[1]].apply(null, args);
+  });
+}
+/** A value that is safe inside a class name or id (letters, digits, - and _ only) */
+function cssId(v) { return String(v === null || v === undefined ? "" : v).replace(/[^A-Za-z0-9_\-]/g, ""); }
 function jsq(v) { return String(v === null || v === undefined ? "" : v).replace(/[^A-Za-z0-9_\-]/g, ""); }
 
 /** A URL that is safe to put in src="...": an image data URL, an img:<id> reference or an http(s) address; "" otherwise */
@@ -470,7 +490,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v210"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v212"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

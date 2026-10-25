@@ -316,7 +316,7 @@ function showInviteModal(uid) {
 function _inviteCard(i, incoming) {
   var other = incoming ? i.from : i.to;
   var u = findUser(other) || {};
-  var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + other + '\',event)">' + avatarHtml(other, 40) +
+  var html = '<div class="card game-card"><div class="buddy-head" onclick="showUserProfile(\'' + jsq(other) + '\',event)">' + avatarHtml(other, 40) +
     '<div><div class="game-when" style="font-size:15px">' + escapeHtml(plainUserName(u)) + '</div>' +
     '<div class="game-facts" style="margin-top:2px">' + fmtDate(nextInviteDate(i)) + ' ' + escapeHtml(i.time || "") + ' · ' + escapeHtml(i.courtName || "") +
       (i.repeatWeeks > 1 ? ' · ' + icon("history", 12) + ' ' + t("repeatWeekly") + ' \u00D7' + i.repeatWeeks : '') + '</div></div></div>' +
@@ -423,12 +423,12 @@ function _renderReports() {
   if (!_reports.length) { box.innerHTML = html + '<div class="empty-state">' + icon("check", 40) + '<div>' + t("reportsEmpty") + '</div></div>'; return; }
   _reports.forEach(function (r) {
     html += '<div class="card report-card"><div class="report-head">' +
-      '<span class="report-who" onclick="showUserProfile(\'' + r.about + '\',event)">' + avatarHtml(r.about, 32) + '<span><b>' + escapeHtml(getUserName(r.about)) + '</b>' +
+      '<span class="report-who" onclick="showUserProfile(\'' + jsq(r.about) + '\',event)">' + avatarHtml(r.about, 32) + '<span><b>' + escapeHtml(getUserName(r.about)) + '</b>' +
       '<small>' + t("reason_" + (r.reason || "other")) + ' · ' + (r.zone === "public" ? t("reportZonePublic") : t("reportZoneGroup")) + '</small></span></span>' +
       '<span class="report-when">' + (r.createdAt && typeof _whenShort === "function" ? _whenShort(r.createdAt) : '') + '</span></div>' +
       (r.details ? '<div class="report-details">\u201C' + escapeHtml(r.details) + '\u201D</div>' : '') +
       '<div class="form-hint" style="margin:6px 0 10px">' + t("reportedBy").replace("{name}", escapeHtml(getUserName(r.from))) + '</div>' +
-      '<div class="game-actions"><button class="btn-secondary" onclick="showUserProfile(\'' + r.about + '\',event)">' + t("viewProfile") + '</button>' +
+      '<div class="game-actions"><button class="btn-secondary" onclick="showUserProfile(\'' + jsq(r.about) + '\',event)">' + t("viewProfile") + '</button>' +
       '<button class="btn-primary" onclick="resolveReport(\'' + jsq(r.id) + '\')">' + icon("check", 14) + ' ' + t("markHandled") + '</button></div></div>';
   });
   box.innerHTML = html;

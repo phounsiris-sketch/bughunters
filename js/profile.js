@@ -284,8 +284,8 @@ function gearCardHtml(uid, editable) {
       (g.photo ? '<img class="gear-photo" ' + imgSrcAttrs(g.photo) + ' alt="" onclick="event.stopPropagation();openImage(this.src)">' : '<span class="gear-photo empty">' + icon(g.kind === "shoes" ? "user" : g.kind === "other" ? "other" : "shuttle", 18) + '</span>') +
       '<span class="gear-text"><b>' + escapeHtml(g.name) + (g.main ? ' <span class="tag">' + t("mainItem") + '</span>' : '') + '</b>' +
       '<small>' + t("gearKind_" + g.kind) + (g.brand ? ' · ' + escapeHtml(g.brand) : '') +
-      (g.weight ? ' · ' + escapeHtml(g.weight) : '') + (g.string ? ' · ' + escapeHtml(g.string) + (g.tension ? ' ' + g.tension + ' lbs' : '') : '') +
-      (g.shoeSize ? ' · EU ' + g.shoeSize : '') + '</small>' +
+      (g.weight ? ' · ' + escapeHtml(g.weight) : '') + (g.string ? ' · ' + escapeHtml(g.string) + (g.tension ? ' ' + escapeHtml(g.tension) + ' lbs' : '') : '') +
+      (g.shoeSize ? ' · EU ' + escapeHtml(g.shoeSize) : '') + '</small>' +
       (g.forSale ? '<small class="sale-line">' + icon("wallet", 12) + ' ' + t("forSale") + (g.salePrice ? ' ' + fmtMoneyIn(g.salePrice, g.saleCurrency) : '') + ' · ' + t(g.saleScope === "public" ? "saleScope_public" : "saleScope_groups") + '</small>'
         : g.sold ? '<small class="sale-line sold">' + icon("check", 12) + ' ' + t("soldWord") + '</small>' : '') + '</span>' +
       (editable && g.forSale ? '<span class="sale-actions" onclick="event.stopPropagation()"><button class="edit-btn" onclick="markGearSold(\'' + jsq(g.id) + '\')">' + t("markSold") + '</button>' +

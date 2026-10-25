@@ -105,7 +105,7 @@ function computeNotifications() {
     if (p.status === "confirmed" && np.responses[me] === 0) {
       events.push({ id: "conf_" + p.id, cat: "notif", type: "confirmed", time: _tsOf(p.confirmedAt) || _tsOf(p.createdAt), icon: "check",
         text: t("nConfirmed").replace("{date}", fmtDate(np.date)).replace("{court}", escapeHtml(np.courtName || "")),
-        action: p.sessionId ? "showSessionDetail('" + p.sessionId + "')" : "showPage('polls')" });
+        action: p.sessionId ? "showSessionDetail('" + jsq(p.sessionId) + "')" : "showPage('polls')" });
     }
     // Plan cancelled (voting closed early) — everyone who answered
     if (p.status === "cancelled" && p.cancelledAt && np.responses.hasOwnProperty(me) && (p.cancelledBy || p.createdBy) !== me) {
@@ -140,7 +140,7 @@ function computeNotifications() {
     if (start && (s.players || []).indexOf(me) >= 0 && now >= start - 3600e3 && now < start) {
       events.push({ id: "soon_" + s.id, cat: "remind", type: "gameSoon", time: start - 3600e3, icon: "clock",
         text: t("nGameSoon").replace("{time}", escapeHtml(s.time || "")).replace("{court}", escapeHtml(s.courtName || "")),
-        action: "showSessionDetail('" + s.id + "')" });
+        action: "showSessionDetail('" + jsq(s.id) + "')" });
     }
     if (!s.calculated) return;
     var L = computeLedger(s);
@@ -149,14 +149,14 @@ function computeNotifications() {
       var mine = L.transfers.filter(function (tr) { return tr.from === me; }).reduce(function (a, tr) { return a + tr.amount; }, 0);
       events.push({ id: "bill_" + s.id, cat: "notif", type: "billReady", time: _tsOf(s.billAt), icon: "sessions",
         text: (mine ? t("nBillOwe").replace("{amount}", fmtLAK(mine)) : t("nBillNothing")) + " • " + fmtDate(s.date),
-        action: "showSessionDetail('" + s.id + "')" });
+        action: "showSessionDetail('" + jsq(s.id) + "')" });
     }
     var at = s.settledAt || {}, settled = s.settled || {};
     L.transfers.forEach(function (tr) {
       if (tr.to === me && settled[tr.key] && at[tr.key]) {
         events.push({ id: "paid_" + s.id + "_" + tr.key, cat: "notif", type: "paidToYou", time: _tsOf(at[tr.key]), icon: "wallet",
           text: t("nPaidToYou").replace("{name}", getUserName(tr.from)).replace("{amount}", fmtLAK(tr.amount)),
-          action: "showSessionDetail('" + s.id + "')" });
+          action: "showSessionDetail('" + jsq(s.id) + "')" });
       }
       if (tr.from === me && !settled[tr.key]) {
         owe[tr.to] = (owe[tr.to] || 0) + tr.amount;
@@ -256,7 +256,7 @@ function clearAllNotifs(e) {
 function openNotif(i) {
   var ev = (_notifShown || [])[i];
   document.getElementById("notifPanel").classList.remove("open");
-  if (ev) (new Function(ev.action))();
+  if (ev) runAction(ev.action);
 }
 
 var _notifShown = [];

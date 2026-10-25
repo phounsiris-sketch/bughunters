@@ -747,7 +747,7 @@ function renderSessionGamesTab() {
 /** Organiser view before the bill: the players, "Edit session" and "Enter bill" */
 function _renderPendingSession(s) {
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
-  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
+  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + jsq(u) + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div><div class="session-actions" style="margin:12px 0">';
   if (canEditSessionDetails(s)) html += '<button class="btn-secondary" onclick="showSessionDetailsModal(\'' + jsq(s.id) + '\')">' + icon("pen", 16) + ' ' + t("editSession") + '</button>';
   if (canEditBill(s)) html += '<button class="btn-primary" onclick="startEditSession()">' + icon("bill", 16) + ' ' + t("enterBill") + '</button>';
@@ -757,7 +757,7 @@ function _renderPendingSession(s) {
 /** Read-only view for players while the organiser hasn't entered the bill */
 function _renderWaitingForBill(s) {
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("players") + ' (' + (s.players || []).length + ')</div><div class="chips">';
-  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + u + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
+  (s.players || []).forEach(function (u) { html += '<div class="chip avatar-chip" role="button" onclick="showUserProfile(\'' + jsq(u) + '\',event)">' + avatarHtml(u, 22) + getUserName(u) + '</div>'; });
   html += '</div></div>';
   html += '<div class="empty-state"><div class="empty-icon">' + icon("bill", 44) + '</div><div>' + t("waitingForBill") + '</div></div>';
   return html;
@@ -834,7 +834,7 @@ function _renderSplitResult(s) {
   }
   if (L.totals.shuttle > 0) {
     var cocksDesc = (s.shuttlecocks || []).map(function (c) {
-      return c.qty + ' ' + escapeHtml(c.brand) + ' (' + fmtLAK(c.price) + '/' + c.cocksPerTube + ')';
+      return escapeHtml(c.qty) + ' ' + escapeHtml(c.brand) + ' (' + fmtLAK(c.price) + '/' + escapeHtml(c.cocksPerTube) + ')';
     }).join(', ');
     html += _payTypeCard(s, icon("shuttle", 18), t("shuttlecocks"), cocksDesc, L.totals.shuttle, s.shuttlePayer, "shuttle", _even(players, L.totals.shuttle), _receiptThumbHtml(s.shuttleReceipt));
   }
@@ -1183,7 +1183,7 @@ function renderEditForm() {
   html += '<div class="chips">';
   for (var ui = 0; ui < pickable.length; ui++) {
     var on = edit.players.indexOf(pickable[ui]) >= 0;
-    html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + pickable[ui] + '\')">' + avatarHtml(pickable[ui], 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(pickable[ui]) + '</div>';
+    html += '<div class="chip avatar-chip' + (on ? ' active' : '') + '" onclick="editTogglePlayer(\'' + jsq(pickable[ui]) + '\')">' + avatarHtml(pickable[ui], 22) + (on ? icon("check", 12) + ' ' : '') + getUserName(pickable[ui]) + '</div>';
   }
   html += '</div>';
   html += '<div style="font-size:12px;color:var(--text-muted)">' + t("payerHint") + '</div>';
@@ -1196,9 +1196,9 @@ function renderEditForm() {
   for (var si = 0; si < edit.shuttlecocks.length; si++) {
     var sc = edit.shuttlecocks[si];
     html += '<div class="item-row">';
-    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:12px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + sc.cocksPerTube + ' ' + t("cocks") + '</div></div>';
+    html += '<div class="item-name">' + escapeHtml(sc.brand) + '<div style="font-size:12px;color:var(--text-muted)">' + fmtLAK(sc.price) + ' / ' + escapeHtml(sc.cocksPerTube) + ' ' + t("cocks") + '</div></div>';
     html += '<div class="qty-controls"><button onclick="editShuttleQty(' + si + ',-1)">−</button>';
-    html += '<input type="number" class="qty-num" min="0" value="' + sc.qty + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
+    html += '<input type="number" class="qty-num" min="0" value="' + escapeHtml(sc.qty) + '" style="width:44px;background:transparent;border:none;color:var(--text);text-align:center" oninput="edit.shuttlecocks[' + si + '].qty=Math.max(0,parseInt(this.value)||0);_updateEditTotals()">';
     html += '<button onclick="editShuttleQty(' + si + ',1)">+</button></div>';
     html += '<div class="item-price" id="scRowTotal' + si + '"></div>';
     html += '<button class="remove-btn" onclick="edit.shuttlecocks.splice(' + si + ',1);renderEditForm()">' + icon("close", 16) + '</button>';
@@ -1239,7 +1239,7 @@ function renderEditForm() {
     html += '<label class="form-label">' + t("selectDiners") + '</label><div class="chips">';
     for (var di = 0; di < pickable.length; di++) {
       var dOn = d.diners.indexOf(pickable[di]) >= 0;
-      html += '<div class="chip' + (dOn ? ' active' : '') + '" onclick="editToggleDiner(\'' + pickable[di] + '\')">' + (dOn ? icon("check", 12) + ' ' : '') + getUserName(pickable[di]) + '</div>';
+      html += '<div class="chip' + (dOn ? ' active' : '') + '" onclick="editToggleDiner(\'' + jsq(pickable[di]) + '\')">' + (dOn ? icon("check", 12) + ' ' : '') + getUserName(pickable[di]) + '</div>';
     }
     html += '</div>';
     html += '<div class="form-group"><label class="form-label">' + t("uploadReceipt") + '</label>';

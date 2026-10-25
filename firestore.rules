@@ -69,6 +69,15 @@ service cloud.firestore {
     // The person who created a poll / session always manages it
     function isCreator() { return isAuth() && resource.data.get('createdBy', '') == request.auth.uid; }
     function isManual(data) { return data.get('manual', false) == true; }
+    // Kinds and modes the app writes: the rules refuse any other word (v211)
+    function modeOk(d) { return d.get('mode', 'fun') in ['fun', 'exercise', 'competition'] && d.get('gameType', 'any') in ['md', 'wd', 'xd', 'singles', 'any']; }
+    function smallInt(v, lo, hi) { return v is int && v >= lo && v <= hi; }
+    // A running live-score game: plain numbers and short lists only
+    function liveOk(d) {
+      return smallInt(d.get('sa', 0), 0, 99) && smallInt(d.get('sb', 0), 0, 99) && smallInt(d.get('bo', 1), 1, 5)
+        && d.get('a', []) is list && d.get('a', []).size() <= 4 && d.get('b', []) is list && d.get('b', []).size() <= 4
+        && d.get('serve', 'A') in ['A', 'B'];
+    }
 
     match /groups/{gid} {
       // Names of groups are not secret (public groups are listed; a private
@@ -131,7 +140,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       // Your own profile, without permissions; or a manual player of a group (editConfig)
-      allow create: if (isOwner(uid) && !('perms' in request.resource.data) && avatarOk(request.resource.data))
+      allow create: if (isOwner(uid) && !('perms' in request.resource.data) && !isManual(request.resource.data) && avatarOk(request.resource.data))
         || (isManual(request.resource.data) && !('perms' in request.resource.data)
             && canIn('editConfig', request.resource.data.get('groupId', '')))
         || isSuper();
@@ -147,7 +156,7 @@ service cloud.firestore {
     match /polls/{pollId} {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       // A member creates polls of their own in their group; createPoll may restore anyone's
-      allow create: if idOk(pollId) && request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
+      allow create: if idOk(pollId) && request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId) && modeOk(request.resource.data)
         && (request.resource.data.get('createdBy', '') == request.auth.uid || canIn('createPoll', request.resource.data.groupId));
       // Members answer before the deadline (closesAt) while the plan is open;
       // the creator / createPoll can still enter answers, confirm or cancel later
@@ -231,8 +240,8 @@ service cloud.firestore {
     // Rackets and shoes (photos in images/)
     match /gear/{id} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow update: if isAuth() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid && request.resource.data.get('kind', 'other') in ['racket', 'shoes', 'other'];
+      allow update: if isAuth() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid && request.resource.data.get('kind', 'other') in ['racket', 'shoes', 'other'];
       allow delete: if isAuth() && resource.data.uid == request.auth.uid;
     }
 
@@ -257,7 +266,7 @@ service cloud.firestore {
       allow create: if isVerified() && idOk(courtId) && request.resource.data.get('createdBy', '') == request.auth.uid && courtOk(request.resource.data);
       // Anyone signed in can correct a court's details (like a map), but only with valid values;
       // the creator / app owner can delete it
-      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && courtOk(request.resource.data);
+      allow update: if isVerified() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && courtOk(request.resource.data);
       allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
 
@@ -275,7 +284,7 @@ service cloud.firestore {
     match /restaurants/{id} {
       allow read: if isAuth();
       allow create: if isVerified() && idOk(id) && request.resource.data.get('createdBy', '') == request.auth.uid && restaurantOk(request.resource.data);
-      allow update: if isAuth() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && restaurantOk(request.resource.data);
+      allow update: if isVerified() && request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') && restaurantOk(request.resource.data);
       allow delete: if isSuper() || (isAuth() && resource.data.get('createdBy', '') == request.auth.uid);
     }
 
@@ -318,7 +327,7 @@ service cloud.firestore {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       allow create, update: if isAuth() && uid == request.auth.uid
         && request.resource.data.hostId == request.auth.uid
-        && isMember(gidOf(request.resource.data));
+        && isMember(gidOf(request.resource.data)) && liveOk(request.resource.data);
       allow delete: if isAuth() && (uid == request.auth.uid || isSuper());
     }
 
@@ -326,11 +335,11 @@ service cloud.firestore {
     match /openGames/{id} {
       allow read: if isAuth();
       allow create: if isVerified() && idOk(id) && request.resource.data.hostId == request.auth.uid
-        && request.resource.data.status == 'open'
+        && request.resource.data.status == 'open' && modeOk(request.resource.data)
         && request.resource.data.players.size() <= request.resource.data.slots;
       // The host edits / cancels; others only join or leave themselves (and
       // the first on the waitlist moves up when someone leaves)
-      allow update: if isAuth() && request.resource.data.hostId == resource.data.hostId && (
+      allow update: if isAuth() && request.resource.data.hostId == resource.data.hostId && modeOk(request.resource.data) && (
         resource.data.hostId == request.auth.uid
         || isSuper()
         || (changed().hasOnly(['players', 'waitlist', 'status', 'fullAt', 'log'])
@@ -371,7 +380,11 @@ service cloud.firestore {
     // Reports: the app owner (public zone) or the group's admins read them
     match /reports/{id} {
       allow create: if isAuth() && request.resource.data.from == request.auth.uid
-        && request.resource.data.get('details', '').size() <= 300;
+        && request.resource.data.get('details', '') is string && request.resource.data.get('details', '').size() <= 300
+        && request.resource.data.get('reason', 'other') in ['rude', 'harassment', 'fake', 'noshow', 'other']
+        && request.resource.data.get('zone', 'group') in ['public', 'group']
+        && request.resource.data.get('about', '') is string && idOk(request.resource.data.get('about', 'x'))
+        && (request.resource.data.get('groupId', '') == '' || isMember(request.resource.data.groupId));
       allow read, delete: if isSuper()
         || (resource.data.get('groupId', '') != '' && isGroupAdmin(resource.data.groupId));
     }

@@ -251,7 +251,7 @@ function _renderPollCard(poll) {
   // The plan: mode tags and a note (the date, time and court are above)
   if ((typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) || poll.note) {
     html += '<div class="poll-plan">';
-    if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) html += '<div class="game-tags" style="margin-top:0"><span class="tag mode-' + poll.mode + '">' + t("mode_" + poll.mode) + '</span>' +
+    if (typeof GROUPS_ON !== "undefined" && GROUPS_ON && poll.mode) html += '<div class="game-tags" style="margin-top:0"><span class="tag mode-' + cssId(poll.mode) + '">' + t("mode_" + poll.mode) + '</span>' +
       (poll.gameType ? '<span class="tag">' + t("gameType_" + poll.gameType) + '</span>' : '') + '</div>';
     if (poll.note) html += '<div style="font-size:13px;margin-top:6px">' + escapeHtml(poll.note) + '</div>';
     html += '</div>';

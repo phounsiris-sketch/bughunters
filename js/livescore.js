@@ -367,7 +367,7 @@ function _lsSetupHtml() {
   var s = _lsSession(live.sid) || {}, size = live.type === "singles" ? 1 : 2, th = _lsTheme();
   var team = function (side, ids, from, to) {
     var html = '<div class="ls-team-box" style="background:linear-gradient(160deg,' + from + ',' + to + ')"><div class="ls-team-head"><b>' + t("lsTeam") + ' ' + side + '</b><span>' + ids.length + '/' + size + '</span></div><div class="ls-chips">';
-    html += ids.map(function (u) { return '<button type="button" class="ls-chip rm" onclick="lsRemove(\'' + side + '\',\'' + u + '\')">' + avatarHtml(u, 26) + '<span>' + getUserName(u) + '</span>' + icon("close", 12) + '</button>'; }).join("");
+    html += ids.map(function (u) { return '<button type="button" class="ls-chip rm" onclick="lsRemove(\'' + side + '\',\'' + jsq(u) + '\')">' + avatarHtml(u, 26) + '<span>' + getUserName(u) + '</span>' + icon("close", 12) + '</button>'; }).join("");
     if (ids.length < size) html += '<span class="ls-chip ghost">' + icon("add", 18) + ' ' + t("lsAddPlayer") + '</span>';
     return html + '</div></div>';
   };
@@ -381,7 +381,7 @@ function _lsSetupHtml() {
     (live.saved > 0 ? '<div class="ls-same">' + icon("users", 18) + '<span><b>' + t("lsSamePlayers") + '</b><small>' + t("lsSamePlayersHint") + '</small></span></div>' : '') +
     team("A", live.a, th[1], th[2]) + team("B", live.b, th[3], th[4]) +
     '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsPickPlayers") + '</div><div class="ls-pool">' +
-    (pool.length ? pool.map(function (u) { return '<button type="button" class="ls-pool-chip" onclick="lsAdd(\'' + u + '\')">' + personHtml(u, 30) + '</button>'; }).join("") : '<div class="form-hint">' + t("lsNoMore") + '</div>') +
+    (pool.length ? pool.map(function (u) { return '<button type="button" class="ls-pool-chip" onclick="lsAdd(\'' + jsq(u) + '\')">' + personHtml(u, 30) + '</button>'; }).join("") : '<div class="form-hint">' + t("lsNoMore") + '</div>') +
     '</div></div>' +
     '<div class="card ls-rules"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsRules") + '</div>' +
     '<div>' + icon("medal", 16) + ' ' + t("lsRule1").replace("{n}", LS_START_POINTS) + '</div><div>' + icon("check", 16) + ' ' + t("lsRule2") + '</div>' +
@@ -698,13 +698,25 @@ function _liveEnded(x) {
   return !!ses && (ses.status === "completed" || ses.status === "cancelled" || sessionStep(ses) === 3);
 }
 
+/** A running game written by another phone is data from the network: only plain numbers, ids and the known words get through (v211) */
+function _lsClean(x) {
+  var n = function (v, hi) { v = Math.floor(+v); return isFinite(v) && v > 0 ? Math.min(v, hi || 99) : 0; };
+  var ids = function (l) { return (Array.isArray(l) ? l : []).slice(0, 4).map(jsq).filter(Boolean); };
+  var sw = x.sw && typeof x.sw === "object" ? x.sw : {};
+  x.sa = n(x.sa); x.sb = n(x.sb); x.bo = Math.max(1, Math.min(5, n(x.bo, 5) || 1));
+  x.a = ids(x.a); x.b = ids(x.b); x.sw = { A: n(sw.A, 5), B: n(sw.B, 5) };
+  x.gl = (Array.isArray(x.gl) ? x.gl : []).slice(0, 9).map(function (g) { g = g || {}; return { a: n(g.a), b: n(g.b) }; });
+  x.serve = x.serve === "B" ? "B" : "A"; x.over = x.over === "A" || x.over === "B" ? x.over : null;
+  x.theme = n(x.theme, 99); x.test = !!x.test;
+  return x;
+}
 /** Which games are being counted now by others in my group (for the Home banner) */
 function liveWatchStart() {
   if (_liveListUnsub || !currentUser || !currentGroupId) return;
   _liveListUnsub = groupScoped(fsdb.collection("liveGames")).onSnapshot(function (snap) {
     var list = [];
     snap.forEach(function (d) {
-      var x = d.data(); x.id = d.id;
+      var x = _lsClean(d.data()); x.id = d.id;
       var ended = _liveEnded(x);
       if (ended && x.hostId === currentUser.uid && !live) d.ref.delete().catch(function () {});
       if (x.dev !== _lsDev() && !ended && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x);
@@ -735,7 +747,7 @@ function lsWatch(id) {
   _watchUnsub = fsdb.collection("liveGames").doc(id).onSnapshot(function (doc) {
     if (!doc.exists) { showToast(t("lsEnded")); lsWatchStop(); return; }
     if (!doc.metadata.fromCache) _watchSeenAt = Date.now();
-    var nd = doc.data();
+    var nd = _lsClean(doc.data());
     // An older update that arrives late must not roll the score back
     if (_watch && _watch.id === doc.id && (nd.updatedAt || 0) < (_watch.updatedAt || 0)) { lsSyncUpdate(); return; }
     var changed = !_watch || nd.updatedAt !== _watch.updatedAt;

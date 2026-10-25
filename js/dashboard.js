@@ -471,7 +471,7 @@ function _renderActivityTab() {
     // Show-up: games played compared with Join votes
     var rate = v ? Math.round(Math.min(p, v) / v * 100) : null;
     var rcls = rate === null ? 'none' : rate >= 80 ? 'good' : rate >= 50 ? 'mid' : 'low';
-    html += '<div class="act-row" onclick="setActivityUser(\'' + u + '\')">';
+    html += '<div class="act-row" onclick="setActivityUser(\'' + jsq(u) + '\')">';
     html += '<div class="act-head"><span class="act-rank">' + (ui + 1) + '</span>' + avatarHtml(u, 30) +
       '<span class="act-name">' + getUserName(u) + '</span>' +
       '<span class="act-rate ' + rcls + '" title="' + t("showUpHint") + '">' + (rate === null ? '—' : rate + '%') + '<small>' + t("showUp") + '</small></span></div>';

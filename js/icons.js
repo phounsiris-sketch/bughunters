@@ -175,19 +175,21 @@ function setDashPack(id) {
 function iconAs(theme, name, size, cls) {
   if (!SOLAR[name]) return "";
   size = size || 18;
+  // The shuttlecock is the same drawing in every style, the default one (v212); box, neu, glass and tiles still put it on their plate
+  if (name === "shuttle" && (theme === "sticker" || theme === "clay")) return _iconSvg(name, size, cls);
   if (theme === "sticker") return (ICON_PLAIN[name] || size < 14) ? _iconSvg(name, size, cls) : _stickerSvg(name, size, cls);
   if (theme === "clay") return (ICON_PLAIN[name] || size < 14) ? _iconSvg(name, size, cls) : _claySvg(name, size, cls);
   var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
-  if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
+  if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (name !== "shuttle" && typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
   if (theme === "neu" || theme === "glass") {
     if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls);
     var pl = Math.round(size * 1.7), ov2 = cls && /\bbx([0-7])\b/.exec(cls), c2 = ov2 ? +ov2[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name));
-    return '<span class="ico-' + (theme === "neu" ? 'neu ico-nc' : 'gl ico-gc') + c2 + '" style="width:' + pl + 'px;height:' + pl + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>';
+    return '<span class="ico-' + (theme === "neu" ? 'neu ico-nc' : 'gl ico-gc') + c2 + '" style="width:' + pl + 'px;height:' + pl + 'px">' + (name !== "shuttle" && typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>';
   }
-  if (!sets || theme === "classic" || !sets.line[name]) return _iconSvg(name, size, cls);
+  if (!sets || theme === "classic" || !sets.line[name] || (name === "shuttle" && theme !== "tiles")) return _iconSvg(name, size, cls);
   if (theme === "line" || ICON_PLAIN[name]) return _phSvg("line", name, size, cls);
   if (theme === "duo") return _phSvg("duo", name, size, cls, "ico-dc ico-dc" + _iconHash(name));
-  if (theme === "tiles") { var tile = Math.round(size * 1.65); return '<span class="ico-tile ico-t' + _iconHash(name) + '" style="width:' + tile + 'px;height:' + tile + 'px">' + _phSvg("fill", name, size, cls) + '</span>'; }
+  if (theme === "tiles") { var tile = Math.round(size * 1.65); return '<span class="ico-tile ico-t' + _iconHash(name) + '" style="width:' + tile + 'px;height:' + tile + 'px">' + (name === "shuttle" ? _iconSvg(name, size, cls) : _phSvg("fill", name, size, cls)) + '</span>'; }
   return _iconSvg(name, size, cls);
 }
 
