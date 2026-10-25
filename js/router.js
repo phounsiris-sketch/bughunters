@@ -181,7 +181,7 @@ function _defaultCrumbs(page) {
  * Show the authentication container, hide the app
  */
 var _splashStart = Date.now();
-var SPLASH_MIN_MS = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? 350 : 1700;   // the court takes about 1.65 s to draw; plus a .25 s fade
+var SPLASH_MIN_MS = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ? 350 : 1150;   // the court takes about 1.1 s to draw; plus a .25 s fade
 
 /** Fade the splash out once the smash has played (under 1 s in total). A tap skips it. */
 var _splashReady = false, _splashSkipped = false, _splashTimer = null;
