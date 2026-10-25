@@ -1544,3 +1544,7 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v207 - edit / delete inside the poll card
 
 - Poll cards show Edit (pen) and Delete (bin) as two small round buttons on the "created by" row, for anyone who may manage the poll and in every state. The folded "Manage" block under the card now holds only the rarer actions (add votes for others, cancel poll, delete session and poll) and is not drawn when a poll has none (cancelled).
+
+## v208: four special themes removed
+
+Christmas, Neon Arcade, Ninja Village and Kitty Pink are gone (owner request). Removed from `SPECIALS`, CSS blocks, `FX_SCENES`, share-card palettes and scenes, splash palettes, home emoji, `LS_SPECIAL_IDX` and EN/LA i18n. Kept: the four team-colour pairs in `LS_THEMES`, because saved live-score picks are positions in that list. A user who had one of the four selected falls back to no special theme (`_savedPalette` checks the id against the list). Eight specials remain.

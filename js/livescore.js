@@ -35,7 +35,7 @@ var LS_THEMES = [
   ["Cursed Night", "#6d28d9", "#a78bfa", "#0369a1", "#38bdf8"]
 ];
 /** A special theme gives the live score its own team colours, until the player picks one by hand */
-var LS_SPECIAL_IDX = { halloween: 6, christmas: 7, cny: 8, arcade: 9, ninja: 10, orbs: 11, pirate: 12, reaper: 13, kitty: 14, doraemon: 15, valentine: 16, jujutsu: 17 };
+var LS_SPECIAL_IDX = { halloween: 6, cny: 8, orbs: 11, pirate: 12, reaper: 13, doraemon: 15, valentine: 16, jujutsu: 17 };
 var LS_START_POINTS = 21;
 
 var live = null;          // the running game, or null

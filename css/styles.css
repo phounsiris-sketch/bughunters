@@ -5829,47 +5829,8 @@ body[data-special="halloween"]:not([data-theme="light"]) .chip.active, body[data
 @media (min-width: 600px) { .sheet-wrap { align-items: center; } .sheet.ask { border-radius: 22px; max-width: 400px; } }
 
 /* ===== v160b: special (gimmick) themes - a separate setting from Dark/Light styles ===== */
-body[data-special="christmas"]:not([data-theme="light"]) {
-  --primary: #b91c1c; --primary-light: #f87171; --accent: #fde68a; --accent-rgb: 253, 230, 138; --blue: #16a34a;
-  --bg: #07200f; --surface: #0e2f1b; --card: #143d26; --border: #2c7a4b;
-  --text: #f4fff6; --text-secondary: #cfe8d6; --text-muted: #a3c9b0; --text-dim: #9cc2aa;
-  --input-bg: #0e2f1b; --chip-bg: #0e2f1b; --control-border: #5fb583;
-  --poll-card-bg: linear-gradient(160deg, #1d5a38 0%, #143d26 100%); --poll-card-border: #4aa571;
-  --poll-option-bg: rgba(7, 32, 15, 0.5); --pay-banner-bg: linear-gradient(135deg, #b91c1c, #7f1d1d);
-  background-color: #07200f;
-  background-image:
-    radial-gradient(circle 4px at 10px 9px, #ef4444, transparent), radial-gradient(circle 4px at 30px 9px, #fde68a, transparent),
-    radial-gradient(circle 4px at 50px 9px, #4ade80, transparent), radial-gradient(circle 4px at 70px 9px, #60a5fa, transparent),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='120' viewBox='0 0 260 120'%3E%3Cg fill='%2303120b'%3E%3Cpath d='M30 120 L30 100 L10 100 L30 72 L18 72 L38 44 L28 44 L46 12 L64 44 L54 44 L74 72 L62 72 L82 100 L62 100 L62 120Z'/%3E%3Cpath d='M120 120 L120 106 L104 106 L120 84 L110 84 L126 60 L142 84 L132 84 L148 106 L132 106 L132 120Z'/%3E%3Cpath d='M190 120 L190 98 L170 98 L190 70 L180 70 L202 38 L224 70 L214 70 L234 98 L214 98 L214 120Z'/%3E%3C/g%3E%3Cg fill='%23fde68a'%3E%3Ccircle cx='46' cy='12' r='3'/%3E%3Ccircle cx='202' cy='38' r='3'/%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(180deg, #05160b 0%, #0c2e1b 55%, #14482c 100%);
-  background-repeat: repeat-x, repeat-x, repeat-x, repeat-x, no-repeat, no-repeat;
-  background-position: 0 var(--hdr-h, 46px), 0 var(--hdr-h, 46px), 0 var(--hdr-h, 46px), 0 var(--hdr-h, 46px), left bottom 74px, 0 0;
-  background-size: 80px 20px, 80px 20px, 80px 20px, 80px 20px, 260px 120px, auto;
-  background-attachment: fixed;
-}
-body[data-special="christmas"]:not([data-theme="light"]) .app-header { background: rgba(7, 32, 15, .7); }
-body[data-special="christmas"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #b91c1c, #991b1b); color: #fff; }
-body[data-special="christmas"]:not([data-theme="light"]) .chip.active, body[data-special="christmas"]:not([data-theme="light"]) .seg-btn.active { background: #b91c1c; border-color: #b91c1c; }
 
 
-body[data-special="arcade"]:not([data-theme="light"]) {
-  --primary: #a21caf; --primary-light: #e879f9; --accent: #22d3ee; --accent-rgb: 34, 211, 238; --blue: #818cf8;
-  --bg: #0a0418; --surface: #13072b; --card: #1c0b3d; --border: #5b21b6;
-  --text: #f7f0ff; --text-secondary: #d6c3f2; --text-muted: #b19ad8; --text-dim: #a894d0;
-  --input-bg: #13072b; --chip-bg: #13072b; --control-border: #9b6ee0;
-  --poll-card-bg: linear-gradient(160deg, #3b1280 0%, #1c0b3d 100%); --poll-card-border: #a855f7;
-  --poll-option-bg: rgba(10, 4, 24, 0.55); --pay-banner-bg: linear-gradient(135deg, #a21caf, #7e22ce);
-  background-color: #0a0418;
-  background-image: linear-gradient(180deg, #080314 0%, #160630 62%, #2a0b55 100%);
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  background-size: auto;
-  background-attachment: fixed;
-}
-body[data-special="arcade"]:not([data-theme="light"]) .app-header { background: rgba(10, 4, 24, .75); border-bottom: 1px solid #a855f7; }
-body[data-special="arcade"]:not([data-theme="light"]) .card, body[data-special="arcade"]:not([data-theme="light"]) .poll-card { box-shadow: 0 0 0 1px rgba(232, 121, 249, .35), 0 0 18px rgba(168, 85, 247, .3); }
-body[data-special="arcade"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #a21caf, #7e22ce); color: #fff; box-shadow: 0 0 14px rgba(232, 121, 249, .45); }
-body[data-special="arcade"]:not([data-theme="light"]) .chip.active, body[data-special="arcade"]:not([data-theme="light"]) .seg-btn.active { background: #a21caf; border-color: #e879f9; }
 
 /* floating effects layer (bats / snow / bubbles / sparks), built by _fxLayer() */
 .sp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
@@ -5884,33 +5845,14 @@ body[data-special="arcade"]:not([data-theme="light"]) .chip.active, body[data-sp
 /* ===== v160c: special themes reach every page: cards (dashboard, votes, sessions, payments), home cards, live score ===== */
 body[data-special="halloween"]:not([data-theme="light"]) :is(.card, .session-card, .cost-card, .pay-card, .leader-card) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 120 120' fill='none' stroke='%23e9d5ff' stroke-width='1.2' opacity='.5'%3E%3Cg transform='translate%28120,0%29 scale%28-1,1%29'%3E%3Cpath d='M0 0 L120 0 M0 0 L0 120 M0 0 L105 105 M0 0 L118 52 M0 0 L52 118'/%3E%3Cpath d='M0 22 Q24 24 22 0 M0 44 Q46 46 44 0 M0 70 Q74 72 70 0'/%3E%3C/g%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right top; background-size: 90px 90px; }
 body[data-special="halloween"]:not([data-theme="light"]) .poll-card { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 120 120' fill='none' stroke='%23e9d5ff' stroke-width='1.2' opacity='.5'%3E%3Cg transform='translate%28120,0%29 scale%28-1,1%29'%3E%3Cpath d='M0 0 L120 0 M0 0 L0 120 M0 0 L105 105 M0 0 L118 52 M0 0 L52 118'/%3E%3Cpath d='M0 22 Q24 24 22 0 M0 44 Q46 46 44 0 M0 70 Q74 72 70 0'/%3E%3C/g%3E%3C/svg%3E"), var(--poll-card-bg); background-position: right top, 0 0; background-size: 90px 90px, auto; }
-body[data-special="christmas"]:not([data-theme="light"]) :is(.card, .session-card, .cost-card, .pay-card, .leader-card) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 0 H120 V4 Q110 12 100 5 Q92 11 84 4 Q74 12 64 5 Q54 11 44 4 Q34 12 24 5 Q12 11 0 4Z' fill='%23ffffff' fill-opacity='.9'/%3E%3C/svg%3E"); background-repeat: repeat-x; background-position: left top; background-size: 120px 12px; }
-body[data-special="christmas"]:not([data-theme="light"]) .poll-card { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 0 H120 V4 Q110 12 100 5 Q92 11 84 4 Q74 12 64 5 Q54 11 44 4 Q34 12 24 5 Q12 11 0 4Z' fill='%23ffffff' fill-opacity='.9'/%3E%3C/svg%3E"), var(--poll-card-bg); background-repeat: repeat-x, no-repeat; background-position: left top, 0 0; background-size: 120px 12px, auto; }
-body[data-special="arcade"]:not([data-theme="light"]) :is(.card, .session-card, .cost-card, .pay-card, .leader-card) { background-image: linear-gradient(90deg, #e879f9, #22d3ee); background-repeat: no-repeat; background-position: left top; background-size: 100% 2px; }
-body[data-special="arcade"]:not([data-theme="light"]) .poll-card { background-image: linear-gradient(90deg, #e879f9, #22d3ee), var(--poll-card-bg); background-repeat: no-repeat; background-position: left top, 0 0; background-size: 100% 2px, auto; }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-play { background: linear-gradient(135deg, #7c3aed, #c2410c); }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-spend { background: linear-gradient(135deg, #4c1d95, #7c2d12); }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-pay { background: linear-gradient(135deg, #9a3412, #c2410c); }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-badges { background: linear-gradient(135deg, #581c87, #854d0e); }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-rating { background: linear-gradient(135deg, #3b0764, #6d28d9); }
 body[data-special="halloween"]:not([data-theme="light"]) .home-next, body[data-special="halloween"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #4c1d95, #c2410c); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-play { background: linear-gradient(135deg, #166534, #14532d); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-spend { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-pay { background: linear-gradient(135deg, #b45309, #92400e); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-badges { background: linear-gradient(135deg, #854d0e, #713f12); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-rating { background: linear-gradient(135deg, #14532d, #991b1b); }
-body[data-special="christmas"]:not([data-theme="light"]) .home-next, body[data-special="christmas"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #166534, #991b1b); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-play { background: linear-gradient(135deg, #a21caf, #6d28d9); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-spend { background: linear-gradient(135deg, #0e7490, #1d4ed8); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-pay { background: linear-gradient(135deg, #be185d, #9d174d); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-badges { background: linear-gradient(135deg, #7e22ce, #4c1d95); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-rating { background: linear-gradient(135deg, #0f766e, #0e7490); }
-body[data-special="arcade"]:not([data-theme="light"]) .home-next, body[data-special="arcade"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #a21caf, #0e7490); }
 .live-screen .ls-half::before { content: ""; position: absolute; inset: 0; pointer-events: none; }
 body[data-special="halloween"]:not([data-theme="light"]) .live-screen .ls-half::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 120 120' fill='none' stroke='%23e9d5ff' stroke-width='1.2' opacity='.5'%3E%3Cg transform='translate%28120,0%29 scale%28-1,1%29'%3E%3Cpath d='M0 0 L120 0 M0 0 L0 120 M0 0 L105 105 M0 0 L118 52 M0 0 L52 118'/%3E%3Cpath d='M0 22 Q24 24 22 0 M0 44 Q46 46 44 0 M0 70 Q74 72 70 0'/%3E%3C/g%3E%3C/svg%3E") right top / 110px 110px no-repeat; }
-body[data-special="christmas"]:not([data-theme="light"]) .live-screen .ls-half::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 0 H120 V4 Q110 12 100 5 Q92 11 84 4 Q74 12 64 5 Q54 11 44 4 Q34 12 24 5 Q12 11 0 4Z' fill='%23ffffff' fill-opacity='.9'/%3E%3C/svg%3E") left top / 120px 12px repeat-x; }
-body[data-special="arcade"]:not([data-theme="light"]) .live-screen .ls-half::before { background: repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1px, transparent 1px 4px); }
-body[data-special="arcade"]:not([data-theme="light"]) .live-screen .ls-score { text-shadow: 0 0 22px rgba(232, 121, 249, .7), 0 0 4px rgba(255,255,255,.8); }
 body[data-special="halloween"]:not([data-theme="light"]) .live-screen { background: radial-gradient(circle 60px at calc(100% - 40px) 60px, #ffe9b8 0, #f9c06b 70%, transparent 100%), var(--bg); }
 body[data-special]:not([data-special="none"]):not([data-theme="light"]) { --danger-text: #fca5a5; --ok-text: #86efac; }
 
@@ -6003,8 +5945,6 @@ body[data-theme="light"] { --hl-dur: #0e7490; --hl-kcal: #6d28d9; --hl-hr: #be18
 .hs-health-bars .hw.now small { opacity: 1; font-weight: 700; }
 .hs-health .hs-sub { font-size: 13px; opacity: .92; }
 body[data-special="halloween"]:not([data-theme="light"]) .hs-health, body[data-special="halloween"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #3b0764, #c2410c); }
-body[data-special="christmas"]:not([data-theme="light"]) .hs-health, body[data-special="christmas"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #14532d, #991b1b); }
-body[data-special="arcade"]:not([data-theme="light"]) .hs-health, body[data-special="arcade"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #6d28d9, #0e7490); }
 
 /* ===== v165: Chinese New Year special theme (replaces Songkran): lanterns, lion and dragon ===== */
 body[data-special="cny"]:not([data-theme="light"]) {
@@ -6063,9 +6003,7 @@ body.live-on .app-header { z-index: 100; }   /* the live score covers the whole 
 .mh-facts .mh-go { margin-left: 0; justify-self: end; }
 /* the app bar is solid in every special theme, so nothing shows or smears through it */
 body[data-special="halloween"]:not([data-theme="light"]) .app-header { background: #1b0f45; }
-body[data-special="christmas"]:not([data-theme="light"]) .app-header { background: #0c2e1b; }
 body[data-special="cny"]:not([data-theme="light"]) .app-header { background: #4a0a0a; border-bottom: 1px solid #e0a43a; }
-body[data-special="arcade"]:not([data-theme="light"]) .app-header { background: #160630; }
 .mh-sub .level-badge { flex: none; }
 .mh-sub .rk-side { flex-direction: row; flex-wrap: nowrap; white-space: nowrap; }
 
@@ -6162,27 +6100,6 @@ body[data-icons] .app-header .ico-tile { width: auto !important; height: auto !i
 body[data-icons] .app-header .ico-tile::after { display: none; }
 
 /* ===== v179: Ninja Village (orange and night blue) ===== */
-body[data-special="ninja"]:not([data-theme="light"]) {
-  --primary: #c2410c; --primary-light: #fb923c; --accent: #fb923c; --accent-rgb: 251, 146, 60; --blue: #2563eb;
-  --bg: #0a1033; --surface: #101a46; --card: #17235a; --border: #33479e;
-  --text: #fff7ed; --text-secondary: #fed7aa; --text-muted: #e0b98f; --text-dim: #d4b087;
-  --input-bg: #101a46; --chip-bg: #101a46; --control-border: #7b90e8;
-  --poll-card-bg: linear-gradient(160deg, #1f2f7e 0%, #17235a 100%); --poll-card-border: #6f86e0; --poll-option-bg: rgba(0, 0, 0, 0.3); --pay-banner-bg: linear-gradient(135deg, #c2410c, #9a3412);
-  background-color: #0a1033; background-image: linear-gradient(180deg, #060a20 0%, #101c55 60%, #2a1a3c 100%); background-repeat: no-repeat; background-attachment: fixed;
-}
-body[data-special="ninja"]:not([data-theme="light"]) .app-header { background: #0f1a4a; border-bottom: 1px solid #7b90e8; }
-body[data-special="ninja"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #c2410c, #9a3412); color: #fff; }
-body[data-special="ninja"]:not([data-theme="light"]) .chip.active, body[data-special="ninja"]:not([data-theme="light"]) .seg-btn.active { background: #c2410c; border-color: #fb923c; }
-body[data-special="ninja"]:not([data-theme="light"]) :is(.card, .session-card, .cost-card, .pay-card, .leader-card) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 20 m0 0 a3 3 0 0 1 6 0 a8 8 0 0 1 -16 0 a13 13 0 0 1 26 0 a18 18 0 0 1 -36 0' fill='none' stroke='%23fb923c' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px top 10px; background-size: 22px 22px; }
-body[data-special="ninja"]:not([data-theme="light"]) .poll-card { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 20 m0 0 a3 3 0 0 1 6 0 a8 8 0 0 1 -16 0 a13 13 0 0 1 26 0 a18 18 0 0 1 -36 0' fill='none' stroke='%23fb923c' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"), var(--poll-card-bg); background-repeat: no-repeat; background-position: right 12px top 10px, 0 0; background-size: 22px 22px, auto; }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-play { background: linear-gradient(135deg, #c2410c, #7c2d12); }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-spend { background: linear-gradient(135deg, #1e3a8a, #172554); }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-pay { background: linear-gradient(135deg, #9a3412, #7c2d12); }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-badges { background: linear-gradient(135deg, #854d0e, #713f12); }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-rating { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
-body[data-special="ninja"]:not([data-theme="light"]) .home-next, body[data-special="ninja"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #c2410c, #1e3a8a); }
-body[data-special="ninja"]:not([data-theme="light"]) .live-screen .ls-half::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 20 m0 0 a3 3 0 0 1 6 0 a8 8 0 0 1 -16 0 a13 13 0 0 1 26 0 a18 18 0 0 1 -36 0' fill='none' stroke='%23fb923c' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") right 12px top 8px / 30px 30px no-repeat; }
-body[data-special="ninja"]:not([data-theme="light"]) .hs-health, body[data-special="ninja"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #1e3a8a, #c2410c); }
 
 /* v180: the icon-style picker always fits the screen */
 .is-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -6301,27 +6218,6 @@ body[data-icons="neu"] .nav-center .nav-icon .si, body[data-icons="glass"] .nav-
 .btn-primary .si.ph, .btn-share .si.ph { color: inherit; }
 
 /* ===== v191: Kitty Pink, Sky Pocket, Valentine, Cursed Night (special themes, original art) ===== */
-body[data-special="kitty"]:not([data-theme="light"]) {
-  --primary: #db2777; --primary-light: #f9a8d4; --accent: #f9a8d4; --accent-rgb: 249, 168, 212; --blue: #9d174d;
-  --bg: #2a0f1e; --surface: #4a1833; --card: #5a1c3d; --border: #9d4a78;
-  --text: #fff1f8; --text-secondary: #fbcfe8; --text-muted: #f5b8d6; --text-dim: #efb0d0;
-  --input-bg: #3a1429; --chip-bg: #3a1429; --control-border: #9d4a78;
-  --poll-card-bg: linear-gradient(160deg, #6e2750 0%, #5a1c3d 100%); --poll-card-border: #f9a8d4; --poll-option-bg: rgba(0, 0, 0, 0.3); --pay-banner-bg: linear-gradient(135deg, #be185d, #9d174d);
-  background-color: #1f0a16; background-image: linear-gradient(180deg, #1f0a16 0%, #4a1833 60%, #7a2656 100%); background-repeat: no-repeat; background-attachment: fixed;
-}
-body[data-special="kitty"]:not([data-theme="light"]) .app-header { background: #4a1833; border-bottom: 1px solid #f9a8d4; }
-body[data-special="kitty"]:not([data-theme="light"]) .btn-primary { background: linear-gradient(135deg, #db2777, #9d174d); color: #fff; }
-body[data-special="kitty"]:not([data-theme="light"]) .chip.active, body[data-special="kitty"]:not([data-theme="light"]) .seg-btn.active { background: #db2777; border-color: #fff1f8; }
-body[data-special="kitty"]:not([data-theme="light"]) :is(.card, .session-card, .cost-card, .pay-card, .leader-card) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 22 C8 14 6 6 14 8 L20 14 L26 8 C34 6 32 14 20 22Z' fill='%23f472b6'/%3E%3Ccircle cx='20' cy='15' r='3' fill='%23fff1f8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px top 10px; background-size: 22px 22px; }
-body[data-special="kitty"]:not([data-theme="light"]) .poll-card { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 22 C8 14 6 6 14 8 L20 14 L26 8 C34 6 32 14 20 22Z' fill='%23f472b6'/%3E%3Ccircle cx='20' cy='15' r='3' fill='%23fff1f8'/%3E%3C/svg%3E"), var(--poll-card-bg); background-repeat: no-repeat; background-position: right 12px top 10px, 0 0; background-size: 22px 22px, auto; }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-play { background: linear-gradient(135deg, #db2777, #9d174d); }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-spend { background: linear-gradient(135deg, #831843, #500724); }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-pay { background: linear-gradient(135deg, #be185d, #9d174d); }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-badges { background: linear-gradient(135deg, #a21caf, #701a75); }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-rating { background: linear-gradient(135deg, #ec4899, #be185d); }
-body[data-special="kitty"]:not([data-theme="light"]) .home-next, body[data-special="kitty"]:not([data-theme="light"]) .ls-bar { background: linear-gradient(135deg, #db2777, #4a1833); }
-body[data-special="kitty"]:not([data-theme="light"]) .live-screen .ls-half::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'%3E%3Cpath d='M20 22 C8 14 6 6 14 8 L20 14 L26 8 C34 6 32 14 20 22Z' fill='%23f472b6'/%3E%3Ccircle cx='20' cy='15' r='3' fill='%23fff1f8'/%3E%3C/svg%3E") right 12px top 8px / 30px 30px no-repeat; }
-body[data-special="kitty"]:not([data-theme="light"]) .hs-health, body[data-special="kitty"]:not([data-theme="light"]) .wk-hero { background: linear-gradient(135deg, #4a1833, #db2777); }
 body[data-special="doraemon"]:not([data-theme="light"]) {
   --primary: #0284c7; --primary-light: #fde047; --accent: #fde047; --accent-rgb: 253, 224, 71; --blue: #1d4ed8;
   --bg: #082a5c; --surface: #0b4a9e; --card: #0f5bb5; --border: #5fa0e6;
