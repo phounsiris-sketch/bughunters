@@ -11,9 +11,9 @@ ids.forEach(function (id) { var p = pal[id]; assert.ok(p && ["hot", "hot2", "sto
 assert.ok(splash.indexOf("pickPal()") > 0 && /localStorage\.getItem\(k\)/.test(splash), "the colours come from the saved theme");
 assert.ok(html.indexOf("godsmash_splash") < 0 && html.indexOf("sp-blue") < 0 && html.indexOf("sp-red") < 0, "no more red/blue alternation");
 assert.ok(html.indexOf("sp3fx") < 0 && splash.indexOf("getContext") < 0 && splash.indexOf("requestAnimationFrame") < 0, "no canvas: the splash is plain CSS");
-assert.ok(/class="sp-court"/.test(html) && (html.match(/<path class="c\d"/g) || []).length === 4, "the badminton court is drawn as lines behind the logo");
+assert.ok(/class="sp-court"/.test(html) && (html.match(/<path class="c[ab]"/g) || []).length === 2 && /rotate\(180/.test(html), "the badminton court is drawn by two pens (top left and bottom right) behind the logo");
 assert.ok(/prefers-reduced-motion: reduce\) \{\s*#splash::before/.test(css), "reduced motion shows a still frame");
-var min = +router.match(/\? (\d+) : (\d+);\s*\/\/ plus a \.25 s fade/)[2];
-assert.ok(min + 250 <= 1000, "minimum on screen " + min + " ms + 250 ms fade stays under 1 s");
+var min = +router.match(/\? (\d+) : (\d+);\s*\/\/ the court takes about 1\.1 s to draw; plus a \.25 s fade/)[2];
+assert.ok(min + 250 <= 1400, "minimum on screen " + min + " ms + 250 ms fade stays under 1.4 s");
 assert.ok(/#splash \{[^}]*transition: opacity 0\.25s/.test(css), "fade is 0.25 s");
 console.log("splash OK");
