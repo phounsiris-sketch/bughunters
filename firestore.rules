@@ -81,7 +81,32 @@ service cloud.firestore {
         && d.get('serve', 'A') in ['A', 'B'];
     }
 
+    // Hall of fame (v229): the winners of a finished tournament, kept when the session is deleted.
+    // Plain strings and short lists only; written by members of the group.
+    function hofTeamOk(x) {
+      return x == null || (x is map && x.keys().hasOnly(['uids', 'names']) && x.uids is list && x.uids.size() <= 2 && x.names is list && x.names.size() <= 2);
+    }
+    function hofOk(d) {
+      return d.keys().hasOnly(['v', 'sid', 'gid', 'date', 'n', 'champion', 'runnerUp', 'third', 'finalScore', 'finalGames', 'outs', 'createdBy', 'createdAt'])
+        && d.sid is string && d.sid.size() <= 80 && d.get('date', '') is string && d.get('date', '').size() <= 10
+        && d.n in [6, 8] && d.champion is map && hofTeamOk(d.champion) && hofTeamOk(d.get('runnerUp', null)) && hofTeamOk(d.get('third', null))
+        && d.get('finalScore', '') is string && d.get('finalScore', '').size() <= 8
+        && d.get('finalGames', []) is list && d.get('finalGames', []).size() <= 3
+        && d.get('outs', []) is list && d.get('outs', []).size() <= 4
+        && d.get('createdAt', 0) is number;
+    }
+
     match /groups/{gid} {
+      match /hallOfFame/{sid} {
+        allow read: if isSuper() || isMember(gid);
+        allow create: if idOk(sid) && isMember(gid) && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.sid == sid && request.resource.data.gid == gid && hofOk(request.resource.data);
+        allow update: if idOk(sid) && isMember(gid) && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.sid == sid && request.resource.data.gid == gid && hofOk(request.resource.data)
+          && (resource.data.createdBy == request.auth.uid || canIn('editSession', gid));
+        // The organiser who saved it, someone who edits sessions, or a group admin
+        allow delete: if isSuper() || isGroupAdmin(gid) || canIn('editSession', gid) || resource.data.get('createdBy', '') == request.auth.uid;
+      }
       // Names of groups are not secret (public groups are listed; a private
       // group's invite code lives in groupSecrets, which only admins read)
       allow read: if isAuth();

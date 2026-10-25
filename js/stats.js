@@ -15,7 +15,7 @@
 var lastMatches = [];         // the saved matches plus the games of session tournaments (v228), oldest first
 var _matchesReal = [];        // only what is saved in matches/
 var _matchesUnsub = null;
-var statsTab = "ranking";     // ranking | h2h | progress
+var statsTab = "ranking";     // ranking | h2h | progress | hof
 var progressUser = null;
 
 var RATING_START = 1500;
@@ -45,6 +45,7 @@ function rebuildMatches() {
 }
 
 function stopMatches() {
+  if (typeof hofStop === "function") hofStop();
   if (_matchesUnsub) _matchesUnsub();
   _matchesUnsub = null;
   _matchesReal = [];
@@ -215,11 +216,11 @@ function renderStats() {
   var box = document.getElementById("statsContent");
   if (!box) return;
   var tabs = '<div class="me-title">' + icon("ranking", 22) + ' ' + t("navRankings") + '</div>' +
-    '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"]].map(function (x) {
+    '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"], ["hof", "hofTab", "trophy"]].map(function (x) {
     return '<button role="tab" class="dash-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 14) + ' ' + t(x[1]) + '</button>';
   }).join('') + '</div>';
   var note = '<div class="private-note">' + icon("lock", 12) + ' ' + t("statsPrivate").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>';
-  var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : _renderRanking();
+  var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : statsTab === "hof" && typeof hofHtml === "function" ? hofHtml() : _renderRanking();
   box.innerHTML = tabs + note + body;
   uiMotion(box, statsTab + "|" + statsScope + "|" + (typeof progressUser !== "undefined" ? progressUser : ""));
 }

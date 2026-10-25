@@ -529,7 +529,10 @@ function tourSessionsChanged() {
 
 function _tnPut(s) {
   _tnBusy = true;
-  return dbUpdateSession(s.id, { tourney: JSON.parse(JSON.stringify(s.tourney)) }).then(function () { _tnBusy = false; }, function (e) {
+  return dbUpdateSession(s.id, { tourney: JSON.parse(JSON.stringify(s.tourney)) }).then(function () {
+    _tnBusy = false;
+    if (typeof hofSave === "function" && tourOf(s) && tourComplete(tourOf(s))) hofSave(s);   // the winners are kept in the Hall of Fame
+  }, function (e) {
     _tnBusy = false;
     dbOnError(e, "sessions");
     showToast(t("tourSaveFail"));
@@ -569,6 +572,7 @@ function _tnClick(ev) {
   if (act === "close") { tourClose(); return; }
   if (!s) return;
   var T = tourOf(s), org = tourCanRun(s);
+  if (act === "share") { if (T && tourComplete(T) && typeof openShareCard === "function") openShareCard("", "tournament", s.id); return; }
   if (act === "stage") { var st = tourStage(s); if (st && !st.disabled) _tnStageAct(s, st); return; }
   if (!T || !org) return;
   if (act === "edit") {
@@ -778,7 +782,7 @@ function _tnDrawCard(T) {
   return h + '</div></div>';
 }
 
-function _tnWinner(T) {
+function _tnWinner(T, sid) {
   var order = tourOrder(T);
   if (!order) return "";
   var P = tourPairs(T);
@@ -786,7 +790,7 @@ function _tnWinner(T) {
     var p = order[k] >= 0 ? P[order[k]] : null;
     return '<div class="tn-pl ' + cls + '"><span class="tn-medal">' + escapeHtml(lab) + '</span><div class="tn-pnm">' + (p ? p.m.map(function (i) { return avatarHtml(T.ids[i], 36) + '<span>' + getUserName(T.ids[i]) + '</span>'; }).join('') : '<span>\u2014</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div></div>';
   }
-  return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div></div>';
+  return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div><button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
 }
 
 function tourRender() {
@@ -832,7 +836,7 @@ function tourRender() {
       h += '</div>';
     }
   }
-  h += _tnWinner(T);
+  h += _tnWinner(T, s.id);
   if (org) h += '<button type="button" class="tn-b dng" data-act="reset">' + escapeHtml(t("tourReset")) + '</button>';
   body.innerHTML = h;
 }

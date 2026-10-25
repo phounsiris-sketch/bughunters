@@ -219,7 +219,7 @@ function _scLoadAvatar(uid) {
 function openShareCard(uid, mode, arg) {
   uid = uid || (currentUser && currentUser.uid); if (!uid) return;
   _sc.uid = uid; _sc.theme = "auto"; _sc.fmt = "story"; _sc.avatar = null; _sc.mode = mode || "profile"; _sc.arg = arg || null; _sc.pick = "";
-  var ttl = _sc.mode === "workout" ? "shareWorkoutTitle" : _sc.mode === "overview" ? "shareOverviewTitle" : "shareCardTitle";
+  var ttl = _sc.mode === "workout" ? "shareWorkoutTitle" : _sc.mode === "overview" ? "shareOverviewTitle" : _sc.mode === "tournament" ? "hofShareTitle" : "shareCardTitle";
   var old = document.getElementById("shareSheet"); if (old) old.remove();
   var el = document.createElement("div"); el.id = "shareSheet"; el.className = "sheet-wrap";
   el.innerHTML = '<div class="sheet sc-sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(t(ttl)) + '"><div class="sheet-grab"></div>' +
@@ -236,7 +236,9 @@ function openShareCard(uid, mode, arg) {
   el.querySelector("#scShare").onclick = function () { _scOut(true); };
   el.querySelector("#scSave").onclick = function () { _scOut(false); };
   _scControls();
-  var go = function () { if (_sc.mode !== "profile") { _scRedraw(); return; } _scLoadAvatar(uid).then(function (im) { _sc.avatar = im; _scRedraw(); }); };
+  var go = function () {
+    if (_sc.mode === "tournament" && typeof loadTournamentAvatars === "function") { loadTournamentAvatars(_sc.arg).then(_scRedraw, _scRedraw); _scRedraw(); return; }
+    if (_sc.mode !== "profile") { _scRedraw(); return; } _scLoadAvatar(uid).then(function (im) { _sc.avatar = im; _scRedraw(); }); };
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
   _scRedraw();
 }
@@ -261,7 +263,8 @@ function _scControls() {
 function _scSet(k, v) { _sc[k] = v; _scControls(); _scRedraw(); }
 function _scRedraw() {
   var cv = document.getElementById("scCanvas"); if (!cv) return;
-  if (_sc.mode === "workout" && typeof shareWorkoutNow === "function") { var wd = shareWorkoutNow(_sc.arg); if (wd) drawWorkoutCard(cv, wd, _scThemeId(), _sc.fmt); }
+  if (_sc.mode === "tournament" && typeof shareTournamentNow === "function") { var td = shareTournamentNow(_sc.arg); if (td) drawTournamentCard(cv, td, _scThemeId(), _sc.fmt); }
+  else if (_sc.mode === "workout" && typeof shareWorkoutNow === "function") { var wd = shareWorkoutNow(_sc.arg); if (wd) drawWorkoutCard(cv, wd, _scThemeId(), _sc.fmt); }
   else if (_sc.mode === "overview" && typeof shareOverviewNow === "function") {
     var ov = shareOverviewNow(), pi = -1; ov.list.forEach(function (i, k) { if (i.sid === _sc.pick) pi = k; });
     if (pi >= 0) drawWeekSessionCard(cv, ov.list[pi].data, ov, pi, _scThemeId(), _sc.fmt); else drawOverviewCard(cv, ov, _scThemeId(), _sc.fmt);
