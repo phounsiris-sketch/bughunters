@@ -140,7 +140,7 @@ function _renderProfileSub() {
     tabs = '<div class="tabs-scroll pf-tabs" role="tablist">' + list.map(function (x) {
       return '<button type="button" role="tab" aria-selected="' + (x[0] === pfTab) + '" class="dash-tab' + (x[0] === pfTab ? ' active' : '') + '" onclick="setPfTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
     }).join('') + '</div>';
-    if (pfTab === "personal") body = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml("personal") : "");
+    if (pfTab === "personal") body = (typeof frameChooserHtml === "function" ? frameChooserHtml() : "") + (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml("personal") : "");
     else if (pfTab === "badminton") body = (typeof aboutCardHtml === "function" ? aboutCardHtml("badminton") : "") + (typeof gearCardHtml === "function" ? gearCardHtml(me, true) : "");
     else {
       if (typeof _myPrivate !== "undefined" && _myPrivate === null) { loadMyHealth(function () { if (pfTab === "health" && currentPage === "profile-sub") renderSettings(); }); body = ""; }

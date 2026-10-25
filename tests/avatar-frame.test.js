@@ -1,0 +1,23 @@
+/* Run: node tests/avatar-frame.test.js — photo frames: three rings, chosen in Profile, shown round the photo (v226) */
+var fs = require("fs"), vm = require("vm"), assert = require("assert");
+var app = fs.readFileSync("js/app.js", "utf8");
+var a = app.indexOf("/** Photo frames (v226)"), b = app.indexOf("/* ---------- Phone numbers");
+var users = { u1: { id: "u1", displayName: "Mali", frame: "gold", avatarUrl: "data:image/png;base64,AAAA" }, u2: { id: "u2", displayName: "Bob", frame: "<img onerror=x>" }, u3: { id: "u3", displayName: "Kham" } };
+var ctx = { dbFindById: function () {}, findUser: function (id) { return users[id]; }, safeUrl: function (v) { return v; }, escapeHtml: function (v) { return String(v).replace(/</g, "&lt;"); }, colorFor: function () { return "#123"; }, plainUserName: function (u) { return u ? u.displayName : "?"; } };
+vm.createContext(ctx); vm.runInContext(app.slice(a, b), ctx);
+assert.strictEqual(JSON.stringify(ctx.AVATAR_FRAMES), JSON.stringify(["gold", "court", "neon"]));
+var big = ctx.avatarHtml("u1", 72);
+assert.ok(/class="avf f-gold big" style="--s:72px;--r:5px"/.test(big) && big.indexOf('<img class="person-avatar"') > 0, "a framed photo is wrapped in the ring");
+assert.ok(ctx.avatarHtml("u1", 30).indexOf('class="avf f-gold"') > 0 && ctx.avatarHtml("u1", 30).indexOf("big") < 0, "a small photo gets a ring without the extras");
+assert.ok(ctx.avatarHtml("u1", 18).indexOf("avf") < 0, "tiny photos stay plain");
+assert.ok(ctx.avatarHtml("u2", 40).indexOf("avf") < 0 && ctx.avatarHtml("u2", 40).indexOf("onerror") < 0, "an unknown frame word is never used");
+assert.ok(ctx.avatarHtml("u3", 40).indexOf("avf") < 0, "no frame, no ring");
+assert.ok(ctx.avatarHtml("u3", 56, "neon").indexOf("f-neon big") > 0, "the chooser can preview a frame");
+assert.ok(ctx.avatarHtml("u1", 56, "").indexOf("avf") < 0, "an empty frame previews none");
+assert.ok(ctx.avatarHtml("u3", 72, "court").indexOf('class="sb"') > 0 && ctx.avatarHtml("u3", 40, "court").indexOf('class="sb"') < 0, "the court ring has its shuttle badge on big photos only");
+var pr = fs.readFileSync("js/profile.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8"), rules = fs.readFileSync("firestore.rules", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
+assert.ok(/function setMyFrame\(fr\)/.test(pr) && /AVATAR_FRAMES\.indexOf\(fr\) < 0\) return/.test(pr), "only known words are saved");
+assert.ok(/\.f-neon\.big::before \{ animation: frame-spin/.test(css) && /prefers-reduced-motion: reduce\) \{ \.f-neon\.big::before \{ animation: none/.test(css), "only the big neon ring turns, and not with reduced motion");
+assert.ok(/function frameOk\(d\)/.test(rules) && (rules.match(/frameOk\(request\.resource\.data\)/g) || []).length === 2, "the rules accept only the known frame words");
+["frameTitle", "frameHint", "frameNone", "frameGold", "frameCourt", "frameNeon", "frameSaved"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN and LA"); });
+console.log("avatar frame OK");

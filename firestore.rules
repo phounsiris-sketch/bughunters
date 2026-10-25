@@ -69,6 +69,8 @@ service cloud.firestore {
     // The person who created a poll / session always manages it
     function isCreator() { return isAuth() && resource.data.get('createdBy', '') == request.auth.uid; }
     function isManual(data) { return data.get('manual', false) == true; }
+    // Photo frame words the app knows (v226)
+    function frameOk(d) { return d.get('frame', null) == null || d.get('frame', null) in ['gold', 'court', 'neon']; }
     // Kinds and modes the app writes: the rules refuse any other word (v211)
     function modeOk(d) { return d.get('mode', 'fun') in ['fun', 'exercise', 'competition'] && d.get('gameType', 'any') in ['md', 'wd', 'xd', 'singles', 'any']; }
     function smallInt(v, lo, hi) { return v is int && v >= lo && v <= hi; }
@@ -140,12 +142,12 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       // Your own profile, without permissions; or a manual player of a group (editConfig)
-      allow create: if (isOwner(uid) && !('perms' in request.resource.data) && !isManual(request.resource.data) && avatarOk(request.resource.data))
+      allow create: if (isOwner(uid) && !('perms' in request.resource.data) && !isManual(request.resource.data) && avatarOk(request.resource.data)) && frameOk(request.resource.data)
         || (isManual(request.resource.data) && !('perms' in request.resource.data)
             && canIn('editConfig', request.resource.data.get('groupId', '')))
         || isSuper();
       // You may edit your profile but never your own permissions
-      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual', 'groupId']) && avatarOk(request.resource.data))
+      allow update: if (isOwner(uid) && !changed().hasAny(['perms', 'manual', 'groupId']) && avatarOk(request.resource.data)) && frameOk(request.resource.data)
         || (isManual(resource.data) && isManual(request.resource.data) && !changed().hasAny(['perms']) && sameGroup()
             && canIn('editConfig', gidOf(resource.data)))
         || isSuper();
