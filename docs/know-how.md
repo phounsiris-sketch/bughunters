@@ -1650,3 +1650,8 @@ One teal button on a session card (sessions list) runs a tournament for the sess
 - **Screen:** `js/tournament.js` draws an overlay (`#tnScreen`, `.tn-*` css) with the stage button, steps, bracket, games, who-meets-who, rest balance, table, pairs, playoff and podium. Sessions updates refresh it unless a score is being typed. The draw shuffle is skipped for reduced motion.
 - **Not in v227:** writing tournament games to `matches` (rankings and Elo), a winner share card, a player dropping out mid-tournament.
 - Tests: tests/tournament.test.js.
+
+## v227 hotfix: tournament field renamed to `tourney`
+- **Bug:** a session from the v48 round robin already had `tournament = { pairs, at, by }`. The v227 card read it as a new tournament, `tourComplete` threw on `po.length`, and the whole sessions list stopped drawing (cards vanished).
+- **Fix:** the session field is now `tourney`; `tourOf(s)` returns it only if it has the right shape (v, games, po, ids). An old or half-saved value counts as no tournament, so a bad field can never break the list. The old `tournament` field is left alone.
+- **No version bump:** same v227; sw.js has a comment bump so the service worker updates. Test added to tests/tournament.test.js.
