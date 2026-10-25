@@ -240,6 +240,7 @@ function loadSessions() {
   if (!sessionsUnsubscribe) {
     sessionsUnsubscribe = dbGetSessions(function (sessions) {
       lastSessions = sessions;
+      if (typeof tourSessionsChanged === "function") tourSessionsChanged();   // tournament games feed Rankings and stats
       if (currentPage === "sessions") renderSessionsList(sessions);
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (currentPage === "payments" && typeof renderPayments === "function") renderPayments();
@@ -970,7 +971,10 @@ function _yourPartHtml(s, L) {
 function _canMarkTransfer(s, tr) {
   if (!currentUser) return false;
   var me = currentUser.uid;
-  if (me === tr.from || me === tr.to || canEditBill(s)) return true;
+  if (canEditBill(s) || s.createdBy === me) return true;
+  // v231 (same as the rules): only the session's players and payers write "paid", and only for their own payments or a manual player's
+  if ((s.players || []).indexOf(me) < 0 && s.courtPayer !== me && s.shuttlePayer !== me) return false;
+  if (me === tr.from || me === tr.to) return true;
   var from = findUser(tr.from);
   var to = findUser(tr.to);
   return !!((from && from.manual) || (to && to.manual));

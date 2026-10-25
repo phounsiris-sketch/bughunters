@@ -15,8 +15,11 @@ assert.ok(/class="sp-court"/.test(html) && (html.match(/<path pathLength="1" d="
 var courtMs = +css.match(/animation: sp-draw ([\d.]+)s/)[1], ringMs = +css.match(/animation: sp-ring ([\d.]+)s/)[1];
 assert.ok(courtMs > ringMs * 2, "the court is drawn slower than the line round the logo (" + courtMs + " s vs " + ringMs + " s)");
 assert.ok(/prefers-reduced-motion: reduce\) \{\s*#splash::before/.test(css), "reduced motion shows a still frame");
-var min = +router.match(/\? (\d+) : (\d+);\s*\/\/ the court takes about 1\.65 s to draw; plus a \.25 s fade/)[2];
-assert.ok(min + 250 <= 2000, "minimum on screen " + min + " ms + 250 ms fade stays under 2 s");
+var min = +router.match(/\? (\d+) : (\d+);\s*\/\/ the court takes about 1\.1 s to draw; plus a \.25 s fade/)[2];
+assert.ok(min + 250 <= 1500, "minimum on screen " + min + " ms + 250 ms fade stays under 1.5 s (v233: the app is ready in about 0.1 s, so the scene is the wait)");
+assert.ok(courtMs <= 1, "the court is drawn in one second or less (" + courtMs + " s)");
+assert.ok(min >= courtMs * 1000 + 100, "the splash stays long enough for the court to finish drawing");
+(css.match(/animation: sp-[a-z-]+ ([\d.]+)s[^;]*? ([\d.]+)s forwards/g) || []).forEach(function (m) { var n = m.match(/ ([\d.]+)s/g).map(function (x) { return parseFloat(x); }); assert.ok(n[0] + n[1] <= 1.2, "every intro animation ends within 1.2 s: " + m); });
 assert.ok(/#splash \{[^}]*transition: opacity 0\.25s/.test(css), "fade is 0.25 s");
 assert.ok(/window\.spDone/.test(splash) && /classList\.add\("go"\)/.test(splash) && /getAnimations/.test(splash), "the splash starts on the first painted frame and reports when every animation has ended");
 assert.ok(/if \(!window\.spDone && !_splashSkipped\) return;/.test(router), "the splash leaves only after the scene has played (a tap still skips)");
