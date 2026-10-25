@@ -41,7 +41,11 @@ function ageFromDob(dob) {
 
 /* ---------- My profile: personal info (one card, one Save) ---------- */
 
-function aboutCardHtml() {
+/* The about form is one form shown in two parts (v214): "personal" (who I am) and "badminton" (how I play); one Save writes both */
+var _aboutPart = "personal";
+function aboutCardHtml(part) {
+  if (part) _aboutPart = part;
+  part = _aboutPart;
   var me = findUser(currentUser.uid) || currentUserProfile || {};
   var prof = currentUserProfile || me;
   var about = me.about || {};
@@ -78,9 +82,10 @@ function aboutCardHtml() {
   };
   var age = ageFromDob(f.dob);
   var email = prof.email || (currentUser && currentUser.email) || "";
-  var html = '<div class="card" id="aboutCard"><div class="card-title">' + icon("user", 14) + ' ' + t("personalInfo") + '</div>' +
+  var html = '<div class="card" id="aboutCard"><div class="card-title">' + (part === "badminton" ? icon("shuttle", 14) + ' ' + t("howIPlay") : icon("user", 14) + ' ' + t("personalInfo")) + '</div>' +
     '<div class="form-hint" style="margin-bottom:10px">' + t("aboutHint") + '</div>';
   // Who I am
+  if (part === "personal") {
   // Name: first name + surname (who can see them), nickname, and the name shown in the app
   html += row(t("fullName"), "fullName", '<div class="form-row name-row">' +
     '<input class="form-input" id="pfFirst" maxlength="30" placeholder="' + t("firstName") + '" aria-label="' + t("firstName") + '" value="' + escapeHtml(f.firstName) + '" oninput="aboutForm.firstName=this.value">' +
@@ -95,8 +100,9 @@ function aboutCardHtml() {
     '<div class="form-hint">' + t("dobHint") + (age !== null ? ' · <b>' + t("ageN").replace("{n}", age) + '</b>' : '') + '</div>', "age");
   html += row(t("relationship"), "relationship", '<select class="form-select" onchange="aboutForm.relationship=this.value"><option value="">—</option>' +
     ["single", "relationship", "married", "na"].map(function (o) { return '<option value="' + o + '"' + (f.relationship === o ? ' selected' : '') + '>' + t("rel_" + o) + '</option>'; }).join('') + '</select>');
+  }
   // How I play
-  html += '<div class="settings-section about-sub">' + icon("shuttle", 13) + ' ' + t("howIPlay") + '</div>';
+  if (part === "badminton") {
   html += row(t("selfLevel"), "selfLevel", levelButtonsHtml(f.selfLevel, function (l) { return "aboutSet('selfLevel','" + l + "')"; }));
   html += row(t("hand"), "hand", seg("hand", ["right", "left"], "hand_"));
   html += row(t("position"), "position", seg("position", ["front", "back", "both"], "pos_"));
@@ -107,6 +113,7 @@ function aboutCardHtml() {
   }).join('') + '</div>' +
     '<div class="form-label" style="margin-top:10px">' + t("timeUsuallyFree") + '</div>' +
     timeRangeHtml(f.timeFrom, f.timeTo, "aboutForm.timeFrom=this.value", "aboutForm.timeTo=this.value"));
+  }
   html += '<button class="btn-primary" onclick="saveAbout()">' + t("save") + '</button></div>';
   return html;
 }
@@ -151,7 +158,7 @@ function saveAbout() {
   var f = aboutForm, uid = currentUser.uid;
   var name = (f.name || "").trim();
   if (!name) { showToast(t("displayName") + " *"); return; }
-  var ph = readPhone("pfPhone");
+  var ph = document.getElementById("pfPhone") ? readPhone("pfPhone") : { ok: true, value: f.phone && String(f.phone).length === 8 ? "+85620" + f.phone : null };   // the phone box is only on the personal part
   if (!ph.ok) { showToast(t("phoneInvalid")); return; }
   if ((f.dobD || f.dobM || f.dobY) && !f.dob) { showToast(t("dobIncomplete")); return; }
   var age = ageFromDob(f.dob);
