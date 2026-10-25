@@ -366,6 +366,7 @@ function renderSessionsList(sessions) {
       (s.calculated && players.length ? '<div class="session-each">~' + fmtShort(_grandOf(s) / players.length) + ' ' + t("each") + '</div>' : '') +
       '</div>';
     html += '</div>';
+    if (typeof tourCardHtml === "function") html += tourCardHtml(s);   // v236: start / next step on the card too
 
     if (canDetails || canBill) {
       html += '<div class="session-actions">';
