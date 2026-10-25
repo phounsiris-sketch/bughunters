@@ -168,7 +168,7 @@ function _renderProfileTab() {
   if (GROUPS_ON && typeof computeStats === "function" && me) {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
-    html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
+    html += '<div class="pf-tiles">' + tile(ratingText(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
     html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("shareOut", 16) + ' ' + t("shareMyCard") + '</button>';
   }
   html += '</div>';
@@ -243,6 +243,9 @@ function _renderSettingsPage() {
   if (GROUPS_ON && currentGroup && isGroupAdminMe() && typeof loadReports === "function") loadReports();
   var cfg = typeof can === "function" && can("editConfig");
 
+  // 0. Subscription: the first card of the page (v220)
+  html += '<div class="card nav-rows">' + _navRow("showToast(subStatusText())", "medal", t("subTitleShort"), subStatusText()) + '</div>';
+
   // 1. Group — everything about the group in one place
   html += _settingsSection("secGroup");
   var rows = [];
@@ -252,7 +255,6 @@ function _renderSettingsPage() {
     rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
     // Members, courts, shuttlecocks, players, QR and general now live on the Group settings page (v213)
     rows.push(_navRow("showPage('group-settings')", "settings", t("groupSettings"), t("groupHubHint") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : '')));
-    if (admin && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));
   } else {
     if (GROUPS_ON) rows.push(_navRow("showPage('groups')", "users", t("yourGroups"), t("createGroupHint")));
     rows.push(_navRow("showPage('config')", "settings", t("configuration"), t("configurationHint")));
@@ -262,7 +264,6 @@ function _renderSettingsPage() {
 
   // 2. App — language first, then how it looks
   html += _settingsSection("secApp");
-  html += '<div class="card nav-rows">' + _navRow("showToast(subStatusText())", "medal", t("subTitleShort"), subStatusText()) + '</div>';
   html += '<div class="card"><div class="card-title">' + icon("globe", 14) + ' ' + t("language") + '</div>';
   html += _seg([["en", "English"], ["la", "ລາວ"]], currentLang, "setLanguage");
   html += '</div>';
@@ -281,14 +282,6 @@ function _renderSettingsPage() {
   });
   ap += '</div>';
   html += _fold('app', 'dashboard', t('appearance'), (light ? t('themeLight') : t('themeDark')), ap);
-  // Icon style: applies to the Dashboard page only
-  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
-    ICON_THEMES.map(function (id) {
-      var on = currentIconTheme === id;
-      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
-    }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
-    _seg([["clay", t("dashPackClay")], ["sticker", t("dashPackSticker")], ["same", t("dashPackSame")]], currentDashPack, "setDashPack"));
   // Special (gimmick) themes: separate from the styles above, dark mode only
   var spH = '<div class="form-hint">' + t("specialThemesHint") + '</div><div class="sp-grid">';
   SPECIALS.forEach(function (sp) {
@@ -300,11 +293,20 @@ function _renderSettingsPage() {
   spH += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '');
   var spCur = SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0];
   html += _fold('special', 'medal', t("specialThemes"), spCur ? t(spCur[1]) : t("specialOff"), spH);
+  // Icon style: applies to the Dashboard page only
+  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
+    ICON_THEMES.map(function (id) {
+      var on = currentIconTheme === id;
+      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
+        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
+    }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
+    _seg([["clay", t("dashPackClay")], ["sticker", t("dashPackSticker")], ["same", t("dashPackSame")]], currentDashPack, "setDashPack"));
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
   rows = [];
   if (typeof pushSettingsRows === "function") rows.push(pushSettingsRows());
+  if (GROUPS_ON && currentGroup && isGroupAdminMe() && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));   // reports sit with notifications and deleted items (v219)
   rows.push(_navRow("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint")));
   html += '<div class="card nav-rows">' + rows.join('') + '</div>';
   html += _renderMergeCard();
@@ -951,6 +953,17 @@ function _swapUid(value, oldId, newId) {
   return value;
 }
 
+/** The fields of one document that mention `oldId`, rewritten for `newId`; null when none does */
+function mergeFieldUpdates(data, fields, oldId, newId) {
+  var update = null;
+  fields.forEach(function (f) {
+    if (data[f] === undefined || data[f] === null || JSON.stringify(data[f]).indexOf(oldId) < 0) return;
+    if (!update) update = {};
+    update[f] = _swapUid(data[f], oldId, newId);
+  });
+  return update;
+}
+
 function mergeManualPlayer(manualId) {
   var manual = findUser(manualId);
   if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
@@ -958,25 +971,38 @@ function mergeManualPlayer(manualId) {
     var me = currentUser.uid;
     showToast(t("loading"));
 
-    var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "settled", "createdBy"];
-    var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
+    var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "dinnerPoll", "settled", "settledAt", "createdBy"];
+    var pollFields = ["responses", "votes", "voteLog", "createdBy", "cancelledBy", "confirmedPlayers"];
+    var matchFields = ["teamA", "teamB", "createdBy", "updatedBy", "confirmedBy"];
 
-    function migrate(collection, fields) {
+    // All rewritten documents are collected first, then written in batches (Firestore allows 500 writes per batch)
+    var ops = [];
+    function collect(collection, fields) {
       return groupScoped(fsdb.collection(collection)).get().then(function (snap) {
-        var jobs = [];
         snap.forEach(function (doc) {
-          var data = doc.data();
-          if (JSON.stringify(fields.map(function (f) { return data[f] === undefined ? null : data[f]; })).indexOf(manualId) < 0) return;
-          var update = {};
-          fields.forEach(function (f) { if (data[f] !== undefined) update[f] = _swapUid(data[f], manualId, me); });
-          jobs.push(doc.ref.update(update));
+          var update = mergeFieldUpdates(doc.data(), fields, manualId, me);
+          if (update) ops.push({ ref: doc.ref, update: update });
         });
-        return Promise.all(jobs);
       });
     }
+    function commitOps() {
+      var chain = Promise.resolve();
+      for (var i = 0; i < ops.length; i += 400) {
+        (function (part) {
+          chain = chain.then(function () {
+            var batch = fsdb.batch();
+            part.forEach(function (op) { batch.update(op.ref, op.update); });
+            return batch.commit();
+          });
+        })(ops.slice(i, i + 400));
+      }
+      return chain;
+    }
 
-    migrate("sessions", sessionFields)
-      .then(function () { return migrate("polls", pollFields); })
+    collect("sessions", sessionFields)
+      .then(function () { return collect("polls", pollFields); })
+      .then(function () { return collect("matches", matchFields); })
+      .then(commitOps)
       .then(function () {
         // Keep the phone number and QR codes if I don't have my own yet
         var jobs = [];
@@ -995,7 +1021,7 @@ function mergeManualPlayer(manualId) {
         });
         return Promise.all(jobs);
       })
-      .then(function () { return dbDeleteManualPlayer(manualId); })
+      .then(function () { return trashDoc("player", "users", manualId, plainUserName(manual)); })   // Recently deleted, so it can be undone
       .then(function () { showToast(t("mergeDone").replace("{name}", plainUserName(manual))); renderSettings(); })
       .catch(function (error) { showToast(_permError(error)); });
   });

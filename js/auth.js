@@ -166,21 +166,22 @@ function checkVerified() {
 function handleEmailLinkSignIn() {
   if (!auth.isSignInWithEmailLink(window.location.href)) return;
 
-  var email = localStorage.getItem("emailForSignIn");
-  if (!email) {
-    email = window.prompt(t("confirmEmailPrompt"));
-  }
-  if (!email) return;
-
-  auth.signInWithEmailLink(email, window.location.href)
-    .then(function () {
-      localStorage.removeItem("emailForSignIn");
-      history.replaceState(null, "", window.location.pathname);
-    })
-    .catch(function (error) {
-      history.replaceState(null, "", window.location.pathname);
-      showToast(error.code === "auth/invalid-action-code" ? t("linkExpired") : error.message);
-    });
+  var email = null;
+  try { email = localStorage.getItem("emailForSignIn"); } catch (e) {}
+  var finish = function (addr) {
+    if (!addr) return;
+    auth.signInWithEmailLink(addr, window.location.href)
+      .then(function () {
+        try { localStorage.removeItem("emailForSignIn"); } catch (e) {}
+        history.replaceState(null, "", window.location.pathname);
+      })
+      .catch(function (error) {
+        history.replaceState(null, "", window.location.pathname);
+        showToast(error.code === "auth/invalid-action-code" ? t("linkExpired") : error.message);
+      });
+  };
+  if (email) finish(email);
+  else askConfirm({ title: t("confirmEmailPrompt"), kind: "ask", input: t("emailLabel"), inputType: "email", yes: t("confirm") }, finish);   // our own sheet, never window.prompt
 }
 
 /* ---------- Save profile (first-time) ---------- */
@@ -303,6 +304,8 @@ function logoutUser() {
   if (typeof dbStopCache === "function") dbStopCache();
   currentUser = null;
   currentUserProfile = null;
+  if (typeof _myPrivate !== "undefined") _myPrivate = null;   // the next user must not see this user's health details / birthday
+  if (typeof _hwMemo !== "undefined") _hwMemo = { m: null, s: null, p: null, list: [] };
   pageHistory = [];
   _resetAuthScreens();
   showAuthPage();

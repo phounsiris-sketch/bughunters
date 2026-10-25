@@ -185,6 +185,7 @@ function _activeGroupIds() {
 function startGroupListeners() {
   stopGroupListeners();
   if (!GROUPS_ON) return;
+  if (!currentGroup) updateHeaderGroup();   // the last group (name and logo, kept on this phone) shows at once
   // My memberships (a join request approved, removed from a group, …)
   _myMemberUnsub = fsdb.collection("members").where("uid", "==", currentUser.uid).onSnapshot(function (snap) {
     var before = myMemberships[currentGroupId];
@@ -195,6 +196,7 @@ function startGroupListeners() {
     Promise.all(newGids.map(function (gid) {
       return fsdb.collection("groups").doc(gid).get().then(function (doc) { if (doc.exists) myGroupsInfo[gid] = Object.assign({ id: gid }, doc.data()); }).catch(function () {});
     })).then(function () {
+      prefetchGroupLogos();
       if (currentGroupId && before && !next[currentGroupId]) { showToast(t("leftGroupToast")); switchGroup(_activeGroupIds()[0] || null); return; }
       if (!currentGroupId && _activeGroupIds().length) { switchGroup(_activeGroupIds()[0]); return; }
       updateHeaderGroup();
@@ -207,6 +209,8 @@ function startGroupListeners() {
     if (!doc.exists) return;
     currentGroup = Object.assign({ id: doc.id }, doc.data());
     myGroupsInfo[currentGroupId] = currentGroup;
+    try { localStorage.setItem("lastGroup", JSON.stringify({ id: currentGroup.id, name: currentGroup.name || "", logo: currentGroup.logo || null })); } catch (e) {}
+    prefetchGroupLogos();
     _applyGroupMoney();
     rebuildGroupCache();
     ensureGroupCourts();
@@ -318,6 +322,15 @@ function switchGroup(gid) {
   showPage("home");
 }
 
+/** Download every logo of my groups (and my own photo) once, keep them on this phone and warm them at the next start (v218) */
+function prefetchGroupLogos() {
+  var refs = Object.keys(myGroupsInfo || {}).map(function (g) { return (myGroupsInfo[g] || {}).logo; });
+  if (currentUserProfile && currentUserProfile.avatarUrl) refs.push(currentUserProfile.avatarUrl);
+  refs = refs.filter(function (r, i) { return isImgRef(r) && refs.indexOf(r) === i; });
+  if (typeof imgKeep !== "function") return;
+  imgKeep(refs).then(function () { if (typeof updateHeaderGroup === "function") updateHeaderGroup(); });
+}
+
 /** A group's logo (round picture), or its first letter on the app colours */
 function groupLogoHtml(grp, size) {
   size = size || 36;
@@ -328,10 +341,18 @@ function groupLogoHtml(grp, size) {
 
 /* ---------- Header: group name + switcher ---------- */
 
+/** The group of the last session (name and logo kept on this phone): shown in the header at once, before Firestore answers */
+function _cachedGroup() {
+  try { var g = JSON.parse(localStorage.getItem("lastGroup") || "null"); return g && typeof g.name === "string" ? g : null; } catch (e) { return null; }
+}
 function updateHeaderGroup() {
   var el = document.getElementById("headerTitle");
   if (!el) return;
-  if (GROUPS_ON && currentGroup) {
+  if (GROUPS_ON && !currentGroup && currentUser && _cachedGroup()) {
+    var cg = _cachedGroup();
+    el.innerHTML = '<button class="group-switch" onclick="showGroupSwitcher()">' + groupLogoHtml(cg, 26) + '<span class="group-switch-name">' + escapeHtml(cg.name || "Godsmash") + '</span>' +
+      ' <span class="group-caret">▾</span></button>';
+  } else if (GROUPS_ON && currentGroup) {
     el.innerHTML = '<button class="group-switch" onclick="showGroupSwitcher()">' + groupLogoHtml(currentGroup, 26) + '<span class="group-switch-name">' + escapeHtml(currentGroup.name || "Godsmash") + '</span>' +
       ' <span class="group-caret">▾</span></button>';
   } else {
@@ -824,7 +845,7 @@ function removeMember(mid, isRequest) {
     fsdb.collection("members").doc(mid).delete().then(function () { closeModal(); showToast(t(isRequest ? "decline" : "removeMember") + " ✔"); })
       .catch(function (e) { showToast(_permError(e)); });
   };
-  if (isRequest) _go();
+  if (isRequest) askYes(t("confirmDeclineRequest").replace("{name}", getUserName(m.uid)), _go, { danger: true, yes: t("decline") });
   else askYes(t("removeMemberConfirm").replace("{name}", getUserName(m.uid)), _go, { danger: true, yes: t("removeMember") });
 }
 

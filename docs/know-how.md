@@ -1586,3 +1586,43 @@ The Find buddy tab always shows the same calendar as Public games (before, it sh
 ## v216: Live score and Add score as two buttons
 
 The Games tab of a session had a wide Live score button and, below it, the whole Add score form always open. Now there are two equal buttons side by side, Live score first and Add score second (`.score-actions`; Live score is hidden once the session is completed, then Add score fills the row). The form (`#gameFormBox`) is closed until Add score is tapped (`_gfOpen`, `toggleGameForm`, `_gfSetOpen`); editing a game opens it, fixing a game closes it, saving a new game keeps it open for the next one, and a different session starts closed. Lao `addScore` ("ເພີ່ມຄະແນນ") is unreviewed.
+
+## v218: faster start and group logos kept on the phone
+
+**Why start was slow:** the service worker was network-first and sent `cache: 'no-cache'` for every own file, so each start made about 50 round trips (304 answers) before the app could draw. Now own files are cache first and updated in the background (`sw.js`); a new version installs fresh files (`cache: 'reload'`, so the 10 minute GitHub Pages copy is never precached), and the page reloads once when the new worker takes over. Only 200 answers are kept, never a URL with `oobCode`, and the tile cache survives a version bump. `index.html` preconnects to gstatic and firestore, and the Google Fonts stylesheet no longer blocks the first paint (font-display swap). The splash itself still plays its whole scene (about 1.95 s) on purpose; to shorten it, shorten the court draw in css (`sp-draw`, 1.5 s).
+
+**Group icon always there:** images (`images/{id}` documents) are now also kept in IndexedDB (`godsmash-img`, newest 200). `_loadImg` reads this phone first, then Firestore. After login `prefetchGroupLogos()` downloads the logo of every group I am in and my own photo, remembers their ids (`imgKeep` in localStorage) and at the next start `warmAtStart` puts them in the memory cache before the pages are drawn. The header shows the last group (name and logo, `lastGroup` in localStorage, cleared at sign-out) as soon as I am signed in, before Firestore answers. An image id never changes its picture, so the copies never go stale.
+
+## v219: Reports row moved
+
+The admin-only Reports row (with its count badge) is no longer under the Group section of Settings. It sits in the "Notifications and data" card, between Notifications and Recently deleted.
+
+## v220: Subscription first
+
+The Subscription card is the first card of the Settings page, above the Group section (it was the first row under the App heading).
+
+## v221: Settings look order
+
+Under App: Language, Appearance, Special themes, then Icon style last (it was before Special themes).
+
+## v222: market sort
+
+The Market tab has a Sort box under the price range: Newest first (as listed, the default), Price low to high, Price high to low, Name A-Z (Lao collation in Lao). Items without a price ("ask") go last in both price orders. Prices are compared as listed: each seller's group currency, with no conversion, like the min and max filters. Clear resets the sort too. tests/market-sort.test.js. Lao labels are unreviewed.
+## v217: correctness fixes
+
+From a verified audit. Lao strings added (`confirmDeclineRequest`, `editMultiGame`) are unreviewed.
+- **Weekly polls:** weeks 2..N now close the day before their own game (`defaultCloseAt(day, time, k ? 0 : Date.now())`, same rule as public games); comment above `defaultCloseAt` rewritten to match the code.
+- **Merge manual player:** also rewrites matches (teamA, teamB, createdBy, updatedBy, confirmedBy), poll `voteLog`/`cancelledBy`, session `settledAt`/`dinnerPoll`; writes in batches of 400 (`mergeFieldUpdates`); the manual user goes to Recently deleted (`trashDoc`) instead of being deleted.
+- **Double taps:** `askConfirm` runs onYes once and the fading sheet ignores taps; `lsSaveGame`, stats `saveGame` and `submitPoll` have in-flight flags (reset on failure); `lsSaveGame` toasts when the session is gone.
+- **Vote for others:** writes only the `responses.<uid>` rows the organiser changed (dotted paths, `FieldValue.delete()`), so a vote that arrived meanwhile survives.
+- **One Undo:** deleting a session with its confirmed poll shows one toast; `trashDoc(..., quiet)` and `undoLast("id1,id2")` restore both.
+- **Edit poll:** a confirmed poll's edit also updates its session (date, time, duration, court, location; price only if not calculated) in one batch; `closesAt` is only rewritten while the poll is draft/open. Cancelled polls can still be edited (no session to follow).
+- **Auto-confirm:** `_autoTried` is cleared when the auto `confirmPoll` fails, so the next minute retries. Dead `p.noAuto` removed.
+- **settleTransfers:** status is computed inside a Firestore transaction from the fresh session.
+- **Logout** clears `_myPrivate` and the health memo; `saveHealth` assigns a new `_myPrivate` object so workouts recompute; the save toast uses `save` (there was no `saved` key).
+- **Breadcrumb:** `loadPolls`/`loadSessions` render only when `currentPage` is their own page (Home, Games and Dashboard also call them).
+- **Live score:** minus removes that side's latest history entry (Undo cannot go below 0); change teams and reset clear `firstAt`.
+- **Numbers:** an unrated player shows "–" (`ratingText`) on Home and the profile like the Rankings hero; win rate with no games uses `pct()`; Best score margin comes from the shown game; `_periodStart` clamps the day (Oct 31 minus 3 months); editing a match with several games is blocked with a toast (`editMultiGame`).
+- **Health:** `healthTotals` now uses the same rule as `healthWorkouts` (sessions only, dated by the session); year share card highlights the month bucket; unused `real` removed.
+- **Storage and dialogs:** top-level `localStorage` reads/writes in app.js, i18n.js, auth.js, push.js are in try/catch; the legacy email-link path uses `askConfirm({ input })` instead of `window.prompt` (new `input`/`inputType` options on `askConfirm`); declining a join request asks first.
+- Tests: tests/correctness-v217.test.js; poll-manage test updated for the single-undo order.

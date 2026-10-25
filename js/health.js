@@ -42,7 +42,6 @@ function healthSegments(uid, matches, session) {
   if (!mine.length) return { segs: [], onCourt: 0, totalMin: 0, playMin: 0 };
   var sumMin = mine.reduce(function (s, m) { return s + m.minutes; }, 0);
   // The booked hours of the session are NOT used: the live score is the truth (first game start to last game end)
-  var real = mine.every(function (m) { return m.startAt && m.endAt; });
   // Each game keeps its exact live-score minutes. Between two of my games the rest is the real gap when the clock times show one,
   // and never less than HEALTH_REST_GAP_MIN (games logged back to back still had a breather; without clock times: the estimate)
   var segs = [], t = HEALTH_WARMUP_MIN;
@@ -114,11 +113,13 @@ function healthForSession(h, age, uid, matches, session) {
 function healthTotals(h, uid, matches, sessions, scope) {
   var from = typeof scopeFrom === "function" ? scopeFrom(scope) : "";
   var bySes = {};
-  matches.forEach(function (m) { if (m.minutes > 0 && (!from || String(m.date || "") >= from)) (bySes[m.sessionId || "_"] = bySes[m.sessionId || "_"] || []).push(m); });
+  // Same rule as healthWorkouts: only games of a known session, dated by the session
+  matches.forEach(function (m) { if (m.minutes > 0 && m.sessionId) (bySes[m.sessionId] = bySes[m.sessionId] || []).push(m); });
   var out = { sessions: 0, games: 0, minutes: 0, kcal: 0, hasKcal: !!(h && h.weightKg > 0) };
   Object.keys(bySes).forEach(function (sid) {
     var ses = (sessions || []).filter(function (s) { return s.id === sid; })[0], sg = healthSegments(uid, bySes[sid], ses);
     if (!sg.segs.length) return;
+    if (from && String((ses && ses.date) || sg.segs[0].m.date || "") < from) return;
     out.sessions++; out.games += sg.segs.length; out.minutes += sg.onCourt;
     if (out.hasKcal) out.kcal += healthKcal(h.weightKg, sg.onCourt, sg.totalMin).active;
   });
@@ -298,8 +299,8 @@ function saveHealth() {
   var cur = myHealth(), h = { weightKg: w, heightCm: ht, sex: _hSex != null ? _hSex : (cur.sex || ""), restHr: rest, maxHr: mx, weeklyGoal: goal, notes: g("hNotes").slice(0, 300) };
   _hSex = null;
   fsdb.collection("userPrivate").doc(currentUser.uid).set({ health: h }, { merge: true }).then(function () {
-    if (_myPrivate) _myPrivate.health = h; else _myPrivate = { health: h };
-    showToast(t("saved") + " ✔");
+    _myPrivate = Object.assign({}, _myPrivate, { health: h });   // a new object, so the memoised workouts (kcal, zones) are recomputed
+    showToast(t("save") + " ✔");
     if (typeof refreshCurrentPage === "function") refreshCurrentPage("health");
   }).catch(function (e) { showToast(_permError(e)); });
 }

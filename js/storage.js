@@ -75,13 +75,89 @@ function readAvatarImage(file, callback) {
 var IMG_BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 var _imgCache = {};
 
+/* v218: images also live on this phone (IndexedDB), so a group logo or a photo shows at once on the next start and offline, without a
+   Firestore read. An image id never changes its picture (a new upload is a new id), so the copy never goes stale. */
+var IMG_KEEP_MAX = 200;
+var _imgDbP = null;
+function _imgIdb() {
+  if (_imgDbP) return _imgDbP;
+  _imgDbP = new Promise(function (resolve) {
+    try {
+      var rq = indexedDB.open("godsmash-img", 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore("i", { keyPath: "id" }); };
+      rq.onsuccess = function () { resolve(rq.result); };
+      rq.onerror = function () { resolve(null); };
+    } catch (e) { resolve(null); }
+  });
+  return _imgDbP;
+}
+function _imgPersistGet(id) {
+  return _imgIdb().then(function (db) {
+    if (!db) return null;
+    return new Promise(function (resolve) {
+      try { var rq = db.transaction("i").objectStore("i").get(id); rq.onsuccess = function () { resolve(rq.result ? rq.result.data : null); }; rq.onerror = function () { resolve(null); }; }
+      catch (e) { resolve(null); }
+    });
+  });
+}
+function _imgPersistPut(id, data) {
+  if (typeof data !== "string" || data.length > 1100000) return;
+  _imgIdb().then(function (db) {
+    if (!db) return;
+    try {
+      var st = db.transaction("i", "readwrite").objectStore("i");
+      st.put({ id: id, data: data, at: Date.now() });
+      st.count().onsuccess = function (ev) {
+        if (ev.target.result <= IMG_KEEP_MAX) return;
+        var all = []; st.openCursor().onsuccess = function (e2) {
+          var c = e2.target.result;
+          if (c) { all.push({ id: c.key, at: c.value.at }); c.continue(); return; }
+          all.sort(function (a, b) { return a.at - b.at; }).slice(0, all.length - IMG_KEEP_MAX).forEach(function (o) { st.delete(o.id); });
+        };
+      };
+    } catch (e) {}
+  });
+}
+/** Put these image ids (from IndexedDB) into the memory cache before the pages are drawn */
+function imgWarm(ids) {
+  return Promise.all((ids || []).map(function (id) {
+    id = jsq(id);
+    if (!id || _imgCache[id]) return null;
+    return _imgPersistGet(id).then(function (d) { if (d) _imgCache[id] = d; });
+  }));
+}
+/** Download an image reference ("img:<id>") now if this phone does not have it yet (group logos, my photo) */
+function imgPrefetch(ref) {
+  if (!isImgRef(ref)) return Promise.resolve();
+  var id = jsq(ref.slice(4));
+  if (!id || _imgCache[id]) return Promise.resolve();
+  return _imgPersistGet(id).then(function (d) {
+    if (d) { _imgCache[id] = d; return; }
+    if (typeof fsdb === "undefined") return;
+    return fsdb.collection("images").doc(id).get().then(function (doc) {
+      if (doc.exists) { _imgCache[id] = doc.data().data; _imgPersistPut(id, _imgCache[id]); }
+    });
+  }).catch(function () {});
+}
+/** The images to keep warm for the next start: remembered here, read back at once when the app opens */
+function imgKeep(refs) {
+  var ids = (refs || []).filter(isImgRef).map(function (r) { return jsq(r.slice(4)); }).filter(Boolean).slice(0, 24);
+  try { localStorage.setItem("imgKeep", JSON.stringify(ids)); } catch (e) {}
+  return Promise.all(refs.map(imgPrefetch));
+}
+(function warmAtStart() {
+  var ids = [];
+  try { ids = JSON.parse(localStorage.getItem("imgKeep") || "[]"); } catch (e) {}
+  if (Array.isArray(ids) && ids.length) imgWarm(ids.filter(function (x) { return typeof x === "string"; }));
+})();
+
 function isImgRef(v) { return typeof v === "string" && v.indexOf("img:") === 0; }
 
 /** Save a data URL as images/{id}; resolves with the reference "img:<id>" */
 function dbSaveImage(dataUrl, kind) {
   var ref = fsdb.collection("images").doc();
   return ref.set({ data: dataUrl, kind: kind || "image", createdBy: currentUser.uid, createdAt: Date.now() })
-    .then(function () { _imgCache[ref.id] = dataUrl; return "img:" + ref.id; });
+    .then(function () { _imgCache[ref.id] = dataUrl; _imgPersistPut(ref.id, dataUrl); return "img:" + ref.id; });
 }
 
 /** src="…" for a data URL, or a placeholder that loads the referenced image */
@@ -99,8 +175,12 @@ function _loadImg(el) {
   el.removeAttribute("data-img");
   if (_imgCache[id]) { el.src = _imgCache[id]; return; }
   el.classList.add("img-loading");
-  fsdb.collection("images").doc(id).get().then(function (doc) {
-    if (doc.exists) { _imgCache[id] = doc.data().data; el.src = _imgCache[id]; }
+  // this phone first (fast, works offline), then Firestore
+  _imgPersistGet(id).then(function (d) {
+    if (d) { _imgCache[id] = d; el.src = d; return; }
+    return fsdb.collection("images").doc(id).get().then(function (doc) {
+      if (doc.exists) { _imgCache[id] = doc.data().data; el.src = _imgCache[id]; _imgPersistPut(id, _imgCache[id]); }
+    });
   }).catch(function () {}).then(function () { el.classList.remove("img-loading"); });
 }
 

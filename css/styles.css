@@ -6370,3 +6370,6 @@ body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 .score-actions .live-launch:only-child { grid-column: 1 / -1; }
 .score-actions .score-add.active { border-color: var(--accent); }
 #gameFormBox.gf-closed { display: none; }
+
+/* v222: market sort */
+.mf-sort { min-height: 44px; }

@@ -35,7 +35,7 @@ function loadPolls() {
   }
   // The cut-off can pass while the app is open: look again every minute
   if (!_pollTimer) _pollTimer = setInterval(_autoConfirmPolls, 60e3);
-  renderPolls(lastPolls);
+  if (currentPage === "polls") renderPolls(lastPolls);   // rendering sets the breadcrumb: only on its own page (Home / Games / Dashboard also call loadPolls)
 }
 
 var _pollTimer = null;
@@ -46,13 +46,13 @@ function _autoConfirmPolls() {
   if (!currentUser || typeof canManagePoll !== "function") return;
   var now = Date.now();
   lastPolls.forEach(function (p) {
-    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers || p.noAuto) return;   // noAuto: kept for polls reopened by an earlier version
+    if ((p.status !== "draft" && p.status !== "open") || _autoTried[p.id] || !p.answers) return;
     if (now < pollClosesAt(p) || !canManagePoll(p)) return;
     var np = normalizePoll(p);
     if (np.date && np.date < _todayIso()) return;
     if (_pollAnswerUids(np, 0).length < (p.minPlayers || minPlayersSetting())) return;
     _autoTried[p.id] = true;
-    confirmPoll(p.id, true);
+    confirmPoll(p.id, true, function () { delete _autoTried[p.id]; });   // a failed try is retried on the next tick
   });
 }
 
@@ -99,15 +99,17 @@ function setPollView(view) {
 }
 
 /** Finished polls go to History: cancelled, or the play date has passed */
-/* ---------- Voting deadline: midnight before the game day (Bangkok time) ----------
-   A poll created after that midnight (same-day game) closes at game time. */
+/* ---------- Voting deadline (Bangkok time) ----------
+   With a creation time: 24 hours after the poll is made, never later than the start time.
+   Without one (createdMs = 0): midnight before the game day. Later weeks of a weekly
+   series pass 0, so they close the day before their own game, not 24h after creation. */
 var BKK_MS = 7 * 3600e3;
 function defaultCloseAt(date, time, createdMs) {
   if (!date) return 0;
   var d = date.split("-").map(Number), tm = (time || "00:00").split(":").map(Number);
   var midnight = Date.UTC(d[0], d[1] - 1, d[2]) - BKK_MS;
   var start = Date.UTC(d[0], d[1] - 1, d[2], tm[0] || 0, tm[1] || 0) - BKK_MS;
-  // Voting stays open one more day after the poll is made, never past the start time
+  // Voting stays open one more day after the poll is made, never past the start time (0 = midnight before the game day)
   return createdMs ? Math.min(createdMs + 24 * 3600e3, start) : midnight;
 }
 function _msOf(x) { return !x ? 0 : typeof x === "number" ? x : x.toMillis ? x.toMillis() : x.toDate ? x.toDate().getTime() : 0; }
@@ -396,6 +398,7 @@ function showVoteForOthers(pollId) {
   var poll = _findPoll(pollId);
   if (!poll) return;
   var np = normalizePoll(poll);
+  var initial = Object.assign({}, np.responses);   // what the sheet showed: only rows the organiser changed are written
 
   var rows = '';
   DB_CACHE.users.forEach(function (u) {
@@ -428,20 +431,26 @@ function showVoteForOthers(pollId) {
         var data = doc.data();
         if (!canManagePoll(data)) throw new Error(t("noPermission"));
         if (data.status !== 'draft' && data.status !== 'open') throw new Error(t("pollClosed"));
+        var changed = pollVoteChanges(initial, chosen);
         if (data.answers) {
-          var before = data.responses || {}, log = data.voteLog || {}, now = Date.now();
-          var upd = { responses: chosen };
-          var uids = Object.keys(before).concat(Object.keys(chosen));
-          uids.forEach(function (u) {
-            var a = chosen.hasOwnProperty(u) ? chosen[u] : -1, was = before.hasOwnProperty(u) ? before[u] : -1;
-            if (a !== was) log[u] = { a: a, at: now, by: currentUser.uid };
+          var before = data.responses || {}, now = Date.now(), merged = Object.assign({}, before), upd = {};
+          Object.keys(changed).forEach(function (u) {
+            var a = changed[u], was = before.hasOwnProperty(u) ? before[u] : -1;
+            if (a === was) return;
+            if (a < 0) { upd["responses." + u] = firebase.firestore.FieldValue.delete(); delete merged[u]; }
+            else { upd["responses." + u] = a; merged[u] = a; }
+            upd["voteLog." + u] = { a: a, at: now, by: currentUser.uid };
           });
-          upd.voteLog = log;
-          _markReached(data, chosen, upd);
-          transaction.update(pollRef, upd);
+          _markReached(data, merged, upd);
+          if (Object.keys(upd).length) transaction.update(pollRef, upd);
         } else {
-          var votes = data.votes || {};
-          votes[0] = Object.keys(chosen).filter(function (u) { return chosen[u] === 0; });
+          var votes = data.votes || {}, joined = (votes[0] || []).slice();
+          Object.keys(changed).forEach(function (u) {
+            var i = joined.indexOf(u);
+            if (changed[u] === 0 && i < 0) joined.push(u);
+            else if (changed[u] !== 0 && i >= 0) joined.splice(i, 1);
+          });
+          votes[0] = joined;
           transaction.update(pollRef, { votes: votes });
         }
       });
@@ -450,6 +459,16 @@ function showVoteForOthers(pollId) {
       .catch(function (error) { showToast(error.message); });
   };
   openModal();
+}
+
+/** Rows the organiser changed in the sheet: { uid: newAnswer (-1 = no answer) }, compared with what the sheet showed */
+function pollVoteChanges(initial, chosen) {
+  var out = {};
+  Object.keys(initial).concat(Object.keys(chosen)).forEach(function (u) {
+    var was = initial.hasOwnProperty(u) ? initial[u] : -1, now = chosen.hasOwnProperty(u) ? chosen[u] : -1;
+    if (was !== now) out[u] = now;
+  });
+  return out;
 }
 
 function _proxyPick(btn, idx) {
@@ -468,7 +487,7 @@ function askConfirmPoll(pollId) {
   askConfirm({ title: t("confirmPlanAsk").replace("{n}", n).replace("{when}", when), kind: "ask", yes: t("confirmPlan") }, function () { confirmPoll(pollId); });
 }
 
-function confirmPoll(pollId, auto) {
+function confirmPoll(pollId, auto, onFail) {
   if (!currentUser) return;
   var pollRef = fsdb.collection("polls").doc(pollId);
   var newSessionId = null;
@@ -515,7 +534,7 @@ function confirmPoll(pollId, auto) {
       showToast(t("planConfirmed") + " ✔");
       if (newSessionId && !auto) showSessionDetail(newSessionId);
     })
-    .catch(function (error) { if (!auto) showToast(error.message); });
+    .catch(function (error) { if (typeof onFail === "function") onFail(error); if (!auto) showToast(error.message); });
 }
 
 /* ---------- Edit poll (organiser; also after the cut-off, while it is not confirmed) ---------- */
@@ -523,6 +542,8 @@ function showEditPoll(pollId) {
   var poll = _findPoll(pollId);
   if (!poll || !canManagePoll(poll)) return;
   var np = normalizePoll(poll);
+  var linked = null;   // a confirmed poll's session follows the new date / time / court
+  if (poll.status === "confirmed" && poll.sessionId) lastSessions.forEach(function (x) { if (x.id === poll.sessionId) linked = x; });
   var opts = '';
   DB_CACHE.courts.forEach(function (c) {
     opts += '<option value="' + c.id + '"' + (c.id === np.courtId ? ' selected' : '') + '>' + escapeHtml(c.name) + ' (' + fmtLAK(courtPrice(c)) + '/h)</option>';
@@ -546,15 +567,35 @@ function showEditPoll(pollId) {
     var time = document.getElementById("mPolTime").value;
     if (!date || duration <= 0 || !court) { showToast(t("fillAllFields")); return; }
     delete _autoTried[pollId];
-    dbUpdatePoll(pollId, {
+    var upd = {
       date: date, time: time, duration: duration, courtId: court.id, courtName: court.name,
       minPlayers: Math.max(2, parseInt(document.getElementById("mPolMin").value, 10) || minPlayersSetting()),
-      note: (document.getElementById("mPolNote").value || "").trim() || null,
-      closesAt: defaultCloseAt(date, time, Date.now())
-    }).then(function () { closeModal(); showToast(t("save") + " ✔"); })
+      note: (document.getElementById("mPolNote").value || "").trim() || null
+    };
+    if (poll.status === "draft" || poll.status === "open") upd.closesAt = defaultCloseAt(date, time, Date.now());   // the cut-off only matters while voting is open
+    var write;
+    if (linked) {
+      var sUpd = pollSessionChanges(linked, upd, court);
+      var batch = fsdb.batch();
+      batch.update(fsdb.collection("polls").doc(pollId), upd);
+      if (Object.keys(sUpd).length) batch.update(fsdb.collection("sessions").doc(linked.id), sUpd);
+      write = batch.commit();
+    } else write = dbUpdatePoll(pollId, upd);
+    write.then(function () { closeModal(); showToast(t("save") + " ✔"); })
       .catch(function (error) { showToast(error && error.code === "permission-denied" ? t("noPermission") : error.message); });
   };
   openModal();
+}
+
+/** Plan fields of an edited confirmed poll that its session must follow (only fields the session has; price only while unsettled) */
+function pollSessionChanges(ses, upd, court) {
+  var out = {};
+  ["date", "time", "duration", "courtId", "courtName"].forEach(function (k) {
+    if (ses.hasOwnProperty(k) && ses[k] !== upd[k]) out[k] = upd[k];
+  });
+  if (ses.hasOwnProperty("courtLocation") && court) out.courtLocation = court.location || null;
+  if (!ses.calculated && ses.hasOwnProperty("pricePerHour") && court && upd.courtId !== ses.courtId) out.pricePerHour = courtPrice(court);
+  return out;
 }
 
 /* ---------- Cancel poll ---------- */
@@ -576,8 +617,14 @@ function deleteSessionAndPoll(pollId) {
   lastSessions.forEach(function (x) { if (x.id === sid) ses = x; });
   var label = ses && typeof trashLabelSession === "function" ? trashLabelSession(ses) : fmtDate(poll.date);
   askConfirm({ title: t("unconfirmPollAsk").replace("{name}", label), kind: "danger", yes: t("unconfirmPollYes") }, function () {
-    var pollGo = function () { return trashDoc("poll", "polls", pollId, label); };
-    var go = sid && ses ? trashDoc("session", "sessions", sid, label).then(pollGo) : pollGo();
+    // One Undo restores both: the session first, then the poll
+    var go = sid && ses
+      ? trashDoc("session", "sessions", sid, label, true).then(function (sTrash) {
+          return trashDoc("poll", "polls", pollId, label, true).then(function (pTrash) {
+            showUndoToast(t("movedToTrash").replace("{name}", label), sTrash + "," + pTrash);
+          });
+        })
+      : trashDoc("poll", "polls", pollId, label);
     go.catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
   });
 }
@@ -695,7 +742,9 @@ function pollPickCourt(id) {
   setTimeout(renderPollCreateForm, 300); // let the court list refresh first
 }
 
+var _pollSubmitting = false;
 function submitPoll() {
+  if (_pollSubmitting || !newPoll) return;
   var answers = newPoll.answers.map(function (a) { return (a || '').trim(); });
   if (!newPoll.courtId || !newPoll.date || !newPoll.time) { showToast(t('fillAllOptions')); return; }
   if (answers.length < 2 || answers.some(function (a) { return !a; })) { showToast(t('fillAllFields')); return; }
@@ -704,12 +753,13 @@ function submitPoll() {
   var weeks = newPoll.repeat === "weekly" ? Math.max(2, Math.min(12, newPoll.repeatN || 2)) : 1;
   var series = weeks > 1 ? "s" + Date.now().toString(36) : null;
   var jobs = [];
+  _pollSubmitting = true;
   for (var k = 0; k < weeks; k++) {
     var day = _addDays(newPoll.date, 7 * k);
     var one = {
       createdBy: currentUser.uid,
       status: 'draft',
-      note: newPoll.note.trim() || null,
+      note: (newPoll.note || '').trim() || null,
       date: day,
       time: newPoll.time,
       duration: newPoll.duration || 2,
@@ -720,7 +770,7 @@ function submitPoll() {
       mode: newPoll.mode || 'competition',
       gameType: newPoll.gameType || 'md',
       minPlayers: minPlayersSetting(),
-      closesAt: defaultCloseAt(day, newPoll.time, Date.now()),   // voting deadline
+      closesAt: defaultCloseAt(day, newPoll.time, k ? 0 : Date.now()),   // voting deadline; later weeks close the day before their game
       sessionId: null
     };
     if (series) one.seriesId = series;
@@ -728,10 +778,11 @@ function submitPoll() {
   }
   Promise.all(jobs)
     .then(function () {
+      _pollSubmitting = false;
       showToast(t("draftCreated") + (weeks > 1 ? " \u00D7" + weeks : ""));
       newPoll = null;
       showPage('polls', false);
       pageHistory = [];
     })
-    .catch(function (error) { showToast(error.message); });
+    .catch(function (error) { _pollSubmitting = false; showToast(error.message); });
 }

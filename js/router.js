@@ -201,6 +201,7 @@ function skipSplash() {
 }
 
 function showAuthPage() {
+  try { localStorage.removeItem("lastGroup"); } catch (e) {}   // signed out: nothing of the last group stays in the header
   hideSplash();
   var authC = document.getElementById("auth-container");
   var appC = document.getElementById("app-container");
