@@ -186,6 +186,12 @@ function ratingOf(uid) {
   return p ? Math.round(p.rating) : RATING_START;
 }
 
+/** The rating to show: a dash until the player has a counted game (same as the Rankings hero), never a made-up 1500 */
+function ratingText(uid) {
+  var p = computeStats().players[uid];
+  return p && p.comp ? String(Math.round(p.rating)) : "\u2013";
+}
+
 /* ---------- Stats page ---------- */
 
 function loadStats() {
@@ -289,7 +295,7 @@ function _highlightsHtml(st, pairs, scope) {
   var html = '', bp = pairs[0], bs = null;
   st.h2h.forEach(function (x) {
     if (scopeFrom(scope) && (x.m.date || "") < scopeFrom(scope)) return;
-    var margin = Math.abs(x.pts);
+    var g0 = (x.m.games || [])[0] || {}, margin = Math.abs((g0.a || 0) - (g0.b || 0));   // the margin of the game that is shown
     if (!bs || margin > bs.margin || (margin === bs.margin && (x.m.date || "") > (bs.x.m.date || ""))) bs = { x: x, margin: margin };
   });
   if (!bp && !bs) return '';
@@ -470,7 +476,10 @@ function setProgressPeriod(p) { setStatsScope(p === "1m" ? "month" : p); }
 
 function _periodStart(months) {
   var d = new Date(_todayIso() + "T00:00:00");
+  var day = d.getDate();
+  d.setDate(1);                                  // clamp the day first: Oct 31 minus 3 months is Jul 31 (not Aug 1 or later)
   d.setMonth(d.getMonth() - months);
+  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
   d.setDate(d.getDate() + 1);
   return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
 }
@@ -506,7 +515,7 @@ function _renderProgress() {
   var mins = all.reduce(function (s, m) { return s + (m.minutes || 0); }, 0);
   var pts = games.reduce(function (s, x) { return s + x.pts; }, 0);
   html += '<div class="card"><div class="progress-head"><div><div class="form-hint" style="margin:0">' + t("ratingWord") + '</div><b class="progress-rating">' + Math.round(endR) + '</b> ' + _trend(endR, startR) + '</div>' +
-    '<div class="progress-wl"><b>' + fmtWL(w, l) + '</b><small>' + (games.length ? Math.round(w / games.length * 100) : 0) + '% ' + t("winRate") + '</small></div></div>' +
+    '<div class="progress-wl"><b>' + fmtWL(w, l) + '</b><small>' + pct(w, games.length) + ' ' + t("winRate") + '</small></div></div>' +
     _sparkline([startR].concat(inP.map(function (h) { return h.r; })), { start: t("startWord") + ' ' + Math.round(startR), games: inP.length }) + '</div>';
   html += '<div class="card"><div class="my-stats-facts">' +
     '<span><b>' + all.length + '</b> ' + t("gamesWord") + '</span><span><b>' + mins + '</b> ' + t("minShort") + '</span>' +
@@ -802,7 +811,9 @@ function gameFormStep(k, delta) {
   gameFormScore(k, String(Math.max(0, Math.min(maxPoints(), cur + delta))));
 }
 
+var _gameSaving = false;
 function saveGame() {
+  if (_gameSaving) return;   // a double tap must not write the game twice
   var f = gameForm, s = currentSession, size = f.type === "singles" ? 1 : 2;
   if (!s || f.sessionId !== s.id) return;
   if (f.teamA.length !== size || f.teamB.length !== size) { showToast(t("pickTeams").replace("{n}", size)); return; }
@@ -812,23 +823,26 @@ function saveGame() {
   var minutes = parseInt(f.minutes, 10) || null;
   if (minutes && (minutes < 1 || minutes > 180)) { showToast(t("minutesRange")); return; }
   var data = { type: f.type, teamA: f.teamA.slice(), teamB: f.teamB.slice(), games: [{ a: a, b: b }], minutes: minutes };
+  _gameSaving = true;
   var op = f.id
     ? fsdb.collection("matches").doc(f.id).update(Object.assign(data, { updatedBy: currentUser.uid, updatedAt: Date.now() }))
     : fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
         court: null, shuttles: 0, createdBy: currentUser.uid, createdAt: Date.now(), confirmed: false })));
   op.then(function () {
+    _gameSaving = false;
     showToast(t("gameSaved") + " ✔");
     // Ready for the next game (same type, empty teams and score)
     var type = f.type;
     gameForm = _blankGameForm(s); gameForm.type = type;
     _rerenderGameForm();
     if (f.id) _gfSetOpen(false);   // a fixed game closes the form; a new one leaves it open for the next game
-  }).catch(function (e) { showToast(_permError(e)); });
+  }).catch(function (e) { _gameSaving = false; showToast(_permError(e)); });
 }
 
 function editGame(id) {
   var m = lastMatches.filter(function (x) { return x.id === id; })[0];
   if (!m || !currentSession) return;
+  if ((m.games || []).length > 1) { showToast(t("editMultiGame")); return; }   // the form holds one game: saving would drop the others
   var g = (m.games || [])[0] || {};
   gameForm = { sessionId: currentSession.id, id: id, type: m.type || "md", teamA: (m.teamA || []).slice(), teamB: (m.teamB || []).slice(),
     a: g.a != null ? String(g.a) : "", b: g.b != null ? String(g.b) : "", minutes: m.minutes ? String(m.minutes) : "" };

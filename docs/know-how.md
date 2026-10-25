@@ -1586,3 +1586,22 @@ The Find buddy tab always shows the same calendar as Public games (before, it sh
 ## v216: Live score and Add score as two buttons
 
 The Games tab of a session had a wide Live score button and, below it, the whole Add score form always open. Now there are two equal buttons side by side, Live score first and Add score second (`.score-actions`; Live score is hidden once the session is completed, then Add score fills the row). The form (`#gameFormBox`) is closed until Add score is tapped (`_gfOpen`, `toggleGameForm`, `_gfSetOpen`); editing a game opens it, fixing a game closes it, saving a new game keeps it open for the next one, and a different session starts closed. Lao `addScore` ("ເພີ່ມຄະແນນ") is unreviewed.
+
+## v217: correctness fixes
+
+From a verified audit. Lao strings added (`confirmDeclineRequest`, `editMultiGame`) are unreviewed.
+- **Weekly polls:** weeks 2..N now close the day before their own game (`defaultCloseAt(day, time, k ? 0 : Date.now())`, same rule as public games); comment above `defaultCloseAt` rewritten to match the code.
+- **Merge manual player:** also rewrites matches (teamA, teamB, createdBy, updatedBy, confirmedBy), poll `voteLog`/`cancelledBy`, session `settledAt`/`dinnerPoll`; writes in batches of 400 (`mergeFieldUpdates`); the manual user goes to Recently deleted (`trashDoc`) instead of being deleted.
+- **Double taps:** `askConfirm` runs onYes once and the fading sheet ignores taps; `lsSaveGame`, stats `saveGame` and `submitPoll` have in-flight flags (reset on failure); `lsSaveGame` toasts when the session is gone.
+- **Vote for others:** writes only the `responses.<uid>` rows the organiser changed (dotted paths, `FieldValue.delete()`), so a vote that arrived meanwhile survives.
+- **One Undo:** deleting a session with its confirmed poll shows one toast; `trashDoc(..., quiet)` and `undoLast("id1,id2")` restore both.
+- **Edit poll:** a confirmed poll's edit also updates its session (date, time, duration, court, location; price only if not calculated) in one batch; `closesAt` is only rewritten while the poll is draft/open. Cancelled polls can still be edited (no session to follow).
+- **Auto-confirm:** `_autoTried` is cleared when the auto `confirmPoll` fails, so the next minute retries. Dead `p.noAuto` removed.
+- **settleTransfers:** status is computed inside a Firestore transaction from the fresh session.
+- **Logout** clears `_myPrivate` and the health memo; `saveHealth` assigns a new `_myPrivate` object so workouts recompute; the save toast uses `save` (there was no `saved` key).
+- **Breadcrumb:** `loadPolls`/`loadSessions` render only when `currentPage` is their own page (Home, Games and Dashboard also call them).
+- **Live score:** minus removes that side's latest history entry (Undo cannot go below 0); change teams and reset clear `firstAt`.
+- **Numbers:** an unrated player shows "–" (`ratingText`) on Home and the profile like the Rankings hero; win rate with no games uses `pct()`; Best score margin comes from the shown game; `_periodStart` clamps the day (Oct 31 minus 3 months); editing a match with several games is blocked with a toast (`editMultiGame`).
+- **Health:** `healthTotals` now uses the same rule as `healthWorkouts` (sessions only, dated by the session); year share card highlights the month bucket; unused `real` removed.
+- **Storage and dialogs:** top-level `localStorage` reads/writes in app.js, i18n.js, auth.js, push.js are in try/catch; the legacy email-link path uses `askConfirm({ input })` instead of `window.prompt` (new `input`/`inputType` options on `askConfirm`); declining a join request asks first.
+- Tests: tests/correctness-v217.test.js; poll-manage test updated for the single-undo order.

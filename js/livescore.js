@@ -71,8 +71,13 @@ function lsApply(st, side, delta, cap) {
     var r = lsOver(n.sa, n.sb, cap);
     if (r.done) n.over = r.winner;
   } else if (n[k] > 0) {
-    var last = n.hist[n.hist.length - 1];
-    if (last && last.s === side) { n.hist.pop(); n.serve = last.serve; }
+    // Take back this side's latest point from the history too, so Undo can never push a score below 0
+    for (var hi = n.hist.length - 1; hi >= 0; hi--) {
+      if (n.hist[hi].s !== side) continue;
+      if (hi === n.hist.length - 1) n.serve = n.hist[hi].serve;
+      n.hist.splice(hi, 1);
+      break;
+    }
     n[k] -= 1;
   }
   return n;
@@ -437,7 +442,7 @@ function lsOpenSettings() { liveMode = "settings"; lsRender(); }
 /** Anything that would throw away a score already counted asks first */
 function _lsHasScore() { return !!(live && (live.sa > 0 || live.sb > 0 || (live.gl && live.gl.length) || (live.sw && (live.sw.A || live.sw.B)))); }
 function _lsGuard(fn) { if (_lsHasScore()) askYes(t("lsLoseScoreConfirm"), fn, { danger: true, yes: t("confirm") }); else fn(); }
-function lsEditTeams() { _lsGuard(function () { live.a = []; live.b = []; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.gl = []; live.sw = { A: 0, B: 0 }; lsSave(); liveMode = "setup"; lsRender(); }); }
+function lsEditTeams() { _lsGuard(function () { live.a = []; live.b = []; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.gl = []; live.sw = { A: 0, B: 0 }; live.firstAt = null; lsSave(); liveMode = "setup"; lsRender(); }); }
 function lsSetTheme(i) { try { localStorage.setItem(LS_THEME_KEY, String(i)); } catch (e) {} lsRender(); }
 function lsPickSession(id) {
   if (id === live.sid) return;
@@ -455,7 +460,7 @@ function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
   askYes(t("lsResetConfirm"), function () {
-    live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = [];
+    live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = "A"; live.sw = { A: 0, B: 0 }; live.gl = []; live.firstAt = null;
     lsSave(); liveMode = "count"; lsRender();
   }, { danger: true, yes: t("confirm") });
 }
@@ -485,19 +490,25 @@ function lsGameWindow(st, now) {
 }
 
 /** Save the finished game like "Add game score" does, then continue or finish */
+var _lsSaving = false;
 function lsSaveGame(next) {
-  if (live && live.test) return;   // practice games are never saved
+  if (!live || live.test) return;   // practice games are never saved
+  if (_lsSaving) return;            // a double tap must not write two games
   var s = _lsSession(live.sid);
-  if (!s || !live.over) return;
+  if (!s) { showToast(t("sessionNotFound")); return; }
+  if (!live.over) return;
   var a = live.sa, b = live.sb, p = scoreProblem(a, b);
   if (p) { showToast(p); return; }
+  _lsSaving = true;
   var win = lsGameWindow(live, Date.now());
   var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
     minutes: win.minutes, startAt: win.startAt, endAt: win.endAt };
   fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
     court: null, shuttles: 0, createdBy: currentUser.uid, createdAt: Date.now(), confirmed: false, live: true })))
     .then(function () {
+      _lsSaving = false;
       showToast(t("gameSaved") + " ✔");
+      if (!live) return;
       if (next) {
         var winner = live.over, decided = lsMatchDecided(live, winner);
         live.gl = decided ? [] : (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
@@ -509,7 +520,7 @@ function lsSaveGame(next) {
         lsClose();
         showSessionDetail(s.id, "games");
       }
-    }).catch(function (e) { showToast(_permError(e)); });
+    }).catch(function (e) { _lsSaving = false; showToast(_permError(e)); });
 }
 
 /** Drop a half-counted game from the Home banner (asks first) */

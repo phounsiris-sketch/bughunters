@@ -247,7 +247,7 @@ function loadSessions() {
       if (currentPage === "home" && typeof renderHome === "function") renderHome();   // a finished game takes its live board off Home
     });
   }
-  renderSessionsList(lastSessions);
+  if (currentPage === "sessions") renderSessionsList(lastSessions);   // rendering sets the breadcrumb: only on its own page
 }
 
 function stopSessions() {
@@ -1725,15 +1725,22 @@ function _findSession(id) {
  *  Writes only the changed keys (settled.<key>), so two people marking at the
  *  same time do not overwrite each other. */
 function settleTransfers(s, keys, value) {
-  var settled = Object.assign({}, s.settled || {});
-  var FV = firebase.firestore.FieldValue, upd = {};
-  keys.forEach(function (key) {
-    if (value) { settled[key] = true; upd["settled." + key] = true; upd["settledAt." + key] = Date.now(); }
-    else { delete settled[key]; upd["settled." + key] = FV.delete(); upd["settledAt." + key] = FV.delete(); }
+  var FV = firebase.firestore.FieldValue, ref = fsdb.collection("sessions").doc(s.id);
+  // Status is worked out from the fresh document inside a transaction, so two simultaneous last payments cannot leave it 'active'
+  return fsdb.runTransaction(function (tx) {
+    return tx.get(ref).then(function (doc) {
+      if (!doc.exists) throw new Error(t("noData"));
+      var fresh = Object.assign({}, s, doc.data(), { id: s.id });
+      var settled = Object.assign({}, fresh.settled || {}), upd = {};
+      keys.forEach(function (key) {
+        if (value) { settled[key] = true; upd["settled." + key] = true; upd["settledAt." + key] = Date.now(); }
+        else { delete settled[key]; upd["settled." + key] = FV.delete(); upd["settledAt." + key] = FV.delete(); }
+      });
+      var remaining = computeLedger(fresh).transfers.filter(function (tr) { return !settled[tr.key]; });
+      upd.status = remaining.length ? "active" : "completed";
+      tx.update(ref, upd);
+    });
   });
-  var remaining = computeLedger(s).transfers.filter(function (tr) { return !settled[tr.key]; });
-  upd.status = remaining.length ? "active" : "completed";
-  return dbUpdateSession(s.id, upd);
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -1747,12 +1754,18 @@ function deleteSessionById(sessionId) {
     if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
     sessionEditing = false;
 
-    // To the trash (30 days) with Undo
-    trashDoc("session", "sessions", sessionId, trashLabelSession(s))
+    // To the trash (30 days) with Undo. A confirmed poll and its session go together (deleting only a poll leaves the session): one Undo brings both back
+    var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
+    if (!(pl && pl.status === "confirmed" && pl.sessionId === sessionId)) pl = null;
+    var label = trashLabelSession(s);
+    trashDoc("session", "sessions", sessionId, label, !!pl)
+      .then(function (sTrash) {
+        if (!pl) return;
+        return trashDoc("poll", "polls", pl.id, label, true).then(function (pTrash) {
+          showUndoToast(t("movedToTrash").replace("{name}", label), sTrash + "," + pTrash);
+        }, function () { showUndoToast(t("movedToTrash").replace("{name}", label), sTrash); });
+      })
       .then(function () {
-        // a confirmed poll and its session go together: the poll this session came from is removed too (deleting only a poll is fine and leaves the session)
-        var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
-        if (pl && pl.status === "confirmed" && pl.sessionId === sessionId) trashDoc("poll", "polls", pl.id, trashLabelSession(s)).catch(function () {});
         currentSessionId = null;
         showPage("sessions", false);
       })

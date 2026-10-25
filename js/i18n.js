@@ -2,7 +2,7 @@
    i18n.js — Internationalisation (English + Lao)
    ============================================================ */
 
-var currentLang = localStorage.getItem("lang") || "la"; // first run: Lao (the group's main language)
+var currentLang = (function () { try { return localStorage.getItem("lang"); } catch (e) { return null; } })() || "la"; // first run: Lao (the group's main language); blocked storage must not stop the app booting
 
 var translations = {
   en: {
@@ -393,6 +393,7 @@ var translations = {
     gamesDots: "{n} games (one dot each)",
     rankChangeHint: "Rank change and rating change since the start of this month",
     bestScore: "Best score (biggest win)",
+    editMultiGame: "This match has several games and cannot be edited here. Delete it and add the games again.",
     byYear: "By year",
     cock: "cock",
     cocks: "cocks",
@@ -1480,6 +1481,7 @@ var translations = {
     unconfirmPollYes: "Delete both",
     confirmPlanAsk: "Confirm this plan with {n} players ({when}) and create the session?",
     confirmApproveMember: "Approve {name} to join the group?",
+    confirmDeclineRequest: "Decline {name}'s request to join?",
     confirmCancelRequest: "Cancel your request to join?",
     confirmRemovePhoto: "Remove this photo?",
     confirmWithdrawInvite: "Withdraw this invite?",
@@ -1990,6 +1992,7 @@ var translations = {
     gamesDots: "{n} ເກມ (ຈຸດລະເກມ)",
     rankChangeHint: "ອັນດັບ ແລະ ຄະແນນທີ່ປ່ຽນ ນັບແຕ່ຕົ້ນເດືອນນີ້",
     bestScore: "ຄະແນນດີທີ່ສຸດ (ຊະນະຫຼາຍທີ່ສຸດ)",
+    editMultiGame: "ການແຂ່ງຂັນນີ້ມີຫຼາຍເກມ ແກ້ໄຂບ່ອນນີ້ບໍ່ໄດ້. ລຶບແລ້ວເພີ່ມເກມໃໝ່.",
     byYear: "ລາຍປີ",
     cock: "ລູກ",
     cocks: "ລູກ",
@@ -3077,6 +3080,7 @@ var translations = {
     unconfirmPollYes: "ລຶບທັງສອງ",
     confirmPlanAsk: "ຢືນຢັນແຜນນີ້ກັບ {n} ຄົນ ({when}) ແລະ ສ້າງເຊສຊັ່ນ?",
     confirmApproveMember: "ອະນຸມັດ {name} ເຂົ້າກຸ່ມ?",
+    confirmDeclineRequest: "ປະຕິເສດຄຳຂໍເຂົ້າຮ່ວມຂອງ {name}?",
     confirmCancelRequest: "ຍົກເລີກຄຳຂໍເຂົ້າຮ່ວມ?",
     confirmRemovePhoto: "ລຶບຮູບນີ້?",
     confirmWithdrawInvite: "ຖອນຄຳເຊີນນີ້?",
@@ -3216,7 +3220,7 @@ function t(key) {
  */
 function setLang(lang) {
   currentLang = lang;
-  localStorage.setItem("lang", lang);
+  try { localStorage.setItem("lang", lang); } catch (e) {}
   applyI18n();
   if (typeof setAuthMode === "function" && typeof authMode !== "undefined") setAuthMode(authMode);
   if (typeof refreshCurrentPage === "function") refreshCurrentPage("lang");

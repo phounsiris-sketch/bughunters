@@ -18,8 +18,8 @@ function _trashEntry(kind, collection, docId, label) {
     deletedBy: currentUser.uid, deletedAt: Date.now() });
 }
 
-/** Move one document to the trash; shows an Undo toast. Resolves with the trash id. */
-function trashDoc(kind, collection, docId, label) {
+/** Move one document to the trash; shows an Undo toast (unless quiet: the caller shows one for several). Resolves with the trash id. */
+function trashDoc(kind, collection, docId, label, quiet) {
   var ref = fsdb.collection(collection).doc(docId);
   return ref.get().then(function (doc) {
     if (!doc.exists) throw new Error(t("noData"));
@@ -30,7 +30,7 @@ function trashDoc(kind, collection, docId, label) {
     batch.set(tref, entry);
     batch.delete(ref);
     return batch.commit().then(function () {
-      showUndoToast(t("movedToTrash").replace("{name}", label), tref.id);
+      if (!quiet) showUndoToast(t("movedToTrash").replace("{name}", label), tref.id);
       return tref.id;
     });
   });
@@ -105,11 +105,19 @@ function showUndoToast(msg, trashId) {
   _undoTimer = setTimeout(function () { el.classList.remove("show"); }, 8000);
 }
 
+/** trashId may be several ids joined by commas (a session and its poll): one Undo restores them all */
 function undoLast(trashId) {
   var el = document.getElementById("undoToast");
   if (el) el.classList.remove("show");
-  restoreTrash(trashId).then(function (e) {
-    if (e && e.collection === "sessions" && typeof showSessionDetail === "function") showSessionDetail(e.docId);
+  var ids = String(trashId).split(",").filter(Boolean);
+  ids.reduce(function (chain, id, i) {
+    return chain.then(function (list) {
+      return restoreTrash(id, ids.length > 1 && i < ids.length - 1).then(function (e) { list.push(e); return list; });
+    });
+  }, Promise.resolve([])).then(function (list) {
+    list.forEach(function (e) {
+      if (e && e.collection === "sessions" && typeof showSessionDetail === "function") showSessionDetail(e.docId);
+    });
   }).catch(function (error) { showToast(_permError(error)); });
 }
 

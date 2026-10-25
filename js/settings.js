@@ -168,7 +168,7 @@ function _renderProfileTab() {
   if (GROUPS_ON && typeof computeStats === "function" && me) {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
-    html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
+    html += '<div class="pf-tiles">' + tile(ratingText(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
     html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("shareOut", 16) + ' ' + t("shareMyCard") + '</button>';
   }
   html += '</div>';
@@ -951,6 +951,17 @@ function _swapUid(value, oldId, newId) {
   return value;
 }
 
+/** The fields of one document that mention `oldId`, rewritten for `newId`; null when none does */
+function mergeFieldUpdates(data, fields, oldId, newId) {
+  var update = null;
+  fields.forEach(function (f) {
+    if (data[f] === undefined || data[f] === null || JSON.stringify(data[f]).indexOf(oldId) < 0) return;
+    if (!update) update = {};
+    update[f] = _swapUid(data[f], oldId, newId);
+  });
+  return update;
+}
+
 function mergeManualPlayer(manualId) {
   var manual = findUser(manualId);
   if (!manual || !manual.manual || !currentUser) { showToast(t("mergePick")); return; }
@@ -958,25 +969,38 @@ function mergeManualPlayer(manualId) {
     var me = currentUser.uid;
     showToast(t("loading"));
 
-    var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "settled", "createdBy"];
-    var pollFields = ["responses", "votes", "createdBy", "confirmedPlayers"];
+    var sessionFields = ["players", "courtPayer", "shuttlePayer", "otherCosts", "dinner", "dinnerPoll", "settled", "settledAt", "createdBy"];
+    var pollFields = ["responses", "votes", "voteLog", "createdBy", "cancelledBy", "confirmedPlayers"];
+    var matchFields = ["teamA", "teamB", "createdBy", "updatedBy", "confirmedBy"];
 
-    function migrate(collection, fields) {
+    // All rewritten documents are collected first, then written in batches (Firestore allows 500 writes per batch)
+    var ops = [];
+    function collect(collection, fields) {
       return groupScoped(fsdb.collection(collection)).get().then(function (snap) {
-        var jobs = [];
         snap.forEach(function (doc) {
-          var data = doc.data();
-          if (JSON.stringify(fields.map(function (f) { return data[f] === undefined ? null : data[f]; })).indexOf(manualId) < 0) return;
-          var update = {};
-          fields.forEach(function (f) { if (data[f] !== undefined) update[f] = _swapUid(data[f], manualId, me); });
-          jobs.push(doc.ref.update(update));
+          var update = mergeFieldUpdates(doc.data(), fields, manualId, me);
+          if (update) ops.push({ ref: doc.ref, update: update });
         });
-        return Promise.all(jobs);
       });
     }
+    function commitOps() {
+      var chain = Promise.resolve();
+      for (var i = 0; i < ops.length; i += 400) {
+        (function (part) {
+          chain = chain.then(function () {
+            var batch = fsdb.batch();
+            part.forEach(function (op) { batch.update(op.ref, op.update); });
+            return batch.commit();
+          });
+        })(ops.slice(i, i + 400));
+      }
+      return chain;
+    }
 
-    migrate("sessions", sessionFields)
-      .then(function () { return migrate("polls", pollFields); })
+    collect("sessions", sessionFields)
+      .then(function () { return collect("polls", pollFields); })
+      .then(function () { return collect("matches", matchFields); })
+      .then(commitOps)
       .then(function () {
         // Keep the phone number and QR codes if I don't have my own yet
         var jobs = [];
@@ -995,7 +1019,7 @@ function mergeManualPlayer(manualId) {
         });
         return Promise.all(jobs);
       })
-      .then(function () { return dbDeleteManualPlayer(manualId); })
+      .then(function () { return trashDoc("player", "users", manualId, plainUserName(manual)); })   // Recently deleted, so it can be undone
       .then(function () { showToast(t("mergeDone").replace("{name}", plainUserName(manual))); renderSettings(); })
       .catch(function (error) { showToast(_permError(error)); });
   });

@@ -24,7 +24,7 @@ assert.ok(/\.ls-half \.ls-chip > span:last-child \{[^}]*white-space: normal/.tes
 console.log("confirmations OK");
 
 // v206: a confirmed poll and its session are deleted together; deleting only a poll is fine
-assert.ok(/onclick="deleteSessionAndPoll\(/.test(src) && /function deleteSessionAndPoll\([\s\S]*trashDoc\("poll", "polls"[\s\S]*trashDoc\("session", "sessions"/.test(src), "confirmed poll: delete session and poll together");
-assert.ok(/pl\.status === "confirmed" && pl\.sessionId === sessionId\) trashDoc\("poll", "polls"/.test(fs.readFileSync("js/sessions.js", "utf8")), "deleting the session by hand also deletes its confirmed poll");
+assert.ok(/onclick="deleteSessionAndPoll\(/.test(src) && /function deleteSessionAndPoll\([\s\S]*trashDoc\("session", "sessions"[\s\S]*trashDoc\("poll", "polls"/.test(src), "confirmed poll: delete session and poll together");
+assert.ok(/pl\.status === "confirmed" && pl\.sessionId === sessionId\)\) pl = null;[\s\S]*trashDoc\("poll", "polls", pl\.id/.test(fs.readFileSync("js/sessions.js", "utf8")), "deleting the session by hand also deletes its confirmed poll");
 ["unconfirmPoll", "unconfirmPollAsk", "unconfirmPollYes"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("delete both OK");

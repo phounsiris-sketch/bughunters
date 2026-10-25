@@ -69,16 +69,19 @@ function askConfirm(o, onYes) {
     (o.big ? '<div class="sheet-big">' + escapeHtml(o.big) + '</div>' : '') +
     (o.body ? '<div class="sheet-body" id="askB">' + escapeHtml(o.body) + '</div>' : '') +
     (o.type ? '<input type="text" class="form-input ask-type" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="' + escapeHtml(o.type) + '" placeholder="' + escapeHtml(o.type) + '">' : '') +
-    '<div class="ask-btns"><button type="button" class="' + (kind === "danger" ? 'btn-danger ask-yes' : 'btn-primary ask-yes') + '" data-yes' + (o.type ? ' disabled' : '') + '>' + escapeHtml(o.yes || t("confirm")) + '</button>' +
+    (o.input ? '<input type="' + escapeHtml(o.inputType || "text") + '" class="form-input ask-type" autocomplete="' + (o.inputType === "email" ? "email" : "off") + '" autocapitalize="off" spellcheck="false" aria-label="' + escapeHtml(o.input) + '" placeholder="' + escapeHtml(o.input) + '">' : '') +
+    '<div class="ask-btns"><button type="button" class="' + (kind === "danger" ? 'btn-danger ask-yes' : 'btn-primary ask-yes') + '" data-yes' + (o.type || o.input ? ' disabled' : '') + '>' + escapeHtml(o.yes || t("confirm")) + '</button>' +
     '<button type="button" class="ask-no" data-no>' + escapeHtml(o.no || t("cancel")) + '</button></div></div>';
   var close = function () {
     el.classList.add("out");
+    el.style.pointerEvents = "none";   // the fading sheet takes no more taps
     document.removeEventListener("keydown", onKey, true);
     setTimeout(function () { el.remove(); }, 160);
     if (_askOpener && _askOpener.focus && document.contains(_askOpener)) { try { _askOpener.focus(); } catch (e) {} }
   };
   var yes = el.querySelector("[data-yes]"), no = el.querySelector("[data-no]"), inp = el.querySelector(".ask-type");
-  var go = function () { if (yes.disabled) return; close(); if (onYes) onYes(); };
+  var done = false;   // a double tap must run onYes once
+  var go = function () { if (done || yes.disabled) return; done = true; close(); if (onYes) onYes(o.input && inp ? inp.value.trim() : undefined); };
   var onKey = function (e) {
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); if (o.onNo) o.onNo(); return; }
     if (e.key === "Enter" && inp && document.activeElement === inp) { e.preventDefault(); go(); return; }
@@ -92,7 +95,7 @@ function askConfirm(o, onYes) {
   document.addEventListener("keydown", onKey, true);
   el.onclick = function (e) { if (e.target === el || e.target.hasAttribute("data-no")) { close(); if (o.onNo) o.onNo(); } };
   yes.onclick = go;
-  if (inp) inp.oninput = function () { yes.disabled = inp.value.trim().toLowerCase() !== String(o.type).trim().toLowerCase(); };
+  if (inp) inp.oninput = function () { yes.disabled = o.input ? !inp.value.trim() : inp.value.trim().toLowerCase() !== String(o.type).trim().toLowerCase(); };   // type: must match the word; input: anything non-empty
   document.body.appendChild(el);
   var first = inp || (kind === "danger" ? no : yes); if (first && first.focus) first.focus();
 }
