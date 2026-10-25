@@ -1630,3 +1630,7 @@ From a verified audit. Lao strings added (`confirmDeclineRequest`, `editMultiGam
 ## v223: the drawn shuttlecock and scoreboard everywhere
 
 The default shuttle glyph looked like a baseball or tennis ball. `SOLAR.shuttle` is now the hand-drawn shuttlecock (white feathered cone with ribs, orange rim, orange cork, flat colours with a slate outline so it reads on light and dark), and `SOLAR.scoreboard` (Live score) is the blue scoreboard with digits. `ICON_FIXED = { shuttle, scoreboard }` makes `iconAs` draw exactly these in every style (box, neu, glass, classic, tiles, clay, stickers), never the bold or Phosphor variants. They keep their own colours; box, neu, glass and tiles still put them on their plate.
+
+## v225: Share my card as an icon
+
+On the profile card the wide "Share my card" button is now a round icon button (arrow out of a tray, `aria-label` and tooltip "Share my card") in the top right corner of the card (`.pf-share-ic`); the name column keeps room for it. It opens the same card sheet.
