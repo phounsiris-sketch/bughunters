@@ -265,7 +265,9 @@ var app = fs.readFileSync("js/app.js", "utf8"), sw = fs.readFileSync("sw.js", "u
 assert.ok(app.match(/APP_VERSION = "(v\d+)"/)[1] === sw.match(/godsmash-(v\d+)/)[1], "version bumped together");
 assert.ok(sw.indexOf("'./js/tournament.js'") > 0 && html.indexOf('src="js/tournament.js"') > 0, "script loaded and precached");
 var statsSrc = fs.readFileSync("js/stats.js", "utf8");
-assert.ok(/tourCardHtml\(s\)/.test(statsSrc) && !/tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "v235: the button is in the session Games tab, not on the list card; sessions updates refresh it");
+assert.ok(/tourCardHtml\(s\)/.test(statsSrc) && /tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "v236: the button is on the list card and first in the Games tab; sessions updates refresh it");
+var lsSrc = fs.readFileSync("js/livescore.js", "utf8");
+assert.ok(/tourLivePreset\(s\)/.test(lsSrc) && /tourFromLive\(tour, a, b, la, lb\)/.test(lsSrc), "v236: live score starts on the tournament pair and hands the score back");
 assert.ok(!/\b(confirm|prompt|alert)\s*\(/.test(src.replace(/askConfirm|askYes/g, "")), "no native confirm, prompt or alert");
 assert.ok(!/\beval\s*\(|new Function/.test(src), "no eval, no new Function");
 assert.ok(/askYes\(t\("tourResetTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourCorrect"\)/.test(src), "reset and impact corrections ask first");

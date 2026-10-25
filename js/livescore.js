@@ -175,7 +175,9 @@ function showLiveScore(sid) {
   if (!sid && saved && _lsSession(saved.sid) && (saved.sa + saved.sb > 0 || _lsReady(saved))) sid = saved.sid;
   if (sid && _lsSession(sid)) {
     var s = _lsSession(sid);
-    live = saved && saved.sid === sid ? saved : _lsBlank(sid, s.gameType && s.gameType !== "any" ? s.gameType : "md");
+    var preset = !(saved && saved.sid === sid) && typeof tourLivePreset === "function" ? tourLivePreset(s) : null;   // v236: tournament pair already set
+    live = saved && saved.sid === sid ? saved : (preset || _lsBlank(sid, s.gameType && s.gameType !== "any" ? s.gameType : "md"));
+    if (preset) lsSave();
     liveMode = _lsReady(live) ? "count" : "setup";
   } else {
     live = null;
@@ -501,6 +503,7 @@ function lsSaveGame(next) {
   if (p) { showToast(p); return; }
   _lsSaving = true;
   var win = lsGameWindow(live, Date.now());
+  var tour = live.tour || null, la = live.a.slice(), lb = live.b.slice();
   var data = { type: live.type, teamA: live.a.slice(), teamB: live.b.slice(), games: [{ a: a, b: b }],
     minutes: win.minutes, startAt: win.startAt, endAt: win.endAt };
   fsdb.collection("matches").add(withGroup(Object.assign(data, { sessionId: s.id, date: s.date, mode: s.mode || "competition",
@@ -508,6 +511,11 @@ function lsSaveGame(next) {
     .then(function () {
       _lsSaving = false;
       showToast(t("gameSaved") + " ✔");
+      if (tour && typeof tourFromLive === "function") {   // v236: a tournament game goes back to the tournament screen
+        live = null; lsSave(); liveMode = "count"; lsClose();
+        tourFromLive(tour, a, b, la, lb);
+        return;
+      }
       if (!live) return;
       if (next) {
         var winner = live.over, decided = lsMatchDecided(live, winner);

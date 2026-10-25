@@ -1717,3 +1717,9 @@ Found in the live console after the v228-v233 merge: `ReferenceError: jsq is not
 ## v235: tournament button in the session's Games tab
 - The teal tournament strip (`tourCardHtml`) moved from the sessions list card into `sessionGamesTabHtml` (js/stats.js), above Live score / Add score. Everyone sees it; only organisers can press the actions.
 - `_tnRefreshHost()` redraws that strip when sessions change and when the tournament screen closes, so the label (Play game k of G, Random semifinal ...) stays current.
+
+## v236: tournament flow (start on card and Games tab, live or typed score, summary then one bracket button)
+- `tourCardHtml` is back on the sessions list card AND first in the Games tab. Start label: "Start tournament · random N players".
+- Up-next game shows two buttons: Live score (`tourStartLive`) and Add score (the stepper editor).
+- Live score with a tournament running starts on the up-next pair (`tourLivePreset`, called from `showLiveScore`), so nobody picks players. The game carries `live.tour = {sid, gi, a, b}`; `lsSaveGame` hands the score back via `tourFromLive`, which checks the teams still match (swapped sides are fine) and reopens the tournament screen. The live game is also saved to `matches` as before; v228 stats dedupe it.
+- After the last rotation game: a summary card (top 3, W–L, diff) with one button "Random playoff bracket" (`_tnSummary`), scrolled into view once; the playoff card also holds the button.

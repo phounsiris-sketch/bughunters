@@ -6560,3 +6560,11 @@ body.tn-open { overflow: hidden; }
 .db-err button, .sw-update button { border: 0; border-radius: 9px; font: inherit; font-weight: 800; padding: 6px 10px; cursor: pointer; background: rgba(255, 255, 255, .22); color: #fff; }
 .db-err .db-err-x, .sw-update .sw-x { padding: 6px 9px; background: transparent; font-size: 18px; line-height: 1; }
 .sw-update .sw-reload { background: #fff; color: var(--primary); }
+
+/* v236 tournament: two score buttons on the up-next game, rotation summary */
+.tn-gbtns{display:flex;gap:8px;flex-wrap:wrap}
+.tn-gbtns .tn-b{display:inline-flex;align-items:center;gap:6px}
+.tn-sum .tn-sum-top{margin:8px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.tn-sum .tn-sum-top li{display:flex;align-items:center;gap:8px}
+.tn-sum .tn-sum-top li span{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--text-muted,#6b7280)}
+.tn-sum .tn-btn.big,.tn-sec .tn-btn.big{margin-top:10px;width:100%}
