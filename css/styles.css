@@ -3100,15 +3100,36 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 .st-unpaid,   [data-theme="light"] .st-unpaid   { background: #dc2626; color: #fff; }
 .st-settled,  [data-theme="light"] .st-settled  { background: #16a34a; color: #fff; }
 
-/* ========== Splash screen: Mars's gauntlet drives the shuttle into the logo, the floor breaks ========== */
-/* The scene is drawn on one canvas by js/splash.js. The logo and the name are plain HTML above it: they never move. */
-#splash { position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: #050304; transition: opacity 0.25s ease, visibility 0.25s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+/* ========== Splash screen (v210): a minimal, smooth intro ========== */
+/* Plain CSS, no canvas: a soft glow in the theme colour, the badminton court drawn as thin lines, the logo eases in with a line drawn round it, the name opens up. Colours come from js/splash.js. */
+#splash { --deep: 3, 8, 16; --hot: 20, 184, 166; --hot2: 187, 247, 208; position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: rgb(var(--deep)); transition: opacity 0.25s ease, visibility 0.25s ease; cursor: pointer; display: flex; align-items: center; justify-content: center; will-change: opacity; }
 #splash.hide { opacity: 0; visibility: hidden; }
-#sp3fx { position: absolute; left: 0; top: 0; }
+#splash::before { content: ""; position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; translate: -50% -50%; background: radial-gradient(closest-side, rgba(var(--hot), .30), rgba(var(--hot), .08) 55%, transparent); opacity: 0; animation: sp-glow 3.2s ease-in-out .05s infinite; }
+.sp-court { position: absolute; left: 50%; top: 50%; width: min(88%, calc(84vh * .4552)); height: auto; aspect-ratio: 610 / 1340; translate: -50% -50%; overflow: visible; opacity: 0; animation: sp-court-in .5s ease .02s forwards; }
+.sp-court path { fill: none; stroke: rgb(var(--hot2)); stroke-opacity: .9; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw 1.5s cubic-bezier(.45, 0, .2, 1) .15s forwards, sp-dim .6s ease 1.2s forwards; }
+/* the same motion as the line round the logo: every line is drawn in one smooth pass with the same easing, then settles to a quiet tone. Each line starts at its end nearer the top left corner; the group turned half a turn (g.cb) does the same from the bottom right corner, so the strokes meet in the centre (the net). */
 .sp3-brand { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
-#sp3logo { display: block; width: 120px; height: 120px; border-radius: 28px; background: #0b1220; box-shadow: 0 14px 34px rgba(0, 0, 0, .6), 0 0 0 1.5px rgba(255, 255, 255, .22); }
-.sp3-word { margin-top: 38px; font: 800 17px Montserrat, system-ui, sans-serif; letter-spacing: 9px; padding-left: 9px; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); }
-.sp3-sub { margin-top: 10px; font: 500 12px Montserrat, 'Noto Sans Lao', system-ui, sans-serif; letter-spacing: 1.5px; color: rgba(255, 255, 255, .78); text-shadow: 0 2px 10px rgba(0, 0, 0, .7); }
+.sp3-mark { position: relative; width: 108px; height: 108px; opacity: 0; transform: scale(.9); animation: sp-pop .5s cubic-bezier(.22, 1, .36, 1) .05s forwards; }
+#sp3logo { display: block; width: 100%; height: 100%; border-radius: 25px; background: #0b1220; box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
+.sp3-ring { position: absolute; left: -9px; top: -9px; width: calc(100% + 18px); height: calc(100% + 18px); overflow: visible; }
+.sp3-ring rect { fill: none; stroke: rgb(var(--hot2)); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; opacity: .85; animation: sp-ring .5s cubic-bezier(.45, 0, .2, 1) .15s forwards; }
+.sp3-word { margin-top: 30px; font: 800 15px Montserrat, system-ui, sans-serif; letter-spacing: 16px; padding-left: 16px; color: #fff; opacity: 0; animation: sp-word .6s cubic-bezier(.22, 1, .36, 1) .28s forwards; }
+.sp3-sub { margin-top: 9px; font: 500 12px Montserrat, 'Noto Sans Lao', system-ui, sans-serif; letter-spacing: 1.5px; color: rgba(255, 255, 255, .72); opacity: 0; animation: sp-fade .45s ease .5s forwards; }
+#splash.hide .sp3-brand { transform: scale(1.04); transition: transform .25s ease; }
+@keyframes sp-pop { to { opacity: 1; transform: none; } }
+@keyframes sp-draw { to { stroke-dashoffset: 0; } }
+@keyframes sp-dim { to { stroke-opacity: .34; } }
+@keyframes sp-ring { to { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes sp-word { to { opacity: 1; letter-spacing: 8px; padding-left: 8px; } }
+@keyframes sp-fade { to { opacity: 1; } }
+@keyframes sp-court-in { to { opacity: 1; } }
+@keyframes sp-glow { 0%, 100% { opacity: .55; scale: .96; } 50% { opacity: 1; scale: 1.04; } }
+@media (prefers-reduced-motion: reduce) {
+  #splash::before, .sp-court, .sp-court path, .sp3-mark, .sp3-word, .sp3-sub { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
+  .sp3-word { letter-spacing: 8px; padding-left: 8px; }
+  .sp3-ring { display: none; }
+  .sp-court path { stroke-opacity: .34 !important; }
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ========== Notifications ========== */
@@ -5283,9 +5304,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 @keyframes ls-crown-pulse { 0%, 100% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.14); } }
 @media (prefers-reduced-motion: reduce) { .ls-crown { animation: none; } }
 
-/* Splash: its own compositor layer, so the canvas and the fade stay smooth while the app loads */
-#splash { will-change: opacity; }
-#sp3fx { transform: translateZ(0); }
 
 /* Names stay put. Side by side (landscape) both teams get the same top padding: only the first one used to get the
    safe-area bump, so on an iPad Home Screen app one team's names sat lower than the other's. */

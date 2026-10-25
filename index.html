@@ -21,9 +21,35 @@
 
 <!-- Splash: shown until we know whether someone is signed in -->
 <div id="splash" data-nokb aria-live="polite" onclick="skipSplash()">
-  <canvas id="sp3fx" aria-hidden="true"></canvas>
+  <svg class="sp-court" viewBox="0 0 610 1340" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <g class="ca">
+      <path pathLength="1" d="M0 0H610"/>
+      <path pathLength="1" d="M0 0V670"/>
+      <path pathLength="1" d="M610 0V670"/>
+      <path pathLength="1" d="M46 0V670"/>
+      <path pathLength="1" d="M564 0V670"/>
+      <path pathLength="1" d="M0 76H610"/>
+      <path pathLength="1" d="M46 472H564"/>
+      <path pathLength="1" d="M305 0V472"/>
+      <path pathLength="1" d="M0 670H305"/>
+    </g>
+    <g class="cb" transform="rotate(180 305 670)">
+      <path pathLength="1" d="M0 0H610"/>
+      <path pathLength="1" d="M0 0V670"/>
+      <path pathLength="1" d="M610 0V670"/>
+      <path pathLength="1" d="M46 0V670"/>
+      <path pathLength="1" d="M564 0V670"/>
+      <path pathLength="1" d="M0 76H610"/>
+      <path pathLength="1" d="M46 472H564"/>
+      <path pathLength="1" d="M305 0V472"/>
+      <path pathLength="1" d="M0 670H305"/>
+    </g>
+  </svg>
   <div class="sp3-brand">
-    <img id="sp3logo" src="icons/icon-512.png" width="120" height="120" alt="Godsmash">
+    <div class="sp3-mark">
+      <img id="sp3logo" src="icons/icon-512.png" width="120" height="120" alt="Godsmash">
+      <svg class="sp3-ring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><rect x="1" y="1" width="98" height="98" rx="26" pathLength="1"/></svg>
+    </div>
     <div class="sp3-word">GODSMASH</div>
     <div id="splashSub" class="sp3-sub">Badminton Club</div>
   </div>
