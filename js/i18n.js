@@ -3191,7 +3191,10 @@ var translations = {
  */
 function t(key) {
   var lang = translations[currentLang] || translations.en;
-  return lang[key] || translations.en[key] || key;
+  var r = lang[key] || translations.en[key];
+  if (r) return r;
+  // A missing key is shown as text: keys are often built from stored data (t("mode_" + doc.mode)), so it must never become HTML
+  return String(key).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 /**

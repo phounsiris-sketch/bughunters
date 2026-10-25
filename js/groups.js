@@ -842,7 +842,7 @@ function showMemberModal(mid) {
       '<div><div style="font-weight:600">' + icon(p.icon, 14) + ' ' + t("perm_" + p.key) + '</div>' +
       '<div style="font-size:12px;color:var(--text-muted)">' + t("permDesc_" + p.key) + '</div></div></label>';
   });
-  rows += '<button class="btn-danger" style="margin-top:10px" onclick="removeMember(\'' + mid + '\')">' + t("removeMember") + '</button>';
+  rows += '<button class="btn-danger" style="margin-top:10px" onclick="removeMember(\'' + jsq(mid) + '\')">' + t("removeMember") + '</button>';
   document.getElementById("modalTitle").textContent = t("permissions") + " — " + getUserName(m.uid);
   document.getElementById("modalBody").innerHTML = rows;
   modalCallback = function () {

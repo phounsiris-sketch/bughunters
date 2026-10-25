@@ -252,7 +252,7 @@ function setBreadcrumb(items) {
 
 function crumbGo(i) {
   var c = _crumbs[i];
-  if (c && c.action) (new Function(c.action))();
+  if (c && c.action) runAction(c.action);
 }
 
 /** Header back arrow: one level up the breadcrumb, else history */

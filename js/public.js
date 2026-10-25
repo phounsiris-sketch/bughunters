@@ -192,7 +192,7 @@ function gameCardHtml(g) {
     '<div class="gc2-main"><div class="game-when">' + weekdayShort(new Date(g.date + "T00:00:00").getDay()) + ' ' + fmtDate(g.date) + ' \u00B7 ' + escapeHtml(g.time || "") + '</div>' +
     '<div class="game-facts">' + icon("court", 13) + ' ' + escapeHtml(g.courtName || (court && court.name) || "") + (dist ? ' \u00B7 ' + dist : '') + '</div>' +
     '<div class="game-facts game-facts2">' + escapeHtml(_moneyIn(g.price, g.currency)) + ' ' + t("each") + (levels ? ' \u00B7 ' + t("levelShort") + ' ' + levels : '') + '</div></div>' + chip + '</div>';
-  html += '<div class="game-tags"><span class="tag">' + t("gameType_" + (g.gameType || "any")) + '</span><span class="tag mode-' + (g.mode || "fun") + '">' + t("mode_" + (g.mode || "fun")) + '</span>' +
+  html += '<div class="game-tags"><span class="tag">' + t("gameType_" + (g.gameType || "any")) + '</span><span class="tag mode-' + cssId(g.mode || "fun") + '">' + t("mode_" + (g.mode || "fun")) + '</span>' +
     (g.dinner ? '<span class="tag">' + icon("dinner", 12) + ' ' + t("dinnerAfterTag") + '</span>' : '') + (g.seriesId ? '<span class="tag">' + icon("history", 12) + ' ' + t("repeatWeekly") + '</span>' : '') + '</div>';
   if (g.note) html += '<div class="game-note">' + escapeHtml(g.note) + '</div>';
   html += '<div class="gc2-people">' + personHtml(g.hostId, 22, t("hostWord")) + (players.length ? peopleHtml(players.filter(function (u) { return u !== g.hostId; }), 22, 4) : '') +

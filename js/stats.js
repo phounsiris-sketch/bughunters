@@ -700,7 +700,7 @@ function quickAddGame() {
 function sessionGamesTabHtml(s) {
   if (!gameForm || gameForm.sessionId !== s.id) gameForm = _blankGameForm(s);
   var mode = s.mode || "competition";
-  var html = '<div class="games-mode"><span class="tag mode-' + mode + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
+  var html = '<div class="games-mode"><span class="tag mode-' + cssId(mode) + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
   if (_canAddGames(s) && sessionStep(s) < 3) html += '<button type="button" class="live-launch" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 22) + '<span><b>' + t("lsTitle") + '</b><small>' + t("lsRule4") + '</small></span>' + icon("chevron", 18) + '</button>';
   if (_canAddGames(s)) html += '<div id="gameFormBox">' + _gameFormHtml(s) + '</div>';
   html += '<div id="sgList">' + _gamesListHtml(s) + '</div>';
@@ -720,7 +720,7 @@ function _gameFormHtml(s) {
     html += '<div class="form-group"><label class="form-label">' + t("team") + ' ' + side + ' <small>(' + team.length + '/' + size + ')</small></label><div class="chips">' +
       (s.players || []).map(function (u) {
         var on = team.indexOf(u) >= 0, taken = other.indexOf(u) >= 0;
-        return '<div class="chip avatar-chip' + (on ? ' active' : '') + (taken ? ' disabled' : '') + '"' + (taken ? '' : ' onclick="gameFormPick(\'' + side + '\',\'' + u + '\')"') + '>' + avatarHtml(u, 20) + escapeHtml(getUserName(u)) + '</div>';
+        return '<div class="chip avatar-chip' + (on ? ' active' : '') + (taken ? ' disabled' : '') + '"' + (taken ? '' : ' onclick="gameFormPick(\'' + side + '\',\'' + jsq(u) + '\')"') + '>' + avatarHtml(u, 20) + escapeHtml(getUserName(u)) + '</div>';
       }).join('') + '</div></div>';
   });
   // Score: names above each box, − / + beside it, typed directly
@@ -858,15 +858,15 @@ function matchRowHtml(m, no) {
   var w = matchWinner(m), me = currentUser.uid;
   var canEdit = m.createdBy === me || isGroupAdminMe();
   var g = (m.games || [])[0] || {};
-  var more = (m.games || []).slice(1).map(function (x) { return x.a + '–' + x.b; }).join(', ');
+  var more = (m.games || []).slice(1).map(function (x) { return escapeHtml(x.a) + '–' + escapeHtml(x.b); }).join(', ');
   var html = '<div class="card match-row">';
   html += '<div class="match-head"><b>' + (no ? t("gameN").replace("{n}", no) : '') + '</b>' +
-    '<span class="match-meta">' + t("gameType_" + (m.type || "md")) + (m.minutes ? ' · ' + m.minutes + ' ' + t("minShort") : '') + '</span>' +
+    '<span class="match-meta">' + t("gameType_" + (m.type || "md")) + (m.minutes ? ' · ' + escapeHtml(m.minutes) + ' ' + t("minShort") : '') + '</span>' +
     (canEdit ? '<span class="match-actions"><button class="edit-btn" aria-label="' + t("edit") + '" onclick="editGame(\'' + jsq(m.id) + '\')">' + icon("pen", 14) + '</button>' +
       '<button class="delete-btn" aria-label="' + t("delete") + '" onclick="deleteMatch(\'' + jsq(m.id) + '\')">' + icon("trash", 14) + '</button></span>' : '') + '</div>';
-  html += '<div class="match-score-row"><div class="ms-side' + (w === "A" ? ' win' : '') + '"><div class="ms-names">' + (m.teamA && m.teamA.length ? teamHtml(m.teamA, 24) : _teamName([], "A")) + '</div><div class="ms-pts">' + (g.a != null ? g.a : '–') + '</div></div>' +
+  html += '<div class="match-score-row"><div class="ms-side' + (w === "A" ? ' win' : '') + '"><div class="ms-names">' + (m.teamA && m.teamA.length ? teamHtml(m.teamA, 24) : _teamName([], "A")) + '</div><div class="ms-pts">' + (g.a != null ? escapeHtml(g.a) : '–') + '</div></div>' +
     '<div class="ms-vs">–</div>' +
-    '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + (m.teamB && m.teamB.length ? teamHtml(m.teamB, 24) : _teamName([], "B")) + '</div><div class="ms-pts">' + (g.b != null ? g.b : '–') + '</div></div></div>';
+    '<div class="ms-side' + (w === "B" ? ' win' : '') + '"><div class="ms-names">' + (m.teamB && m.teamB.length ? teamHtml(m.teamB, 24) : _teamName([], "B")) + '</div><div class="ms-pts">' + (g.b != null ? escapeHtml(g.b) : '–') + '</div></div></div>';
   if (more) html += '<div class="form-hint" style="text-align:center">' + more + '</div>';
   // Who saved it, and who changed it last
   // Counted with Live score: show the scorekeeper (photo + name); otherwise who added it
