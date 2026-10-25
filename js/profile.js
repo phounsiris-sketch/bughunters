@@ -121,7 +121,7 @@ function aboutCardHtml(part) {
 /* Photo frame: pick one of three rings (or none); it is saved at once and others see it round the photo (v226) */
 function frameChooserHtml() {
   var me = currentUser.uid, cur = (currentUserProfile && currentUserProfile.frame) || "";
-  var opts = [["", "frameNone"], ["gold", "frameGold"], ["court", "frameCourt"], ["neon", "frameNeon"]];
+  var opts = [["", "frameNone"], ["gold", "frameGold"], ["court", "frameCourt"], ["dash", "frameDash"], ["neon", "frameNeon"]];
   return '<div class="card" id="frameCard"><div class="card-title">' + icon("user", 14) + ' ' + t("frameTitle") + '</div><div class="form-hint" style="margin-bottom:10px">' + t("frameHint") + '</div>' +
     '<div class="frame-grid">' + opts.map(function (o) {
       return '<button type="button" class="frame-opt' + (cur === o[0] ? ' active' : '') + '" aria-pressed="' + (cur === o[0]) + '" onclick="setMyFrame(\'' + o[0] + '\')">' +

@@ -6395,7 +6395,9 @@ body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 .f-neon.big::before { animation: frame-spin 6s linear infinite; }   /* only the big photo turns: many small ones would cost battery */
 @keyframes frame-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .f-neon.big::before { animation: none; } }
-.frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.f-dash { background: linear-gradient(135deg, #10b981, #047857); box-shadow: 0 0 calc(var(--s) * .18) rgba(16, 185, 129, .4); }   /* Court dashes (v230): one white dashed line round the photo */
+.f-dash::before { content: ""; position: absolute; inset: calc(var(--r) * .5); border-radius: 50%; border: max(1px, calc(var(--r) * .2)) dashed rgba(255, 255, 255, .95); }
+.frame-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .frame-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 0; }
 .frame-opt b { font-size: 12px; }
 .frame-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }

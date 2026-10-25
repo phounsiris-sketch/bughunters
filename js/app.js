@@ -311,7 +311,7 @@ function colorFor(uid) {
 
 /** Profile photo if the player has one, otherwise a coloured initial */
 /** Photo frames (v226): a ring round the photo that a person picks in Profile. Only these words are accepted. */
-var AVATAR_FRAMES = ["gold", "court", "neon"];
+var AVATAR_FRAMES = ["gold", "court", "neon", "dash"];   // dash = Court dashes (v230)
 var _FRAME_SHUTTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(32 12 12)"><path d="M8.6 15.8 4.6 3.9Q12 1.6 19.4 3.9L15.4 15.8Z" fill="#f8fafc" stroke="#64748b" stroke-width="1" stroke-linejoin="round"/><path d="M5.6 6.9Q12 8.6 18.4 6.9" fill="none" stroke="#f97316" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="18.1" r="3.3" fill="#f59e0b" stroke="#b45309" stroke-width=".9"/></g></svg>';
 /** The photo (or the first letter); frame: undefined = the person's own frame, "" = none, or one of AVATAR_FRAMES (used by the chooser) */
 function avatarHtml(uid, size, frame) {
@@ -502,7 +502,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v229"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v230"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

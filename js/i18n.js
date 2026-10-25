@@ -520,6 +520,7 @@ var translations = {
     frameGold: "Gold",
     frameCourt: "Court",
     frameNeon: "Neon",
+    frameDash: "Dashes",
     frameSaved: "Frame saved",
 
     // Tournament (v227, Lao is unreviewed)
@@ -2274,6 +2275,7 @@ var translations = {
     frameGold: "ຄຳ",
     frameCourt: "ສະໜາມ",
     frameNeon: "ນີອອນ",
+    frameDash: "ເສັ້ນປະ",
     frameSaved: "ບັນທຶກກອບແລ້ວ",
 
     // Tournament (v227, Lao unreviewed)

@@ -1677,3 +1677,8 @@ One teal button on a session card (sessions list) runs a tournament for the sess
 - **Rules:** members of the group read and create (createdBy = themselves, shape and size checks: lists of at most 2 / 3 / 4, strings of at most 80 / 10 / 8 characters); update by whoever saved it or a session editor (createdBy cannot change); delete by a group admin, a session editor or whoever saved it.
 - Lao strings (`hof*`) are unreviewed.
 - Tests: tests/hallfame.test.js (record, 2-1 final, round robin, out pair, tamper-proof clean, merge and dedupe, kept without the session, aggregate, save and refused-write fallback, card draws in every shape, rules and wiring checks).
+
+## v230: photo frame "Court dashes"
+
+A fourth photo frame, `dash` (shown "Dashes" / Lao "ເສັ້ນປະ", unreviewed): a green ring with one white dashed line round the photo, like the dashed line on a court. `AVATAR_FRAMES` is now `["gold", "court", "neon", "dash"]`; css `.avf.f-dash` (no badge, no animation, so the same at every size from 22px); the chooser (`frameChooserHtml`) lists it between Court and Neon and its grid now wraps (`auto-fit, minmax(96px, 1fr)`) so five choices fit a phone. `frameOk` in firestore.rules accepts `dash` (**unpublished**: until the rules are published, saving the Dashes frame is refused by the database and the app shows the permission message; old frames are unaffected).
+- Tests: tests/avatar-frame.test.js.

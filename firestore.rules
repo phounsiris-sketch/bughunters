@@ -69,8 +69,8 @@ service cloud.firestore {
     // The person who created a poll / session always manages it
     function isCreator() { return isAuth() && resource.data.get('createdBy', '') == request.auth.uid; }
     function isManual(data) { return data.get('manual', false) == true; }
-    // Photo frame words the app knows (v226)
-    function frameOk(d) { return d.get('frame', null) == null || d.get('frame', null) in ['gold', 'court', 'neon']; }
+    // Photo frame words the app knows (v226, dash added in v230)
+    function frameOk(d) { return d.get('frame', null) == null || d.get('frame', null) in ['gold', 'court', 'neon', 'dash']; }
     // Kinds and modes the app writes: the rules refuse any other word (v211)
     function modeOk(d) { return d.get('mode', 'fun') in ['fun', 'exercise', 'competition'] && d.get('gameType', 'any') in ['md', 'wd', 'xd', 'singles', 'any']; }
     function smallInt(v, lo, hi) { return v is int && v >= lo && v <= hi; }
