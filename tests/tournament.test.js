@@ -234,7 +234,7 @@ function eightToSemis(seed) {
   var card = c2.tourCardHtml(sess);
   assert.ok(/tourBtnStart/.test(card) && /tourCardAct\('s1'\)/.test(card), "card button offers the draw");
   c2.tourCardAct("s1");   // reduced motion: the draw is made at once
-  assert.ok(sess.tournament && sess.tournament.games.length === 6, "the draw made a tournament of 6 games");
+  assert.ok(sess.tourney && sess.tourney.games.length === 6, "the draw made a tournament of 6 games");
   var h = rd();
   assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourMeetTitle/.test(h) && /tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, who-meets-who, rest and table are shown");
   assert.ok(!/undefined|NaN/.test(h), "no undefined or NaN in the screen");
@@ -242,13 +242,13 @@ function eightToSemis(seed) {
   var click = function (act, extra) { var attrs = Object.assign({ "data-act": act }, extra || {}); c2.document.getElementById("tnScreen").onclick({ target: { closest: function () { return { getAttribute: function (k) { return attrs[k]; } }; } } }); };
   click("stage");   // opens the editor on the up-next game
   assert.ok(/tn-editor/.test(rd()), "the stage button opens the score editor");
-  click("save"); assert.ok(sess.tournament.games.filter(function (g) { return g.sa !== null; }).length === 1, "the up-next game got its score");
-  while (!ctx.tourRotDone(sess.tournament)) { var g = ctx.tourNext(sess.tournament); ctx.tourApply(sess.tournament, g, 21, 10); }
+  click("save"); assert.ok(sess.tourney.games.filter(function (g) { return g.sa !== null; }).length === 1, "the up-next game got its score");
+  while (!ctx.tourRotDone(sess.tourney)) { var g = ctx.tourNext(sess.tourney); ctx.tourApply(sess.tourney, g, 21, 10); }
   c2.tourRender();
   assert.ok(/tourBtnSemi/.test(rd()) && /tourDrawHint/.test(rd()), "after the rotation the button is the semifinal draw");
   click("stage");
-  assert.ok(sess.tournament.drawn && sess.tournament.po.length === 2 && /tourBracketTitle/.test(rd()), "the draw builds the bracket");
-  while (ctx.tourNext(sess.tournament)) { var g2 = ctx.tourNext(sess.tournament); ctx.tourApply(sess.tournament, g2, 21, 15); }
+  assert.ok(sess.tourney.drawn && sess.tourney.po.length === 2 && /tourBracketTitle/.test(rd()), "the draw builds the bracket");
+  while (ctx.tourNext(sess.tourney)) { var g2 = ctx.tourNext(sess.tourney); ctx.tourApply(sess.tourney, g2, 21, 15); }
   c2.tourRender();
   var done = rd();
   assert.ok(/tnWinner/.test(done) && /tourPlace1/.test(done) && /tourBtnWinner/.test(done) && !/undefined|NaN/.test(done), "the winner podium shows");
@@ -272,6 +272,17 @@ assert.ok(/function tourCanRun\(s\)[^\n]*canEditSessionDetails\(s\) \|\| canEdit
 assert.ok(!/innerHTML[^;\n]*\+\s*(g\.lab|T\.ids\[)/.test(src), "labels and ids are never put in HTML raw");
 assert.ok(/getUserName\(T\.ids/.test(src) && /escapeHtml\(/.test(src), "names are escaped");
 assert.ok(/prefers-reduced-motion/.test(css) && /_tnReduced\(\)/.test(src), "the draw shuffle is skipped for reduced motion");
+// v227 hotfix: an old session already had `tournament` = { pairs, at, by } (v48 round robin); that and a half-saved value must not break the list
+(function () {
+  var c3 = {}; vm.createContext(c3);
+  Object.assign(c3, { t: function (k) { return "[" + k + "]"; }, icon: function () { return ""; }, escapeHtml: String, jsq: String, perms: {}, canEditSessionDetails: function () { return true; }, canEditBill: function () { return true; }, document: { getElementById: function () { return null; } } });
+  vm.runInContext(src, c3);
+  var old = { id: "o", players: ["a", "b"], tournament: { pairs: [["a", "b"]], at: 1, by: "a" } };
+  var half = { id: "h", players: ["a", "b"], tourney: { v: 1 } };
+  assert.strictEqual(c3.tourOf(old), null, "legacy tournament field is ignored");
+  assert.strictEqual(c3.tourOf(half), null, "a half-saved tourney counts as none");
+  assert.doesNotThrow(function () { c3.tourStage(old); c3.tourStage(half); }, "stage never throws on odd data");
+})();
 console.log("tournament OK");
 
 /* ============================================================
@@ -348,7 +359,7 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
   assert.ok(ctx.tourComplete(T), "the last pair standing wins by walkover");
   assert.strictEqual(ctx.tourMarkOut(T, D, "other", "x"), false, "a finished tournament cannot change");
   assert.strictEqual(ctx.tourOrder(T)[0], D);
-  assert.strictEqual(ctx.tourMatches({ id: "s", tournament: T, date: "2026-10-24" }, "g").filter(function (m) { return m.tid; }).length, T.games.length, "void and walkover games are not stats games");
+  assert.strictEqual(ctx.tourMatches({ id: "s", tourney: T, date: "2026-10-24" }, "g").filter(function (m) { return m.tid; }).length, T.games.length, "void and walkover games are not stats games");
 })();
 
 // ---- 6 players: round robin walkovers ----
@@ -416,8 +427,8 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
 
 // ---- tournament games as stats records ----
 (function () {
-  var s = { id: "S1", date: "2026-10-24", groupId: "G", createdAt: 1000, courtName: "AP", tournament: drawn(8, 59) };
-  var T = s.tournament; play(T, T.po[0], 21, 10); play(T, T.po[1], 18, 21);
+  var s = { id: "S1", date: "2026-10-24", groupId: "G", createdAt: 1000, courtName: "AP", tourney: drawn(8, 59) };
+  var T = s.tourney; play(T, T.po[0], 21, 10); play(T, T.po[1], 18, 21);
   var ms = ctx.tourMatches(s, "G");
   assert.strictEqual(ms.length, T.games.length + 2, "every real game is a record");
   ms.forEach(function (m) {

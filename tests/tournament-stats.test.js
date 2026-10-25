@@ -14,7 +14,7 @@ var ids = []; for (var i = 0; i < 8; i++) ids.push("u" + i);
 
 var T = ctx.tourNew(ids, seeded(3));
 T.games.forEach(function (g, k) { ctx.tourApply(T, g, 21, 8 + k); });
-var sess = { id: "S1", date: "2026-10-24", groupId: "g", createdAt: 1000, players: ids, tournament: T };
+var sess = { id: "S1", date: "2026-10-24", groupId: "g", createdAt: 1000, players: ids, tourney: T };
 ctx.lastSessions = [sess]; ctx._matchesReal = [];
 ctx.rebuildMatches();
 assert.strictEqual(ctx.lastMatches.length, 6, "6 rotation games are 6 stats games");
@@ -59,9 +59,15 @@ var core = fs.readFileSync("js/stats-core.js", "utf8");
 assert.ok(!/_matchesReal/.test(core), "stats-core reads only lastMatches");
 
 // sessions changed -> rebuild (and nothing when the tournaments did not change)
-ctx.lastSessions = [{ id: "S2", date: "2026-10-25", groupId: "g", createdAt: 2000, tournament: ctx.tourNew(ids, seeded(4)) }];
+ctx.lastSessions = [{ id: "S2", date: "2026-10-25", groupId: "g", createdAt: 2000, tourney: ctx.tourNew(ids, seeded(4)) }];
 ctx.tourSessionsChanged(); assert.strictEqual(ctx.lastMatches.length, 0, "a new tournament with no scores adds no games");
-var s3 = ctx.lastSessions[0]; ctx.tourApply(s3.tournament, s3.tournament.games[0], 21, 5);
+var s3 = ctx.lastSessions[0]; ctx.tourApply(s3.tourney, s3.tourney.games[0], 21, 5);
 ctx.tourSessionsChanged(); assert.strictEqual(ctx.lastMatches.length, 1, "a played game shows up straight away");
 var before = ctx.lastMatches; ctx.tourSessionsChanged(); assert.strictEqual(ctx.lastMatches, before, "unchanged tournaments: no rebuild");
+// an old v48 round-robin session (field "tournament" = {pairs, at, by}) or half-saved data never reaches the stats
+ctx.lastSessions = [{ id: "O1", date: "2026-01-01", players: ["a", "b"], tournament: { pairs: [["a", "b"]], at: 1, by: "a" } }, { id: "O2", date: "2026-01-02", tourney: { v: 1, n: 8 } }, { id: "O3", date: "2026-01-03", tourney: "oops" }];
+assert.doesNotThrow(function () { ctx.tourSessionsChanged(); }, "bad session data cannot break the stats");
+assert.strictEqual(ctx.lastMatches.length, 0);
+assert.strictEqual(ctx.tourMatches(ctx.lastSessions[0], "g").length, 0);
+assert.ok(/tourOf\(s\)/.test(fs.readFileSync("js/tournament.js", "utf8").split("function tourMatches")[1].slice(0, 200)), "tourMatches reads through tourOf");
 console.log("tournament stats OK");

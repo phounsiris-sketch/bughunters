@@ -1651,6 +1651,11 @@ One teal button on a session card (sessions list) runs a tournament for the sess
 - **Not in v227:** writing tournament games to `matches` (rankings and Elo), a winner share card, a player dropping out mid-tournament.
 - Tests: tests/tournament.test.js.
 
+## v227 hotfix: tournament field renamed to `tourney`
+- **Bug:** a session from the v48 round robin already had `tournament = { pairs, at, by }`. The v227 card read it as a new tournament, `tourComplete` threw on `po.length`, and the whole sessions list stopped drawing (cards vanished).
+- **Fix:** the session field is now `tourney`; `tourOf(s)` returns it only if it has the right shape (v, games, po, ids). An old or half-saved value counts as no tournament, so a bad field can never break the list. The old `tournament` field is left alone.
+- **No version bump:** same v227; sw.js has a comment bump so the service worker updates. Test added to tests/tournament.test.js.
+
 ## v228: tournament games count in stats, and a pair can go out
 
 - **Stats:** the real games of every session tournament are now stats games. `tourMatches(session)` turns each played rotation and playoff game into a match-like record (`id "t:<sid>:<n>"`, `tid` = session id, `tstage`, `confirmed: true`, `createdBy ""`, one game each). `tourMergeMatches(saved, sessions)` joins them with the saved matches; a game that someone also typed in as a normal match for the same session (same two teams and score, either side order) is counted once and the typed-in match wins. `rebuildMatches()` in stats.js sets `lastMatches` from `_matchesReal` (matches/ only) and the sessions; `tourSessionsChanged()` (called from the sessions snapshot) rebuilds it only when a tournament changed. Every page still reads `lastMatches` / stats-core, so Rankings, Elo, pairs, health and Home agree. No new writes, no rules change.
@@ -1659,5 +1664,6 @@ One teal button on a session card (sessions list) runs a tournament for the sess
 - **Bring back:** "Back in" asks first, clears the walkovers (and the games built on them: `tourUndoImpact` says how many real games that loses) and gives walkovers again for pairs that are still out.
 - **Rotation stage:** nobody can be marked out before the pairs are drawn. The screen says so and offers Reset (it asks) so the tournament can be drawn again with the players who can play.
 - **Corrections:** a walkover is not a score and cannot be corrected. A rotation correction that changes the pairs clears the draw, the playoff and the out marks (the warning counts them).
+- **Session field:** everything reads the tournament through `tourOf(session)` (field `tourney`, shape-checked); a session with the old v48 `tournament` value or bad data is ignored by the stats loader, the card and the hall of fame. v227-hotfix is merged into this branch.
 - Lao strings (`tourOut*`, `tourWhy_*`, `tourWO`, `tourBadge*`) are unreviewed.
 - Tests: tests/tournament.test.js (walkover chain, final series, void games, 6-player round robin, undo, correction), tests/tournament-stats.test.js (stats records, dedupe, badge, one truth).

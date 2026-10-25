@@ -6,7 +6,7 @@
    3. Playoff: 8 players = 2 semis (drawn at random), 3rd place (1 game), final best of 3.
                6 players = round robin of the 3 pairs.
    The first part of this file is the plain engine (tour*), no DOM, tested in tests/tournament.test.js.
-   The state is one object saved as sessions/{id}.tournament:
+   The state is one object saved as sessions/{id}.tourney (NOT .tournament: the v48 round robin already used that name):
    { v, n, ids:[uid], coin:[idx], games:[{ph,a:[idx],b:[idx],sa,sb}], po:[{ph,lab,fin,a,b,pa,pb,sa,sb,wo?,v?}], drawn, semi:[0..3]|null,
      out:[{p:pairNo, why:"injury"|"left"|"other", note}] }   (v228: a pair that is out gives walkovers; wo = walkover game, v = void game)
    Players inside games are positions (0..n-1) in `ids`, so the nested arrays stay legal in Firestore.
@@ -315,8 +315,8 @@ function tourUndoOut(T, p) {
 
 /** Match-like records for the real games of a session tournament (walkovers and void games are left out). id "t:<sid>:<n>", tid = session id */
 function tourMatches(s, gid) {
-  var T = s && s.tournament, out = [];
-  if (!T || !T.ids || !T.games || !T.po) return out;
+  var T = tourOf(s), out = [];
+  if (!T) return out;
   var base = s.createdAt || 0;
   function uid(i) { return T.ids[i]; }
   function add(g, idx, stage) {
@@ -366,6 +366,12 @@ function _tnSession(sid) {
   for (var i = 0; i < lastSessions.length; i++) if (lastSessions[i].id === sid) return lastSessions[i];
   return null;
 }
+/** The session's tournament, only if it has the right shape: an old or half-saved value counts as none, so a bad field can never break the list */
+function tourOf(s) {
+  var T = s && s.tourney;
+  return T && T.v === 1 && Array.isArray(T.games) && Array.isArray(T.po) && Array.isArray(T.ids) && T.n === T.ids.length ? T : null;
+}
+
 /** Only people who may edit the session (or its bill) run the tournament; everyone else watches */
 function tourCanRun(s) { return !!s && (canEditSessionDetails(s) || canEditBill(s)); }
 function _tnReduced() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
@@ -410,7 +416,7 @@ function _tnDrawWord(T) { return T.n === 8 ? t("tourWordSemi") : t("tourWordPair
 
 /** What the main button says and does for this session now */
 function tourStage(s) {
-  var T = s.tournament, org = tourCanRun(s), n = (s.players || []).length;
+  var T = tourOf(s), org = tourCanRun(s), n = (s.players || []).length;
   if (_tnAnim && _tnSid === s.id) return { act: "", label: t("tourDrawing"), disabled: true };
   if (!T) {
     if (!org) return null;
@@ -439,7 +445,7 @@ function _tnLine(T) {
 function tourCardHtml(s) {
   var st = tourStage(s);
   if (!st) return "";
-  var T = s.tournament, played = T ? tourAll(T).filter(tourDone).length : 0;
+  var T = tourOf(s), played = T ? tourAll(T).filter(tourDone).length : 0;
   return '<div class="tn-card">' +
     '<div class="tn-card-line">' + icon("trophy", 14) + '<span>' + escapeHtml(_tnLine(T)) + '</span></div>' +
     (T ? '<div class="tn-bar"><i style="width:' + (tourComplete(T) ? 100 : Math.round(played / 12 * 100)) + '%"></i></div>' : '') +
@@ -461,8 +467,8 @@ function _tnStageAct(s, st) {
   if (st.act === "start") tourStartDraw(s, "teams");
   else if (st.act === "draw") tourStartDraw(s, "draw");
   else if (st.act === "play") {
-    var g = tourNext(s.tournament);
-    if (g) { _tnEdit = { gi: tourAll(s.tournament).indexOf(g), sa: 21, sb: 15, err: "" }; _tnToast = ""; tourRender(); _tnScroll(".tn-game.cur"); }
+    var g = tourNext(tourOf(s));
+    if (g) { _tnEdit = { gi: tourAll(tourOf(s)).indexOf(g), sa: 21, sb: 15, err: "" }; _tnToast = ""; tourRender(); _tnScroll(".tn-game.cur"); }
   } else if (st.act === "winner") _tnScroll("#tnWinner");
   else tourRender();
 }
@@ -505,14 +511,14 @@ function tourOnSessions() {
   var s = _tnSession(_tnSid);
   if (!s) { tourClose(); return; }
   if (_tnAnim || _tnBusy) return;
-  if (_tnEdit && s.tournament && _tnEdit.gi >= tourAll(s.tournament).length) _tnEdit = null;
+  if (_tnEdit && tourOf(s) && _tnEdit.gi >= tourAll(tourOf(s)).length) _tnEdit = null;
   if (_tnEdit || _tnOut) return;   // do not wipe the score or note being typed
   tourRender();
 }
 
 /** Sessions changed: the tournament games feed Rankings and stats, so rebuild them when any tournament moved */
 function tourSessionsChanged() {
-  var sg = (typeof lastSessions !== "undefined" ? lastSessions : []).map(function (s) { return s.tournament ? s.id + ":" + JSON.stringify(s.tournament) : ""; }).join("|");
+  var sg = (typeof lastSessions !== "undefined" ? lastSessions : []).map(function (s) { var T = tourOf(s); return T ? s.id + ":" + JSON.stringify(T) : ""; }).join("|");
   if (sg === _tnSig) return;
   _tnSig = sg;
   if (typeof rebuildMatches !== "function") return;
@@ -523,7 +529,7 @@ function tourSessionsChanged() {
 
 function _tnPut(s) {
   _tnBusy = true;
-  return dbUpdateSession(s.id, { tournament: JSON.parse(JSON.stringify(s.tournament)) }).then(function () { _tnBusy = false; }, function (e) {
+  return dbUpdateSession(s.id, { tourney: JSON.parse(JSON.stringify(s.tourney)) }).then(function () { _tnBusy = false; }, function (e) {
     _tnBusy = false;
     dbOnError(e, "sessions");
     showToast(t("tourSaveFail"));
@@ -538,12 +544,12 @@ function tourStartDraw(s, kind) {
     clearInterval(_tnTimer); _tnAnim = null;
     var cur = _tnSession(sid) || s;
     if (kind === "teams") {
-      if (cur.tournament || !tourSizeOk((cur.players || []).length)) { tourRender(); return; }
-      cur.tournament = tourNew(cur.players.slice());
-      _tnToast = _tnFill(t("tourTeamsDrawn"), { g: cur.tournament.games.length });
+      if (tourOf(cur) || !tourSizeOk((cur.players || []).length)) { tourRender(); return; }
+      cur.tourney = tourNew(cur.players.slice());
+      _tnToast = _tnFill(t("tourTeamsDrawn"), { g: cur.tourney.games.length });
     } else {
-      if (!cur.tournament || !tourDraw(cur.tournament)) { tourRender(); return; }
-      _tnToast = cur.tournament.n === 8 ? t("tourSemiDrawn") : t("tourPairsDrawn");
+      if (!tourOf(cur) || !tourDraw(cur.tourney)) { tourRender(); return; }
+      _tnToast = cur.tourney.n === 8 ? t("tourSemiDrawn") : t("tourPairsDrawn");
     }
     _tnPut(cur);
     tourRender(); _tnScroll(".tn-game.cur");
@@ -562,7 +568,7 @@ function _tnClick(ev) {
   var s = _tnSession(_tnSid), act = b.getAttribute("data-act");
   if (act === "close") { tourClose(); return; }
   if (!s) return;
-  var T = s.tournament, org = tourCanRun(s);
+  var T = tourOf(s), org = tourCanRun(s);
   if (act === "stage") { var st = tourStage(s); if (st && !st.disabled) _tnStageAct(s, st); return; }
   if (!T || !org) return;
   if (act === "edit") {
@@ -582,21 +588,21 @@ function _tnClick(ev) {
     askYes(t("tourResetTitle"), function () {
       var cur = _tnSession(s.id); if (!cur) return;
       clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnToast = "";
-      cur.tournament = null;
+      cur.tourney = null;
       _tnBusy = true;
-      dbUpdateSession(cur.id, { tournament: firebase.firestore.FieldValue.delete() }).then(function () { _tnBusy = false; }, function (e) { _tnBusy = false; dbOnError(e, "sessions"); showToast(t("tourSaveFail")); });
+      dbUpdateSession(cur.id, { tourney: firebase.firestore.FieldValue.delete() }).then(function () { _tnBusy = false; }, function (e) { _tnBusy = false; dbOnError(e, "sessions"); showToast(t("tourSaveFail")); });
       tourClose();
     }, { kind: "danger", body: t("tourResetBody"), yes: t("tourReset") });
   }
 }
 
 function tourSaveScore(s) {
-  var T = s.tournament, e = _tnEdit, g = e && tourAll(T)[e.gi];
+  var T = tourOf(s), e = _tnEdit, g = e && tourAll(T)[e.gi];
   if (!g) { _tnEdit = null; tourRender(); return; }
   if (!tourScoreOk(e.sa, e.sb)) { e.err = t("tourNoDraw"); tourRender(); return; }
   var imp = tourImpact(T, g, e.sa, e.sb);
   function go() {
-    var cur = _tnSession(s.id) || s, T2 = cur.tournament, g2 = T2 && tourAll(T2)[e.gi];
+    var cur = _tnSession(s.id) || s, T2 = tourOf(cur), g2 = T2 && tourAll(T2)[e.gi];
     if (!g2) { _tnEdit = null; tourRender(); return; }
     var res = tourApply(T2, g2, e.sa, e.sb), msg = res.fixed ? t("tourScoreFixed") : t("tourScoreSaved");
     if (res.pairsChanged) msg += " " + _tnFill(t("tourPairsChanged"), { w: _tnDrawWord(T2) });
@@ -614,24 +620,24 @@ function tourSaveScore(s) {
 
 /** Mark the pair out (asks first), save, and say what happened */
 function tourSaveOut(s) {
-  var T = s.tournament, o = _tnOut;
+  var T = tourOf(s), o = _tnOut;
   if (!T || !o || !T.drawn) return;
   var P = tourPairs(T), pr = P[o.p];
   if (!pr || tourOutOf(T, o.p)) { _tnOut = null; tourRender(); return; }
   var name = _tnPairPlain(T, pr.m);
   askConfirm({ title: t("tourOutTitle"), body: _tnFill(t("tourOutBody"), { pair: name }), kind: "warn", yes: t("tourOutYes"), no: t("cancel") }, function () {
-    var cur = _tnSession(s.id) || s, T2 = cur.tournament;
+    var cur = _tnSession(s.id) || s, T2 = tourOf(cur);
     if (!T2 || !tourMarkOut(T2, o.p, o.why, o.note)) { _tnOut = null; tourRender(); return; }
     _tnOut = null; _tnToast = _tnFill(t("tourOutDone"), { pair: name });
     _tnPut(cur); tourRender();
   });
 }
 function tourAskUndoOut(s, p) {
-  var T = s.tournament;
+  var T = tourOf(s);
   if (!T || !tourOutOf(T, p)) return;
   var k = tourUndoImpact(T, p), name = _tnPairPlain(T, tourPairs(T)[p].m);
   askConfirm({ title: t("tourOutUndoTitle"), body: _tnFill(t("tourOutUndoBody"), { pair: name }) + (k ? " " + _tnFill(t("tourOutUndoLoses"), { k: k }) : ""), kind: "warn", yes: t("tourOutUndoYes"), no: t("cancel") }, function () {
-    var cur = _tnSession(s.id) || s, T2 = cur.tournament;
+    var cur = _tnSession(s.id) || s, T2 = tourOf(cur);
     if (!T2 || !tourUndoOut(T2, p)) { tourRender(); return; }
     _tnToast = _tnFill(t("tourOutBackDone"), { pair: name });
     _tnPut(cur); tourRender();
@@ -788,7 +794,7 @@ function tourRender() {
   if (!body) return;
   var s = _tnSession(_tnSid);
   if (!s) { tourClose(); return; }
-  var T = s.tournament, org = tourCanRun(s), st = tourStage(s);
+  var T = tourOf(s), org = tourCanRun(s), st = tourStage(s);
   var sub = document.getElementById("tnSub");
   if (sub) sub.textContent = fmtDate(s.date) + (s.courtName ? " · " + s.courtName : "");
   var h = "";
