@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v227';
+var CACHE_NAME = 'godsmash-v227'; // hotfix: field renamed to tourney (same cache name, new worker bytes)
 var ASSETS = [
   './',
   './index.html',
