@@ -252,7 +252,6 @@ function _renderSettingsPage() {
     rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
     // Members, courts, shuttlecocks, players, QR and general now live on the Group settings page (v213)
     rows.push(_navRow("showPage('group-settings')", "settings", t("groupSettings"), t("groupHubHint") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : '')));
-    if (admin && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));
   } else {
     if (GROUPS_ON) rows.push(_navRow("showPage('groups')", "users", t("yourGroups"), t("createGroupHint")));
     rows.push(_navRow("showPage('config')", "settings", t("configuration"), t("configurationHint")));
@@ -305,6 +304,7 @@ function _renderSettingsPage() {
   html += _settingsSection("secNotifData");
   rows = [];
   if (typeof pushSettingsRows === "function") rows.push(pushSettingsRows());
+  if (GROUPS_ON && currentGroup && isGroupAdminMe() && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));   // reports sit with notifications and deleted items (v219)
   rows.push(_navRow("showPage('trash')", "trash", t("recentlyDeleted"), t("recentlyDeletedHint")));
   html += '<div class="card nav-rows">' + rows.join('') + '</div>';
   html += _renderMergeCard();
