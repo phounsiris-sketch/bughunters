@@ -54,7 +54,7 @@ ctx.document.getElementById = function () { return {}; };   // the hidden defs a
 // dashboard pack "3D clay": dashboard only
 assert.strictEqual(ctx.currentDashPack, "clay", "clay is the default dashboard pack");
 assert.ok(/ico-clay ico-cl6/.test(ctx.iconAs("clay", "trophy", 22)) && ctx.iconAs("clay", "trophy", 22).indexOf('filter="url(#clayF)"') > 0, "clay icon: colour class by meaning + the clay filter");
-assert.ok(ctx.iconAs("clay", "shuttle", 22).indexOf("clayCork") > 0 && ctx.iconAs("clay", "court", 22).indexOf("clayG2") > 0, "badminton icons are hand drawn (shuttlecock, racket)");
+assert.ok(ctx.iconAs("clay", "court", 22).indexOf("clayG2") > 0, "the racket is hand drawn in clay");
 ["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-clay/.test(ctx.iconAs("clay", n, 20)), n + " control stays plain in clay"); });
 assert.ok(!/ico-clay/.test(ctx.iconAs("clay", "calendar", 12)), "tiny icons stay plain in clay");
 assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "outside the Dashboard the chosen style is used");
@@ -67,7 +67,12 @@ assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f
 assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "same"]));
 var stk = ctx.iconAs("sticker", "trophy", 22); assert.ok(/ico-sticker/.test(stk) && stk.indexOf('filter="url(#stkF)"') > 0, "sticker icon: die-cut outline filter");
 assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("sticker", "bell", 22).indexOf("stk-g") > 0, "icons without a drawing fall back to a glossy tile with the glyph");
-assert.ok(ctx.iconAs("sticker", "shuttle", 22).indexOf("clayCork") > 0, "shuttle reuses the hand-drawn art");
+// the shuttlecock is the default drawing in every style (v212)
+["box", "neu", "glass", "classic", "tiles", "clay", "sticker"].forEach(function (th) {
+  var sh = ctx.iconAs(th, "shuttle", 22);
+  assert.ok(sh.indexOf(ctx.SOLAR.shuttle) > 0, th + ": the shuttle is the default glyph");
+  assert.ok(sh.indexOf("clayCork") < 0 && sh.indexOf('class="si ph') < 0 && sh.indexOf(ctx.SOLAR_BOLD.shuttle) < 0, th + ": no style draws its own shuttle");
+});
 ["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", n, 20)), n + " control stays plain in stickers"); });
 assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", "calendar", 12)), "tiny icons stay plain in stickers");
 ctx._dashCtx = true; ctx.currentDashPack = "sticker"; assert.ok(/ico-sticker/.test(ctx.icon("trophy", 20)) && !/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the sticker pack is used"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
