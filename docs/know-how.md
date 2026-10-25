@@ -1544,3 +1544,11 @@ The Partners list (v144) is removed from the Rankings card (the `.mh-partners` C
 ## v207 - edit / delete inside the poll card
 
 - Poll cards show Edit (pen) and Delete (bin) as two small round buttons on the "created by" row, for anyone who may manage the poll and in every state. The folded "Manage" block under the card now holds only the rarer actions (add votes for others, cancel poll, delete session and poll) and is not drawn when a poll has none (cancelled).
+
+## v208: four special themes removed
+
+Christmas, Neon Arcade, Ninja Village and Kitty Pink are gone (owner request). Removed from `SPECIALS`, CSS blocks, `FX_SCENES`, share-card palettes and scenes, splash palettes, home emoji, `LS_SPECIAL_IDX` and EN/LA i18n. Kept: the four team-colour pairs in `LS_THEMES`, because saved live-score picks are positions in that list. A user who had one of the four selected falls back to no special theme (`_savedPalette` checks the id against the list). Eight specials remain.
+
+## v209: Dashboard "Stickers" pack
+
+Third choice in Settings, Dashboard icons (3D clay / Stickers / Same as above); clay stays the default. Original art, no download (the iconscout preview file was watermarked and not licensed). `STICKER_ART` in js/icons.js holds hand-drawn SVG illustrations (trophy, medal, calendar/sessions, clock/history, polls/vote, users, user, wallet, bill, card, dinner, chart, ranking, noshow, other, question, manual); shuttle, court and scoreboard reuse `CLAY_ART`. Any other icon falls back to a glossy colour tile with the white glyph (`.stk-g`). `#stkF` = white die-cut outline plus soft shadow. `icon()` uses `currentDashPack` when it is not "same", so adding a pack only needs an `iconAs` branch. Controls and icons under 14px stay plain. Lao name is unreviewed.

@@ -98,7 +98,7 @@ var ICON_BOX = { calendar: 0, sessions: 0, check: 0, pin: 0, vote: 0, polls: 0, 
 /* ───── Dashboard pack "3D clay" (v195): the Dashboard page only. Original art, not a download: the Solar Bold glyphs get a puffy clay
    look from one SVG filter (blurred bevel + specular light + soft shadow) and a light-to-dark gradient per colour; the badminton
    icons (shuttle = shuttlecock, court = racket) are drawn by hand. Same colour-by-meaning map as the box style. ───── */
-var DASH_PACKS = ["clay", "same"];
+var DASH_PACKS = ["clay", "sticker", "same"];
 var currentDashPack = "clay";
 try { var _dp = localStorage.getItem("dashPack"); if (DASH_PACKS.indexOf(_dp) >= 0) currentDashPack = _dp; } catch (e) {}
 var _dashCtx = false;   // true only while the Dashboard page is being drawn
@@ -122,6 +122,48 @@ function _claySvg(name, size, cls) {
   var body = CLAY_ART[name] || '<g class="clay-g">' + ((typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name]) || SOLAR[name]) + '</g>';
   return '<svg class="si ico-clay ico-cl' + ci + (cls ? ' ' + cls : '') + '" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" aria-hidden="true"><g filter="url(#clayF)">' + body + '</g></svg>';
 }
+/* ───── Dashboard pack "Stickers" (v209): hand-drawn original 3D-style stickers (no download, no licence). Each icon is a small
+   illustration with light-to-dark gradients, a white die-cut outline and a soft shadow (one SVG filter). Icons without a drawing
+   fall back to a glossy colour tile with the white glyph. Shuttle, court and scoreboard reuse the hand-drawn clay art. ───── */
+var STK_COLORS = [["#4ade80", "#15803d"], ["#f87171", "#b91c1c"], ["#2dd4bf", "#0f766e"], ["#60a5fa", "#1d4ed8"], ["#fb923c", "#c2410c"], ["#c084fc", "#7e22ce"], ["#fcd34d", "#d97706"], ["#f472b6", "#be185d"], ["#ffffff", "#cbd5e1"], ["#64748b", "#1e293b"], ["#f1f5f9", "#94a3b8"], ["#fdba74", "#b45309"]];
+function _sg(i) { return "url(#stkG" + i + ")"; }
+var STICKER_ART = (function () {
+  var G = _sg, W = "#fff";
+  var cal = '<rect x="3" y="4.5" width="18" height="17" rx="3.4" fill="' + G(8) + '"/><path d="M3 9.5V8a3.4 3.4 0 0 1 3.4-3.5h11.2A3.4 3.4 0 0 1 21 8v1.5Z" fill="' + G(1) + '"/><rect x="7" y="2.4" width="2" height="4" rx="1" fill="' + G(9) + '"/><rect x="15" y="2.4" width="2" height="4" rx="1" fill="' + G(9) + '"/><g fill="' + G(3) + '"><rect x="6.5" y="12" width="3" height="2.6" rx=".8"/><rect x="10.5" y="12" width="3" height="2.6" rx=".8"/><rect x="14.5" y="12" width="3" height="2.6" rx=".8"/><rect x="6.5" y="16.4" width="3" height="2.6" rx=".8"/><rect x="10.5" y="16.4" width="3" height="2.6" rx=".8"/></g>';
+  var clock = '<circle cx="12" cy="12" r="9.4" fill="' + G(3) + '"/><circle cx="12" cy="12" r="7.2" fill="' + G(8) + '"/><path d="M12 7.4V12l3.2 2" fill="none" stroke="' + G(9) + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>';
+  var polls = '<rect x="4.5" y="3.5" width="15" height="18" rx="3" fill="' + G(5) + '"/><rect x="7" y="6.2" width="10" height="13.3" rx="1.6" fill="' + G(8) + '"/><rect x="8.8" y="2.3" width="6.4" height="3.4" rx="1.4" fill="' + G(9) + '"/><path d="M8.6 10.6l1.5 1.5 2.5-2.9" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8.8" y="14.6" width="6.4" height="1.5" rx=".75" fill="' + G(3) + '"/>';
+  return {
+    sessions: cal, calendar: cal, history: clock, clock: clock, polls: polls, vote: polls,
+    trophy: '<path d="M7.2 3.2h9.6v5.6a4.8 4.8 0 0 1-9.6 0Z" fill="' + G(6) + '"/><path d="M7.2 5H3.8q0 4.6 3.9 5.4M16.8 5h3.4q0 4.6-3.9 5.4" fill="none" stroke="' + G(6) + '" stroke-width="1.7" stroke-linecap="round"/><rect x="10.7" y="12.8" width="2.6" height="4.2" fill="' + G(4) + '"/><rect x="7.4" y="17" width="9.2" height="3.6" rx="1.4" fill="' + G(4) + '"/><path d="M9.3 4.9v3.5" stroke="' + W + '" stroke-opacity=".75" stroke-width="1.1" stroke-linecap="round"/>',
+    medal: '<path d="M7 2.5h4l2 6.5H9Z" fill="' + G(1) + '"/><path d="M17 2.5h-4l-2 6.5h4Z" fill="' + G(3) + '"/><circle cx="12" cy="15" r="6.4" fill="' + G(6) + '"/><circle cx="12" cy="15" r="4.3" fill="' + G(4) + '" opacity=".5"/><path d="M12 11.7l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3Z" fill="' + W + '"/>',
+    users: '<circle cx="16.4" cy="8" r="3.1" fill="' + G(2) + '"/><path d="M11 20.4q0-5.4 5.4-5.4T21.8 20.4Z" fill="' + G(2) + '"/><circle cx="8.6" cy="8.6" r="3.7" fill="' + G(3) + '"/><path d="M2 21.4q0-6.6 6.6-6.6t6.6 6.6Z" fill="' + G(3) + '"/>',
+    user: '<circle cx="12" cy="8" r="4.5" fill="' + G(3) + '"/><path d="M4 21.4q0-7.8 8-7.8t8 7.8Z" fill="' + G(3) + '"/><path d="M9.6 6.4q.8-1.6 2.4-1.7" fill="none" stroke="' + W + '" stroke-opacity=".7" stroke-width="1" stroke-linecap="round"/>',
+    wallet: '<rect x="2.5" y="5.5" width="19" height="15" rx="3.6" fill="' + G(4) + '"/><path d="M2.5 9.4A3.6 3.6 0 0 1 6.1 5.5H17L16 8.6H2.5Z" fill="' + G(6) + '"/><rect x="13.6" y="11.4" width="9" height="5.6" rx="2.5" fill="' + G(6) + '"/><circle cx="17.1" cy="14.2" r="1.2" fill="' + W + '"/>',
+    bill: '<rect x="2.5" y="6" width="19" height="12" rx="2.6" fill="' + G(0) + '"/><circle cx="12" cy="12" r="3.4" fill="' + G(6) + '"/><path d="M12 10.2v3.6M10.6 11.2h2.2a.8.8 0 0 1 0 1.6h-1.6" fill="none" stroke="' + W + '" stroke-width="1" stroke-linecap="round"/><circle cx="5.6" cy="12" r=".9" fill="' + W + '" opacity=".8"/><circle cx="18.4" cy="12" r=".9" fill="' + W + '" opacity=".8"/>',
+    card: '<rect x="2.5" y="5" width="19" height="14" rx="3" fill="' + G(3) + '"/><rect x="2.5" y="8.6" width="19" height="3" fill="' + G(9) + '"/><rect x="5.5" y="14.4" width="6" height="1.8" rx=".9" fill="' + W + '" opacity=".85"/>',
+    dinner: '<circle cx="12" cy="12" r="9.2" fill="' + G(8) + '"/><circle cx="12" cy="12" r="5.7" fill="' + G(4) + '"/><circle cx="10.2" cy="10.4" r="1.7" fill="' + G(0) + '"/><circle cx="13.6" cy="13.3" r="1.5" fill="' + G(1) + '"/>',
+    chart: '<rect x="3" y="13" width="5" height="8" rx="1.6" fill="' + G(3) + '"/><rect x="9.5" y="8" width="5" height="13" rx="1.6" fill="' + G(0) + '"/><rect x="16" y="3.5" width="5" height="17.5" rx="1.6" fill="' + G(4) + '"/>',
+    ranking: '<path d="M12 1.6l1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4Z" fill="' + G(6) + '"/><rect x="8.8" y="9.4" width="6.4" height="11.6" rx="1.6" fill="' + G(6) + '"/><rect x="2.4" y="13" width="6.2" height="8" rx="1.6" fill="' + G(10) + '"/><rect x="15.4" y="15" width="6.2" height="6" rx="1.6" fill="' + G(11) + '"/>',
+    noshow: '<circle cx="12" cy="12" r="9.4" fill="' + G(1) + '"/><path d="M7.8 7.8l8.4 8.4M16.2 7.8l-8.4 8.4" fill="none" stroke="' + W + '" stroke-width="2.4" stroke-linecap="round"/>',
+    other: '<rect x="3" y="3" width="8" height="8" rx="2.4" fill="' + G(4) + '"/><rect x="13" y="3" width="8" height="8" rx="2.4" fill="' + G(3) + '"/><rect x="3" y="13" width="8" height="8" rx="2.4" fill="' + G(0) + '"/><rect x="13" y="13" width="8" height="8" rx="2.4" fill="' + G(5) + '"/>',
+    question: '<circle cx="12" cy="12" r="9.4" fill="' + G(5) + '"/><path d="M9.2 9.7a2.9 2.9 0 1 1 4.4 2.5c-1 .7-1.6 1.2-1.6 2.4" fill="none" stroke="' + W + '" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.2" fill="' + W + '"/>',
+    manual: '<path d="M3 5.5q4.5-1.4 9 1v14q-4.5-2.4-9-1Z" fill="' + G(3) + '"/><path d="M21 5.5q-4.5-1.4-9 1v14q4.5-2.4 9-1Z" fill="' + G(5) + '"/><path d="M12 6.5v14" stroke="' + W + '" stroke-opacity=".55" stroke-width=".8"/>'
+  };
+})();
+function _stickerDefs() {
+  if (typeof document === "undefined" || !document.body || document.getElementById("stickerDefs")) return;
+  var g = STK_COLORS.map(function (c, i) { return '<linearGradient id="stkG' + i + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c[0] + '"/><stop offset="1" stop-color="' + c[1] + '"/></linearGradient>'; }).join("");
+  var d = document.createElement("div"); d.id = "stickerDefs"; d.setAttribute("aria-hidden", "true"); d.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+  d.innerHTML = '<svg width="0" height="0"><defs>' + g + '<filter id="stkF" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius=".85" result="d"/><feFlood flood-color="#fff" result="w"/><feComposite in="w" in2="d" operator="in" result="o"/><feGaussianBlur in="d" stdDeviation=".7" result="sb"/><feOffset in="sb" dy="1" result="so"/><feFlood flood-color="#000" flood-opacity=".4" result="sc"/><feComposite in="sc" in2="so" operator="in" result="sh"/><feMerge><feMergeNode in="sh"/><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+    '<filter id="stkGl" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy=".6" stdDeviation=".5" flood-color="#000" flood-opacity=".4"/></filter></defs></svg>';
+  document.body.insertBefore(d, document.body.firstChild);
+}
+function _stickerSvg(name, size, cls) {
+  _clayDefs(); _stickerDefs();
+  var ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)), px = Math.round(size * 1.4);
+  var body = STICKER_ART[name] || CLAY_ART[name] || ('<rect x="1.8" y="3.6" width="20.4" height="18.6" rx="6" fill="' + _sg(ci) + '"/><rect x="1.8" y="3.6" width="20.4" height="18.6" rx="6" fill="#000" opacity=".3"/><rect x="1.8" y="1.8" width="20.4" height="18.6" rx="6" fill="' + _sg(ci) + '"/><path d="M3.4 8.6Q3.2 3.6 8.4 3.4H15.6Q20.8 3.6 20.6 8.6Q12 12 3.4 8.6Z" fill="#fff" opacity=".3"/><g class="stk-g" filter="url(#stkGl)" transform="translate(12 11) scale(.58) translate(-12 -12)">' + ((typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name]) || SOLAR[name]) + '</g>');
+  return '<svg class="si ico-sticker' + (cls ? ' ' + cls : '') + '" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" aria-hidden="true"><g filter="url(#stkF)">' + body + '</g></svg>';
+}
 function setDashPack(id) {
   if (DASH_PACKS.indexOf(id) < 0) return;
   currentDashPack = id;
@@ -133,6 +175,7 @@ function setDashPack(id) {
 function iconAs(theme, name, size, cls) {
   if (!SOLAR[name]) return "";
   size = size || 18;
+  if (theme === "sticker") return (ICON_PLAIN[name] || size < 14) ? _iconSvg(name, size, cls) : _stickerSvg(name, size, cls);
   if (theme === "clay") return (ICON_PLAIN[name] || size < 14) ? _iconSvg(name, size, cls) : _claySvg(name, size, cls);
   var sets = typeof ICON_SETS !== "undefined" ? ICON_SETS : null;
   if (theme === "box") { if (ICON_PLAIN[name] || size < 14) return _iconSvg(name, size, cls); var bx = Math.round(size * 1.7), ov = cls && /\bbx([0-7])\b/.exec(cls), ci = ov ? +ov[1] : (ICON_BOX[name] != null ? ICON_BOX[name] : _iconHash(name)); return '<span class="ico-bx ico-bx' + ci + '" style="width:' + bx + 'px;height:' + bx + 'px">' + (typeof SOLAR_BOLD !== "undefined" && SOLAR_BOLD[name] ? _boldSvg(name, size, cls) : _iconSvg(name, size, cls)) + '</span>'; }
@@ -150,7 +193,7 @@ function iconAs(theme, name, size, cls) {
 
 function icon(name, size, cls) {
   if (!SOLAR[name]) return "";
-  return iconAs(_dashCtx && currentDashPack === "clay" ? "clay" : currentIconTheme, name, size, cls);
+  return iconAs(_dashCtx && currentDashPack !== "same" ? currentDashPack : currentIconTheme, name, size, cls);
 }
 
 /** The nav bar and the app bar are drawn once at startup from the page shell: when the style changes they are drawn again */

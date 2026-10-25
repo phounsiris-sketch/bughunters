@@ -62,5 +62,13 @@ ctx._dashCtx = true; assert.ok(/ico-clay/.test(ctx.icon("trophy", 20)), "on the 
 var dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
 assert.ok(/function _renderDashboard\(\) \{\s*_dashCtx = true;\s*try \{ _renderDashboardInner\(\); \} finally \{ _dashCtx = false; \}/.test(dashSrc), "only the Dashboard render switches the pack on, and always off again");
 assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "icons.js"; }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx = true") < 0; }), "no other page switches it on");
-(["dashPack", "dashPackHint", "dashPackClay", "dashPackSame"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+(["dashPack", "dashPackHint", "dashPackClay", "dashPackSticker", "dashPackSame"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+// dashboard pack "Stickers" (v209)
+assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "same"]));
+var stk = ctx.iconAs("sticker", "trophy", 22); assert.ok(/ico-sticker/.test(stk) && stk.indexOf('filter="url(#stkF)"') > 0, "sticker icon: die-cut outline filter");
+assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("sticker", "bell", 22).indexOf("stk-g") > 0, "icons without a drawing fall back to a glossy tile with the glyph");
+assert.ok(ctx.iconAs("sticker", "shuttle", 22).indexOf("clayCork") > 0, "shuttle reuses the hand-drawn art");
+["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", n, 20)), n + " control stays plain in stickers"); });
+assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", "calendar", 12)), "tiny icons stay plain in stickers");
+ctx._dashCtx = true; ctx.currentDashPack = "sticker"; assert.ok(/ico-sticker/.test(ctx.icon("trophy", 20)) && !/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the sticker pack is used"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
 console.log("clay pack OK");

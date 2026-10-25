@@ -4,17 +4,13 @@
 
 var SC_THEMES = {
   halloween: { name: "spHalloween", bg: ["#0f0826", "#1b0f45", "#33176e"], card: "rgba(37,22,80,.82)", edge: "#7a4fd0", text: "#f6f0ff", dim: "#d3c5ee", accent: "#fdba74", pill: "#c2410c" },
-  christmas: { name: "spChristmas", bg: ["#05160b", "#0c2e1b", "#14482c"], card: "rgba(20,61,38,.84)", edge: "#4aa571", text: "#f4fff6", dim: "#cfe8d6", accent: "#fde68a", pill: "#b91c1c" },
   cny: { name: "spCny", bg: ["#1c0303", "#4a0a0a", "#7a1212"], card: "rgba(79,16,16,.84)", edge: "#e0a43a", text: "#fff7e6", dim: "#f5d9b0", accent: "#fcd34d", pill: "#b91c1c" },
-  ninja: { name: "spNinja", bg: ["#060a20", "#101c55", "#2a1a3c"], card: "rgba(23,35,90,.84)", edge: "#fb923c", text: "#fff7ed", dim: "#fed7aa", accent: "#fb923c", pill: "#c2410c" },
   orbs: { name: "spOrbs", bg: ["#0a3b3f", "#137a6c", "#25a07c"], card: "rgba(16,74,152,.82)", edge: "#fbbf24", text: "#ffffff", dim: "#dbeafe", accent: "#fbbf24", pill: "#c2410c" },
   pirate: { name: "spPirate", bg: ["#040d24", "#0a2152", "#12399a"], card: "rgba(19,53,115,.86)", edge: "#fbbf24", text: "#fff8e7", dim: "#e7ddc2", accent: "#fbbf24", pill: "#dc2626" },
   reaper: { name: "spReaper", bg: ["#050508", "#0c0c14", "#161620"], card: "rgba(27,27,36,.88)", edge: "#a1a1aa", text: "#fafafa", dim: "#d4d4d8", accent: "#fb923c", pill: "#c2410c" },
-  kitty: { name: "spKitty", bg: ["#1f0a16", "#4a1833", "#7a2656"], card: "rgba(90,28,61,.86)", edge: "#f9a8d4", text: "#fff1f8", dim: "#fbcfe8", accent: "#f9a8d4", pill: "#db2777" },
   doraemon: { name: "spDoraemon", bg: ["#061c44", "#0b4a9e", "#1d7be0"], card: "rgba(15,91,181,.84)", edge: "#fde047", text: "#ffffff", dim: "#dbeafe", accent: "#fde047", pill: "#e11d48" },
   valentine: { name: "spValentine", bg: ["#1f060d", "#4a0f20", "#7f1636"], card: "rgba(92,18,40,.86)", edge: "#fda4af", text: "#fff1f2", dim: "#fecdd3", accent: "#fda4af", pill: "#e11d48" },
   jujutsu: { name: "spJujutsu", bg: ["#04030a", "#0f0b22", "#241a52"], card: "rgba(26,20,54,.88)", edge: "#a78bfa", text: "#f5f3ff", dim: "#ddd6fe", accent: "#38bdf8", pill: "#6d28d9" },
-  arcade: { name: "spArcade", bg: ["#080314", "#160630", "#2a0b55"], card: "rgba(28,11,61,.86)", edge: "#e879f9", text: "#f7f0ff", dim: "#d6c3f2", accent: "#22d3ee", pill: "#a21caf" }
 };
 
 var _sc = { uid: null, theme: "auto", fmt: "story", canvas: null, avatar: null, mode: "profile", arg: null, pick: "" };
@@ -74,28 +70,12 @@ function _scBackdrop(c, W, H, id, P) {
     c.fillRect(W - 330, H - 330, 250, 200); c.fillRect(W - 270, H - 410, 60, 90); c.beginPath(); c.moveTo(W - 280, H - 410); c.lineTo(W - 240, H - 470); c.lineTo(W - 200, H - 410); c.fill();
     c.fillStyle = "#fdba74"; [[W - 300, H - 290], [W - 240, H - 290], [W - 180, H - 250], [W - 250, H - 380]].forEach(function (k) { c.fillRect(k[0], k[1], 24, 32); });
     c.fillStyle = "#0a0420"; for (i = 0; i < 4; i++) { var bx = 120 + i * 210, by = 460 + (i % 2) * 90; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx + 30, by - 36, bx + 66, by); c.quadraticCurveTo(bx + 33, by - 10, bx, by); c.fill(); c.beginPath(); c.moveTo(bx + 66, by); c.quadraticCurveTo(bx + 100, by - 36, bx + 132, by); c.quadraticCurveTo(bx + 100, by - 10, bx + 66, by); c.fill(); }
-  } else if (id === "christmas") {
-    for (i = 0; i < 90; i++) { c.fillStyle = "rgba(255,255,255," + (.4 + rnd(i) * .55) + ")"; c.beginPath(); c.arc(rnd(i + 1) * W, rnd(i + 2) * H, 2 + rnd(i + 3) * 5, 0, 7); c.fill(); }
-    var cols = ["#ef4444", "#fde68a", "#4ade80", "#60a5fa"];
-    for (x = 20, i = 0; x < W; x += 54, i++) { c.fillStyle = cols[i % 4]; c.beginPath(); c.arc(x, 26 + Math.sin(i) * 6, 9, 0, 7); c.fill(); glow(x, 26, 30, "rgba(255,255,255,.18)"); }
-    c.fillStyle = "#03120b";
-    [[120, 320, 1], [330, 230, .7], [W - 150, 380, 1.1], [W - 360, 250, .75]].forEach(function (t) {
-      var bx = t[0], h = t[1] * t[2], w = 150 * t[2]; c.beginPath(); c.moveTo(bx, H - h); c.lineTo(bx + w / 2, H - h * .45); c.lineTo(bx + w / 4, H - h * .45); c.lineTo(bx + w * .6, H - h * .12); c.lineTo(bx - w * .6, H - h * .12); c.lineTo(bx - w / 4, H - h * .45); c.lineTo(bx - w / 2, H - h * .45); c.closePath(); c.fill(); c.fillRect(bx - 14, H - h * .12, 28, h * .12 + 10);
-    });
   } else if (id === "cny") {
     for (i = 0; i < 40; i++) { c.fillStyle = "rgba(252,211,77," + (.25 + rnd(i) * .6) + ")"; c.beginPath(); c.arc(rnd(i + 1) * W, 200 + rnd(i + 2) * (H - 500), 1.5 + rnd(i + 3) * 3, 0, 7); c.fill(); }
     [[70, 130, .05], [215, 96, -.04], [W - 215, 104, .04], [W - 70, 136, -.05]].forEach(function (l) { fxLantern(c, l[0], 0, l[1] * 1.15, l[2], true); });
     fxDragon(c, W - 300, H - 150, 1.55, 2.1);
     fxLion(c, 190, H - 120, 230, 1.05);
-  } else if (id === "arcade") {
-    glow(W / 2, H - 520, 520, "rgba(232,121,249,.35)");
-    var ag = c.createLinearGradient(0, H - 640, 0, H - 400); ag.addColorStop(0, "#fde047"); ag.addColorStop(.6, "#fb7185"); ag.addColorStop(1, "#c026d3");
-    c.fillStyle = ag; c.beginPath(); c.arc(W / 2, H - 520, 170, Math.PI, 0); c.fill();
-    c.strokeStyle = "rgba(34,211,238,.6)"; c.lineWidth = 2;
-    for (i = 0; i <= 14; i++) { c.beginPath(); c.moveTo(W / 2 + (i - 7) * 20, H - 400); c.lineTo(W / 2 + (i - 7) * 160, H); c.stroke(); }
-    for (i = 0; i < 9; i++) { y = H - 400 + Math.pow(i / 8, 2) * 400; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
-    c.fillStyle = "rgba(255,255,255,.04)"; for (y = 0; y < H; y += 6) c.fillRect(0, y, W, 2);
-  } else if (typeof FX_SCENES !== "undefined" && FX_SCENES[id] && /^(ninja|orbs|pirate|reaper|kitty|doraemon|valentine|jujutsu)$/.test(id)) {
+  } else if (typeof FX_SCENES !== "undefined" && FX_SCENES[id] && /^(orbs|pirate|reaper|doraemon|valentine|jujutsu)$/.test(id)) {
     var k = W / 430; c.save(); c.scale(k, k); FX_SCENES[id](c, 430, H / k, 3.4); c.restore();
   } else {
     glow(W / 2, 300, 620, "rgba(255,255,255,.08)"); glow(W - 100, H - 100, 520, P.accent.charAt(0) === "#" ? P.accent + "33" : "rgba(255,255,255,.06)");
@@ -268,7 +248,7 @@ function _scControls() {
     pk.innerHTML = lst.length ? [["", t("scPickAll")]].concat(lst.map(function (i) { return [i.sid, i.label]; })).map(function (o) {
       return '<button type="button" class="chip' + (_sc.pick === o[0] ? ' active' : '') + '" onclick="_scSet(\'pick\',\'' + jsq(o[0]) + '\')">' + escapeHtml(o[1]) + '</button>'; }).join("") : "";
   }
-  var ids = ["auto", "default", "halloween", "christmas", "cny", "arcade", "ninja", "orbs", "pirate", "reaper", "kitty", "doraemon", "valentine", "jujutsu"], cur = _sc.theme;
+  var ids = ["auto", "default", "halloween", "cny", "orbs", "pirate", "reaper", "doraemon", "valentine", "jujutsu"], cur = _sc.theme;
   var box = document.getElementById("scThemes"); if (!box) return;
   box.innerHTML = ids.map(function (k) {
     var label = k === "auto" ? t("scAuto") : k === "default" ? t("scDefault") : t(SC_THEMES[k].name);
