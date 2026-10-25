@@ -102,7 +102,7 @@ function _myAge() { return typeof _myPrivate !== "undefined" && _myPrivate && _m
 
 function loadBuddies() {
   if (typeof _myPrivate === "undefined" || _myPrivate === null) {
-    fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) { _myPrivate = doc.exists ? doc.data() : {}; if (currentPage === "public") renderPublic(); }).catch(function () { _myPrivate = {}; });
+    fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) { _myPrivate = doc.exists ? doc.data() : {}; if (_myPrivate.mine && typeof profileApplyMine === "function") { _myMine = _myPrivate.mine; profileApplyMine(); } if (currentPage === "public") renderPublic(); }).catch(function () { _myPrivate = {}; });
   }
   fsdb.collection("users").where("buddy.on", "==", true).get().then(function (snap) {
     _buddies = [];

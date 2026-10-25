@@ -218,7 +218,7 @@ function _healthAge() {
 function loadMyHealth(cb) {
   if (typeof _myPrivate !== "undefined" && _myPrivate !== null) { cb(); return; }
   if (!currentUser) return;
-  fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) { _myPrivate = doc.exists ? doc.data() : {}; cb(); }).catch(function () { _myPrivate = {}; cb(); });
+  fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) { _myPrivate = doc.exists ? doc.data() : {}; if (_myPrivate.mine && typeof profileApplyMine === "function") { _myMine = _myPrivate.mine; profileApplyMine(); } cb(); }).catch(function () { _myPrivate = {}; cb(); });
 }
 
 /** The "My workout" card for one finished workout (d from healthForSession), shown on the Dashboard only */

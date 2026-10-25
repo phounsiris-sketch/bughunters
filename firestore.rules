@@ -20,6 +20,18 @@ service cloud.firestore {
         && (!('sex' in d.health) || d.health.sex in ['', 'm', 'f'])
         && (!('notes' in d.health) || (d.health.notes is string && d.health.notes.size() <= 300)));
     }
+    // Profile fields kept to yourself (v231): short values only, known keys only
+    function mineAboutOk(a) {
+      return a is map && a.keys().hasOnly(['gender', 'hand', 'position', 'homeCourtId', 'daysFree', 'timeFrom', 'timeTo'])
+        && (!('daysFree' in a) || a.daysFree == null || (a.daysFree is list && a.daysFree.size() <= 7));
+    }
+    function mineOk(d) {
+      return !('mine' in d) || (d.mine is map && d.mine.keys().hasOnly(['phone', 'firstName', 'lastName', 'about'])
+        && (!('phone' in d.mine) || (d.mine.phone is string && d.mine.phone.size() <= 20))
+        && (!('firstName' in d.mine) || (d.mine.firstName is string && d.mine.firstName.size() <= 60))
+        && (!('lastName' in d.mine) || (d.mine.lastName is string && d.mine.lastName.size() <= 60))
+        && (!('about' in d.mine) || mineAboutOk(d.mine.about)));
+    }
     // A photo field: an image data URL, an img:<id> reference or an https address (never anything with quotes or tags)
     function photoOk(v) {
       return v == null || v == ''
@@ -153,7 +165,9 @@ service cloud.firestore {
       allow update: if request.resource.data.uid == resource.data.uid && request.resource.data.gid == resource.data.gid && (
         isSuper()
         || (isGroupAdmin(resource.data.gid) && resource.data.role != 'owner' && request.resource.data.role != 'owner')
-        || (isAuth() && resource.data.uid == request.auth.uid && changed().hasOnly(['nick', 'level', 'message', 'lastSeen'])
+        // 'code' may only be removed (the invite code shown when joining is not kept in the member doc any more, v231), never added or changed
+        || (isAuth() && resource.data.uid == request.auth.uid && changed().hasOnly(['nick', 'level', 'message', 'lastSeen', 'code'])
+            && (!('code' in request.resource.data) || request.resource.data.code == resource.data.get('code', null))
             && request.resource.data.get('message', '').size() <= 120 && request.resource.data.get('nick', '').size() <= 40)
       );
       // Leave a group (not the owner), or an admin removes someone;
@@ -187,8 +201,9 @@ service cloud.firestore {
         && (request.resource.data.get('createdBy', '') == request.auth.uid || canIn('createPoll', request.resource.data.groupId));
       // Members answer before the deadline (closesAt) while the plan is open;
       // the creator / createPoll can still enter answers, confirm or cancel later
-      allow update: if sameGroup() && (
-        (isMember(gidOf(resource.data)) && changed().hasOnly(['responses', 'votes', 'voteLog', 'reachedAt'])
+      // Old multi-option polls kept answers in `votes` (v231): nobody writes it any more (it may be removed when a poll is moved to the current shape)
+      allow update: if sameGroup() && (!('votes' in request.resource.data) || !changed().hasAny(['votes'])) && (
+        (isMember(gidOf(resource.data)) && changed().hasOnly(['responses', 'voteLog', 'reachedAt'])
           // a member changes only their own answer and their own log line
           && (!changed().hasAny(['responses']) || request.resource.data.responses.diff(resource.data.get('responses', {})).affectedKeys().hasOnly([request.auth.uid]))
           && (!changed().hasAny(['voteLog']) || request.resource.data.voteLog.diff(resource.data.get('voteLog', {})).affectedKeys().hasOnly([request.auth.uid]))
@@ -208,6 +223,13 @@ service cloud.firestore {
               'courtReceipt', 'shuttleReceipt'];
     }
 
+    // Who may mark payments of a session as paid (v231). The creator is handled by isCreator() in the update rule.
+    function settleOk() {
+      return isAuth() && (canIn('editBill', gidOf(resource.data)) || canIn('editSession', gidOf(resource.data))
+        || request.auth.uid in resource.data.get('players', [])
+        || resource.data.get('courtPayer', '') == request.auth.uid || resource.data.get('shuttlePayer', '') == request.auth.uid);
+    }
+
     match /sessions/{sessionId} {
       allow read: if isSuper() || isMember(gidOf(resource.data));
       // A member creates a session of their own (from their own poll, or
@@ -220,8 +242,8 @@ service cloud.firestore {
       allow update: if sameGroup() && isMember(gidOf(resource.data)) && (
         // The creator (the poll's creator for confirmed polls) edits everything
         isCreator()
-        // Marking a payment as paid is open to every member
-        || changed().hasOnly(['settled', 'settledAt', 'status'])
+        // Marking a payment as paid: the session's players and payers, whoever edits sessions or bills (v231; it was every member)
+        || (changed().hasOnly(['settled', 'settledAt', 'status']) && settleOk())
         // "Dinner after?" — each player answers for themselves
         || (changed().hasOnly(['dinnerPoll']) && request.auth.uid in resource.data.get('players', [])
             && request.resource.data.dinnerPoll.diff(resource.data.get('dinnerPoll', {})).affectedKeys().hasOnly([request.auth.uid]))
@@ -262,7 +284,7 @@ service cloud.firestore {
     // Only you can read fields you keep to yourself (date of birth, …)
     match /userPrivate/{uid} {
       allow read: if isOwner(uid);
-      allow write: if isOwner(uid) && healthOk(request.resource.data);
+      allow write: if isOwner(uid) && healthOk(request.resource.data) && mineOk(request.resource.data);
     }
     // Rackets and shoes (photos in images/)
     match /gear/{id} {

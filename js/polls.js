@@ -349,6 +349,18 @@ function respondPoll(pollId, answerIdx) {
   });
 }
 
+/** v231: an old multi-option poll keeps its answers in `votes`. The rules no longer accept new writes to it, so the first change by someone who
+ *  manages the poll moves the poll to the current shape (answers + responses, the date and court of the chosen option, `votes` deleted).
+ *  Returns { fields, responses } for the update. Reading (normalizePoll) still understands `votes`. */
+function legacyPollMigration(data) {
+  var idx = typeof data.confirmedOption === "number" ? data.confirmedOption : 0, opt = (data.options || [])[idx] || {}, responses = {};
+  ((data.votes || {})[idx] || []).forEach(function (u) { responses[u] = 0; });
+  var fields = { answers: [t("answerJoin"), t("answerSkip")], votes: firebase.firestore.FieldValue.delete() };
+  ["date", "time", "duration", "courtId", "courtName"].forEach(function (k) { if (opt[k] != null && data[k] == null) fields[k] = opt[k]; });
+  fields.responses = responses;
+  return { fields: fields, responses: responses };
+}
+
 /** Toggle my answer in a transaction; withLog also records who/when (voteLog) */
 function _saveVote(pollId, answerIdx, withLog) {
   var uid = currentUser.uid;
@@ -373,12 +385,12 @@ function _saveVote(pollId, answerIdx, withLog) {
           _markReached(data, responses, update);
         }
       } else {
-        // Old multi-option poll: answer 0 = vote for its first option
-        var votes = data.votes || {};
-        var list = (votes[0] || []).filter(function (u) { return u !== uid; });
-        if (answerIdx === 0 && (votes[0] || []).indexOf(uid) < 0) list.push(uid);
-        votes[0] = list;
-        update.votes = votes;
+        // Old multi-option poll: no new writes to `votes`. Whoever manages it moves it to the current shape; a plain member cannot change it
+        if (!canManagePoll(data)) throw new Error(t("pollLegacyReadOnly"));
+        var mig = legacyPollMigration(data);
+        if (mig.responses[uid] === answerIdx) delete mig.responses[uid]; else mig.responses[uid] = answerIdx;
+        update = mig.fields;
+        update.responses = mig.responses;
       }
       transaction.update(pollRef, update);
     });
@@ -444,14 +456,13 @@ function showVoteForOthers(pollId) {
           _markReached(data, merged, upd);
           if (Object.keys(upd).length) transaction.update(pollRef, upd);
         } else {
-          var votes = data.votes || {}, joined = (votes[0] || []).slice();
+          // Old multi-option poll (see legacyPollMigration): moved to the current shape together with the change
+          var mig = legacyPollMigration(data);
           Object.keys(changed).forEach(function (u) {
-            var i = joined.indexOf(u);
-            if (changed[u] === 0 && i < 0) joined.push(u);
-            else if (changed[u] !== 0 && i >= 0) joined.splice(i, 1);
+            if (changed[u] < 0) delete mig.responses[u]; else mig.responses[u] = changed[u];
           });
-          votes[0] = joined;
-          transaction.update(pollRef, { votes: votes });
+          mig.fields.responses = mig.responses;
+          transaction.update(pollRef, mig.fields);
         }
       });
     })

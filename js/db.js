@@ -213,7 +213,7 @@ var _dbCacheUnsubs = [];
  */
 function dbStartCache(onChange) {
   dbStopCache();
-  _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.allUsers = u; rebuildGroupCache(); onChange("users"); }));
+  _dbCacheUnsubs.push(dbGetUsers(function (u) { DB_CACHE.allUsers = u; if (typeof profileApplyMine === "function") profileApplyMine(); rebuildGroupCache(); onChange("users"); }));
   _dbCacheUnsubs.push(dbGetCourts(function (c) { DB_CACHE.allCourts = c; rebuildGroupCache(); if (typeof ensureGroupCourts === "function") ensureGroupCourts(); onChange("courts"); }));
   // Restaurants + reviews: a quiet error handler, so an app opened before the rules are published does not show the red bar
   var restErr = function (e) { console.warn("restaurants:", e && e.code); };

@@ -304,7 +304,8 @@ function logoutUser() {
   if (typeof dbStopCache === "function") dbStopCache();
   currentUser = null;
   currentUserProfile = null;
-  if (typeof _myPrivate !== "undefined") _myPrivate = null;   // the next user must not see this user's health details / birthday
+  if (typeof _myPrivate !== "undefined") _myPrivate = null;
+  if (typeof _myMine !== "undefined") _myMine = null;   // the next user must not see this user's health details / birthday
   if (typeof _hwMemo !== "undefined") _hwMemo = { m: null, s: null, p: null, list: [] };
   pageHistory = [];
   _resetAuthScreens();
@@ -389,6 +390,7 @@ function _afterSignIn(user) {
     .then(function (doc) {
       if (doc.exists) {
         currentUserProfile = doc.data();
+        if (typeof profileLoadMine === "function") profileLoadMine();   // fields kept to yourself live in userPrivate (v231)
         _enterApp();
       } else if (_createProfileFromPending(user)) {
         // Registered via the Register tab: profile created from the saved form

@@ -181,6 +181,20 @@ function _activeGroupIds() {
   }).sort(function (a, b) { return (myGroupsInfo[a].name || "").localeCompare(myGroupsInfo[b].name || ""); });
 }
 
+/** v231: the invite code a joiner showed stays in the member doc, where every member of the group can read it (even when an admin switched
+ *  member invites off). Remove it: everyone removes it from their own doc, an admin from the others'. One try per doc per session. */
+var _codeScrubbed = {};
+function scrubMemberCodes(docs) {
+  var me = typeof currentUser !== "undefined" && currentUser ? currentUser.uid : null;
+  (docs || []).forEach(function (m) {
+    if (!m || !m.id || m.code === undefined || _codeScrubbed[m.id] || !me) return;
+    var mine = m.uid === me, my = myMemberships[m.gid], adminHere = !!my && my.status === "active" && (my.role === "owner" || my.role === "admin");
+    if (!mine && !(adminHere && m.role !== "owner")) return;
+    _codeScrubbed[m.id] = true;
+    fsdb.collection("members").doc(m.id).update({ code: firebase.firestore.FieldValue.delete() }).catch(function () {});   // refused until the new rules are published: harmless
+  });
+}
+
 /** Live updates: the current group, its roster, my memberships */
 function startGroupListeners() {
   stopGroupListeners();
@@ -193,6 +207,7 @@ function startGroupListeners() {
     snap.forEach(function (d) { next[d.data().gid] = Object.assign({ id: d.id }, d.data()); });
     var newGids = Object.keys(next).filter(function (g) { return !myGroupsInfo[g]; });
     myMemberships = next;
+    scrubMemberCodes(Object.keys(next).map(function (g) { return next[g]; }));
     Promise.all(newGids.map(function (gid) {
       return fsdb.collection("groups").doc(gid).get().then(function (doc) { if (doc.exists) myGroupsInfo[gid] = Object.assign({ id: gid }, doc.data()); }).catch(function () {});
     })).then(function () {
@@ -233,6 +248,7 @@ function startGroupListeners() {
     var list = [];
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
     groupMembers = list;
+    scrubMemberCodes(list);
     rebuildGroupCache();
     refreshCurrentPage("users");
   }, function (e) { dbOnError(e, "members"); }));
@@ -564,6 +580,7 @@ function joinGroup(gid, code, opts) {
       if (message) m.message = message;
       return fsdb.collection("members").doc(gid + "_" + currentUser.uid).set(m).then(function () {
         myMemberships[gid] = Object.assign({ id: gid + "_" + currentUser.uid }, m);
+        scrubMemberCodes([myMemberships[gid]]);   // the code was only needed to get in
         myGroupsInfo[gid] = g;
         closeModal();
         if (ask) { showToast(t("requestSent") + " ✔"); refreshCurrentPage("group"); return; }

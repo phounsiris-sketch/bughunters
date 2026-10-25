@@ -12,6 +12,7 @@
 var VIS_DEFAULT = { gender: "groups", age: "groups", relationship: "me", selfLevel: "everyone", hand: "everyone",
   position: "everyone", homeCourtId: "groups", daysFree: "groups", phone: "groups", story: "groups", fullName: "groups" };
 var _myPrivate = null;
+var _myMine = null;    // userPrivate/{uid}.mine: the fields I keep to myself (v231), put back on my own profile in memory
 var _gearCache = {};   // uid -> [gear]
 var _gearLoadedAt = {}; // uid -> when it was last read
 var aboutForm = null;
@@ -39,6 +40,74 @@ function ageFromDob(dob) {
   return a;
 }
 
+/* ---------- Fields kept to yourself (v231) ----------
+   users/{uid} can be read by every signed-in user, and the "who sees it" choice only hid things on screen. A field set to "only me" is
+   now written to userPrivate/{uid}.mine (only you read it) and left out of users/{uid}. Fields shared with "groups" or "everyone" stay
+   in users/{uid} (a group-only copy would need the group's member docs: see know-how). Your own profile puts the private fields back in memory. */
+var MINE_ABOUT_VIS = { gender: "gender", hand: "hand", position: "position", homeCourtId: "homeCourtId", daysFree: "daysFree", timeFrom: "daysFree", timeTo: "daysFree" };
+
+/** vals = { phone, firstName, lastName, about:{} }, vis = who sees each field. -> { pub: what users/{uid} gets, mine: what userPrivate.mine gets, any: bool } */
+function profileSplitMine(vals, vis) {
+  vals = vals || {}; vis = vis || {};
+  var pub = { phone: vals.phone == null ? null : vals.phone, firstName: vals.firstName == null ? null : vals.firstName, lastName: vals.lastName == null ? null : vals.lastName, about: Object.assign({}, vals.about || {}) };
+  var mine = { about: {} }, any = false;
+  function hide(v) { return v === "me"; }
+  if (hide(vis.phone) && pub.phone) { mine.phone = pub.phone; pub.phone = null; any = true; }
+  if (hide(vis.fullName)) {
+    if (pub.firstName) { mine.firstName = pub.firstName; pub.firstName = null; any = true; }
+    if (pub.lastName) { mine.lastName = pub.lastName; pub.lastName = null; any = true; }
+  }
+  Object.keys(MINE_ABOUT_VIS).forEach(function (k) {
+    var v = pub.about[k];
+    if (hide(vis[MINE_ABOUT_VIS[k]]) && v != null && !(Array.isArray(v) && !v.length)) { mine.about[k] = v; pub.about[k] = null; any = true; }
+  });
+  return { pub: pub, mine: mine, any: any };
+}
+
+/** Put my private fields back on my own profile objects (memory only), without overwriting what is there */
+function profileApplyMine() {
+  var m = _myMine;
+  if (!m || typeof currentUser === "undefined" || !currentUser) return;
+  function ov(o) {
+    if (!o) return;
+    if (m.phone != null && !o.phone) o.phone = m.phone;
+    if (m.firstName != null && !o.firstName) o.firstName = m.firstName;
+    if (m.lastName != null && !o.lastName) o.lastName = m.lastName;
+    if (m.about) {
+      var a = Object.assign({}, o.about || {}), ch = false;
+      Object.keys(m.about).forEach(function (k) { if (m.about[k] != null && (a[k] == null || (Array.isArray(a[k]) && !a[k].length))) { a[k] = m.about[k]; ch = true; } });
+      if (ch) o.about = a;
+    }
+  }
+  ov(currentUserProfile);
+  var u = typeof findUser === "function" ? findUser(currentUser.uid) : null;
+  if (u && u !== currentUserProfile) ov(u);
+}
+
+/** Sign-in: read my private doc when something is kept to myself, move fields that older versions left in users/{uid}, put the rest back in memory */
+function profileLoadMine() {
+  var u = currentUserProfile;
+  if (!u || typeof currentUser === "undefined" || !currentUser || typeof fsdb === "undefined") return;
+  var vis = Object.assign({}, VIS_DEFAULT, u.vis || {});
+  var hidden = Object.keys(vis).some(function (k) { return vis[k] === "me" && k !== "relationship" && k !== "age" && k !== "story" && k !== "selfLevel"; });
+  if (!hidden) return;
+  var uid = currentUser.uid;
+  fsdb.collection("userPrivate").doc(uid).get().then(function (doc) {
+    var priv = doc.exists ? doc.data() : {}, mine = priv.mine || {};
+    var sp = profileSplitMine({ phone: u.phone, firstName: u.firstName, lastName: u.lastName, about: u.about }, vis);
+    if (sp.any) {
+      // an older version left hidden fields in users/{uid}: move them (private copy first, then clear the public one)
+      var merged = Object.assign({}, mine, sp.mine, { about: Object.assign({}, mine.about || {}, sp.mine.about) });
+      fsdb.collection("userPrivate").doc(uid).set({ mine: merged }, { mergeFields: ["mine"] }).then(function () {
+        return dbUpdateUser(uid, { phone: sp.pub.phone, firstName: sp.pub.firstName, lastName: sp.pub.lastName, about: sp.pub.about });
+      }).catch(function () {});   // refused until the new rules are published: the values just stay where they were
+      mine = merged;
+    }
+    _myMine = mine;
+    profileApplyMine();
+  }).catch(function () {});
+}
+
 /* ---------- My profile: personal info (one card, one Save) ---------- */
 
 /* The about form is one form shown in two parts (v214): "personal" (who I am) and "badminton" (how I play); one Save writes both */
@@ -60,7 +129,9 @@ function aboutCardHtml(part) {
     };
     fsdb.collection("userPrivate").doc(currentUser.uid).get().then(function (doc) {
       _myPrivate = doc.exists ? doc.data() : {};
+      if (_myPrivate.mine) { _myMine = _myPrivate.mine; profileApplyMine(); }
       if (aboutForm) {
+        _aboutFillFromMine();
         _setDobParts(_myPrivate.dob || "");
         if (!aboutForm.relationship) aboutForm.relationship = _myPrivate.relationship || "";
       }
@@ -173,6 +244,16 @@ function dobSet(part, v) {
 
 function aboutSet(key, v) { aboutForm[key] = aboutForm[key] === v ? "" : v; _rerenderAbout(); }
 function aboutDay(d) { var l = aboutForm.daysFree, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else l.push(d); _rerenderAbout(); }
+/** Fields I keep to myself are not in users/{uid}: fill the form from the private copy where it is still empty */
+function _aboutFillFromMine() {
+  var m = _myMine, f = aboutForm; if (!m || !f) return;
+  if (!f.phone && m.phone) f.phone = phoneDigits(m.phone);
+  if (!f.firstName && m.firstName) f.firstName = m.firstName;
+  if (!f.lastName && m.lastName) f.lastName = m.lastName;
+  var a = m.about || {};
+  ["gender", "hand", "position", "homeCourtId", "timeFrom", "timeTo"].forEach(function (k) { if (!f[k] && a[k]) f[k] = a[k]; });
+  if ((!f.daysFree || !f.daysFree.length) && Array.isArray(a.daysFree)) f.daysFree = a.daysFree.slice();
+}
 function _rerenderAbout() { var box = document.getElementById("aboutCard"); if (box) box.outerHTML = aboutCardHtml(); }
 
 function saveAbout() {
@@ -192,11 +273,15 @@ function saveAbout() {
   about.relationship = f.relationship && f.vis.relationship !== "me" ? f.relationship : null;
   var vis = {};
   Object.keys(VIS_DEFAULT).forEach(function (k) { vis[k] = f.vis[k] || VIS_DEFAULT[k]; });
+  // v231: what is kept to myself goes to userPrivate.mine, never to users/{uid}
+  var sp = profileSplitMine({ phone: ph.value || null, firstName: (f.firstName || "").trim() || null, lastName: (f.lastName || "").trim() || null, about: about }, vis);
+  var privDoc = { dob: f.dob || null, relationship: f.relationship || null, mine: sp.mine };
   Promise.all([
-    dbUpdateUser(uid, { displayName: name, firstName: (f.firstName || "").trim() || null, lastName: (f.lastName || "").trim() || null,
-      nickname: (f.nickname || "").trim() || null, phone: ph.value || null, about: about, vis: vis, selfLevel: f.selfLevel || null }),
-    fsdb.collection("userPrivate").doc(uid).set({ dob: f.dob || null, relationship: f.relationship || null }, { merge: true })
+    dbUpdateUser(uid, { displayName: name, firstName: sp.pub.firstName, lastName: sp.pub.lastName,
+      nickname: (f.nickname || "").trim() || null, phone: sp.pub.phone, about: sp.pub.about, vis: vis, selfLevel: f.selfLevel || null }),
+    fsdb.collection("userPrivate").doc(uid).set(privDoc, { mergeFields: ["dob", "relationship", "mine"] })
   ]).then(function () {
+    _myMine = sp.mine;
     if (currentUserProfile) {
       currentUserProfile.displayName = name; currentUserProfile.phone = ph.value || null;
       currentUserProfile.firstName = (f.firstName || "").trim() || null; currentUserProfile.lastName = (f.lastName || "").trim() || null; currentUserProfile.nickname = (f.nickname || "").trim() || null;
