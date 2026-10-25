@@ -1600,3 +1600,7 @@ The admin-only Reports row (with its count badge) is no longer under the Group s
 ## v220: Subscription first
 
 The Subscription card is the first card of the Settings page, above the Group section (it was the first row under the App heading).
+
+## v221: Settings look order
+
+Under App: Language, Appearance, Special themes, then Icon style last (it was before Special themes).

@@ -282,14 +282,6 @@ function _renderSettingsPage() {
   });
   ap += '</div>';
   html += _fold('app', 'dashboard', t('appearance'), (light ? t('themeLight') : t('themeDark')), ap);
-  // Icon style: applies to the Dashboard page only
-  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
-    ICON_THEMES.map(function (id) {
-      var on = currentIconTheme === id;
-      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
-    }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
-    _seg([["clay", t("dashPackClay")], ["sticker", t("dashPackSticker")], ["same", t("dashPackSame")]], currentDashPack, "setDashPack"));
   // Special (gimmick) themes: separate from the styles above, dark mode only
   var spH = '<div class="form-hint">' + t("specialThemesHint") + '</div><div class="sp-grid">';
   SPECIALS.forEach(function (sp) {
@@ -301,6 +293,14 @@ function _renderSettingsPage() {
   spH += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '');
   var spCur = SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0];
   html += _fold('special', 'medal', t("specialThemes"), spCur ? t(spCur[1]) : t("specialOff"), spH);
+  // Icon style: applies to the Dashboard page only
+  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
+    ICON_THEMES.map(function (id) {
+      var on = currentIconTheme === id;
+      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
+        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
+    }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
+    _seg([["clay", t("dashPackClay")], ["sticker", t("dashPackSticker")], ["same", t("dashPackSame")]], currentDashPack, "setDashPack"));
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
