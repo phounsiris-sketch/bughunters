@@ -145,11 +145,14 @@ function imgKeep(refs) {
   try { localStorage.setItem("imgKeep", JSON.stringify(ids)); } catch (e) {}
   return Promise.all(refs.map(imgPrefetch));
 }
-(function warmAtStart() {
+/* v234: this file runs before app.js, where jsq() lives, so the warm-up waits for every script (DOMContentLoaded). Before, it threw
+   "jsq is not defined" at every start and the images were never read back from this phone. */
+function warmAtStart() {
   var ids = [];
   try { ids = JSON.parse(localStorage.getItem("imgKeep") || "[]"); } catch (e) {}
   if (Array.isArray(ids) && ids.length) imgWarm(ids.filter(function (x) { return typeof x === "string"; }));
-})();
+}
+if (document.readyState === "complete") warmAtStart(); else document.addEventListener("DOMContentLoaded", warmAtStart);
 
 function isImgRef(v) { return typeof v === "string" && v.indexOf("img:") === 0; }
 
