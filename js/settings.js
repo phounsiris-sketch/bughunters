@@ -76,9 +76,11 @@ function renderSettings() {
 function _renderConfigPage() {
   var container = document.getElementById("configContent");
   if (!container) return;
-  setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("configuration") }]);
   var tabs = _configTabs();
   if (!tabs.some(function (x) { return x[0] === settingsTab; })) settingsTab = 'players';
+  var curTab = tabs.filter(function (x) { return x[0] === settingsTab; })[0];
+  if (typeof currentGroup !== "undefined" && currentGroup) setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("groupSettings"), action: "showPage('group-settings')" }, { label: t(curTab[1]) }]);
+  else setBreadcrumb([{ label: t("navSettings"), action: "showPage('settings')" }, { label: t("configuration") }]);
 
   var tabsEl = document.getElementById("configTabs");
   if (tabsEl) {
@@ -110,28 +112,43 @@ function _renderConfigPage() {
 var pfSub = "personal"; // which profile page is open: personal | gear | qr
 
 /** A row of the profile list: opens its own page (with a breadcrumb), no drop-down */
-function openPfSub(id) { pfSub = id; showPage("profile-sub"); }
+function openPfSub(id) {
+  // gear and health are tabs of the personal page (v214)
+  if (id === "gear") { pfSub = "personal"; pfTab = "badminton"; }
+  else if (id === "health") { pfSub = "personal"; pfTab = "health"; }
+  else { pfSub = id; if (id === "personal" && !pfTab) pfTab = "personal"; }
+  showPage("profile-sub");
+}
+var pfTab = "personal";   // inside the personal page: personal | badminton | health
+function setPfTab(tab) { pfTab = tab; renderSettings(); }
 function _pfRow(id, iconName, title, hint) {
   return '<button type="button" class="nav-row pf-row" onclick="openPfSub(\'' + jsq(id) + '\')">' +
     '<span class="nav-row-ico">' + icon(iconName, 20) + '</span>' +
     '<span class="nav-row-text"><b>' + title + '</b><small>' + hint + '</small></span>' + icon("chevron", 16) + '</button>';
 }
 
-/** One profile page: Personal info, My gear or Payment QR */
+/** One profile page: Personal info (with the tabs Personal info, Badminton info, Health info) or Payment QR */
 function _renderProfileSub() {
   var me = currentUser ? currentUser.uid : "";
-  var title = pfSub === "gear" ? t("myGear") : pfSub === "qr" ? t("pfQr") : pfSub === "health" ? t("healthDetails") : t("pfPersonal");
-  var iconName = pfSub === "gear" ? "shuttle" : pfSub === "qr" ? "qr" : pfSub === "health" ? "chart" : "user";
-  var body = "";
-  if (pfSub === "personal") body = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml() : "");
-  else if (pfSub === "gear") body = typeof gearCardHtml === "function" ? gearCardHtml(me, true) : "";
-  else if (pfSub === "health") {
-    if (typeof _myPrivate !== "undefined" && _myPrivate === null) { loadMyHealth(function () { if (pfSub === "health" && currentPage === "profile-sub") renderSettings(); }); body = ""; }
-    else body = healthPageHtml();
+  var qr = pfSub === "qr";
+  var title = qr ? t("pfQr") : t("pfPersonal");
+  var body = "", tabs = "";
+  if (qr) { qrOwner = me; body = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
+  else {
+    var list = [["personal", "pfPersonalTab", "user"], ["badminton", "pfBadmintonTab", "shuttle"], ["health", "pfHealthTab", "chart"]];
+    if (!list.some(function (x) { return x[0] === pfTab; })) pfTab = "personal";
+    tabs = '<div class="tabs-scroll pf-tabs" role="tablist">' + list.map(function (x) {
+      return '<button type="button" role="tab" aria-selected="' + (x[0] === pfTab) + '" class="dash-tab' + (x[0] === pfTab ? ' active' : '') + '" onclick="setPfTab(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
+    }).join('') + '</div>';
+    if (pfTab === "personal") body = (typeof storyCardHtml === "function" ? storyCardHtml(me, true) : "") + (typeof aboutCardHtml === "function" ? aboutCardHtml("personal") : "");
+    else if (pfTab === "badminton") body = (typeof aboutCardHtml === "function" ? aboutCardHtml("badminton") : "") + (typeof gearCardHtml === "function" ? gearCardHtml(me, true) : "");
+    else {
+      if (typeof _myPrivate !== "undefined" && _myPrivate === null) { loadMyHealth(function () { if (pfTab === "health" && currentPage === "profile-sub") renderSettings(); }); body = ""; }
+      else body = healthPageHtml();
+    }
   }
-  else { qrOwner = me; body = _qrCardHtml(t("myQrCodes"), t("myQrHint"), null); }
   setBreadcrumb([{ label: t("myProfile"), action: "showPage('profile')" }, { label: title }]);
-  return _meTitleHtml(iconName, pfSub === "gear" ? "myGear" : pfSub === "qr" ? "pfQr" : pfSub === "health" ? "healthDetails" : "pfPersonal") + body;
+  return _meTitleHtml(qr ? "qr" : "user", qr ? "pfQr" : "pfPersonal") + tabs + body;
 }
 
 function _renderProfileTab() {
@@ -152,7 +169,7 @@ function _renderProfileTab() {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
     html += '<div class="pf-tiles">' + tile(ratingOf(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
-    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("share", 16) + ' ' + t("shareMyCard") + '</button>';
+    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("shareOut", 16) + ' ' + t("shareMyCard") + '</button>';
   }
   html += '</div>';
 
@@ -160,7 +177,7 @@ function _renderProfileTab() {
   if (GROUPS_ON && typeof badgesHtml === "function" && me) html += badgesHtml(me, true);
 
   // My details: one row each, each opens its own page
-  var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["gear", "shuttle", t("myGear"), t("pfGearHint")], ["health", "chart", t("healthDetails"), t("healthDetailsHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
+  var rows = [["personal", "user", t("pfPersonal"), t("pfPersonalHint")], ["qr", "qr", t("pfQr"), t("pfQrHint")]];
   html += '<div class="card nav-rows">' + rows.map(function (r) { return _pfRow(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
   return html;
 }
@@ -205,6 +222,21 @@ function showConfigTab(tab) {
   showPage('config');
 }
 
+/** The group's own pages, one list (v213): who is in it, courts and prices, shuttlecocks, players without the app, their QR, general rules */
+function _groupManageHtml() {
+  if (!currentGroup) return "";
+  var admin = isGroupAdminMe(), cfg = typeof can === "function" && can("editConfig");
+  var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
+  var rows = [];
+  rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
+  rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
+  rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
+  rows.push(_navRow("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint")));
+  if (cfg) rows.push(_navRow("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint")));
+  rows.push(_navRow("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint")));
+  return '<div class="card nav-rows">' + rows.join('') + '</div>';
+}
+
 function _renderSettingsPage() {
   var html = '';
   // How many reports wait for the admins (counted in the background)
@@ -218,14 +250,8 @@ function _renderSettingsPage() {
     var admin = isGroupAdminMe();
     var pending = groupMembers.filter(function (m) { return m.status === "pending"; }).length;
     rows.push(_navRow("showGroupSwitcher()", "users", escapeHtml(currentGroup.name), t("switchGroupHint")));
-    if (admin) rows.push(_navRow("showPage('group-settings')", "link", t("groupSettings"), t("groupSettingsHint")));
-    else if (!currentGroup.adminOnlyInvite) rows.push(_navRow("showPage('group-settings')", "link", t("invitePlayers"), t("inviteGroupHint")));
-    rows.push(_navRow("showPage('group-members')", "key", t("members") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : ''), t("membersHint")));
-    rows.push(_navRow("showConfigTab('courts')", "court", t("courtsAndPrices"), t("courtsAndPricesHint")));
-    rows.push(_navRow("showConfigTab('shuttle')", "shuttle", t("tabShuttle"), t("shuttleHint")));
-    rows.push(_navRow("showConfigTab('players')", "manual", t("tabPlayers"), t("manualPlayersHint")));
-    if (cfg) rows.push(_navRow("showConfigTab('qr')", "qr", t("tabPlayersQr"), t("playersQrHint")));
-    rows.push(_navRow("showConfigTab('general')", "calc", t("tabGeneral"), t("generalHint")));
+    // Members, courts, shuttlecocks, players, QR and general now live on the Group settings page (v213)
+    rows.push(_navRow("showPage('group-settings')", "settings", t("groupSettings"), t("groupHubHint") + (pending && admin ? ' <span class="badge-inline">' + pending + '</span>' : '')));
     if (admin && typeof reportsCount === "function") rows.push(_navRow("showPage('reports')", "warning", t("reportsTitle") + (reportsCount() ? ' <span class="badge-inline">' + reportsCount() + '</span>' : ''), t("reportsHint")));
   } else {
     if (GROUPS_ON) rows.push(_navRow("showPage('groups')", "users", t("yourGroups"), t("createGroupHint")));

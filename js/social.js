@@ -125,16 +125,42 @@ function buddyNav(delta) {
 }
 function buddyToggleCal() { buddyCal.exp = !buddyCal.exp; buddyCal.month = (buddyCal.anchor || _todayIso()).slice(0, 7); renderPublic(); }
 
+/** The weekdays (0 = Sunday) a buddy is free: the ones they set for buddies, else the ones on their profile if I may see them */
+function _buddyDays(u) {
+  var bb = u.buddy || {};
+  if (Array.isArray(bb.days) && bb.days.length) return bb.days;
+  var a = u.about || {};
+  return Array.isArray(a.daysFree) && canSeeField(u, "daysFree") ? a.daysFree : [];
+}
+function _buddyFreeOn(u, iso) { return _buddyDays(u).indexOf(new Date(iso + "T00:00:00").getDay()) >= 0; }
+/** Buddies that match the filters (and, when a day is picked on the calendar, are free that weekday) */
+function _buddyMatches(byDay) {
+  var city = publicCity();
+  return (_buddies || []).filter(function (u) {
+    var bb = u.buddy || {};
+    return u.id !== currentUser.uid && !isBlockedPair(u.id, u) && (city === "all" || !bb.city || normCity(bb.city) === city) &&
+      (!buddyFilter.looking || (bb.lookingFor || []).indexOf(buddyFilter.looking) >= 0) &&
+      (!buddyFilter.level || normLevel(u.selfLevel || (u.about || {}).selfLevel) === buddyFilter.level) &&
+      (!byDay || !buddyCal.sel || _buddyFreeOn(u, buddyCal.sel));
+  });
+}
+
 function _renderBuddies() {
   var me = findUser(currentUser.uid) || currentUserProfile || {};
   var b = me.buddy || {};
   var html = '';
   var age = _myAge();
-  // A month calendar of my invites (tap a day to see only that day)
+  // A calendar like the public games one: each day shows how many buddies are free that weekday plus my invites that day;
+  // tap a day to see only those (v215)
   var dated = _invIn.concat(_invOut).filter(function (i) { return i.date && _inviteUpcoming(i) && !(i.status === "pending" && isBlockedPair(i.from)); });
   var counts = {};
   dated.forEach(function (i) { inviteDates(i).forEach(function (d) { counts[d] = (counts[d] || 0) + 1; }); });
-  if (dated.length) {
+  var pool = b.on && _buddies !== null ? _buddyMatches(false) : [];
+  if (pool.length) for (var k = 0; k < 120; k++) {
+    var dayIso = _addDays(_todayIso(), k), free = pool.filter(function (u) { return _buddyFreeOn(u, dayIso); }).length;
+    if (free) counts[dayIso] = (counts[dayIso] || 0) + free;
+  }
+  if (dated.length || pool.length) {
     if (!buddyCal.anchor) buddyCal.anchor = _todayIso();
     if (!buddyCal.month) buddyCal.month = buddyCal.anchor.slice(0, 7);
     html += calendarHtml({ month: buddyCal.month, anchor: buddyCal.anchor, expanded: buddyCal.exp, counts: counts, selected: buddyCal.sel, pick: "setBuddyDay", nav: "buddyNav", toggle: "buddyToggleCal" });
@@ -172,14 +198,8 @@ function _renderBuddies() {
     '</select></div><div class="form-group"><select class="form-select" onchange="buddyFilter.level=this.value;renderPublic()"><option value="">' + t("anyLevel") + '</option>' +
     LEVELS.map(function (l) { return '<option value="' + l + '"' + (buddyFilter.level === l ? ' selected' : '') + '>' + levelShort(l) + ' · ' + levelName(l) + '</option>'; }).join('') + '</select></div></div>';
   if (_buddies === null) return html + '<div class="empty-state">' + t("loading") + '</div>';
-  var city = publicCity();
-  var list = _buddies.filter(function (u) {
-    var bb = u.buddy || {};
-    return u.id !== currentUser.uid && !isBlockedPair(u.id, u) && (city === "all" || !bb.city || normCity(bb.city) === city) &&
-      (!buddyFilter.looking || (bb.lookingFor || []).indexOf(buddyFilter.looking) >= 0) &&
-      (!buddyFilter.level || normLevel(u.selfLevel || (u.about || {}).selfLevel) === buddyFilter.level);
-  });
-  if (!list.length) html += '<div class="empty-state" style="padding:16px">' + t("noBuddies") + '</div>';
+  var list = _buddyMatches(true);
+  if (!list.length) html += '<div class="empty-state" style="padding:16px">' + t(buddyCal.sel ? "noBuddiesDay" : "noBuddies") + '</div>';
   list.forEach(function (u) { html += _buddyCard(u); });
   return html;
 }
@@ -201,7 +221,7 @@ function _inviteUpcoming(i) { return !i.date || nextInviteDate(i) >= _todayIso()
 function _buddySetupHtml(me, age) {
   var b = me.buddy || {};
   buddyForm = buddyForm || { on: true, lookingFor: (b.lookingFor || ["doubles"]).slice(), city: b.city || (publicCity() !== "all" ? publicCity() : "Vientiane"),
-    timeFrom: b.timeFrom || "", timeTo: b.timeTo || "", times: b.times || "", whoCanInvite: b.whoCanInvite || "groups", intro: b.intro || "" };
+    timeFrom: b.timeFrom || "", timeTo: b.timeTo || "", times: b.times || "", whoCanInvite: b.whoCanInvite || "groups", intro: b.intro || "", days: (b.days || []).slice() };
   var f = buddyForm;
   var html = '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("playBuddies") + '</div>' +
     '<div class="form-hint" style="margin-bottom:10px">' + t("buddyIntro") + '</div>';
@@ -218,6 +238,9 @@ function _buddySetupHtml(me, age) {
   html += '<div class="form-group"><label class="form-label">' + t("city") + '</label><select class="form-select" onchange="buddyForm.city=this.value">' +
     cityOptionsHtml(f.city) + '</select></div>';
   html += '<div class="form-group"><label class="form-label">' + t("shortIntro") + '</label><input class="form-input" maxlength="120" placeholder="' + t("shortIntroHint") + '" value="' + escapeHtml(f.intro) + '" oninput="buddyForm.intro=this.value"></div>';
+  html += '<div class="form-group"><label class="form-label">' + t("daysFree") + '</label><div class="chips">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
+    return '<div class="chip' + ((f.days || []).indexOf(d) >= 0 ? ' active' : '') + '" onclick="buddyDay(' + d + ')">' + weekdayShort(d) + '</div>';
+  }).join('') + '</div><div class="form-hint">' + t("buddyDaysHint") + '</div></div>';
   html += '<div class="form-group"><label class="form-label">' + t("timeUsuallyFree") + '</label>' +
     timeRangeHtml(f.timeFrom, f.timeTo, "buddyForm.timeFrom=this.value", "buddyForm.timeTo=this.value") + '</div>';
   html += '<button class="btn-primary" onclick="saveBuddy(true)">' + t(b.on ? "save" : "buddyTurnOn") + '</button>';
@@ -226,6 +249,8 @@ function _buddySetupHtml(me, age) {
 }
 
 function editBuddy() { buddyForm = null; var me = findUser(currentUser.uid) || {}; buddyForm = Object.assign({ on: true, lookingFor: [], city: "Vientiane", times: "", whoCanInvite: "groups", intro: "" }, me.buddy || {}); buddyForm.lookingFor = (buddyForm.lookingFor || []).slice(); renderPublic(); }
+
+function buddyDay(d) { buddyForm.days = buddyForm.days || []; var l = buddyForm.days, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else l.push(d); renderPublic(); }
 
 function buddyLook(x) {
   var l = buddyForm.lookingFor, i = l.indexOf(x);
@@ -239,7 +264,7 @@ function saveBuddy(on) {
   if (on && (_myAge() === null || _myAge() < 18)) { showToast(t("buddyAdultsOnly")); return; }
   if (on && !timeRangeOk(f.timeFrom, f.timeTo)) { showToast(t("timeRangeInvalid")); return; }
   var data = on ? { on: true, lookingFor: f.lookingFor, city: f.city, timeFrom: f.timeFrom || null, timeTo: f.timeTo || null,
-    times: f.timeFrom ? fmtTimeRange(f.timeFrom, f.timeTo) : (f.times || "").trim(), whoCanInvite: f.whoCanInvite, intro: (f.intro || "").trim() }
+    times: f.timeFrom ? fmtTimeRange(f.timeFrom, f.timeTo) : (f.times || "").trim(), whoCanInvite: f.whoCanInvite, intro: (f.intro || "").trim(), days: (f.days || []).slice().sort() }
     : { on: false };
   dbUpdateUser(currentUser.uid, { buddy: data }).then(function () {
     buddyForm = null;
@@ -268,6 +293,7 @@ function _buddyCard(u) {
     '<div><div class="game-when" style="font-size:16px">' + escapeHtml(plainUserName(u)) + (lvl ? ' ' + levelBadgeHtml(lvl, true) : '') + '</div>' +
     (bb.intro ? '<div class="game-facts" style="margin-top:2px">' + escapeHtml(bb.intro) + '</div>' : '') + '</div></div>' +
     '<div class="game-tags">' + (bb.lookingFor || []).map(function (x) { return '<span class="tag">' + t("look_" + x) + '</span>'; }).join('') +
+    (_buddyDays(u).length ? '<span class="tag">' + icon("calendar", 12) + ' ' + _buddyDays(u).slice().sort(function (x, y) { return (x || 7) - (y || 7); }).map(function (d) { return weekdayShort(d); }).join(", ") + '</span>' : '') +
     (bb.times ? '<span class="tag">' + icon("clock", 12) + ' ' + escapeHtml(bb.times) + '</span>' : '') + '</div><div class="game-actions">';
   if (pending) html += '<span class="status-chip st-costs">' + t("inviteSent") + '</span>';
   else if (canInvite(u)) html += '<button class="btn-primary" onclick="showInviteModal(\'' + jsq(u.id) + '\')">' + t("inviteToPlay") + '</button>';

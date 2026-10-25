@@ -39,4 +39,23 @@
   splash.style.setProperty("--deep", P.deep.join(","));
   splash.style.setProperty("--hot", P.hot.join(","));
   splash.style.setProperty("--hot2", P.hot2.join(","));
+
+  /* The scene plays fully (v214): it starts on the first painted frame, and the splash leaves only when every finite animation has ended,
+     however fast the app is ready (js/router.js hideSplash waits for window.spDone). A tap still skips it. */
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var finished = false;
+  function done() {
+    if (finished) return; finished = true; window.spDone = true;
+    try { if (typeof hideSplash === "function" && typeof _splashReady !== "undefined" && _splashReady) hideSplash(); } catch (e) {}
+  }
+  window.spDone = false;
+  if (reduce || !splash.getAnimations) { splash.classList.add("go"); done(); return; }
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      splash.classList.add("go");
+      var list = splash.getAnimations({ subtree: true }).filter(function (a) { var tm = a.effect && a.effect.getComputedTiming(); return tm && tm.iterations !== Infinity; });
+      Promise.all(list.map(function (a) { return a.finished; })).then(function () { setTimeout(done, 120); }, done);
+    });
+  });
+  setTimeout(done, 5000);   // never wait longer than this
 })();

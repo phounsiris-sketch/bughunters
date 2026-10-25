@@ -5,7 +5,7 @@ var root = process.cwd(), outDir = process.argv[2] || path.join(root, "tools/uim
 fs.mkdirSync(outDir, { recursive: true });
 var html = fs.readFileSync("index.html", "utf8");
 html = html.replace(/<script defer src="https:\/\/www\.gstatic\.com[^>]*><\/script>\s*/g, "");
-html = html.replace(/<script src="js\/splash\.js"><\/script>/, "");
+html = html.replace(/<script src="js\/splash\.js"><\/script>/, "<script>window.spDone = true;<\/script>");
 html = html.replace(/(href|src)="(css|js|img|icons|fonts)\//g, '$1="file://' + root + '/$2/');
 html = html.replace("<head>", "<head>");
 var stub = fs.readFileSync(path.join(__dirname, "stub.js"), "utf8"), driver = fs.readFileSync(path.join(__dirname, "driver.js"), "utf8");

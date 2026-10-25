@@ -95,11 +95,12 @@
       if (ix > 6 && iy > 6 && ix * iy > .25 * Math.min(A.width * A.height, B.width * B.height) && !seen["x" + sel(ctl[a]) + sel(ctl[b])]) { seen["x" + sel(ctl[a]) + sel(ctl[b])] = 1; add("overlap", ctl[a], sel(ctl[b])); }
     }
   }
-  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "matches", "public", "groups", "group-create", "trash"];
+  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "public", "groups", "group-create", "trash"];
   var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles"];
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
     if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
+    if (CONFIG.pre) { try { window.eval(CONFIG.pre); } catch (e) { D.errors.push("pre: " + e.message); } }   // e.g. pfTab="badminton" to open a tab before the render
     var T = themes(); if (CONFIG.themes) T = T.filter(function (x) { return CONFIG.themes.indexOf(x.n) >= 0; }); var ti = 0, ii = 0, pi = 0;
     function step() {
       var t0 = Date.now();
