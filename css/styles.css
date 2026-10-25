@@ -3106,8 +3106,8 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 #splash.hide { opacity: 0; visibility: hidden; }
 #splash::before { content: ""; position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; translate: -50% -50%; background: radial-gradient(closest-side, rgba(var(--hot), .30), rgba(var(--hot), .08) 55%, transparent); opacity: 0; animation: sp-glow 3.2s ease-in-out .05s infinite; }
 .sp-court { position: absolute; left: 50%; top: 50%; width: min(88%, calc(84vh * .4552)); height: auto; aspect-ratio: 610 / 1340; translate: -50% -50%; overflow: visible; opacity: 0; animation: sp-court-in .5s ease .02s forwards; }
-.sp-court path { fill: none; stroke: rgba(var(--hot2), .34); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw var(--t, .5s) cubic-bezier(.3, .6, .3, 1) var(--d, 0s) forwards; }
-/* two pens: the lines grow outward from the top left corner and, in the copy turned half a turn (g.cb), from the bottom right corner; each line has its own delay by its distance from the corner, so the strokes meet in the centre (the net) */
+.sp-court path { fill: none; stroke: rgb(var(--hot2)); stroke-opacity: .9; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw 1s cubic-bezier(.45, 0, .2, 1) .15s forwards, sp-dim .6s ease .8s forwards; }
+/* the same motion as the line round the logo: every line is drawn in one smooth pass with the same easing, then settles to a quiet tone. Each line starts at its end nearer the top left corner; the group turned half a turn (g.cb) does the same from the bottom right corner, so the strokes meet in the centre (the net). */
 .sp3-brand { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 .sp3-mark { position: relative; width: 108px; height: 108px; opacity: 0; transform: scale(.9); animation: sp-pop .5s cubic-bezier(.22, 1, .36, 1) .05s forwards; }
 #sp3logo { display: block; width: 100%; height: 100%; border-radius: 25px; background: #0b1220; box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
@@ -3118,6 +3118,7 @@ body:not([data-theme="light"]) .poll-card .joined-box {
 #splash.hide .sp3-brand { transform: scale(1.04); transition: transform .25s ease; }
 @keyframes sp-pop { to { opacity: 1; transform: none; } }
 @keyframes sp-draw { to { stroke-dashoffset: 0; } }
+@keyframes sp-dim { to { stroke-opacity: .34; } }
 @keyframes sp-ring { to { stroke-dashoffset: 0; opacity: 0; } }
 @keyframes sp-word { to { opacity: 1; letter-spacing: 8px; padding-left: 8px; } }
 @keyframes sp-fade { to { opacity: 1; } }
@@ -3127,6 +3128,7 @@ body:not([data-theme="light"]) .poll-card .joined-box {
   #splash::before, .sp-court, .sp-court path, .sp3-mark, .sp3-word, .sp3-sub { animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
   .sp3-word { letter-spacing: 8px; padding-left: 8px; }
   .sp3-ring { display: none; }
+  .sp-court path { stroke-opacity: .34 !important; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
