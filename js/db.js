@@ -5,20 +5,31 @@
 
 // Surface database errors (permission denied, offline, bad project) instead of failing silently
 var _dbErrorShown = false;
+function _dbTxt(key, fallback) { var v = typeof t === "function" ? t(key) : key; return v && v !== key ? v : fallback; }
+/** One slim bar for the first database error (v232): says what happened, Retry reloads, x dismisses. A network error clears itself when the phone is back online. */
 function dbOnError(err, where) {
   console.error("Firestore error" + (where ? " (" + where + ")" : "") + ":", err);
   if (_dbErrorShown) return;
   _dbErrorShown = true;
-  var tag = where ? " [" + where + "]" : "";
-  var msg = (err && err.code === "permission-denied")
-    ? "Database blocked this request (permission-denied)" + tag + ". Check Firestore rules and sign-in."
-    : "Cannot connect to database" + tag + ": " + ((err && err.message) || err);
+  var perm = !!(err && err.code === "permission-denied"), tag = where ? " [" + where + "]" : "";
+  var msg = perm
+    ? _dbTxt("dbErrPerm", "The database refused this request") + tag + ". " + _dbTxt("dbErrPermHint", "Check the rules and your sign-in.")
+    : _dbTxt("dbErrNet", "Cannot reach the database") + tag + ".";
   var bar = document.createElement("div");
-  bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 14px;background:#b91c1c;color:#fff;font-size:13px;text-align:center";
-  bar.textContent = msg;
-  if (typeof icon === "function") bar.insertAdjacentHTML("afterbegin", icon("warning", 14) + " ");
-  bar.onclick = function () { bar.remove(); };
+  bar.id = "dbErrBar"; bar.className = "db-err"; bar.setAttribute("role", "alert"); bar.setAttribute("data-kind", perm ? "perm" : "net");
+  var span = document.createElement("span"); span.textContent = msg;
+  var retry = document.createElement("button"); retry.type = "button"; retry.className = "db-err-retry"; retry.textContent = _dbTxt("dbRetry", "Retry");
+  retry.onclick = function () { window.location.reload(); };
+  var x = document.createElement("button"); x.type = "button"; x.className = "db-err-x"; x.setAttribute("aria-label", _dbTxt("dbDismiss", "Dismiss")); x.textContent = "\u00D7";
+  x.onclick = function () { bar.remove(); };
+  bar.appendChild(span); bar.appendChild(retry); bar.appendChild(x);
   document.body.appendChild(bar);
+}
+if (typeof window !== "undefined" && window.addEventListener) {
+  window.addEventListener("online", function () {
+    var b = document.getElementById("dbErrBar");
+    if (b && b.getAttribute("data-kind") === "net") { b.remove(); _dbErrorShown = false; }   // the listeners reconnect by themselves
+  });
 }
 
 // ── Courts ──────────────────────────────────────────────────

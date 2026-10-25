@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v231';
+var CACHE_NAME = 'godsmash-v232';
 var ASSETS = [
   './',
   './index.html',
@@ -82,6 +82,7 @@ var ASSETS = [
   './js/social.js',
   './js/tournament.js',
   './js/hallfame.js',
+  './js/vendor/qrcode/qrcode.js',   // the invite QR is drawn offline too (v232)
   './js/vendor/leaflet/leaflet.js',
   './js/vendor/leaflet/leaflet.css',
   './js/app.js'

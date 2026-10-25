@@ -1694,3 +1694,11 @@ All four changes are backward compatible: the app works with the rules published
 - **After publishing the rules:** open the app once as each person (so the invite-code and private-field moves run); admins open Group > Members once to clean the others' member docs. Nothing else to do.
 - Lao string `pollLegacyReadOnly` is unreviewed.
 - Tests: tests/audit-v231.test.js (member code scrub, `_canMarkTransfer`, legacy poll migration, split / overlay / lazy move of private fields, rules text checks).
+
+## v232: PWA fixes (offline QR, "Update ready" bar, database error bar)
+
+- **QR offline:** `js/vendor/qrcode/qrcode.js` (loaded on demand by the invite page) is now in the service worker's `ASSETS`, so the invite QR draws with no network. The test checks that every precached file exists (one missing file would fail the whole worker install) and that none is listed twice.
+- **Update bar:** the old code reloaded the page on every `controllerchange`. Now `swControllerChanged(hadController)`: the very first install reloads nothing (the page already came from the network); an update reloads once only when nothing is being edited (`_appBusy`: a field has focus, the modal or an ask / share / tournament sheet is open); otherwise a slim bar "Update ready · Tap to reload" (`#swUpdate`, dismissible) waits for the person.
+- **Database error bar:** `dbOnError` shows one slim bar (`#dbErrBar`, `.db-err`, under the notch) for the first error: what happened and where, **Retry** (reloads the app so every listener starts again) and a dismiss ×. A network error clears itself when the phone comes back online; a permission error stays. Listeners with their own quiet handler (restaurants, hall of fame) never show it.
+- Lao strings (`updateReady`, `updateReload`, `dbErr*`, `dbRetry`, `dbDismiss`) are unreviewed.
+- Tests: tests/pwa-v232.test.js.

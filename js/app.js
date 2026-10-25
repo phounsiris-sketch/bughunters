@@ -502,16 +502,37 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v231"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v232"; // keep in step with CACHE_NAME in sw.js
 
-// A new version took over: reload once so the page runs the new code too
+// A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
+// Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.
+function _appBusy() {
+  var a = document.activeElement, tag = a && a.tagName ? a.tagName.toLowerCase() : "";
+  if (tag === "input" || tag === "textarea" || tag === "select" || (a && a.isContentEditable)) return true;
+  var modal = document.getElementById("modal");
+  if (modal && modal.classList.contains("active")) return true;
+  return !!(document.getElementById("tnScreen") || document.getElementById("askSheet") || document.getElementById("shareSheet") || document.querySelector(".sheet-wrap"));
+}
+function swUpdateBar() {
+  if (document.getElementById("swUpdate")) return;
+  var bar = document.createElement("div");
+  bar.id = "swUpdate"; bar.className = "sw-update"; bar.setAttribute("role", "status");
+  bar.innerHTML = '<span>' + escapeHtml(t("updateReady")) + '</span><button type="button" class="sw-reload">' + escapeHtml(t("updateReload")) + '</button>' +
+    '<button type="button" class="sw-x" aria-label="' + escapeHtml(t("dbDismiss")) + '">\u00D7</button>';
+  bar.querySelector(".sw-reload").onclick = function () { window.location.reload(); };
+  bar.querySelector(".sw-x").onclick = function () { bar.remove(); };
+  document.body.appendChild(bar);
+}
+var _swReloaded = false;
+function swControllerChanged(hadController) {
+  if (!hadController || _swReloaded) return;
+  if (_appBusy()) { swUpdateBar(); return; }
+  _swReloaded = true;
+  window.location.reload();
+}
 if ("serviceWorker" in navigator) {
-  var _swReloaded = false;
-  navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (_swReloaded) return;
-    _swReloaded = true;
-    window.location.reload();
-  });
+  var _swHad = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function () { swControllerChanged(_swHad); _swHad = true; });
 }
 
 if ("serviceWorker" in navigator) {
