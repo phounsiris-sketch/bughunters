@@ -1,0 +1,275 @@
+/* Run: node tests/tournament.test.js — the session tournament engine (v227): fair schedule, balanced rest, best+worst pairs,
+   playoff progress (best of 3 final, 6-player round robin), score corrections, and the screen wiring */
+var fs = require("fs"), vm = require("vm"), assert = require("assert");
+var src = fs.readFileSync("js/tournament.js", "utf8");
+var ctx = { console: console, Math: Math, JSON: JSON, isFinite: isFinite };
+vm.createContext(ctx); vm.runInContext(src, ctx);
+var J = function (x) { return JSON.stringify(x); };
+
+// small seeded random so a failure can be repeated
+function seeded(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function uids(n) { var a = []; for (var i = 0; i < n; i++) a.push("u" + i); return a; }
+function pairKey(a, b) { return a < b ? a + "-" + b : b + "-" + a; }
+
+// ---- 1. schedule invariants, many random draws ----
+[6, 8].forEach(function (n) {
+  var G = n === 8 ? 6 : 9, per = G * 4 / n;
+  for (var seed = 1; seed <= 40; seed++) {
+    var T = ctx.tourNew(uids(n), seeded(seed));
+    assert.strictEqual(T.games.length, G, n + " players play " + G + " rotation games");
+    var plays = {}, partners = {};
+    T.games.forEach(function (g) {
+      var four = g.a.concat(g.b);
+      assert.strictEqual(new Set(four).size, 4, "four different players in a game");
+      four.forEach(function (p) { plays[p] = (plays[p] || 0) + 1; assert.ok(p >= 0 && p < n); });
+      [g.a, g.b].forEach(function (t) { partners[pairKey(t[0], t[1])] = (partners[pairKey(t[0], t[1])] || 0) + 1; });
+    });
+    for (var p = 0; p < n; p++) assert.strictEqual(plays[p], per, "everyone plays the same number of games (" + n + ", seed " + seed + ")");
+    var m = ctx.tourMeet(T);
+    assert.strictEqual(m.cover, m.total, "every pair of players meets at least once (" + n + ", seed " + seed + ")");
+    var runs = ctx.tourRuns(T.games, n);
+    if (n === 8) {
+      assert.strictEqual(Object.keys(partners).length, 12, "8 players: no partner twice");
+      assert.ok(runs.rest <= 2 && runs.play <= 2, "8 players: rest and play streaks stay short, got " + J(runs));
+    } else {
+      assert.strictEqual(Object.keys(partners).length, 15, "6 players: every pair partners at least once");
+      assert.ok(runs.rest <= 1 && runs.play <= 3, "6 players: nobody rests twice in a row, got " + J(runs));
+    }
+    assert.strictEqual(J(T.coin.slice().sort()), J(uids(n).map(function (u, i) { return i; })), "the coin is a full shuffle");
+  }
+});
+assert.strictEqual(ctx.tourNew(uids(8), seeded(5)).ids.length, 8);
+assert.ok(ctx.tourSizeOk(6) && ctx.tourSizeOk(8) && !ctx.tourSizeOk(7) && !ctx.tourSizeOk(4));
+
+// ---- 2. scores ----
+assert.ok(ctx.tourScoreOk(21, 15) && ctx.tourScoreOk(30, 29) && ctx.tourScoreOk(0, 1));
+assert.ok(!ctx.tourScoreOk(21, 21), "no draw");
+assert.ok(!ctx.tourScoreOk(31, 5) && !ctx.tourScoreOk(-1, 5) && !ctx.tourScoreOk(1.5, 2) && !ctx.tourScoreOk("21", 5) && !ctx.tourScoreOk(NaN, 3), "bad numbers are refused");
+
+// helper: play the next game; the first team wins unless the callback says otherwise
+function playNext(T, fn) {
+  var g = ctx.tourNext(T); if (!g) return null;
+  var r = fn ? fn(g, T) : [21, 15];
+  ctx.tourApply(T, g, r[0], r[1]);
+  return g;
+}
+function playRotation(T, fn) { while (!ctx.tourRotDone(T)) playNext(T, fn); }
+
+// ---- 3. table order: wins, point diff, points for, coin ----
+(function () {
+  var T = { n: 6, ids: uids(6), coin: [2, 0, 1, 3, 4, 5], games: [], po: [], drawn: false, semi: null };
+  function game(a, b, sa, sb) { return { ph: "rot", a: a, b: b, sa: sa, sb: sb }; }
+  // 0 and 1 each win 1; 0 has the better point diff. 2 and 3 lose 1 each with equal numbers: the coin decides (2 before 3? coin has 2 first)
+  T.games = [game([0, 4], [2, 5], 21, 10), game([1, 5], [3, 4], 21, 19), game([2, 3], [0, 1], 21, 21 - 0 > 0 ? 20 : 0)];
+  var r = ctx.tourStats(T);
+  assert.strictEqual(r[0].id, 0, "wins first, then point diff");
+  // exact tie on everything: the coin
+  var U = { n: 6, ids: uids(6), coin: [3, 1, 0, 2, 4, 5], games: [game([0, 1], [2, 3], 21, 15), game([2, 3], [0, 1], 21, 15)], po: [], drawn: false, semi: null };
+  var order = ctx.tourStats(U).map(function (x) { return x.id; }).slice(0, 4);
+  assert.strictEqual(J(order), J([3, 1, 0, 2]), "an exact tie goes by the coin");
+})();
+
+// ---- 4. best with worst ----
+(function () {
+  var T = ctx.tourNew(uids(8), seeded(11));
+  // make player k win more the lower k is: team with the lower total index wins
+  playRotation(T, function (g) { var sa = g.a[0] + g.a[1], sb = g.b[0] + g.b[1]; return sa < sb ? [21, 10] : [10, 21]; });
+  var rank = ctx.tourStats(T).map(function (x) { return x.id; });
+  var P = ctx.tourPairs(T), sets = P.map(function (p) { return p.m.slice().sort().join("-"); }).sort();
+  var want = [0, 1, 2, 3].map(function (k) { return [rank[k], rank[7 - k]].sort().join("-"); }).sort();
+  assert.strictEqual(J(sets), J(want), "pairs are #1+#8, #2+#7, #3+#6, #4+#5");
+  assert.strictEqual(P.length, 4);
+  assert.ok(P.every(function (p, i) { return p.seed === i + 1; }) && P.every(function (p, i) { return i === 0 || P[i - 1].diff >= p.diff; }), "seeded by combined point diff");
+  var T6 = ctx.tourNew(uids(6), seeded(3)); playRotation(T6);
+  var r6 = ctx.tourStats(T6).map(function (x) { return x.id; });
+  assert.strictEqual(J(ctx.tourPairs(T6).map(function (p) { return p.m.slice().sort().join("-"); }).sort()), J([0, 1, 2].map(function (k) { return [r6[k], r6[5 - k]].sort().join("-"); }).sort()), "6 players: #1+#6, #2+#5, #3+#4");
+})();
+
+// ---- 5. 8 players: draw, semis, 3rd place, best of 3 final ----
+function eightToSemis(seed) {
+  var T = ctx.tourNew(uids(8), seeded(seed));
+  playRotation(T, function (g, t) { var x = g.a[0] + g.a[1] + g.b[0]; return x % 2 ? [21, 12 + (x % 5)] : [13 + (x % 6), 21]; });
+  assert.strictEqual(ctx.tourPhase(T), 1);
+  assert.strictEqual(T.po.length, 0, "no playoff before the draw");
+  assert.ok(ctx.tourDraw(T, seeded(seed + 1)));
+  return T;
+}
+(function () {
+  var T = eightToSemis(21);
+  assert.strictEqual(T.po.length, 2, "two semis after the draw");
+  assert.strictEqual(J(T.semi.slice().sort()), J([0, 1, 2, 3]), "all four pairs are drawn into the semis");
+  var pairsInSemis = T.po[0].a.concat(T.po[0].b, T.po[1].a, T.po[1].b);
+  assert.strictEqual(new Set(pairsInSemis).size, 8, "all 8 players in the semis");
+  assert.strictEqual(ctx.tourNext(T), T.po[0]);
+  playNext(T, function () { return [21, 17]; });
+  assert.strictEqual(T.po.length, 2, "3rd place and final wait for both semis");
+  playNext(T, function () { return [18, 21]; });
+  assert.strictEqual(T.po.length, 4, "3rd place + final game 1 appear after the semis");
+  assert.strictEqual(T.po[2].lab, "T"); assert.strictEqual(T.po[3].lab, "F1");
+  // semi winners meet in the final, losers play for 3rd
+  var s1w = T.po[0].pa, s2w = T.po[1].pb, s1l = T.po[0].pb, s2l = T.po[1].pa;
+  assert.strictEqual(J([T.po[3].pa, T.po[3].pb]), J([s1w, s2w]));
+  assert.strictEqual(J([T.po[2].pa, T.po[2].pb]), J([s1l, s2l]));
+  playNext(T, function () { return [21, 5]; });    // 3rd place
+  playNext(T, function () { return [21, 19]; });   // F1: pair A wins
+  assert.strictEqual(T.po.length, 5, "game 2 of the final is added");
+  playNext(T, function () { return [21, 18]; });   // F2: A wins again
+  assert.strictEqual(T.po.length, 5, "2-0: no third game");
+  assert.ok(ctx.tourComplete(T) && ctx.tourPhase(T) === 3);
+  var played = ctx.tourAll(T).length;
+  assert.strictEqual(played, 11, "a 2-0 final saves a game (6 + 5)");
+  var ord = ctx.tourOrder(T);
+  assert.strictEqual(ord[0], s1w, "pair A is champion"); assert.strictEqual(ord[1], s2w); assert.strictEqual(ord[2], s1l);
+})();
+(function () {
+  var T = eightToSemis(33);
+  playNext(T, function () { return [21, 10]; }); playNext(T, function () { return [21, 10]; });
+  playNext(T, function () { return [21, 10]; });                      // 3rd
+  playNext(T, function () { return [21, 19]; });                      // F1: A
+  playNext(T, function () { return [19, 21]; });                      // F2: B
+  assert.strictEqual(T.po.length, 6, "1-1 adds game 3");
+  assert.ok(!ctx.tourComplete(T));
+  assert.strictEqual(ctx.tourFinalWins(T).wa, 1);
+  playNext(T, function () { return [22, 20]; });                      // F3: A
+  assert.ok(ctx.tourComplete(T) && ctx.tourAll(T).length === 12, "a 2-1 final uses all 12 games");
+  assert.strictEqual(ctx.tourOrder(T)[0], T.po[3].pa);
+})();
+
+// ---- 6. 6 players: draw pairs, round robin ----
+(function () {
+  var T = ctx.tourNew(uids(6), seeded(8));
+  playRotation(T);
+  assert.strictEqual(ctx.tourPhase(T), 1);
+  assert.ok(ctx.tourDraw(T, seeded(9)));
+  assert.strictEqual(T.po.length, 3, "round robin of 3 pairs");
+  assert.strictEqual(J(T.po.map(function (g) { return [g.pa, g.pb].sort().join(""); }).sort()), J(["01", "02", "12"]));
+  // pair 0 beats 1 and 2; pair 1 beats 2
+  playNext(T, function (g) { return g.pa < g.pb ? [21, 10] : [10, 21]; });
+  playNext(T, function (g) { return g.pa < g.pb ? [21, 10] : [10, 21]; });
+  playNext(T, function (g) { return g.pa < g.pb ? [21, 10] : [10, 21]; });
+  assert.ok(ctx.tourComplete(T) && ctx.tourAll(T).length === 12, "9 + 3 games");
+  assert.strictEqual(J(ctx.tourOrder(T)), J([0, 1, 2]));
+  // a 3-way tie in wins: point diff, then the game between two
+  var U = ctx.tourNew(uids(6), seeded(8)); playRotation(U); ctx.tourDraw(U, seeded(1));
+  U.po.forEach(function (g) { delete g.sa; });
+  var pc = {}; U.po.forEach(function (g) { pc[g.lab] = g; });
+  ctx.tourApply(U, pc.R1, 21, 19); ctx.tourApply(U, pc.R2, 19, 21); ctx.tourApply(U, pc.R3, 21, 19);   // 0>1, 2>0, 1>2: everyone 1-1
+  var tab = ctx.tourPairTable(U);
+  assert.strictEqual(tab[0].w, 1); assert.strictEqual(tab.length, 3);
+  assert.ok(tab[0].d >= tab[1].d && tab[1].d >= tab[2].d, "ties in wins go by point diff");
+})();
+
+// ---- 7. correcting a score ----
+(function () {
+  // a rotation correction that changes the pairs clears the draw and asks first (impact) when playoff games were played
+  var T = eightToSemis(44);
+  playNext(T, function () { return [21, 9]; });
+  var before = ctx.tourSig(T), hit = null;
+  for (var gi = 0; gi < T.games.length && !hit; gi++) {
+    var g = T.games[gi], flip = g.sa > g.sb ? [5, 21] : [21, 5];
+    var imp = ctx.tourImpact(T, g, flip[0], flip[1]);
+    if (imp) hit = { g: g, flip: flip, imp: imp };
+  }
+  assert.ok(hit, "some rotation correction changes the pairs");
+  assert.strictEqual(hit.imp.kind, "pairs"); assert.strictEqual(hit.imp.played, 1); assert.strictEqual(hit.imp.pairs.length, 4);
+  assert.strictEqual(ctx.tourSig(T), before, "asking about the impact changes nothing");
+  var res = ctx.tourApply(T, hit.g, hit.flip[0], hit.flip[1]);
+  assert.ok(res.pairsChanged && res.fixed);
+  assert.strictEqual(T.drawn, false); assert.strictEqual(T.po.length, 0); assert.strictEqual(T.semi, null);
+  assert.strictEqual(ctx.tourPhase(T), 1, "back to waiting for the draw");
+  assert.ok(ctx.tourDraw(T, seeded(2)) && T.po.length === 2, "the draw can be made again");
+
+  // pairs that do not change keep the playoff
+  var U = eightToSemis(45); playNext(U, function () { return [21, 9]; });
+  var g0 = U.games[0], sigBefore = ctx.tourSig(U);
+  ctx.tourApply(U, g0, g0.sa > g0.sb ? Math.min(30, g0.sa + 1) : g0.sa, g0.sb > g0.sa ? Math.min(30, g0.sb + 1) : g0.sb);
+  if (ctx.tourSig(U) === sigBefore) assert.ok(U.drawn && U.po.length >= 2 && ctx.tourDone(U.po[0]), "same pairs: the played semi stays");
+
+  // semi flip after 3rd place/final: impact, then reset
+  var V = eightToSemis(46);
+  playNext(V, function () { return [21, 10]; }); playNext(V, function () { return [21, 10]; });
+  playNext(V, function () { return [21, 10]; }); playNext(V, function () { return [21, 10]; });
+  assert.ok(V.po.length === 5 && ctx.tourDone(V.po[2]));
+  var flipImp = ctx.tourImpact(V, V.po[0], 10, 21);
+  assert.strictEqual(flipImp.kind, "semi");
+  assert.strictEqual(ctx.tourImpact(V, V.po[0], 21, 5), null, "same winner: nothing is lost");
+  var r2 = ctx.tourApply(V, V.po[0], 10, 21);
+  assert.ok(r2.semiReset && V.po.length === 4 && !ctx.tourDone(V.po[2]) && !ctx.tourDone(V.po[3]), "3rd place and the final start again");
+
+  // final series: 2-0, then game 1 corrected to a loss -> game 3 is needed; the other way trims it
+  var W = eightToSemis(47);
+  for (var i = 0; i < 5; i++) playNext(W, function () { return [21, 10]; });
+  assert.ok(ctx.tourComplete(W) && W.po.length === 5);
+  var f1 = W.po[3];
+  assert.strictEqual(ctx.tourImpact(W, f1, 10, 21), null, "turning a 2-0 into 1-1 loses nothing");
+  ctx.tourApply(W, f1, 10, 21);
+  assert.strictEqual(W.po.length === 6 && !ctx.tourDone(W.po[5]) && !ctx.tourComplete(W), true, "game 3 is added");
+  playNext(W, function () { return [21, 7]; });
+  assert.ok(ctx.tourComplete(W) && W.po.length === 6);
+  // game 1 corrected back into a win for A: the series is 2-0 after game 2 and the played game 3 would be thrown away
+  var imp3 = ctx.tourImpact(W, W.po[3], 21, 5);
+  assert.strictEqual(imp3 && imp3.kind, "final");
+  ctx.tourApply(W, W.po[3], 21, 5);
+  assert.ok(W.po.length === 5 && ctx.tourComplete(W), "game 3 is gone, the final ends 2-0");
+})();
+
+// ---- 8. the screen renders (stubbed page) ----
+(function () {
+  var els = {}, body = { classList: { add: function () {}, remove: function () {} }, appendChild: function (e) { els[e.id] = e; } };
+  function el(id) { return els[id] || (els[id] = { id: id, innerHTML: "", textContent: "", remove: function () { delete els[id]; } }); }
+  var sess = { id: "s1", date: "2026-10-24", courtName: "AP", players: uids(8), createdBy: "u0" };
+  var c2 = {
+    console: console, Math: Math, JSON: JSON, isFinite: isFinite, setTimeout: function () {}, setInterval: function () { return 1; }, clearInterval: function () {},
+    window: { matchMedia: function () { return { matches: true }; } },
+    document: { getElementById: function (id) { return els[id] || (id === "tnBody" || id === "tnSub" ? el(id) : null); }, body: body, addEventListener: function () {}, removeEventListener: function () {}, querySelector: function () { return null; },
+      createElement: function () { return { setAttribute: function () {}, id: "", className: "", set innerHTML(v) { this._h = v; }, get innerHTML() { return this._h; }, remove: function () {} }; } },
+    lastSessions: [sess], t: function (k) { return "[" + k + "]"; }, icon: function (n) { return "<i:" + n + ">"; }, escapeHtml: function (v) { return String(v).replace(/</g, "&lt;"); }, jsq: function (v) { return String(v).replace(/[^A-Za-z0-9_\-]/g, ""); },
+    avatarHtml: function (u) { return "<av " + u + ">"; }, getUserName: function (u) { return "N" + u; }, plainUserName: function (u) { return u ? u.displayName : "?"; }, findUser: function (id) { return { displayName: "P" + id }; },
+    canEditSessionDetails: function () { return true; }, canEditBill: function () { return true; }, fmtDate: function (d) { return d; }, dbUpdateSession: function () { return { then: function (f) { f(); } }; }, dbOnError: function () {}, showToast: function () {},
+    askYes: function (msg, yes, o) { c2.__ask = o || {}; c2.__yes = yes; }, askConfirm: function (o, yes) { c2.__ask = o; c2.__yes = yes; }, firebase: { firestore: { FieldValue: { delete: function () { return "DEL"; } } } }
+  };
+  vm.createContext(c2); vm.runInContext(src, c2);
+  var rd = function () { return el("tnBody").innerHTML; };
+  // before any tournament: the card shows the start button
+  var card = c2.tourCardHtml(sess);
+  assert.ok(/tourBtnStart/.test(card) && /tourCardAct\('s1'\)/.test(card), "card button offers the draw");
+  c2.tourCardAct("s1");   // reduced motion: the draw is made at once
+  assert.ok(sess.tournament && sess.tournament.games.length === 6, "the draw made a tournament of 6 games");
+  var h = rd();
+  assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourMeetTitle/.test(h) && /tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, who-meets-who, rest and table are shown");
+  assert.ok(!/undefined|NaN/.test(h), "no undefined or NaN in the screen");
+  // enter a score through the screen's own click handler
+  var click = function (act, extra) { var attrs = Object.assign({ "data-act": act }, extra || {}); c2.document.getElementById("tnScreen").onclick({ target: { closest: function () { return { getAttribute: function (k) { return attrs[k]; } }; } } }); };
+  click("stage");   // opens the editor on the up-next game
+  assert.ok(/tn-editor/.test(rd()), "the stage button opens the score editor");
+  click("save"); assert.ok(sess.tournament.games.filter(function (g) { return g.sa !== null; }).length === 1, "the up-next game got its score");
+  while (!ctx.tourRotDone(sess.tournament)) { var g = ctx.tourNext(sess.tournament); ctx.tourApply(sess.tournament, g, 21, 10); }
+  c2.tourRender();
+  assert.ok(/tourBtnSemi/.test(rd()) && /tourDrawHint/.test(rd()), "after the rotation the button is the semifinal draw");
+  click("stage");
+  assert.ok(sess.tournament.drawn && sess.tournament.po.length === 2 && /tourBracketTitle/.test(rd()), "the draw builds the bracket");
+  while (ctx.tourNext(sess.tournament)) { var g2 = ctx.tourNext(sess.tournament); ctx.tourApply(sess.tournament, g2, 21, 15); }
+  c2.tourRender();
+  var done = rd();
+  assert.ok(/tnWinner/.test(done) && /tourPlace1/.test(done) && /tourBtnWinner/.test(done) && !/undefined|NaN/.test(done), "the winner podium shows");
+  click("reset"); assert.ok(c2.__ask && /danger/.test(c2.__ask.kind), "reset asks first (danger)");
+  // a viewer sees no edit buttons
+  c2.canEditSessionDetails = function () { return false; }; c2.canEditBill = function () { return false; };
+  sess.createdBy = "other";
+  var viewer = c2.tourCardHtml(sess);
+  assert.ok(/tourBtnWinner/.test(viewer), "a viewer can open the finished tournament");
+})();
+
+// ---- 9. the screen is wired in and safe ----
+var app = fs.readFileSync("js/app.js", "utf8"), sw = fs.readFileSync("sw.js", "utf8"), html = fs.readFileSync("index.html", "utf8"), ses = fs.readFileSync("js/sessions.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8");
+assert.ok(/APP_VERSION = "v227"/.test(app) && /godsmash-v227/.test(sw), "version bumped together");
+assert.ok(sw.indexOf("'./js/tournament.js'") > 0 && html.indexOf('src="js/tournament.js"') > 0, "script loaded and precached");
+assert.ok(/tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "session card shows the button; sessions updates refresh the screen");
+assert.ok(!/\b(confirm|prompt|alert)\s*\(/.test(src.replace(/askConfirm|askYes/g, "")), "no native confirm, prompt or alert");
+assert.ok(!/\beval\s*\(|new Function/.test(src), "no eval, no new Function");
+assert.ok(/askYes\(t\("tourResetTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourCorrect"\)/.test(src), "reset and impact corrections ask first");
+assert.ok(/function tourCanRun\(s\)[^\n]*canEditSessionDetails\(s\) \|\| canEditBill\(s\)/.test(src), "only people who may edit the session run it");
+assert.ok(!/innerHTML[^;\n]*\+\s*(g\.lab|T\.ids\[)/.test(src), "labels and ids are never put in HTML raw");
+assert.ok(/getUserName\(T\.ids/.test(src) && /escapeHtml\(/.test(src), "names are escaped");
+assert.ok(/prefers-reduced-motion/.test(css) && /_tnReduced\(\)/.test(src), "the draw shuffle is skipped for reduced motion");
+console.log("tournament OK");

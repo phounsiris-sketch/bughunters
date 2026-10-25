@@ -245,6 +245,7 @@ function loadSessions() {
       if (currentPage === "payments" && typeof renderPayments === "function") renderPayments();
       if (typeof updateNotifications === "function") updateNotifications();
       if (currentPage === "home" && typeof renderHome === "function") renderHome();   // a finished game takes its live board off Home
+      if (typeof tourOnSessions === "function") tourOnSessions();   // an open tournament screen shows the newest scores
     });
   }
   if (currentPage === "sessions") renderSessionsList(lastSessions);   // rendering sets the breadcrumb: only on its own page
@@ -364,6 +365,7 @@ function renderSessionsList(sessions) {
       (s.calculated && players.length ? '<div class="session-each">~' + fmtShort(_grandOf(s) / players.length) + ' ' + t("each") + '</div>' : '') +
       '</div>';
     html += '</div>';
+    if (typeof tourCardHtml === "function") html += tourCardHtml(s);
 
     if (canDetails || canBill) {
       html += '<div class="session-actions">';
