@@ -1626,3 +1626,7 @@ From a verified audit. Lao strings added (`confirmDeclineRequest`, `editMultiGam
 - **Health:** `healthTotals` now uses the same rule as `healthWorkouts` (sessions only, dated by the session); year share card highlights the month bucket; unused `real` removed.
 - **Storage and dialogs:** top-level `localStorage` reads/writes in app.js, i18n.js, auth.js, push.js are in try/catch; the legacy email-link path uses `askConfirm({ input })` instead of `window.prompt` (new `input`/`inputType` options on `askConfirm`); declining a join request asks first.
 - Tests: tests/correctness-v217.test.js; poll-manage test updated for the single-undo order.
+
+## v223: the drawn shuttlecock and scoreboard everywhere
+
+The default shuttle glyph looked like a baseball or tennis ball. `SOLAR.shuttle` is now the hand-drawn shuttlecock (white feathered cone with ribs, orange rim, orange cork, flat colours with a slate outline so it reads on light and dark), and `SOLAR.scoreboard` (Live score) is the blue scoreboard with digits. `ICON_FIXED = { shuttle, scoreboard }` makes `iconAs` draw exactly these in every style (box, neu, glass, classic, tiles, clay, stickers), never the bold or Phosphor variants. They keep their own colours; box, neu, glass and tiles still put them on their plate.
