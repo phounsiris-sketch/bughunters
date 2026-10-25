@@ -1596,3 +1596,7 @@ The Games tab of a session had a wide Live score button and, below it, the whole
 ## v219: Reports row moved
 
 The admin-only Reports row (with its count badge) is no longer under the Group section of Settings. It sits in the "Notifications and data" card, between Notifications and Recently deleted.
+
+## v220: Subscription first
+
+The Subscription card is the first card of the Settings page, above the Group section (it was the first row under the App heading).
