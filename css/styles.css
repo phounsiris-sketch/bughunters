@@ -6338,3 +6338,7 @@ body[data-theme="light"] .danger-title { color: #b91c1c !important; }
 .poll-q.danger { color: #f87171; border-color: rgba(248, 113, 113, .5); }
 body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 .poll-q .si { color: inherit; }
+
+/* v209: Dashboard "Stickers" pack */
+.ico-sticker { flex: none; vertical-align: middle; overflow: visible; }
+.ico-sticker .stk-g path { fill: #fff; }
