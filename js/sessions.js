@@ -240,6 +240,7 @@ function loadSessions() {
   if (!sessionsUnsubscribe) {
     sessionsUnsubscribe = dbGetSessions(function (sessions) {
       lastSessions = sessions;
+      if (typeof tourSessionsChanged === "function") tourSessionsChanged();   // tournament games feed Rankings and stats
       if (currentPage === "sessions") renderSessionsList(sessions);
       if (currentPage === "dashboard" && typeof _renderDashboard === "function") _renderDashboard();
       if (currentPage === "payments" && typeof renderPayments === "function") renderPayments();

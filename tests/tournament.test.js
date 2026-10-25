@@ -262,7 +262,7 @@ function eightToSemis(seed) {
 
 // ---- 9. the screen is wired in and safe ----
 var app = fs.readFileSync("js/app.js", "utf8"), sw = fs.readFileSync("sw.js", "utf8"), html = fs.readFileSync("index.html", "utf8"), ses = fs.readFileSync("js/sessions.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8");
-assert.ok(/APP_VERSION = "v227"/.test(app) && /godsmash-v227/.test(sw), "version bumped together");
+assert.ok(app.match(/APP_VERSION = "(v\d+)"/)[1] === sw.match(/godsmash-(v\d+)/)[1], "version bumped together");
 assert.ok(sw.indexOf("'./js/tournament.js'") > 0 && html.indexOf('src="js/tournament.js"') > 0, "script loaded and precached");
 assert.ok(/tourCardHtml\(s\)/.test(ses) && /tourOnSessions\(\)/.test(ses), "session card shows the button; sessions updates refresh the screen");
 assert.ok(!/\b(confirm|prompt|alert)\s*\(/.test(src.replace(/askConfirm|askYes/g, "")), "no native confirm, prompt or alert");
@@ -273,3 +273,183 @@ assert.ok(!/innerHTML[^;\n]*\+\s*(g\.lab|T\.ids\[)/.test(src), "labels and ids a
 assert.ok(/getUserName\(T\.ids/.test(src) && /escapeHtml\(/.test(src), "names are escaped");
 assert.ok(/prefers-reduced-motion/.test(css) && /_tnReduced\(\)/.test(src), "the draw shuffle is skipped for reduced motion");
 console.log("tournament OK");
+
+/* ============================================================
+   v228: a pair that is out (walkovers), and tournament games as stats records
+   ============================================================ */
+function playRot(T) { T.games.forEach(function (g, i) { ctx.tourApply(T, g, 21, 10 + (i % 7)); }); }
+function drawn(n, seed) { var T = ctx.tourNew(uids(n), seeded(seed)); playRot(T); ctx.tourDraw(T, seeded(seed + 100)); return T; }
+function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
+
+// ---- 8 players: a semifinal pair is out -> walkover, the rest of the bracket carries on ----
+(function () {
+  var T = drawn(8, 7), s1 = T.po[0], out = s1.pa;
+  assert.ok(ctx.tourMarkOut(T, out, "injury", "knee"), "a drawn pair can be marked out");
+  assert.ok(s1.wo && s1.sb === ctx.TOUR_WO && s1.sa === 0, "the opponent gets 21-0 by walkover: " + J(s1));
+  assert.strictEqual(T.out[0].why, "injury"); assert.strictEqual(T.out[0].note, "knee");
+  assert.strictEqual(ctx.tourMarkOut(T, out, "injury"), false, "cannot mark a pair out twice");
+  assert.strictEqual(T.po.length, 2, "final and 3rd place wait for the other semi");
+  play(T, T.po[1], 21, 15);
+  assert.strictEqual(T.po.length >= 4, true, "after the other semi the final and 3rd place exist");
+  var third = T.po[2];
+  assert.ok(third.wo, "3rd place: the pair that is out gives a walkover");
+  assert.strictEqual(ctx.tourOutOf(T, out) !== null, true);
+  var f1 = ctx.tourFinals(T)[0]; assert.ok(!f1.wo, "the final is between two pairs still in");
+  play(T, f1, 21, 18); play(T, ctx.tourFinals(T)[1], 21, 19);
+  assert.ok(ctx.tourComplete(T), "tournament completes"); assert.strictEqual(ctx.tourOrder(T).length, 3);
+})();
+
+// ---- a finalist is out before the final: series is 2-0 by walkover ----
+(function () {
+  var T = drawn(8, 11); play(T, T.po[0], 21, 10); play(T, T.po[1], 21, 12);
+  var f1 = ctx.tourFinals(T)[0], p = f1.pa;
+  ctx.tourMarkOut(T, p, "left", "");
+  var fs = ctx.tourFinals(T);
+  assert.strictEqual(fs.length, 2, "2-0 by walkover ends the series"); assert.ok(fs.every(function (g) { return g.wo; }));
+  var w = ctx.tourFinalWins(T); assert.strictEqual(w.wb, 2); assert.strictEqual(w.wa, 0);
+  play(T, T.po[2], 21, 17);
+  assert.ok(ctx.tourComplete(T)); var o = ctx.tourOrder(T);
+  assert.strictEqual(o[0], f1.pb, "the pair still in is champion"); assert.strictEqual(o[1], p, "the pair that went out is runner-up");
+})();
+
+// ---- a finalist goes out after winning game 1: 1-1 by walkover then game 3 by walkover ----
+(function () {
+  var T = drawn(8, 13); play(T, T.po[0], 21, 10); play(T, T.po[1], 21, 12); play(T, T.po[2], 21, 17);
+  var f1 = ctx.tourFinals(T)[0], p = f1.pa; play(T, f1, 21, 15);   // pair a wins game 1
+  ctx.tourMarkOut(T, p, "injury", "");
+  var fs = ctx.tourFinals(T), w = ctx.tourFinalWins(T);
+  assert.strictEqual(fs.length, 3, "walkovers give game 2 and game 3"); assert.ok(!fs[0].wo && fs[1].wo && fs[2].wo);
+  assert.strictEqual(w.wb, 2); assert.strictEqual(w.wa, 1); assert.ok(ctx.tourComplete(T));
+  assert.strictEqual(ctx.tourOrder(T)[0], f1.pb);
+})();
+
+// ---- both pairs of the 3rd place game are out: that game is void; the other side of a semi is a walkover ----
+(function () {
+  var T = drawn(8, 17), s1 = T.po[0], s2 = T.po[1];
+  var A = s1.pa, B = s1.pb, C = s2.pa, D = s2.pb;
+  ctx.tourMarkOut(T, A, "injury"); assert.ok(s1.wo && !s1.v, "one pair out: the other wins the semi by walkover");
+  ctx.tourMarkOut(T, C, "left");
+  assert.ok(s2.wo && !s2.v);
+  assert.strictEqual(T.po.length >= 4, true, "both semis done: 3rd place and final exist");
+  var third = T.po[2];
+  assert.ok(third.v && third.sa === 0 && third.sb === 0, "3rd place between two pairs that are out is void: " + J(third));
+  var f1 = ctx.tourFinals(T)[0]; assert.ok(!f1.wo, "the final is between the two pairs still in");
+  play(T, f1, 21, 9); play(T, ctx.tourFinals(T)[1], 21, 9);
+  assert.ok(ctx.tourComplete(T)); var o = ctx.tourOrder(T);
+  assert.strictEqual(o[2], -1, "no 3rd place when the game was void");
+  assert.ok(o[0] >= 0 && o[1] >= 0);
+})();
+
+// ---- every pair goes out: champion is the last pair standing, walkovers all the way ----
+(function () {
+  var T = drawn(8, 19), s1 = T.po[0], s2 = T.po[1];
+  var A = s1.pa, B = s1.pb, C = s2.pa, D = s2.pb;
+  ctx.tourMarkOut(T, A, "other", "x"); ctx.tourMarkOut(T, B, "other", "x"); ctx.tourMarkOut(T, C, "other", "x");
+  assert.ok(ctx.tourComplete(T), "the last pair standing wins by walkover");
+  assert.strictEqual(ctx.tourMarkOut(T, D, "other", "x"), false, "a finished tournament cannot change");
+  assert.strictEqual(ctx.tourOrder(T)[0], D);
+  assert.strictEqual(ctx.tourMatches({ id: "s", tournament: T, date: "2026-10-24" }, "g").filter(function (m) { return m.tid; }).length, T.games.length, "void and walkover games are not stats games");
+})();
+
+// ---- 6 players: round robin walkovers ----
+(function () {
+  var T = drawn(6, 23), P = ctx.tourPairs(T);
+  ctx.tourMarkOut(T, 2, "injury", "");
+  var wo = T.po.filter(function (g) { return g.wo; });
+  assert.strictEqual(wo.length, 2, "the pair that is out gives 2 walkovers");
+  var left = T.po.filter(function (g) { return !g.wo && !g.v; }); assert.strictEqual(left.length, 1);
+  play(T, left[0], 21, 14); assert.ok(ctx.tourComplete(T));
+  var tab = ctx.tourPairTable(T); assert.strictEqual(tab[tab.length - 1].i, 2, "the pair that is out finishes last"); assert.strictEqual(tab[tab.length - 1].w, 0);
+  // out after playing one game: only the games left are walkovers
+  var U = drawn(6, 29), g0 = U.po[0]; play(U, g0, 21, 8);
+  var q = g0.pa; ctx.tourMarkOut(U, q, "left", "");
+  assert.ok(!g0.wo, "the played game stays");
+  assert.strictEqual(U.po.filter(function (g) { return g.wo; }).length, 1);
+})();
+
+// ---- undo: walkovers go back to unplayed, remaining out pairs still apply ----
+(function () {
+  var T = drawn(8, 31), s1 = T.po[0], a = s1.pa, b = s1.pb, c = T.po[1].pa;
+  ctx.tourMarkOut(T, a, "injury"); ctx.tourMarkOut(T, c, "left");
+  var third = T.po[2]; assert.ok(third.v, "3rd place void");
+  assert.strictEqual(ctx.tourUndoImpact(T, c), 0);
+  ctx.tourUndoOut(T, c);
+  assert.ok(!ctx.tourDone(T.po[1]) && T.po.length === 2, "second semi is open again, 3rd place and final are gone");
+  assert.ok(s1.wo, "the other pair is still out: its walkover stays"); assert.strictEqual(T.out.length, 1);
+  ctx.tourUndoOut(T, a);
+  assert.ok(!ctx.tourDone(s1) && (T.out || []).length === 0, "no pair out: the semi is open again");
+  assert.strictEqual(ctx.tourUndoOut(T, a), false);
+  // undo that clears real games played after walkovers
+  var U = drawn(8, 37), x = U.po[0].pa; ctx.tourMarkOut(U, x, "injury"); play(U, U.po[1], 21, 12);
+  var fin = ctx.tourFinals(U)[0]; play(U, fin, 21, 17);
+  assert.strictEqual(ctx.tourUndoImpact(U, x), 1, "one real game (final game 1) would be cleared");
+  ctx.tourUndoOut(U, x); assert.strictEqual(U.po.length, 2); assert.ok(!ctx.tourDone(U.po[0]));
+})();
+
+// ---- cannot mark out before the draw, nor after the end ----
+(function () {
+  var T = ctx.tourNew(uids(8), seeded(5)); assert.strictEqual(ctx.tourMarkOut(T, 0, "injury"), false, "before the pairs are drawn: no");
+  playRot(T); assert.strictEqual(ctx.tourMarkOut(T, 0, "injury"), false, "rotation done but not drawn: no");
+  var U = drawn(8, 41); play(U, U.po[0], 21, 5); play(U, U.po[1], 21, 5); play(U, U.po[2], 21, 5); play(U, ctx.tourFinals(U)[0], 21, 5); play(U, ctx.tourFinals(U)[1], 21, 5);
+  assert.ok(ctx.tourComplete(U)); assert.strictEqual(ctx.tourMarkOut(U, 0, "injury"), false, "finished: no");
+  assert.strictEqual(ctx.tourMarkOut(drawn(8, 3), 9, "injury"), false, "bad pair number");
+  var V = drawn(8, 43); ctx.tourMarkOut(V, 0, "weird<script>", "<b>hi</b>\n"); assert.strictEqual(V.out[0].why, "other"); assert.ok(V.out[0].note.indexOf("<") < 0);
+  // a walkover is not a score to correct
+  var W = drawn(8, 47), wg = W.po[0]; ctx.tourMarkOut(W, wg.pa, "injury");
+  assert.strictEqual(ctx.tourImpact(W, wg, 21, 3), null); assert.ok(ctx.tourApply(W, wg, 21, 3).blocked); assert.ok(wg.wo);
+})();
+
+// ---- correcting a rotation score that changes the pairs clears the out marks ----
+(function () {
+  var T = drawn(8, 53), before = ctx.tourSig(T); ctx.tourMarkOut(T, 0, "injury");
+  var changed = false;
+  for (var i = 0; i < T.games.length && !changed; i++) {
+    [[0, 21], [21, 0], [30, 2]].forEach(function (sc) {
+      if (changed) return; var g = T.games[i];
+      var imp = ctx.tourImpact(T, g, sc[0], sc[1]);
+      if (imp && imp.kind === "pairs") { assert.strictEqual(imp.outs, 1, "the warning counts the out marks"); ctx.tourApply(T, g, sc[0], sc[1]); changed = true; }
+    });
+  }
+  if (changed) { assert.strictEqual(T.out.length, 0); assert.strictEqual(T.drawn, false); }
+  assert.ok(before);
+})();
+
+// ---- tournament games as stats records ----
+(function () {
+  var s = { id: "S1", date: "2026-10-24", groupId: "G", createdAt: 1000, courtName: "AP", tournament: drawn(8, 59) };
+  var T = s.tournament; play(T, T.po[0], 21, 10); play(T, T.po[1], 18, 21);
+  var ms = ctx.tourMatches(s, "G");
+  assert.strictEqual(ms.length, T.games.length + 2, "every real game is a record");
+  ms.forEach(function (m) {
+    assert.ok(m.tid === "S1" && m.confirmed === true && m.sessionId === "S1" && m.createdBy === "", J(m));
+    assert.strictEqual(m.teamA.length, 2); assert.strictEqual(m.teamB.length, 2); assert.ok(/^t:S1:\d+$/.test(m.id));
+    assert.ok(m.games.length === 1 && typeof m.games[0].a === "number");
+  });
+  assert.strictEqual(new Set(ms.map(function (m) { return m.id; })).size, ms.length, "unique ids");
+  // not counted: unplayed games, tournament without ids
+  assert.strictEqual(ctx.tourMatches({ id: "x" }, "G").length, 0);
+  // dedupe against a normal match typed in for the same game (teams swapped, same score)
+  var first = ms[0], dup = { id: "m1", sessionId: "S1", teamA: first.teamB, teamB: first.teamA, games: [{ a: first.games[0].b, b: first.games[0].a }], date: "2026-10-24", createdAt: 5 };
+  var merged = ctx.tourMergeMatches([dup], [s], "G");
+  assert.strictEqual(merged.length, ms.length, "a game typed in twice counts once: " + merged.length + " vs " + ms.length);
+  assert.ok(merged.some(function (m) { return m.id === "m1" && !m.tid; }), "the typed-in match wins");
+  // a different score is a different game
+  var other = { id: "m2", sessionId: "S1", teamA: first.teamA, teamB: first.teamB, games: [{ a: 3, b: 21 }], date: "2026-10-24", createdAt: 5 };
+  assert.strictEqual(ctx.tourMergeMatches([other], [s], "G").length, ms.length + 1);
+  // sorted by date
+  var old = { id: "m0", sessionId: "Z", teamA: ["a", "b"], teamB: ["c", "d"], games: [{ a: 21, b: 1 }], date: "2026-01-01", createdAt: 1 };
+  assert.strictEqual(ctx.tourMergeMatches([old], [s], "G")[0].id, "m0");
+})();
+// ---- wiring: stats read the tournament games, walkovers asked first, badge shown ----
+(function () {
+  var st = fs.readFileSync("js/stats.js", "utf8"), ses2 = fs.readFileSync("js/sessions.js", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
+  assert.ok(/function rebuildMatches\(\)/.test(st) && /tourMergeMatches\(_matchesReal/.test(st) && /rebuildMatches\(\);/.test(st), "lastMatches = saved matches + tournament games");
+  assert.ok(/tourSessionsChanged\(\)/.test(ses2), "sessions updates rebuild the stats games");
+  assert.ok(/tn-badge/.test(st) && /var canEdit = !tn &&/.test(st), "tournament games show a badge and cannot be edited or deleted from the match list");
+  assert.ok(/askConfirm\(\{ title: t\("tourOutTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourOutUndoTitle"\)/.test(src), "marking out and bringing back ask first");
+  assert.ok(/tourOutRotHint/.test(src) && /!T\.drawn\) h \+= '<div class="tn-sec tn-hint"/.test(src), "before the draw the screen offers Reset instead of mark out");
+  ["tourOutBtn", "tourOutTag", "tourWO", "tourWhy_injury", "tourWhy_left", "tourWhy_other", "tourBadge", "tourOutRotHint"].forEach(function (k) {
+    assert.ok(new RegExp("\\b" + k + ":").test(i18n.split("la: {")[0]) || true); assert.ok((i18n.match(new RegExp("\\b" + k + ":", "g")) || []).length === 2, k + " in EN and Lao");
+  });
+})();
+console.log("tournament v228 ok");

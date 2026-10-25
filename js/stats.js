@@ -12,7 +12,8 @@
    Nothing here is ever shown outside the group.
    ============================================================ */
 
-var lastMatches = [];
+var lastMatches = [];         // the saved matches plus the games of session tournaments (v228), oldest first
+var _matchesReal = [];        // only what is saved in matches/
 var _matchesUnsub = null;
 var statsTab = "ranking";     // ranking | h2h | progress
 var progressUser = null;
@@ -29,17 +30,24 @@ function loadMatches() {
   _matchesUnsub = groupScoped(fsdb.collection("matches")).onSnapshot(function (snap) {
     var list = [];
     snap.forEach(function (d) { list.push(Object.assign({ id: d.id }, d.data())); });
-    lastMatches = list.sort(function (a, b) { return String(a.date || "").localeCompare(String(b.date || "")) || ((a.createdAt || 0) - (b.createdAt || 0)); });
-    _statsCache = null;
+    _matchesReal = list.sort(function (a, b) { return String(a.date || "").localeCompare(String(b.date || "")) || ((a.createdAt || 0) - (b.createdAt || 0)); });
+    rebuildMatches();
     if (/^(stats|matches|dashboard|user|home)$/.test(currentPage)) refreshCurrentPage("matches");   // the Home badge count follows the games (not Settings or forms: a re-render would wipe typing)
     if (currentPage === "session-detail") { refreshSessionGames(); var tn = document.getElementById("sessionTabGamesN"); if (tn && currentSession) tn.textContent = sessionMatches(currentSession.id).length; }
     if (typeof updateNotifications === "function") updateNotifications();
   }, function (e) { dbOnError(e, "matches"); });
 }
 
+/** Saved matches + the real games of every session tournament (walkovers left out), counted once. Everything reads lastMatches. */
+function rebuildMatches() {
+  lastMatches = typeof tourMergeMatches === "function" ? tourMergeMatches(_matchesReal, typeof lastSessions !== "undefined" ? lastSessions : [], typeof currentGroupId !== "undefined" ? currentGroupId : "") : _matchesReal;
+  _statsCache = null;
+}
+
 function stopMatches() {
   if (_matchesUnsub) _matchesUnsub();
   _matchesUnsub = null;
+  _matchesReal = [];
   lastMatches = [];
   _statsCache = null;
 }
@@ -891,7 +899,8 @@ function refreshSessionGames() {
 
 function matchRowHtml(m, no) {
   var w = matchWinner(m), me = currentUser.uid;
-  var canEdit = m.createdBy === me || isGroupAdminMe();
+  var tn = !!m.tid;   // a tournament game: it belongs to the tournament screen, not to this list
+  var canEdit = !tn && (m.createdBy === me || isGroupAdminMe());
   var g = (m.games || [])[0] || {};
   var more = (m.games || []).slice(1).map(function (x) { return escapeHtml(x.a) + '–' + escapeHtml(x.b); }).join(', ');
   var html = '<div class="card match-row">';
@@ -905,7 +914,7 @@ function matchRowHtml(m, no) {
   if (more) html += '<div class="form-hint" style="text-align:center">' + more + '</div>';
   // Who saved it, and who changed it last
   // Counted with Live score: show the scorekeeper (photo + name); otherwise who added it
-  html += '<div class="match-by">' + (m.live ? '<span class="match-by-lbl">' + t("countedBy") + '</span> ' + personHtml(m.createdBy, 20) : t("addedBy").replace("{name}", escapeHtml(getUserName(m.createdBy)))) + (m.createdAt ? ' ' + _whenShort(m.createdAt) : '') +
+  html += '<div class="match-by">' + (tn ? '<span class="tn-badge">' + escapeHtml(t("tourBadge")) + '</span> ' + escapeHtml(typeof tourLabText === "function" ? tourLabText(m.tstage) : "") : m.live ? '<span class="match-by-lbl">' + t("countedBy") + '</span> ' + personHtml(m.createdBy, 20) : t("addedBy").replace("{name}", escapeHtml(getUserName(m.createdBy)))) + (m.createdAt && !tn ? ' ' + _whenShort(m.createdAt) : '') +
     (m.updatedBy ? ' \u00B7 ' + t("editedBy").replace("{name}", escapeHtml(getUserName(m.updatedBy))) + (m.updatedAt ? ' ' + _whenShort(m.updatedAt) : '') : '') + '</div>';
   return html + '</div>';
 }

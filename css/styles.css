@@ -6511,3 +6511,18 @@ body.tn-open { overflow: hidden; }
 .tn-pl.p2 { min-height: 120px; }
 .tn-pl.p3 { min-height: 100px; }
 @media (prefers-reduced-motion: reduce) { .tn-bar i { transition: none; } }
+
+/* ========== Tournament v228: pair out, walkovers, stats badge ========== */
+.tn-outtag { display: inline-block; align-self: flex-start; margin-top: 2px; padding: 1px 8px; border-radius: 99px; background: rgba(239, 68, 68, .14); color: var(--red); font-size: 11px; font-weight: 800; }
+.tn-pair.out { opacity: .8; border-style: dashed; }
+.tn-who.tn-none { color: var(--text-muted); }
+.tn-game.wo, .tn-game.void { border-style: dashed; }
+.tn-game.void { opacity: .7; }
+.tn-outpanel { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.tn-lbl { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); }
+.tn-why { display: flex; gap: 6px; flex-wrap: wrap; }
+.tn-chip { border: 1.5px solid var(--text-muted); background: var(--card); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; border-radius: 99px; padding: 6px 12px; cursor: pointer; }
+.tn-chip.on { background: var(--red); border-color: var(--red); color: #fff; }
+.tn-note-in { width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font: inherit; font-size: 14px; padding: 8px 10px; }
+.tn-hint p { margin: 0 0 8px; }
+.tn-badge { display: inline-block; padding: 1px 8px; border-radius: 99px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; }
