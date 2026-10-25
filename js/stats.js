@@ -696,13 +696,32 @@ function quickAddGame() {
   }, 60);
 }
 
-/** The whole Games tab: add-game form + the list */
+var _gfOpen = false, _gfSession = "";   // is the Add score form open (it is closed until the button is tapped)
+function _gfSetOpen(v) {
+  _gfOpen = !!v;
+  var box = document.getElementById("gameFormBox"), btn = document.querySelector(".score-add");
+  if (box) box.classList.toggle("gf-closed", !_gfOpen);
+  if (btn) { btn.classList.toggle("active", _gfOpen); btn.setAttribute("aria-expanded", String(_gfOpen)); }
+}
+function toggleGameForm() {
+  _gfSetOpen(!_gfOpen);
+  if (_gfOpen) { var box = document.getElementById("gameFormBox"); if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+}
+
+/** The whole Games tab: Live score and Add score buttons, the add-game form + the list */
 function sessionGamesTabHtml(s) {
   if (!gameForm || gameForm.sessionId !== s.id) gameForm = _blankGameForm(s);
   var mode = s.mode || "competition";
   var html = '<div class="games-mode"><span class="tag mode-' + cssId(mode) + '">' + t("mode_" + mode) + '</span><span class="form-hint">' + t("modeHint_" + mode) + '</span></div>';
-  if (_canAddGames(s) && sessionStep(s) < 3) html += '<button type="button" class="live-launch" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 22) + '<span><b>' + t("lsTitle") + '</b><small>' + t("lsRule4") + '</small></span>' + icon("chevron", 18) + '</button>';
-  if (_canAddGames(s)) html += '<div id="gameFormBox">' + _gameFormHtml(s) + '</div>';
+  // Two buttons (v216): Live score first, Add score opens the form
+  if (_gfSession !== s.id) { _gfSession = s.id; _gfOpen = false; }
+  if (gameForm && gameForm.id) _gfOpen = true;
+  if (_canAddGames(s)) {
+    html += '<div class="score-actions">' +
+      (sessionStep(s) < 3 ? '<button type="button" class="live-launch" onclick="showLiveScore(\'' + jsq(s.id) + '\')">' + icon("scoreboard", 24) + '<b>' + t("lsTitle") + '</b></button>' : '') +
+      '<button type="button" class="live-launch score-add' + (_gfOpen ? ' active' : '') + '" aria-expanded="' + _gfOpen + '" onclick="toggleGameForm()">' + icon("ranking", 24) + '<b>' + t("addScore") + '</b></button></div>';
+    html += '<div id="gameFormBox" class="' + (_gfOpen ? '' : 'gf-closed') + '">' + _gameFormHtml(s) + '</div>';
+  }
   html += '<div id="sgList">' + _gamesListHtml(s) + '</div>';
   return html;
 }
@@ -803,6 +822,7 @@ function saveGame() {
     var type = f.type;
     gameForm = _blankGameForm(s); gameForm.type = type;
     _rerenderGameForm();
+    if (f.id) _gfSetOpen(false);   // a fixed game closes the form; a new one leaves it open for the next game
   }).catch(function (e) { showToast(_permError(e)); });
 }
 
@@ -813,10 +833,11 @@ function editGame(id) {
   gameForm = { sessionId: currentSession.id, id: id, type: m.type || "md", teamA: (m.teamA || []).slice(), teamB: (m.teamB || []).slice(),
     a: g.a != null ? String(g.a) : "", b: g.b != null ? String(g.b) : "", minutes: m.minutes ? String(m.minutes) : "" };
   _rerenderGameForm();
+  _gfSetOpen(true);
   var box = document.getElementById("gameFormBox"); if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function cancelGameEdit() { gameForm = _blankGameForm(currentSession); _rerenderGameForm(); }
+function cancelGameEdit() { gameForm = _blankGameForm(currentSession); _rerenderGameForm(); _gfSetOpen(false); }
 
 /** Summary card: total games in this session + how many games each player played */
 function _gamesSummaryHtml(list) {

@@ -6362,3 +6362,11 @@ body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 /* v209: Dashboard "Stickers" pack */
 .ico-sticker { flex: none; vertical-align: middle; overflow: visible; }
 .ico-sticker .stk-g path { fill: #fff; }
+
+/* v216: Live score and Add score as two buttons */
+.score-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.score-actions .live-launch { margin: 0; flex-direction: column; justify-content: center; text-align: center; gap: 6px; padding: 14px 8px; min-width: 0; }
+.score-actions .live-launch b { display: block; font-size: 14px; }
+.score-actions .live-launch:only-child { grid-column: 1 / -1; }
+.score-actions .score-add.active { border-color: var(--accent); }
+#gameFormBox.gf-closed { display: none; }
