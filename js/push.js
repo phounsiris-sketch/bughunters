@@ -53,8 +53,7 @@ function enablePush() {
     return fsdb.collection("pushTokens").doc(currentUser.uid).set(data, { merge: true }).then(function () { return token; });
   }).then(function (token) {
     _plog(true, "Saved to Firestore (pushTokens)");
-    localStorage.setItem("pushOn_" + currentUser.uid, "1");
-    localStorage.setItem("pushToken_" + currentUser.uid, token);
+    try { localStorage.setItem("pushOn_" + currentUser.uid, "1"); localStorage.setItem("pushToken_" + currentUser.uid, token); } catch (e) {}
     showToast(t("pushOn") + " ✔");
     setTimeout(renderSettings, 1500);
   }).catch(function (error) {
@@ -71,8 +70,7 @@ function disablePush() {
   job.then(function () {
     try { return firebase.messaging().deleteToken(); } catch (e) { return null; }
   }).catch(function () {}).then(function () {
-    localStorage.removeItem("pushOn_" + currentUser.uid);
-    localStorage.removeItem("pushToken_" + currentUser.uid);
+    try { localStorage.removeItem("pushOn_" + currentUser.uid); localStorage.removeItem("pushToken_" + currentUser.uid); } catch (e) {}
     renderSettings();
   });
 }

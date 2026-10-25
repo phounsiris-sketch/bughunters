@@ -208,7 +208,7 @@ function drawWeekSessionCard(canvas, w, x0, idx, id, fmt) {
   c.textAlign = "left"; c.fillStyle = P.accent; c.font = _schFont(28, 800); c.fillText(t("scMyRange").toUpperCase() + "  \u00b7  " + x0.title, 104, y + 48);
   c.textAlign = "right"; c.fillStyle = P.dim; c.font = _schFont(26, 700); c.fillText(t("scSessionOf").replace("{n}", idx + 1).replace("{m}", x0.list.length), W - 104, y + 48);
   var n = x0.buckets.length, px = 104, pw = W - 208, py = y + 78, bh0 = gh - (sq ? 190 : 230), slot = pw / n, bwid = Math.min(46, slot * .62), mx = Math.max.apply(null, x0.buckets.map(function (b) { return b.min; }).concat([60]));
-  var mine = x0.buckets.map(function (b) { return w.dateKey && b.key === w.dateKey; });
+  var mine = x0.buckets.map(function (b) { return w.dateKey && b.key === (b.key.length === 7 ? w.dateKey.slice(0, 7) : w.dateKey); });   // a year overview has "YYYY-MM" buckets
   x0.buckets.forEach(function (b, k) { var bh = b.min ? Math.max(10, bh0 * b.min / mx) : 0, xx = px + k * slot + (slot - bwid) / 2, lit = !!mine[k];
     if (b.min) { var g = c.createLinearGradient(0, py + bh0 - bh, 0, py + bh0); g.addColorStop(0, lit ? P.accent : "rgba(255,255,255,.5)"); g.addColorStop(1, lit ? P.pill : "rgba(255,255,255,.18)"); c.save(); if (lit) { c.shadowColor = P.accent; c.shadowBlur = 26; } c.fillStyle = g; _scRound(c, xx, py + bh0 - bh, bwid, bh, Math.min(12, bwid / 2)); c.fill(); c.restore(); }
     else { c.fillStyle = "rgba(255,255,255,.14)"; c.fillRect(xx, py + bh0 - 5, bwid, 5); }

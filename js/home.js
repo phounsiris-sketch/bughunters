@@ -36,7 +36,7 @@ function _homePlayCard(me) {
   return _hsCard("hs-play", "court", t("homePlay"), "showPage('stats')",
     '<div class="hs-big">' + played + ' <small>' + t("homeGamesMonth") + '</small></div>' +
     '<div class="hs-dots">' + dots + '</div>' +
-    '<div class="hs-row"><span>' + icon("chart", 18) + ' ' + ratingOf(me) + (delta ? ' ' + (delta > 0 ? '+' : '') + delta : '') + '</span>' +
+    '<div class="hs-row"><span>' + icon("chart", 18) + ' ' + ratingText(me) + (delta ? ' ' + (delta > 0 ? '+' : '') + delta : '') + '</span>' +
     (wr != null ? '<span>' + icon("medal", 18) + ' ' + wr + '% ' + t("homeWinRate") + '</span>' : '') + '</div>');
 }
 
@@ -104,8 +104,8 @@ function _homeRatingCard(me) {
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
   var best = p && p.history && p.history.length ? Math.max.apply(null, p.history.map(function (h) { return h.r; })) : ratingOf(me);   // real peak, not only the last 12
   return _hsCard("hs-rating", "ranking", t("homeRating"), "progressUser=currentUser.uid;statsTab='progress';showPage('stats')",
-    '<div class="hs-big">' + ratingOf(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
-    '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + Math.round(best) + '</span><span>' + icon("court", 14) + ' ' + statsFor(me, "all").played + ' ' + t("gamesWord") + '</span>' +
+    '<div class="hs-big">' + ratingText(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
+    '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + (p && p.comp ? Math.round(best) : '\u2013') + '</span><span>' + icon("court", 14) + ' ' + statsFor(me, "all").played + ' ' + t("gamesWord") + '</span>' +
     '</div>');
 }
 

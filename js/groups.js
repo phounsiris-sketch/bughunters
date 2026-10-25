@@ -845,7 +845,7 @@ function removeMember(mid, isRequest) {
     fsdb.collection("members").doc(mid).delete().then(function () { closeModal(); showToast(t(isRequest ? "decline" : "removeMember") + " ✔"); })
       .catch(function (e) { showToast(_permError(e)); });
   };
-  if (isRequest) _go();
+  if (isRequest) askYes(t("confirmDeclineRequest").replace("{name}", getUserName(m.uid)), _go, { danger: true, yes: t("decline") });
   else askYes(t("removeMemberConfirm").replace("{name}", getUserName(m.uid)), _go, { danger: true, yes: t("removeMember") });
 }
 

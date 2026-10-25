@@ -14,7 +14,7 @@ var COLORS = [
   "#65A30D"  // lime
 ];
 
-var currentTheme = localStorage.getItem("theme") || "dark";
+var currentTheme = (function () { try { return localStorage.getItem("theme"); } catch (e) { return null; } })() || "dark";   // blocked storage must not stop the app booting
 
 /* Dark styles: [id, name key, swatch colours, header colour] */
 var PALETTES = [
@@ -110,7 +110,7 @@ function setPalette(id) {
  */
 function toggleTheme() {
   currentTheme = (currentTheme === "dark") ? "light" : "dark";
-  localStorage.setItem("theme", currentTheme);
+  try { localStorage.setItem("theme", currentTheme); } catch (e) {}
   applyTheme();
   if (typeof currentPage !== "undefined" && (currentPage === "settings" || currentPage === "profile") && typeof renderSettings === "function") renderSettings();
 }
