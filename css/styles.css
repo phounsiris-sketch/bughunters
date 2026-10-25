@@ -4910,7 +4910,8 @@ body.live-on { overflow: hidden; }
 .pf-tile .si { color: var(--accent); }
 .pf-tile b { font-size: 20px; }
 .pf-tile small { font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); }
-.profile-hero2 { padding: 16px; }
+.profile-hero2 { padding: 16px; position: relative; }
+.profile-hero2 .pf-id { padding-right: 46px; }
 .pf-top { display: flex; align-items: center; gap: 14px; }
 .pf-id { min-width: 0; flex: 1; }
 .pf-name { font-size: 18px; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; overflow-wrap: anywhere; }
@@ -6373,3 +6374,7 @@ body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 
 /* v222: market sort */
 .mf-sort { min-height: 44px; }
+
+/* v225: Share my card is a round icon in the corner of the profile card */
+.pf-share-ic { position: absolute; top: 12px; right: 12px; z-index: 2; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.pf-share-ic:active { transform: scale(.94); }

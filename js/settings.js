@@ -169,7 +169,7 @@ function _renderProfileTab() {
     var st = statsFor(me, "all"), wr = pct(st.wins, st.decided);
     var tile = function (v, label) { return '<div class="pf-tile"><b>' + v + '</b><small>' + label + '</small></div>'; };
     html += '<div class="pf-tiles">' + tile(ratingText(me), t("homeRating")) + tile(st.played, t("gamesWord")) + tile(wr, t("homeWinRate")) + '</div>';
-    html += '<button type="button" class="btn-secondary pf-share" onclick="openShareCard()">' + icon("shareOut", 16) + ' ' + t("shareMyCard") + '</button>';
+    html += '<button type="button" class="pf-share-ic" aria-label="' + t("shareMyCard") + '" title="' + t("shareMyCard") + '" onclick="openShareCard()">' + icon("shareOut", 20) + '</button>';
   }
   html += '</div>';
 
