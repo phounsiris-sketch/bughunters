@@ -28,7 +28,7 @@ self.addEventListener('notificationclick', function (e) {
   }));
 });
 
-var CACHE_NAME = 'godsmash-v214';
+var CACHE_NAME = 'godsmash-v215';
 var ASSETS = [
   './',
   './index.html',
