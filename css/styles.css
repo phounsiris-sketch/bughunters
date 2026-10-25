@@ -6378,3 +6378,25 @@ body[data-theme="light"] .poll-q.danger { color: #b91c1c; }
 /* v225: Share my card is a round icon in the corner of the profile card */
 .pf-share-ic { position: absolute; top: 12px; right: 12px; z-index: 2; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .pf-share-ic:active { transform: scale(.94); }
+
+/* v226: photo frames. --s = the photo size, --r = the ring thickness (set in avatarHtml). Original CSS art. */
+.avf { position: relative; display: inline-block; flex: none; vertical-align: middle; width: calc(var(--s) + var(--r) * 2); height: calc(var(--s) + var(--r) * 2); border-radius: 50%; padding: var(--r); box-sizing: border-box; }
+.avf > .in { position: relative; z-index: 1; display: block; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 max(1.5px, calc(var(--r) * .35)) var(--card, #fff); }
+.avf .person-avatar { width: 100% !important; height: 100% !important; font-size: calc(var(--s) * .42) !important; }
+.f-gold { background: conic-gradient(from 210deg, #fde68a, #f59e0b, #b45309, #fcd34d, #fde68a, #d97706, #fde68a); box-shadow: 0 0 calc(var(--s) * .22) rgba(245, 158, 11, .45); }
+.f-gold.big::after { content: ""; position: absolute; z-index: 2; left: 50%; top: calc(var(--r) * -1.6); width: calc(var(--s) * .34); height: calc(var(--s) * .26); translate: -50% 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 26'%3E%3Cpath d='M2 22 L5 6 L12 14 L17 2 L22 14 L29 6 L32 22Z' fill='%23fcd34d' stroke='%23b45309' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='17' cy='17' r='2.4' fill='%23ef4444'/%3E%3C/svg%3E") center / contain no-repeat; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .4)); }
+.f-court { background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 0 calc(var(--s) * .18) rgba(37, 99, 235, .4); }
+.f-court::before { content: ""; position: absolute; inset: calc(var(--r) * .5); border-radius: 50%; border: max(1px, calc(var(--r) * .17)) solid rgba(255, 255, 255, .92); }
+.f-court::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(from -5deg, #fff 0 10deg, transparent 10deg 90deg); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--r) * .5), #000 calc(100% - var(--r) * .5)); mask: radial-gradient(farthest-side, transparent calc(100% - var(--r) * .5), #000 calc(100% - var(--r) * .5)); }
+.f-court .sb { position: absolute; z-index: 3; right: calc(var(--s) * -.04); bottom: calc(var(--s) * -.04); width: calc(var(--s) * .34); height: calc(var(--s) * .34); border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+.f-court .sb svg { width: 72%; height: 72%; }
+.f-neon { box-shadow: 0 0 calc(var(--s) * .25) rgba(168, 85, 247, .5); }
+.f-neon::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #22d3ee, #a855f7, #ec4899, #22d3ee); }
+.f-neon.big::before { animation: frame-spin 6s linear infinite; }   /* only the big photo turns: many small ones would cost battery */
+@keyframes frame-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .f-neon.big::before { animation: none; } }
+.frame-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.frame-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 0; }
+.frame-opt b { font-size: 12px; }
+.frame-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.frame-prev { display: grid; place-items: center; min-height: 66px; }

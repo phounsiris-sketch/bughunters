@@ -310,16 +310,28 @@ function colorFor(uid) {
 }
 
 /** Profile photo if the player has one, otherwise a coloured initial */
-function avatarHtml(uid, size) {
+/** Photo frames (v226): a ring round the photo that a person picks in Profile. Only these words are accepted. */
+var AVATAR_FRAMES = ["gold", "court", "neon"];
+var _FRAME_SHUTTLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(32 12 12)"><path d="M8.6 15.8 4.6 3.9Q12 1.6 19.4 3.9L15.4 15.8Z" fill="#f8fafc" stroke="#64748b" stroke-width="1" stroke-linejoin="round"/><path d="M5.6 6.9Q12 8.6 18.4 6.9" fill="none" stroke="#f97316" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="18.1" r="3.3" fill="#f59e0b" stroke="#b45309" stroke-width=".9"/></g></svg>';
+/** The photo (or the first letter); frame: undefined = the person's own frame, "" = none, or one of AVATAR_FRAMES (used by the chooser) */
+function avatarHtml(uid, size, frame) {
   size = size || 32;
   var u = typeof dbFindById === "function" ? findUser(uid) : null;
   var style = 'width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.42) + 'px';
+  var inner = null;
   if (u && u.avatarUrl) {
     var av = safeUrl(u.avatarUrl);
-    if (av && av.indexOf("img:") !== 0) return '<img class="person-avatar" src="' + escapeHtml(av) + '" alt="" style="' + style + '">';
+    if (av && av.indexOf("img:") !== 0) inner = '<img class="person-avatar" src="' + escapeHtml(av) + '" alt="" style="' + style + '">';
   }
-  var name = typeof plainUserName === "function" ? plainUserName(u) : (u && u.displayName) || "?";
-  return '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
+  if (inner === null) {
+    var name = typeof plainUserName === "function" ? plainUserName(u) : (u && u.displayName) || "?";
+    inner = '<div class="person-avatar" style="background:' + colorFor(uid) + ';' + style + '">' + escapeHtml(name.charAt(0).toUpperCase()) + '</div>';
+  }
+  var fr = frame === undefined ? (u && u.frame) : frame;
+  if (AVATAR_FRAMES.indexOf(fr) < 0 || size < 22) return inner;
+  var r = Math.max(2, Math.round(size * 0.075));
+  return '<span class="avf f-' + fr + (size >= 56 ? ' big' : '') + '" style="--s:' + size + 'px;--r:' + r + 'px"><span class="in">' + inner + '</span>' +
+    (fr === "court" && size >= 56 ? '<span class="sb">' + _FRAME_SHUTTLE + '</span>' : '') + '</span>';
 }
 
 /* ---------- Phone numbers: Lao mobile, +856 20 + 8 digits ---------- */
@@ -490,7 +502,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v225"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v226"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over: reload once so the page runs the new code too
 if ("serviceWorker" in navigator) {

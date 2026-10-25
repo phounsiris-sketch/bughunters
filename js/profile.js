@@ -118,6 +118,27 @@ function aboutCardHtml(part) {
   return html;
 }
 
+/* Photo frame: pick one of three rings (or none); it is saved at once and others see it round the photo (v226) */
+function frameChooserHtml() {
+  var me = currentUser.uid, cur = (currentUserProfile && currentUserProfile.frame) || "";
+  var opts = [["", "frameNone"], ["gold", "frameGold"], ["court", "frameCourt"], ["neon", "frameNeon"]];
+  return '<div class="card" id="frameCard"><div class="card-title">' + icon("user", 14) + ' ' + t("frameTitle") + '</div><div class="form-hint" style="margin-bottom:10px">' + t("frameHint") + '</div>' +
+    '<div class="frame-grid">' + opts.map(function (o) {
+      return '<button type="button" class="frame-opt' + (cur === o[0] ? ' active' : '') + '" aria-pressed="' + (cur === o[0]) + '" onclick="setMyFrame(\'' + o[0] + '\')">' +
+        '<span class="frame-prev">' + avatarHtml(me, 56, o[0]) + '</span><b>' + t(o[1]) + '</b></button>';
+    }).join('') + '</div></div>';
+}
+function setMyFrame(fr) {
+  if (fr && AVATAR_FRAMES.indexOf(fr) < 0) return;
+  dbUpdateUser(currentUser.uid, { frame: fr || null }).then(function () {
+    if (currentUserProfile) currentUserProfile.frame = fr || null;
+    var u = findUser(currentUser.uid); if (u) u.frame = fr || null;
+    showToast(t("frameSaved") + " \u2714");
+    if (typeof updateMeBtn === "function") updateMeBtn();
+    renderSettings();
+  }).catch(function (e) { showToast(_permError(e)); });
+}
+
 /* Date of birth as day / month / year lists — the year is one tap away */
 function _setDobParts(dob) {
   var p = (dob || "").split("-");

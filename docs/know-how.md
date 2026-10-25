@@ -1634,3 +1634,7 @@ The default shuttle glyph looked like a baseball or tennis ball. `SOLAR.shuttle`
 ## v225: Share my card as an icon
 
 On the profile card the wide "Share my card" button is now a round icon button (arrow out of a tray, `aria-label` and tooltip "Share my card") in the top right corner of the card (`.pf-share-ic`); the name column keeps room for it. It opens the same card sheet.
+
+## v226: photo frames
+
+A person picks a frame in Profile > Personal info > Photo frame (None, Gold, Court, Neon; saved at once as `users/{uid}.frame`). `avatarHtml(uid, size, frame)` in js/app.js wraps the photo in `.avf.f-<word>` when the person has a known frame word (`AVATAR_FRAMES`; any other value is ignored) and the photo is at least 22 px; the optional third argument previews a frame (chooser). Gold: gold ring, crown on photos of 56 px or more. Court: blue ring with a white inner line, four service-line marks and a shuttlecock badge (56 px or more). Neon: cyan-violet-pink ring that turns only on photos of 56 px or more and not with reduced motion (many small turning rings would cost battery). Ring thickness is 7.5% of the photo (`--r`), so the framed avatar is a little larger than the plain one. firestore.rules gets `frameOk` on the owner's create and update of `users/{uid}`; it is NOT published yet (needs the Firebase re-login, together with the v211 rules); until then the app still saves the frame because the old rules allow any field. Court dashes (B2) was drawn in the draft but not built. Lao names are unreviewed.
