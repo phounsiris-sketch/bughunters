@@ -1604,3 +1604,7 @@ The Subscription card is the first card of the Settings page, above the Group se
 ## v221: Settings look order
 
 Under App: Language, Appearance, Special themes, then Icon style last (it was before Special themes).
+
+## v222: market sort
+
+The Market tab has a Sort box under the price range: Newest first (as listed, the default), Price low to high, Price high to low, Name A-Z (Lao collation in Lao). Items without a price ("ask") go last in both price orders. Prices are compared as listed: each seller's group currency, with no conversion, like the min and max filters. Clear resets the sort too. tests/market-sort.test.js. Lao labels are unreviewed.

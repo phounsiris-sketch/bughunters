@@ -488,18 +488,18 @@ function loadMarket() {
 
 function _salePrice(g) { return g.salePrice ? fmtMoneyIn(g.salePrice, g.saleCurrency) : t("priceAsk"); }
 
-var marketFilter = { q: "", kind: "", min: "", max: "" };
+var marketFilter = { q: "", kind: "", min: "", max: "", sort: "" };   // sort: "" (as listed) | priceAsc | priceDesc | az
 function setMarketFilter(field, value) {
   marketFilter[field] = value;
   var box = document.getElementById("marketList");
   if (box) box.innerHTML = _marketListHtml(); else renderPublic();
 }
-function clearMarketFilter() { marketFilter = { q: "", kind: "", min: "", max: "" }; renderPublic(); }
+function clearMarketFilter() { marketFilter = { q: "", kind: "", min: "", max: "", sort: "" }; renderPublic(); }
 
 function _marketItems() {
   var city = publicCity(), f = marketFilter, q = f.q.trim().toLowerCase();
   var min = parseMoney(f.min) || 0, max = parseMoney(f.max) || 0;
-  return _market.filter(function (g) {
+  var list = _market.filter(function (g) {
     if (!(g.saleScope === "public" && !g.sold && !isBlockedPair(g.uid) && (city === "all" || !g.saleCity || normCity(g.saleCity) === city))) return false;
     if (f.kind && (g.kind || "other") !== f.kind) return false;
     if (q && (String(g.name || "") + " " + String(g.brand || "") + " " + String(g.note || "")).toLowerCase().indexOf(q) < 0) return false;
@@ -507,6 +507,20 @@ function _marketItems() {
     if (max && !(g.salePrice && g.salePrice <= max)) return false;
     return true;
   });
+  // Sort (v222). Items without a price ("ask") go last in both price orders. Prices are compared as listed (each seller's group currency).
+  var byName = function (a, b) { return String(a.name || "").localeCompare(String(b.name || ""), currentLang === "la" ? "lo" : "en", { sensitivity: "base" }); };
+  if (f.sort === "az") list = list.slice().sort(byName);
+  else if (f.sort === "priceAsc" || f.sort === "priceDesc") {
+    var dir = f.sort === "priceAsc" ? 1 : -1;
+    list = list.slice().sort(function (a, b) {
+      var pa = Number(a.salePrice) || 0, pb = Number(b.salePrice) || 0;
+      if (!pa && !pb) return byName(a, b);
+      if (!pa) return 1;
+      if (!pb) return -1;
+      return (pa - pb) * dir || byName(a, b);
+    });
+  }
+  return list;
 }
 
 function _renderMarket() {
@@ -520,7 +534,10 @@ function _renderMarket() {
     }).join("") + '</div>' +
     '<div class="mf-price"><input class="form-input" inputmode="numeric" placeholder="' + t("priceFrom") + '" value="' + escapeHtml(f.min) + '" oninput="setMarketFilter(\'min\',this.value)"><span>\u2013</span>' +
     '<input class="form-input" inputmode="numeric" placeholder="' + t("priceTo") + '" value="' + escapeHtml(f.max) + '" oninput="setMarketFilter(\'max\',this.value)">' +
-    ((f.q || f.kind || f.min || f.max) ? '<button type="button" class="edit-btn" onclick="clearMarketFilter()" aria-label="' + t("clear") + '">' + icon("close", 14) + '</button>' : '') + '</div></div>';
+    ((f.q || f.kind || f.min || f.max || f.sort) ? '<button type="button" class="edit-btn" onclick="clearMarketFilter()" aria-label="' + t("clear") + '">' + icon("close", 14) + '</button>' : '') + '</div>' +
+    '<select class="form-select mf-sort" aria-label="' + t("marketSort") + '" onchange="setMarketFilter(\'sort\',this.value)">' +
+    [["", "marketSortNew"], ["priceAsc", "marketSortLow"], ["priceDesc", "marketSortHigh"], ["az", "marketSortAz"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (f.sort === o[0] ? ' selected' : '') + '>' + t(o[1]) + '</option>'; }).join('') + '</select></div>';
   html += '<div id="marketList">' + _marketListHtml() + '</div>';
   return html;
 }
