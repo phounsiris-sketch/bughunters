@@ -6568,3 +6568,33 @@ body.tn-open { overflow: hidden; }
 .tn-sum .tn-sum-top li{display:flex;align-items:center;gap:8px}
 .tn-sum .tn-sum-top li span{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--text-muted,#6b7280)}
 .tn-sum .tn-btn.big,.tn-sec .tn-btn.big{margin-top:10px;width:100%}
+
+/* v237 tournament: step tabs, cancel, waiting label, podium with levels, bracket overlaps */
+.tn-st { border: 0; font: inherit; font-size: 12px; font-weight: 700; min-height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tn-st:disabled { opacity: .45; cursor: default; }
+.tn-st.now:not(.on) { box-shadow: inset 0 0 0 1.5px var(--primary); }
+.tn-st:focus-visible, .tn-cancel:focus-visible, .tn-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tn-cancel { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; border-style: dashed; border-color: var(--red); color: var(--red); background: transparent; font-size: 13px; }
+.tn-cancel svg { width: 16px; height: 16px; flex: none; }
+.tn-back { min-height: 40px; }
+.tn-waiting { color: var(--text-muted); font-weight: 600; opacity: .8; }
+.tn-game.wait { opacity: .78; }
+.tn-pbt { flex-wrap: wrap; row-gap: 2px; }
+.tn-pbt span { white-space: nowrap; }
+.tn-pr .tn-pn { flex: 1 1 auto; }
+.tn-pr .tn-ps { flex: none; }
+.tn-pn .tn-who { max-width: 100%; }
+.tn-pn .tn-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.tn-pod { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: end; }
+.tn-pl { background: none; padding: 0; gap: 8px; min-height: 0; border-radius: 0; justify-content: flex-end; }
+.tn-pl.p1, .tn-pl.p2, .tn-pl.p3 { min-height: 0; background: none; }
+.tn-pnm { gap: 6px; }
+.tn-pw { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; max-width: 100%; }
+.tn-pw > span:last-child { overflow-wrap: anywhere; }
+.tn-plinth { width: 100%; border-radius: 10px 10px 2px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: var(--surface); border: 1px solid var(--border); }
+.tn-pl.p1 .tn-plinth { height: 96px; background: var(--tn-goldbg); border-color: var(--tn-gold); }
+.tn-pl.p2 .tn-plinth { height: 72px; }
+.tn-pl.p3 .tn-plinth { height: 52px; }
+.tn-plinth .tn-crown { width: 22px; height: 22px; color: var(--tn-gold); }
+.tn-plinth .tn-medal { font-size: 18px; }
+.tn-st.on.done, .tn-st.on.now { background: var(--primary); color: #fff; box-shadow: none; }
