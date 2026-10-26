@@ -284,6 +284,7 @@ function _lsCountHtml() {
     html += '<div class="ls-scrim" onclick="lsMenu(false)"></div><div class="ls-menu">' +
       '<button type="button" onclick="lsExit()">' + icon("back", 32) + '<span>' + t("lsExit") + '</span></button>' +
       '<button type="button" onclick="lsReset()">' + icon("trash", 32) + '<span>' + t("lsReset") + '</span></button>' +
+      (live.tour && typeof tourLiveSub === "function" ? '<button type="button" onclick="tourLiveSub()">' + icon("users", 32) + '<span>\u21BA ' + t("tourSubBtn") + '</span></button>' : '') +   // v238: a hurt player gets a stand-in, the score goes on
       '<button type="button" onclick="lsOpenSettings()">' + icon("settings", 32) + '<span>' + t("lsSettings") + '</span></button>' +
       (document.documentElement.requestFullscreen ? '<button type="button" onclick="lsFullscreen()">' + icon("scoreboard", 32) + '<span>' + t("lsFullscreen") + '</span></button>' : '') +
       (_lsRemoteOk() ? '<button type="button" class="' + (_remoteOn ? 'on' : '') + '" onclick="lsRemoteToggle()">' + icon("watch", 32) + '<span>' + t("lsRemote") + ' \u00B7 ' + t(_remoteOn ? "lsOn" : "lsOff") + '</span></button>' : '') + '</div>' +

@@ -492,3 +492,164 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
   assert.strictEqual(J(ctx.tourTabParts(T, 1)), J(["stand", "pairs"]), "after the draw no summary");
 })();
 console.log("tournament v228 ok");
+
+/* ============================================================
+   v238: a stand-in for a player who cannot play
+   ============================================================ */
+(function () {
+  function onList(g) { var o = ctx.tourOn(g); return o.a.concat(o.b); }
+  // ---- eligibility: never someone on court, never someone out ----
+  var T = ctx.tourNew(uids(6), seeded(61));
+  playNext(T); playNext(T); playNext(T);   // games 1-3 played
+  var gi = 3, g = T.games[gi], from = g.a[0], on = onList(g);
+  var el = ctx.tourEligible(T, g, from);
+  assert.strictEqual(el.length, 2, "6 players: the 2 resting players can step in");
+  el.forEach(function (i) { assert.ok(on.indexOf(i) < 0 && i !== from, "a stand-in is never on court"); });
+  // ---- auto pick: fewest games, then name ----
+  var names = ["Mee", "Bob", "Lich", "Ton", "Mira", "Nith"], nm = function (i) { return names[i]; };
+  var pick = ctx.tourAutoPick(T, g, from, nm);
+  var load = function (i) { var all = ctx.tourAll(T); return all.slice(0, all.indexOf(g)).filter(function (x) { return onList(x).indexOf(i) >= 0; }).length; };
+  var exp = el.slice().sort(function (x, y) { return load(x) - load(y) || nm(x).localeCompare(nm(y)); })[0];
+  assert.strictEqual(pick, exp, "the app picks the stand-in with the fewest games, then by name");
+  // ---- this game only ----
+  var to = el[0];
+  assert.ok(ctx.tourSub(T, gi, from, to, "injury", "ankle", false, nm), "replace for this game");
+  assert.ok(onList(g).indexOf(to) >= 0 && onList(g).indexOf(from) < 0, "the stand-in is on court");
+  assert.strictEqual(J(g.subs[0]), J({ from: from, to: to, why: "injury", note: "ankle" }));
+  assert.ok(!(T.hurt || []).length, "this game only: nobody is out for good");
+  assert.strictEqual(ctx.tourSub(T, gi, from, el[1], "injury", "", false, nm), false, "the hurt player is not on court any more");
+  // swap the stand-in for the other resting player, then put the first player back
+  assert.ok(ctx.tourSub(T, gi, to, el[1], "other", "", false, nm)); assert.strictEqual(g.subs.length, 1); assert.strictEqual(g.subs[0].to, el[1]);
+  assert.ok(ctx.tourSub(T, gi, el[1], from, "other", "", false, nm)); assert.ok(!g.subs, "the player is back: no stand-in left");
+  // ---- 1b + 2: the stand-in gets the game in the table and in stats; the hurt player does not ----
+  var before = ctx.tourStats(T).filter(function (x) { return x.id === to; })[0].p, beforeH = ctx.tourStats(T).filter(function (x) { return x.id === from; })[0].p;
+  ctx.tourSub(T, gi, from, to, "injury", "", false, nm);
+  ctx.tourApply(T, g, 21, 12);
+  var st = ctx.tourStats(T), sTo = st.filter(function (x) { return x.id === to; })[0], sFrom = st.filter(function (x) { return x.id === from; })[0];
+  assert.strictEqual(sTo.p, before + 1, "the stand-in's game counts for the stand-in");
+  assert.strictEqual(sFrom.p, beforeH, "the hurt player keeps only the games they played");
+  var ms = ctx.tourMatches({ id: "S", tourney: T, date: "2026-10-26" }, "G"), m = ms.filter(function (x) { return x.id === "t:S:" + gi; })[0];
+  assert.ok(m.teamA.concat(m.teamB).indexOf("u" + to) >= 0 && m.teamA.concat(m.teamB).indexOf("u" + from) < 0, "Rankings and Elo: the stand-in played it");
+  // ---- all games left: every later game of the hurt player gets a stand-in ----
+  var U = ctx.tourNew(uids(6), seeded(67)); playNext(U);
+  var g1 = ctx.tourNext(U), gi1 = ctx.tourAll(U).indexOf(g1), h = g1.b[1], e1 = ctx.tourEligible(U, g1, h);
+  assert.ok(ctx.tourSub(U, gi1, h, e1[0], "injury", "", true, nm), "replace for all games left");
+  assert.strictEqual(U.hurt.length, 1); assert.strictEqual(U.hurt[0].i, h);
+  ctx.tourAll(U).forEach(function (x) { if (!ctx.tourDone(x)) assert.ok(onList(x).indexOf(h) < 0, "the hurt player is on court in no game left"); });
+  ctx.tourAll(U).forEach(function (x) { (x.subs || []).forEach(function (sb) { assert.ok(onList(x).filter(function (i) { return i === sb.to; }).length === 1); }); });
+  // play all; the table counts and the playoff draws with the hurt player still in the pairs
+  playRotation(U); ctx.tourDraw(U, seeded(5));
+  assert.ok(U.po.length === 3, "6 players: 3 round-robin games");
+  U.po.forEach(function (x) { if (!ctx.tourDone(x)) assert.ok(onList(x).indexOf(h) < 0, "playoff games get stand-ins too"); });
+  U.po.forEach(function (x) {   // never the hurt player's own partner (they are on court already)
+    (x.subs || []).forEach(function (sb) { var side = x.a.indexOf(sb.from) >= 0 ? x.a : x.b; assert.ok(side.indexOf(sb.to) < 0, "the partner never stands in for their partner"); });
+  });
+  // ---- back in: the games not played yet are his again ----
+  assert.ok(ctx.tourBackIn(U, h, nm)); assert.ok(!(U.hurt || []).length);
+  var open = ctx.tourAll(U).filter(function (x) { return !ctx.tourDone(x); });
+  assert.ok(open.some(function (x) { return x.a.concat(x.b).indexOf(h) >= 0 && onList(x).indexOf(h) >= 0; }), "back in: plays his own games again");
+  open.forEach(function (x) { assert.ok(!(x.subs || []).some(function (sb) { return sb.from === h; })); });
+  assert.strictEqual(ctx.tourBackIn(U, h, nm), false, "not out: nothing to undo");
+  // ---- nobody free: walkover ----
+  var V = ctx.tourNew(uids(6), seeded(71)), vg = V.games[0], vrest = [0, 1, 2, 3, 4, 5].filter(function (i) { return onList(vg).indexOf(i) < 0; });
+  V.hurt = vrest.map(function (i) { return { i: i, why: "left", note: "" }; });   // both resting players already left
+  var vh = vg.a[0];
+  assert.strictEqual(ctx.tourEligible(V, vg, vh).length, 0, "nobody free");
+  assert.strictEqual(ctx.tourSub(V, 0, vh, vrest[0], "injury", "", true, nm), false, "a player who is out cannot step in");
+  assert.ok(ctx.tourSub(V, 0, vh, -1, "injury", "", true, nm), "nobody free: walkover");
+  assert.ok(vg.wo && vg.woHurt === vh && vg.sa === 0 && vg.sb === 21, "the hurt player's team loses by walkover");
+  assert.ok(ctx.tourApply(V, vg, 21, 3).blocked, "a walkover is not a score");
+  var vs = ctx.tourStats(V), vp = vs.filter(function (x) { return x.id === vh; })[0];
+  assert.strictEqual(vp.p, 0, "the hurt player gets no game for the walkover");
+  assert.strictEqual(ctx.tourMatches({ id: "V", tourney: V }, "G").length, 0, "walkovers are not stats games");
+  var W = ctx.tourNew(uids(6), seeded(73)); assert.strictEqual(ctx.tourSub(W, 0, W.games[0].a[0], -1, "injury", "", false, nm), false, "no walkover while someone is free");
+  // ---- old data without subs or hurt stays valid ----
+  var old = ctx.tourNew(uids(8), seeded(79)); delete old.out; playRot(old);
+  assert.ok(ctx.tourOf({ tourney: old }), "no hurt / subs fields: still a tournament");
+  assert.doesNotThrow(function () { ctx.tourStats(old); ctx.tourDraw(old, seeded(2)); ctx.tourMatches({ id: "o", tourney: old }); });
+  // ---- 8 players: a semi stand-in comes from the other semi ----
+  var X = drawn(8, 83), s1 = X.po[0], xh = s1.a[0], xe = ctx.tourEligible(X, s1, xh);
+  assert.strictEqual(xe.length, 4, "8 players: the 4 players of the other semi can step in");
+  xe.forEach(function (i) { assert.ok(X.po[1].a.concat(X.po[1].b).indexOf(i) >= 0); });
+  // ---- row warning: a stand-in on court game after game ----
+  assert.ok(typeof ctx.tourRowRun(X, s1, s1.a[1]) === "number");
+})();
+
+// ---- v238: mid-game in live score: the stand-in finishes, the whole game counts for them ----
+(function () {
+  var T = ctx.tourNew(uids(6), seeded(89)); playNext(T);
+  var g = ctx.tourNext(T), gi = ctx.tourAll(T).indexOf(g), id = function (p) { return T.ids[p]; };
+  var a = g.a.map(id), b = g.b.map(id), restP = [0, 1, 2, 3, 4, 5].filter(function (i) { return g.a.indexOf(i) < 0 && g.b.indexOf(i) < 0; });
+  var hurtU = a[1], subU = id(restP[0]);
+  var la = [a[0], subU], lb = b.slice();
+  // without the stand-in recorded, these teams do not match
+  assert.strictEqual(ctx.tourLiveApply(T, { sid: "S", gi: gi, a: a, b: b }, 21, 18, la, lb), false, "an unknown player is refused");
+  assert.ok(!ctx.tourDone(g));
+  var tour = { sid: "S", gi: gi, a: a, b: b, subs: [{ from: hurtU, to: subU, why: "injury", note: "", all: false }] };
+  assert.ok(ctx.tourLiveApply(T, tour, 18, 21, lb, la), "the live game with a stand-in is accepted (sides swapped too)");
+  assert.ok(ctx.tourDone(g) && g.sa === 21 && g.sb === 18, "score put on the right sides");
+  assert.ok(ctx.tourOn(g).a.indexOf(T.ids.indexOf(subU)) >= 0, "the stand-in is recorded on the game");
+  var ms = ctx.tourMatches({ id: "S", tourney: T }, "G"), m = ms.filter(function (x) { return x.id === "t:S:" + gi; })[0];
+  assert.ok(m.teamA.indexOf(subU) >= 0 && m.teamA.indexOf(hurtU) < 0, "the whole game counts for whoever finished it");
+  // a stand-in that is not allowed (on court) leaves everything as it was
+  var g2 = ctx.tourNext(T), gi2 = ctx.tourAll(T).indexOf(g2), a2 = g2.a.map(id), b2 = g2.b.map(id);
+  var bad = { sid: "S", gi: gi2, a: a2, b: b2, subs: [{ from: a2[0], to: b2[0], why: "injury", note: "" }] };
+  assert.strictEqual(ctx.tourLiveApply(T, bad, 21, 5, [b2[0], a2[1]], b2), false);
+  assert.ok(!ctx.tourDone(g2) && !g2.subs, "nothing changed");
+})();
+
+// ---- v238: the screen: three buttons in one row, the sheet shows photos, asks first ----
+(function () {
+  var tn = fs.readFileSync("js/tournament.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8"), ls = fs.readFileSync("js/livescore.js", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
+  var row = tn.match(/else if \(cur\) h \+= '<div class="tn-gbtns">[^\n]*\n[^\n]*\n[^\n]*/);
+  assert.ok(row && /data-act="live"/.test(row[0]) && /data-act="edit"/.test(row[0]) && /data-act="sub"/.test(row[0]), "Live score, Add score and Replace player sit in the same .tn-gbtns row");
+  assert.ok(/\.tn-gbtns\{display:flex;gap:6px;flex-wrap:nowrap\}/.test(css), "the row never wraps");
+  assert.ok(/tn-pchip[^\n]*avatarHtml\(T\.ids\[i\], 24\)/.test(tn) && /tn-pick[^\n]*avatarHtml\(T\.ids\[i\], 28\)/.test(tn), "who cannot play and who steps in show the profile picture");
+  assert.ok(/askConfirm\(\{ title: title, body: body, kind: "warn", yes: t\("tourSubYes"\)/.test(tn) && /askConfirm\(\{ title: _tnFill\(t\("tourBackInTitle"\)/.test(tn), "replace and back in ask first");
+  assert.ok(/tourLiveSub\(\)/.test(ls) && /tourLiveApply\(T, tour, sa, sb, la, lb/.test(tn), "live score has Replace player and hands the stand-in back");
+  ["tourSubBtn", "tourSubTag", "tourSubRow", "tourRestOut", "tourHurtTitle", "tourBackInTitle", "tourSubNone", "tourSubAll"].forEach(function (k) {
+    assert.strictEqual((i18n.match(new RegExp("\\b" + k + ":", "g")) || []).length, 2, k + " in EN and Lao");
+  });
+})();
+// ---- v238: the screen with a stand-in (stubbed page) ----
+(function () {
+  var els = {}, body = { classList: { add: function () {}, remove: function () {} }, appendChild: function (e) { els[e.id] = e; } };
+  function el(id) { return els[id] || (els[id] = { id: id, innerHTML: "", textContent: "", remove: function () { delete els[id]; } }); }
+  var sess = { id: "s1", date: "2026-10-26", courtName: "Test", players: uids(6), createdBy: "u0" };
+  var c4 = {
+    console: console, Math: Math, JSON: JSON, isFinite: isFinite, setTimeout: function () {}, setInterval: function () { return 1; }, clearInterval: function () {},
+    window: { matchMedia: function () { return { matches: true }; } },
+    document: { getElementById: function (id) { return els[id] || (id === "tnBody" || id === "tnSub" ? el(id) : null); }, body: body, addEventListener: function () {}, removeEventListener: function () {}, querySelector: function () { return null; },
+      createElement: function () { return { setAttribute: function () {}, id: "", className: "", querySelector: function () { return null; }, contains: function () { return false; }, set innerHTML(v) { this._h = v; }, get innerHTML() { return this._h; }, remove: function () { delete els[this.id]; } }; } },
+    lastSessions: [sess], t: function (k) { return "[" + k + "]"; }, icon: function (n) { return "<i:" + n + ">"; }, escapeHtml: function (v) { return String(v).replace(/</g, "&lt;"); }, jsq: String,
+    avatarHtml: function (u) { return "<av " + u + ">"; }, getUserName: function (u) { return "N" + u; }, plainUserName: function (u) { return u ? u.displayName : "?"; }, findUser: function (id) { return { displayName: "P" + id }; },
+    canEditSessionDetails: function () { return true; }, canEditBill: function () { return true; }, fmtDate: function (d) { return d; }, dbUpdateSession: function () { return { then: function (f) { f(); } }; }, dbOnError: function () {}, showToast: function () {},
+    askYes: function (msg, yes, o) { c4.__ask = o || {}; c4.__yes = yes; }, askConfirm: function (o, yes) { c4.__ask = o; c4.__yes = yes; }
+  };
+  vm.createContext(c4); vm.runInContext(src, c4);
+  sess.tourney = c4.tourNew(uids(6), seeded(97));
+  var T = sess.tourney; c4.tourApply(T, T.games[0], 21, 10);
+  c4._tnOpen("s1");
+  var h = els.tnBody.innerHTML, cur = c4.tourNext(T), gi = c4.tourAll(T).indexOf(cur);
+  assert.strictEqual((h.match(/class="tn-gbtns"/g) || []).length, 1, "one button row");
+  assert.ok(/data-act="live"[^]*data-act="edit"[^]*data-act="sub"/.test(h.slice(h.indexOf("tn-gbtns"), h.indexOf("tn-gbtns") + 900)), "the 3 buttons are in that row, in order");
+  var click = function (act, extra) { var attrs = Object.assign({ "data-act": act }, extra || {}); els.tnScreen.onclick({ target: { closest: function () { return { getAttribute: function (k) { return attrs[k]; } }; } } }); };
+  click("sub", { "data-i": String(gi) });
+  var sh = els.tnSubSheet; assert.ok(sh && /tourSubWho/.test(sh.innerHTML) && (sh.innerHTML.match(/<av u\d>/g) || []).length === 4, "the sheet lists the 4 players on court with photos");
+  var sclick = function (attrs) { sh.onclick({ target: { id: "", closest: function () { return { disabled: false, getAttribute: function (k) { return attrs[k] === undefined ? null : attrs[k]; } }; } } }); };
+  var hurt = cur.a[0];
+  sclick({ "data-sact": "from", "data-p": String(hurt) });
+  assert.ok(/tn-pick on/.test(sh.innerHTML) && /tourSubPicked/.test(sh.innerHTML) && (sh.innerHTML.match(/tn-pick[ "]/g) || []).length >= 2, "stand-ins listed with photos, one picked");
+  sclick({ "data-sact": "go" });
+  assert.ok(!els.tnSubSheet && c4.__ask && c4.__ask.title === "[tourSubAsk]", "Replace asks first");
+  assert.ok(!(cur.subs || []).length, "nothing changes before yes");
+  c4.__yes();
+  assert.ok(cur.subs && cur.subs.length === 1 && T.hurt.length === 1, "yes: stand-in on this game and the player is out for the games left");
+  h = els.tnBody.innerHTML;
+  assert.ok(/tn-si/.test(h) && /tourSubTag/.test(h) && /tourRestOut/.test(h) && /tn-hurt/.test(h) && /data-act="back-in"/.test(h), "the game shows the stand-in, the out line and the back-in button");
+  assert.ok(!/undefined|NaN/.test(h), "no undefined or NaN");
+  click("back-in", { "data-p": String(hurt) });
+  assert.ok(c4.__ask && /tourBackInTitle/.test(c4.__ask.title)); c4.__yes();
+  assert.ok(!(T.hurt || []).length && !(cur.subs || []).length, "back in clears the stand-ins of the games left");
+})();
+console.log("tournament v238 ok");
