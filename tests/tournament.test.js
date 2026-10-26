@@ -233,9 +233,17 @@ function eightToSemis(seed) {
   // before any tournament: the card shows the start button
   var card = c2.tourCardHtml(sess);
   assert.ok(/tourBtnStart/.test(card) && /tourCardAct\('s1'\)/.test(card), "card button offers the draw");
-  c2.tourCardAct("s1");   // reduced motion: the draw is made at once
+  c2.tourCardAct("s1");   // v237: asks first; nothing is drawn and no screen opens until yes
+  assert.ok(!sess.tourney && c2.__ask && c2.__ask.title === "[tourStartTitle]" && !els.tnScreen, "start asks before drawing");
+  assert.ok(/\[tourStartBody\]/.test(c2.__ask.body), "the question says what happens");
+  c2.__yes();   // reduced motion: the draw is made at once
   assert.ok(sess.tourney && sess.tourney.games.length === 6, "the draw made a tournament of 6 games");
   var h = rd();
+  assert.ok(/tn-cancel" data-act="reset"/.test(h) && /tourCancelBtn/.test(h), "after the draw a cancel button sits near the top");
+  assert.ok(h.indexOf("tn-cancel") < h.indexOf("tn-steps"), "cancel is above the step tabs");
+  assert.ok(/role="tablist"/.test(h) && /data-k="0" aria-selected="true"/.test(h) && /data-k="1" aria-selected="false" disabled/.test(h), "step tabs: rotation open, later steps wait");
+  assert.strictEqual((h.match(/tn-waiting/g) || []).length, 5, "the 5 games after the up-next one say Waiting");
+  assert.strictEqual((h.match(/data-act="live"/g) || []).length, 1, "only the up-next game has Live score");
   assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourMeetTitle/.test(h) && /tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, who-meets-who, rest and table are shown");
   assert.ok(!/undefined|NaN/.test(h), "no undefined or NaN in the screen");
   // enter a score through the screen's own click handler
@@ -252,6 +260,11 @@ function eightToSemis(seed) {
   c2.tourRender();
   var done = rd();
   assert.ok(/tnWinner/.test(done) && /tourPlace1/.test(done) && /tourBtnWinner/.test(done) && !/undefined|NaN/.test(done), "the winner podium shows");
+  assert.ok(done.indexOf("tn-pl p2") < done.indexOf("tn-pl p1") && done.indexOf("tn-pl p1") < done.indexOf("tn-pl p3"), "podium order: 2nd, 1st, 3rd");
+  assert.ok(/data-place="1"[\s\S]*tn-plinth/.test(done) && !/tn-cancel/.test(done), "podium blocks; no cancel once done");
+  // the tabs: an earlier step can be opened, then back to now
+  click("tab", { "data-k": "0" }); assert.ok(/tourRotTitle/.test(rd()) && !/id="tnWinner"/.test(rd()) && /tourBackToNow/.test(rd()), "Rotation tab shows the rotation only");
+  click("tab", { "data-k": "3" }); assert.ok(/id="tnWinner"/.test(rd()) && !/tourRotTitle/.test(rd()), "back to the winner");
   click("reset"); assert.ok(c2.__ask && /danger/.test(c2.__ask.kind), "reset asks first (danger)");
   // a viewer sees no edit buttons
   c2.canEditSessionDetails = function () { return false; }; c2.canEditBill = function () { return false; };
@@ -461,9 +474,21 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
   assert.ok(/tourSessionsChanged\(\)/.test(ses2), "sessions updates rebuild the stats games");
   assert.ok(/tn-badge/.test(st) && /var canEdit = !tn &&/.test(st), "tournament games show a badge and cannot be edited or deleted from the match list");
   assert.ok(/askConfirm\(\{ title: t\("tourOutTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourOutUndoTitle"\)/.test(src), "marking out and bringing back ask first");
-  assert.ok(/tourOutRotHint/.test(src) && /!T\.drawn\) h \+= '<div class="tn-sec tn-hint"/.test(src), "before the draw the screen offers Reset instead of mark out");
+  assert.ok(/tourOutRotHint/.test(src) && /org && !T\.drawn \? '<div class="tn-sec tn-hint"/.test(src), "before the draw the screen explains Cancel instead of mark out");
   ["tourOutBtn", "tourOutTag", "tourWO", "tourWhy_injury", "tourWhy_left", "tourWhy_other", "tourBadge", "tourOutRotHint"].forEach(function (k) {
     assert.ok(new RegExp("\\b" + k + ":").test(i18n.split("la: {")[0]) || true); assert.ok((i18n.match(new RegExp("\\b" + k + ":", "g")) || []).length === 2, k + " in EN and Lao");
   });
+})();
+// ---- v237: what each step tab shows ----
+(function () {
+  var T = ctx.tourNew(uids(8), seeded(9));
+  assert.strictEqual(J(ctx.tourTabParts(T, 0)), J(["rule", "hint", "rot", "meet", "rest", "stand"]));
+  assert.strictEqual(J(ctx.tourTabParts(T, 1)), J(["sum", "stand", "pairs", "drawsec"]), "before the draw: summary and the draw");
+  assert.strictEqual(J(ctx.tourTabParts(T, 2)), J(["bracket", "po"]));
+  assert.strictEqual(J(ctx.tourTabParts(T, 3)), J(["winner", "bracket"]));
+  assert.strictEqual(ctx._tnViewNow(T), 0);
+  playRotation(T); assert.strictEqual(ctx._tnViewNow(T), 1, "rotation done: Pairs");
+  ctx.tourDraw(T, seeded(3)); assert.strictEqual(ctx._tnViewNow(T), 2, "drawn: the semis are on Playoff");
+  assert.strictEqual(J(ctx.tourTabParts(T, 1)), J(["stand", "pairs"]), "after the draw no summary");
 })();
 console.log("tournament v228 ok");
