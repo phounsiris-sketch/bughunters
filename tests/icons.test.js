@@ -76,9 +76,11 @@ assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("s
 ["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", n, 20)), n + " control stays plain in stickers"); });
 assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", "calendar", 12)), "tiny icons stay plain in stickers");
 ctx._dashCtx = true; ctx.currentDashPack = "sticker"; assert.ok(/ico-sticker/.test(ctx.icon("trophy", 20)) && !/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the sticker pack is used"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
-// the shuttlecock and the scoreboard (Live score) are one hand-drawn picture in every style (v223)
-["box", "neu", "glass", "classic", "tiles", "clay", "sticker"].forEach(function (th) {
-  ["shuttle", "scoreboard"].forEach(function (n) { assert.ok(ctx.iconAs(th, n, 22).indexOf(ctx.SOLAR[n]) > 0, th + ": " + n + " is the drawn glyph"); });
+// v239: v212 icons again. Shuttle and Live score (scoreboard) use the Solar glyphs; on box, neu, glass plates Court shows the shuttlecock and Live score the 7|7 board
+["box", "neu", "glass"].forEach(function (th) {
+  assert.ok(ctx.iconAs(th, "court", 22).indexOf(ctx.SOLAR.shuttle) > 0 && ctx.iconAs(th, "court", 22).indexOf(ctx.SOLAR_BOLD.court) < 0, th + ": Court is the shuttlecock, no ball");
+  assert.ok(ctx.iconAs(th, "scoreboard", 22).indexOf(ctx.SOLAR.scoreboard) > 0 && ctx.iconAs(th, "scoreboard", 22).indexOf(ctx.SOLAR_BOLD.scoreboard) < 0, th + ": Live score is the 7|7 board");
 });
-assert.ok(ctx.SOLAR.shuttle.indexOf("#f59e0b") > 0 && ctx.SOLAR.shuttle.indexOf("url(") < 0, "the shuttle is a feathered cone with a cork, flat colours (no gradient defs needed)");
+assert.ok(ctx.iconAs("classic", "scoreboard", 22).indexOf(ctx.SOLAR.scoreboard) > 0 && ctx.SOLAR.scoreboard.indexOf("#2563eb") < 0, "classic Live score is the grey 7|7 board");
+assert.ok(ctx.SOLAR.shuttle.indexOf("#f59e0b") < 0, "the shuttle is the v212 line drawing, not the orange v223 art");
 console.log("clay pack OK");
