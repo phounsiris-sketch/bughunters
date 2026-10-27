@@ -1261,7 +1261,7 @@ function tourRender() {
   var now = _tnViewNow(T), view = _tnTab === null || _tnTab > now ? now : _tnTab;
   // v237: cancel stays near the top until the tournament is done (the session goes back to normal games)
   if (org && !tourComplete(T) && !_tnAnim) h += '<button type="button" class="tn-b tn-cancel" data-act="reset">' + icon("close", 16) + '<span>' + escapeHtml(t("tourCancelBtn")) + '</span></button>';
-  h += _tnStepper(now, view);
+  h += _tnSteps(now, view);
   h += '<div class="tn-prog"><span>' + escapeHtml(ph === 3 ? _tnFill(t("tourLineDone"), { k: played }) : _tnFill(t("tourProgress"), { k: played + 1, m: T.n === 8 ? "11–12" : "12" })) + '</span><span>' + escapeHtml(_tnFill(t("tourPlayed"), { k: played })) + '</span></div>';
   h += '<div class="tn-bar"><i style="width:' + (ph === 3 ? 100 : Math.round(played / 12 * 100)) + '%"></i></div>';
   h += _tnHurtCard(T, org);
@@ -1278,7 +1278,7 @@ var TOUR_LABELS = ["tourStepRotL", "tourStepPairsL", "tourStepPlayoffL", "tourSt
 var TN_TICK = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /** v245: stepper card. now = the step going on, view = the step on screen. Done steps (tick) open for a look, the current step has the ring,
     later steps are locked (disabled). Same four steps for 6 and 8 players. */
-function _tnStepper(now, view) {
+function _tnSteps(now, view) {
   return '<ol class="tn-steps" aria-label="' + escapeHtml(t("tourTitle")) + '">' + TOUR_LABELS.map(function (k, i) {
     var st = i < now ? 'done' : i === now ? 'now' : 'lock';
     var cls = 'tn-s tn-tab-b ' + st + (i === view ? ' on' : '');
