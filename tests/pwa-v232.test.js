@@ -63,7 +63,7 @@ assert.ok(/cache\.add\(new Request\(u, \{ cache: 'reload' \}\)\)/.test(sw), "fre
   // a permission bar stays when the phone comes online
   doc._els.dbErrBar.remove(); ctx._dbErrorShown = false; ctx.dbOnError({ code: "permission-denied" }, "y"); listeners.online(); assert.ok(doc._els.dbErrBar, "a refused request does not clear by itself");
   var css = read("css/styles.css"), i18n = read("js/i18n.js");
-  assert.ok(/\.db-err \{[^}]*top: calc\(8px \+ env\(safe-area-inset-top/.test(css) && /\.sw-update \{[^}]*bottom: calc\(76px/.test(css), "bars clear the notch and the bottom nav");
+  assert.ok(/\.db-err \{[^}]*top: calc\(8px \+ env\(safe-area-inset-top/.test(css) && /\.sw-update \{[^}]*bottom: calc\(var\(--nav-bar\)/.test(css), "bars clear the notch and the bottom nav");
   ["updateReady", "updateReload", "dbErrPerm", "dbErrPermHint", "dbErrNet", "dbRetry", "dbDismiss"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + Lao"); });
   var db = read("js/db.js"); assert.ok(!/style\.cssText/.test(slice(db, "var _dbErrorShown", "// ── Courts")), "no inline red banner any more");
   assert.ok(app = read("js/app.js"));

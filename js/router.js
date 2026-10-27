@@ -53,10 +53,12 @@ function showPage(page, pushHistory) {
   var navItems = document.querySelectorAll(".nav-item");
   for (var j = 0; j < navItems.length; j++) {
     navItems[j].classList.remove("active");
+    navItems[j].removeAttribute("aria-current");
   }
   var navOf = { "home": "dashboard", "health": "dashboard", "workout": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
-  if (activeNav) activeNav.classList.add("active");
+  if (activeNav) { activeNav.classList.add("active"); activeNav.setAttribute("aria-current", "page"); }
+  positionNavNotch(false);
   if (typeof applyChromeIcons === "function") applyChromeIcons();   // nav bar + app bar icons follow the chosen icon style
   // Settings lives behind the gear in the header
   var gear = document.getElementById("gearBtn");
@@ -262,3 +264,36 @@ function crumbBack() {
   if (_crumbs.length > 1) crumbGo(_crumbs.length - 2);
   else goBack();
 }
+
+
+/* v245: bottom bar notch. The notch and the two bar fillers slide under the active item (transforms only).
+   The x position is measured from the active element, so 3 or 5 slots and any width/orientation work. */
+var NAV_NOTCH_W = 120;
+function positionNavNotch(instant) {
+  var nav = document.getElementById("bottomNav");
+  if (!nav || !nav.offsetWidth) return;
+  var bg = nav.querySelector(".nav-bg");
+  if (!bg) return;
+  var w = nav.clientWidth, act = nav.querySelector(".nav-item.active");
+  var cx = act && act.offsetWidth ? act.offsetLeft + act.offsetWidth / 2 : w + NAV_NOTCH_W;   // no active item: notch parks off-screen
+  var half = NAV_NOTCH_W / 2;
+  if (instant || !nav.getAttribute("data-ready")) nav.classList.add("nav-snap");
+  bg.querySelector(".nb-notch").style.transform = "translateX(" + (cx - half) + "px)";
+  // fillers overlap the notch by 1px each side so no seam shows between them
+  bg.querySelector(".nb-l").style.transform = "translateX(" + (cx - half + 1 - 2 * w) + "px)";
+  bg.querySelector(".nb-r").style.transform = "translateX(" + (cx + half - 1) + "px)";
+  if (nav.classList.contains("nav-snap")) {
+    void nav.offsetWidth;   // commit the jump, then allow motion again
+    nav.classList.remove("nav-snap");
+    nav.setAttribute("data-ready", "1");
+  }
+}
+(function () {
+  if (typeof window === "undefined") return;
+  var again = function () { positionNavNotch(true); };
+  window.addEventListener("resize", again);
+  window.addEventListener("orientationchange", again);
+  window.addEventListener("load", again);
+  var nav = typeof document !== "undefined" && document.getElementById ? document.getElementById("bottomNav") : null;
+  if (nav && typeof ResizeObserver !== "undefined") new ResizeObserver(again).observe(nav);   // also fires when the app shell is first shown
+})();

@@ -149,14 +149,14 @@ function computeNotifications() {
       var mine = L.transfers.filter(function (tr) { return tr.from === me; }).reduce(function (a, tr) { return a + tr.amount; }, 0);
       events.push({ id: "bill_" + s.id, cat: "notif", type: "billReady", time: _tsOf(s.billAt), icon: "sessions",
         text: (mine ? t("nBillOwe").replace("{amount}", fmtLAK(mine)) : t("nBillNothing")) + " • " + fmtDate(s.date),
-        action: "showSessionDetail('" + jsq(s.id) + "')" });
+        action: "showSessionDetail('" + jsq(s.id) + "','bill')" });
     }
     var at = s.settledAt || {}, settled = s.settled || {};
     L.transfers.forEach(function (tr) {
       if (tr.to === me && settled[tr.key] && at[tr.key]) {
         events.push({ id: "paid_" + s.id + "_" + tr.key, cat: "notif", type: "paidToYou", time: _tsOf(at[tr.key]), icon: "wallet",
           text: t("nPaidToYou").replace("{name}", getUserName(tr.from)).replace("{amount}", fmtLAK(tr.amount)),
-          action: "showSessionDetail('" + jsq(s.id) + "')" });
+          action: "showSessionDetail('" + jsq(s.id) + "','bill')" });
       }
       if (tr.from === me && !settled[tr.key]) {
         owe[tr.to] = (owe[tr.to] || 0) + tr.amount;
