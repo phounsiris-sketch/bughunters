@@ -1261,22 +1261,32 @@ function tourRender() {
   var now = _tnViewNow(T), view = _tnTab === null || _tnTab > now ? now : _tnTab;
   // v237: cancel stays near the top until the tournament is done (the session goes back to normal games)
   if (org && !tourComplete(T) && !_tnAnim) h += '<button type="button" class="tn-b tn-cancel" data-act="reset">' + icon("close", 16) + '<span>' + escapeHtml(t("tourCancelBtn")) + '</span></button>';
-  // v237: the four steps are tabs; done steps and the current one can be opened, later ones wait
-  h += '<div class="tn-steps" role="tablist" aria-label="' + escapeHtml(t("tourTitle")) + '">' + TOUR_TABS.map(function (k, i) {
-    var cls = 'tn-st tn-tab-b' + (i === view ? ' on' : '') + (i < now ? ' done' : '') + (i === now ? ' now' : '');
-    return '<button type="button" role="tab" class="' + cls + '" data-act="tab" data-k="' + i + '" aria-selected="' + (i === view) + '"' + (i > now ? ' disabled' : '') + '>' + escapeHtml(t(k)) + '</button>';
-  }).join('') + '</div>';
+  h += _tnStepper(now, view);
   h += '<div class="tn-prog"><span>' + escapeHtml(ph === 3 ? _tnFill(t("tourLineDone"), { k: played }) : _tnFill(t("tourProgress"), { k: played + 1, m: T.n === 8 ? "11–12" : "12" })) + '</span><span>' + escapeHtml(_tnFill(t("tourPlayed"), { k: played })) + '</span></div>';
   h += '<div class="tn-bar"><i style="width:' + (ph === 3 ? 100 : Math.round(played / 12 * 100)) + '%"></i></div>';
   h += _tnHurtCard(T, org);
-  if (view !== now) h += '<button type="button" class="tn-b sm tn-back" data-act="tab" data-k="' + now + '">' + escapeHtml(_tnFill(t("tourBackToNow"), { step: t(TOUR_TABS[now]) })) + '</button>';
+  if (view !== now) h += '<button type="button" class="tn-b sm tn-back" data-act="tab" data-k="' + now + '">' + escapeHtml(_tnFill(t("tourBackToNow"), { step: t(TOUR_LABELS[now]) })) + '</button>';
   if (_tnAnim) h += _tnDrawCard(T);
-  h += '<div role="tabpanel">' + _tnPanel(T, view, ng, ph, org, s) + '</div>';
+  h += '<div class="tn-panel">' + _tnPanel(T, view, ng, ph, org, s) + '</div>';
   body.innerHTML = h;
   if (view === 1 && !T.drawn && _tnSumSeen !== _tnSid) { _tnSumSeen = _tnSid; _tnScroll(".tn-sum"); }
 }
 
 var TOUR_TABS = ["tourStepRot", "tourStepPairs", "tourStepPlayoff", "tourStepWinner"];
+/** v245: the same steps without the "1 " "2 " numbers (the stepper circles carry the number) */
+var TOUR_LABELS = ["tourStepRotL", "tourStepPairsL", "tourStepPlayoffL", "tourStepWinnerL"];
+var TN_TICK = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/** v245: stepper card. now = the step going on, view = the step on screen. Done steps (tick) open for a look, the current step has the ring,
+    later steps are locked (disabled). Same four steps for 6 and 8 players. */
+function _tnStepper(now, view) {
+  return '<ol class="tn-steps" aria-label="' + escapeHtml(t("tourTitle")) + '">' + TOUR_LABELS.map(function (k, i) {
+    var st = i < now ? 'done' : i === now ? 'now' : 'lock';
+    var cls = 'tn-s tn-tab-b ' + st + (i === view ? ' on' : '');
+    var c = st === 'done' ? TN_TICK : String(i + 1);
+    if (i === 3) c += '<span class="tn-bdg" aria-hidden="true">\uD83C\uDFC6</span>';
+    return '<li class="tn-li ' + (i > 0 && i - 1 < now ? 'ln-done' : '') + '"><button type="button" class="' + cls + '" data-act="tab" data-k="' + i + '"' + (i === now ? ' aria-current="step"' : '') + (i > now ? ' disabled' : '') + '><span class="tn-c">' + c + '</span><span class="tn-sl">' + escapeHtml(t(k)) + '</span></button></li>';
+  }).join('') + '</ol>';
+}
 /** v237: the step that is going on now; once the playoff is drawn its games are on the Playoff tab */
 function _tnViewNow(T) {
   var ph = tourPhase(T);

@@ -241,7 +241,7 @@ function eightToSemis(seed) {
   var h = rd();
   assert.ok(/tn-cancel" data-act="reset"/.test(h) && /tourCancelBtn/.test(h), "after the draw a cancel button sits near the top");
   assert.ok(h.indexOf("tn-cancel") < h.indexOf("tn-steps"), "cancel is above the step tabs");
-  assert.ok(/role="tablist"/.test(h) && /data-k="0" aria-selected="true"/.test(h) && /data-k="1" aria-selected="false" disabled/.test(h), "step tabs: rotation open, later steps wait");
+  assert.ok(/<ol class="tn-steps"/.test(h) && /tn-s tn-tab-b now on" data-act="tab" data-k="0" aria-current="step"/.test(h) && /data-k="1" disabled/.test(h), "stepper: rotation is current, later steps wait");
   assert.strictEqual((h.match(/tn-waiting/g) || []).length, 5, "the 5 games after the up-next one say Waiting");
   assert.strictEqual((h.match(/data-act="live"/g) || []).length, 1, "only the up-next game has Live score");
   assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourMeetTitle/.test(h) && /tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, who-meets-who, rest and table are shown");

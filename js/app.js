@@ -513,7 +513,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v244"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v245"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.
@@ -568,7 +568,9 @@ if ("serviceWorker" in navigator) {
 function fillStaticIcons(root) {
   var els = (root || document).querySelectorAll("[data-icon]");
   for (var i = 0; i < els.length; i++) {
-    els[i].innerHTML = icon(els[i].getAttribute("data-icon"), parseInt(els[i].getAttribute("data-size"), 10) || 18);
+    var nm = els[i].getAttribute("data-icon"), sz = parseInt(els[i].getAttribute("data-size"), 10) || 18;
+    // data-plain: the bottom bar always shows the plain glyph, whatever the icon style (v245)
+    els[i].innerHTML = els[i].hasAttribute("data-plain") ? iconAs("classic", nm, sz) : icon(nm, sz);
   }
 }
 fillStaticIcons();

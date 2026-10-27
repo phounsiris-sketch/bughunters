@@ -500,7 +500,7 @@ function _sesDetailsSave(s, sessionId, court, duration, data, ex) {
 
 /** Open the session straight in the bill editor */
 function openSessionBill(sessionId) {
-  showSessionDetail(sessionId);
+  showSessionDetail(sessionId, "bill");
   var tries = 0;
   (function wait() {
     if (currentSession && currentSession.id === sessionId) { if (!sessionEditing) startEditSession(); return; }
@@ -649,11 +649,12 @@ function submitNewSession() {
    ────────────────────────────────────────────────────────── */
 
 /** Tabs inside a session: "bill" (costs, who pays) or "games" (scores) */
-var sessionTab = "bill";
+var sessionTab = "games";
 
 function showSessionDetail(sessionId, tab) {
   if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
-  sessionTab = tab === "games" ? "games" : "bill";
+  // v245: a session opens on Games; callers that want the bill (pay, edit bill) pass "bill"
+  sessionTab = tab === "bill" || !_hasGamesTab() ? "bill" : "games";
   currentSessionId = sessionId;
   currentSession = null;
   sessionEditing = false;
@@ -758,9 +759,9 @@ function _sessionTabsHtml(s) {
   if (!_hasGamesTab()) return trk;
   var n = sessionMatches(s.id).length;
   return trk + '<div class="session-tabs" role="tablist">' +
-    '<button role="tab" class="session-tab' + (sessionTab !== "games" ? ' active' : '') + '" onclick="setSessionTab(\'bill\')">' + icon("bill", 15) + ' ' + t("sessionTabBill") + '</button>' +
-    '<button role="tab" class="session-tab' + (sessionTab === "games" ? ' active' : '') + '" onclick="setSessionTab(\'games\')">' + icon("ranking", 15) + ' ' + t("sessionTabGames") +
-      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button></div>';
+    '<button role="tab" aria-selected="' + (sessionTab === "games") + '" class="session-tab' + (sessionTab === "games" ? ' active' : '') + '" onclick="setSessionTab(\'games\')">' + icon("ranking", 15) + ' ' + t("sessionTabGames") +
+      ' <span class="tab-count" id="sessionTabGamesN">' + n + '</span></button>' +
+    '<button role="tab" aria-selected="' + (sessionTab !== "games") + '" class="session-tab' + (sessionTab !== "games" ? ' active' : '') + '" onclick="setSessionTab(\'bill\')">' + icon("bill", 15) + ' ' + t("sessionTabBill") + '</button></div>';
 }
 
 /** One bar at the bottom with the next thing to do for this game */

@@ -117,7 +117,7 @@ function renderPayments() {
 function _paymentItems(g, side) {
   var html = '<div class="pay-items">';
   g.items.slice().sort(byLatest(function (x) { return x.session.date || ""; })).forEach(function (it) {
-    html += '<div class="pay-item" onclick="showSessionDetail(\'' + jsq(it.session.id) + '\')">' +
+    html += '<div class="pay-item" onclick="showSessionDetail(\'' + jsq(it.session.id) + '\',\'bill\')">' +
       '<div style="min-width:0"><div class="pay-item-date">' + fmtDate(it.session.date) + ' • ' + escapeHtml(it.session.courtName || "") + '</div>' +
       '<div class="person-breakdown">' + transferBreakdownHtml(it.transfer) + '</div></div>' +
       '<div class="pay-item-right"><div class="pay-item-amount">' + fmtLAK(it.transfer.amount) + '</div>' +
