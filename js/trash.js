@@ -10,8 +10,22 @@
 var TRASH_DAYS = 30;
 var TRASH_KINDS = {               // kind -> icon
   session: "sessions", poll: "polls", court: "court",
-  shuttle: "shuttle", player: "users", qr: "qr", backup: "history"
+  shuttle: "shuttle", player: "users", qr: "qr", backup: "history",
+  matches: "scoreboard", hof: "trophy"      // v241: the games and the Hall of Fame record of a deleted session
 };
+var TRASH_MATCH_CHUNK = 200;   // games per trash entry (one entry stays far below 1 MB and one batch below 500 writes)
+
+/** Split a list into parts of at most n (pure) */
+function trashChunk(list, n) {
+  var out = [];
+  for (var i = 0; i < list.length; i += n) out.push(list.slice(i, i + n));
+  return out;
+}
+
+/** The comma-separated ids for ONE Undo. Order matters: the session comes back first (the rules look at it), then its poll, record and games. */
+function cascadeUndoIds(sessionId, pollId, hofId, matchIds) {
+  return [sessionId, pollId, hofId].concat(matchIds || []).filter(Boolean).join(",");
+}
 
 function _trashEntry(kind, collection, docId, label) {
   return withGroup({ kind: kind, collection: collection, docId: docId, label: label,
@@ -66,7 +80,9 @@ function restoreTrash(trashId, quiet) {
     var e = doc.data();
     var ref = fsdb.collection(e.collection).doc(e.docId);
     var batch = fsdb.batch();
-    if (e.field) {
+    if (e.items) {
+      e.items.forEach(function (m) { batch.set(fsdb.collection("matches").doc(m.id), m.data); });   // the games of a deleted session, as they were
+    } else if (e.field) {
       var upd = {};
       upd[e.field] = e.value;
       batch.set(ref, upd, { merge: true });
@@ -105,7 +121,7 @@ function showUndoToast(msg, trashId) {
   _undoTimer = setTimeout(function () { el.classList.remove("show"); }, 8000);
 }
 
-/** trashId may be several ids joined by commas (a session and its poll): one Undo restores them all */
+/** trashId may be several ids joined by commas (a session, its poll, record and games): one Undo restores them all */
 function undoLast(trashId) {
   var el = document.getElementById("undoToast");
   if (el) el.classList.remove("show");

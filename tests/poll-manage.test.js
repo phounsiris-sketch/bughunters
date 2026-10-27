@@ -23,8 +23,11 @@ assert.ok(/\.ls-half \.ls-chip > span:last-child \{[^}]*white-space: normal/.tes
 ["confirmPlanAsk", "confirmApproveMember", "confirmCancelRequest", "confirmRemovePhoto", "confirmWithdrawInvite", "confirmRemoveSale", "lsLoseScoreConfirm"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("confirmations OK");
 
-// v206: a confirmed poll and its session are deleted together; deleting only a poll is fine
-assert.ok(/onclick="deleteSessionAndPoll\(/.test(src) && /function deleteSessionAndPoll\([\s\S]*trashDoc\("session", "sessions"[\s\S]*trashDoc\("poll", "polls"/.test(src), "confirmed poll: delete session and poll together");
-assert.ok(/pl\.status === "confirmed" && pl\.sessionId === sessionId\)\) pl = null;[\s\S]*trashDoc\("poll", "polls", pl\.id/.test(fs.readFileSync("js/sessions.js", "utf8")), "deleting the session by hand also deletes its confirmed poll");
+// v206 -> v241: deleting a confirmed poll removes ONLY the poll (the session stays)
+var fnBody = src.slice(src.indexOf("function deleteSessionAndPoll("), src.indexOf("function cancelPoll("));
+assert.ok(/onclick="deleteSessionAndPoll\(/.test(src) && /trashDoc\("poll", "polls"/.test(fnBody) && !/trashDoc\("session"/.test(fnBody) && !/sessions/.test(fnBody), "confirmed poll: only the poll goes");
+var sesSrc = fs.readFileSync("js/sessions.js", "utf8");
+assert.ok(/pl\.status === "confirmed" && pl\.sessionId === sessionId\)\) pl = null;[\s\S]*trashDoc\("poll", "polls", pl\.id/.test(sesSrc), "deleting the session by hand also deletes its confirmed poll");
 ["unconfirmPoll", "unconfirmPollAsk", "unconfirmPollYes"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
-console.log("delete both OK");
+assert.ok(!/session.*poll.*(both|and the poll)/i.test(i18n.match(/unconfirmPollAsk: "[^"]*"/)[0]) , "poll-delete text does not say the session goes");
+console.log("delete poll only OK");

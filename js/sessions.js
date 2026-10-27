@@ -1760,23 +1760,61 @@ function deleteSessionById(sessionId) {
     if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
     sessionEditing = false;
 
-    // To the trash (30 days) with Undo. A confirmed poll and its session go together (deleting only a poll leaves the session): one Undo brings both back
+    // v241: deleting a session removes everything that belongs to it, all to the trash (30 days), ONE Undo brings it all back:
+    // its games saved in matches/ (Live score, added games), its Hall of Fame record, a confirmed poll, then the session itself
+    // (the games and the record first: the rules look at the session to see who may delete them).
     var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
     if (!(pl && pl.status === "confirmed" && pl.sessionId === sessionId)) pl = null;
-    var label = trashLabelSession(s);
-    trashDoc("session", "sessions", sessionId, label, !!pl)
-      .then(function (sTrash) {
+    var label = trashLabelSession(s), gid = (s && s.groupId) || (typeof currentGroupId !== "undefined" ? currentGroupId : "");
+    var done = { matches: [], hof: null, session: null, poll: null };
+    trashSessionMatches(sessionId, gid, label, done.matches)
+      .then(function () { return trashSessionHof(sessionId, gid, label).then(function (id) { done.hof = id; }); })
+      .then(function () { return trashDoc("session", "sessions", sessionId, label, true).then(function (id) { done.session = id; }); })
+      .then(function () {
         if (!pl) return;
-        return trashDoc("poll", "polls", pl.id, label, true).then(function (pTrash) {
-          showUndoToast(t("movedToTrash").replace("{name}", label), sTrash + "," + pTrash);
-        }, function () { showUndoToast(t("movedToTrash").replace("{name}", label), sTrash); });
+        return trashDoc("poll", "polls", pl.id, label, true).then(function (id) { done.poll = id; }, function () {});
       })
       .then(function () {
+        showUndoToast(t("movedToTrash").replace("{name}", label), cascadeUndoIds(done.session, done.poll, done.hof, done.matches));
         currentSessionId = null;
         showPage("sessions", false);
       })
-      .catch(function (error) { showToast(_permError(error)); });
+      .catch(function (error) {
+        showToast(_permError(error));
+        // Something stopped half way: put back what was already moved, so nothing is left half deleted
+        if (!done.session) cascadeUndoIds(null, null, done.hof, done.matches).split(",").filter(Boolean).forEach(function (id) { restoreTrash(id, true).catch(function () {}); });
+      });
   }, { danger: true, yes: t("delete") });
+}
+
+/** Games of this session saved in matches/ go to the trash, up to TRASH_MATCH_CHUNK per trash entry. Pushes the trash ids into out. */
+function trashSessionMatches(sid, gid, label, out) {
+  return groupScopedFor(fsdb.collection("matches"), gid).where("sessionId", "==", sid).get().then(function (snap) {
+    var items = [];
+    snap.forEach(function (d) { items.push({ id: d.id, data: d.data() }); });
+    return trashChunk(items, TRASH_MATCH_CHUNK).reduce(function (chain, part) {
+      return chain.then(function () {
+        var entry = _trashEntry("matches", "matches", sid, t("trashGamesLabel").replace("{name}", label).replace("{n}", part.length));
+        entry.items = part;
+        var tref = fsdb.collection("trash").doc(), batch = fsdb.batch();
+        batch.set(tref, entry);
+        part.forEach(function (m) { batch.delete(fsdb.collection("matches").doc(m.id)); });
+        return batch.commit().then(function () { out.push(tref.id); });
+      });
+    }, Promise.resolve());
+  });
+}
+
+function groupScopedFor(ref, gid) { return gid ? ref.where("groupId", "==", gid) : ref; }
+
+/** The Hall of Fame record of this session (groups/{gid}/hallOfFame/{sid}), if there is one. Resolves with its trash id or null. */
+function trashSessionHof(sid, gid, label) {
+  if (typeof GROUPS_ON === "undefined" || !GROUPS_ON || !gid) return Promise.resolve(null);
+  if (typeof hofLocalDrop === "function") hofLocalDrop(gid, sid);       // a copy kept on this phone must not bring it back
+  if (typeof _hofSaved !== "undefined") delete _hofSaved[sid];
+  return fsdb.collection("groups").doc(gid).collection("hallOfFame").doc(sid).get().then(function (d) {
+    return d.exists ? trashDoc("hof", "groups/" + gid + "/hallOfFame", sid, label, true) : null;
+  });
 }
 
 function trashLabelSession(s) {
