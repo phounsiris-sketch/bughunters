@@ -1771,3 +1771,10 @@ Found in the live console after the v228-v233 merge: `ReferenceError: jsq is not
 - **Rules (needs publishing by paste):** polls update gets `canIn('editSession') && changed().hasOnly(['responses','voteLog','responseFor'])`. Poll creator / createPoll already could.
 - **Sessions edited before v242:** open Edit session and save (nothing to change): the gate sees tournament players != session players and applies the swap then.
 - Not changed: poll `confirmedPlayers` (only used for backups). Tests: tests/session-swap.test.js.
+
+## v243: The OS dark mode never repaints the app
+- Users pick their theme in Settings; the phone's dark mode must not change it. There is still no `prefers-color-scheme` anywhere (tests/no-os-dark.test.js fails if one appears).
+- Forced darkening (Chrome Android Auto Dark, Samsung Internet, WebView force-dark) is opted out with `color-scheme: only light` / `only dark` (CSS) and `<meta name="color-scheme">` in index.html. `_syncColorScheme()` in applyTheme() keeps the meta and `<html data-theme>` in step on every palette, special and toggle change; a tiny inline script in index.html sets it before first paint for a saved light theme.
+- Native controls, scrollbars and pickers still follow the chosen theme. No `forced-color-adjust` change (Windows high contrast untouched). iOS Safari never force-darkens pages.
+- Samsung Internet (incl. the installed PWA) ignores a plain `color-scheme: light` but respects the `only` keyword, so BOTH the CSS and the meta use `only light` / `only dark`, never plain `light`/`dark`.
+- User-side fallback if a Samsung phone still darkens the app: Samsung Internet > Settings > Labs > turn off "Use websites dark theme".
