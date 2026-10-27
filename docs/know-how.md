@@ -1748,3 +1748,7 @@ Found in the live console after the v228-v233 merge: `ReferenceError: jsq is not
 - `ICON_FIXED` is back to `{ shuttle: 1 }` only (clay, sticker and tiles use the plain shuttle as in v212). Clay/sticker scoreboard and tiles scoreboard are the v212 ones (CLAY_ART scoreboard was not changed by v223).
 - New `PLATE_GLYPH` in js/icons.js: in box, neu and glass the plate draws `court` with the shuttlecock glyph (it was a tennis/baseball-like ball from SOLAR_BOLD since v182) and `scoreboard` with the 7|7 line board (v212 showed a meaningless 3-dash list from SOLAR_BOLD). Both are white glyphs like the other plated icons. Classic Court stays the map pin, tiles/clay/sticker Court stays the racket.
 - Nothing else changed: no glow/shadow, no other icons, v223+ features stay (e.g. shareOut).
+
+## v240: Next game card, tight shadow on neu icon plates
+- With icon style Neu the plates in the "Next game" card (`.home-next`) threw the big neumorphic shadow (5px/11px, white in the light theme) over the teal-blue gradient, a wide white halo. New rule at the end of css/styles.css: `body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu` gets `2px 2px 4px rgba(0,0,0,.18), -1px -1px 2px rgba(255,255,255,.35)`. No `!important`: the selectors beat `body[data-theme="light"] .ico-neu` (one more class) in both themes.
+- Only neu, only in that card. Neu plates elsewhere, box, glass and tiles are unchanged.
