@@ -42,7 +42,7 @@
     var b = document.body;
     b.setAttribute("data-theme", th.mode); if (th.sp) b.setAttribute("data-special", th.sp); else b.removeAttribute("data-special");
     b.setAttribute("data-palette", currentPalette); b.setAttribute("data-lpalette", currentLightPalette);
-    currentIconTheme = icons; _chromeKey = "reset"; applyChromeIcons();
+    var ip = String(icons).split("+"); currentIconTheme = ip[0]; currentDashPack = ip[1] || "clay"; _chromeKey = "reset"; applyChromeIcons();   // "box+3d" = icon style box with the dashboard pack 3d
   }
   function sel(el) {
     var s = el.tagName.toLowerCase(), c = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(function (x) { return x && !/^(active|on|open|sel)$/.test(x); }).slice(0, 2).join(".") : "";
@@ -96,7 +96,7 @@
     }
   }
   var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "public", "groups", "group-create", "trash"];
-  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles"];
+  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d"];
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
     if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
