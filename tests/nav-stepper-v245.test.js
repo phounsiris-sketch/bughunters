@@ -62,13 +62,13 @@ function seeded(seed) { var s = seed >>> 0; return function () { s = (s * 166452
 [6, 8].forEach(function (n) {
   var ids = []; for (var i = 0; i < n; i++) ids.push("u" + i);
   var T = tc.tourNew(ids, seeded(7));
-  var h = tc._tnStepper(tc._tnViewNow(T), 0);
+  var h = tc._tnSteps(tc._tnViewNow(T), 0);
   assert.deepStrictEqual(states(h), ["now*", "lock!", "lock!", "lock!"], n + " players: rotation is current, the rest are locked");
   assert.ok(/aria-label="\[tourTitle\]"/.test(h) && /<ol class="tn-steps"/.test(h), "list with a label");
   assert.ok(/\[tourStepRotL\]/.test(h) && !/\[tourStepRot\]/.test(h), "labels without numbers");
   assert.strictEqual((h.match(/tn-bdg/g) || []).length, 1, "trophy badge on step 4 only");
   while (!tc.tourRotDone(T)) { var g = tc.tourNext(T); tc.tourApply(T, g, 21, 10); }
-  h = tc._tnStepper(tc._tnViewNow(T), 0);
+  h = tc._tnSteps(tc._tnViewNow(T), 0);
   assert.deepStrictEqual(states(h), ["done", "now*", "lock!", "lock!"], n + " players: pairs step after the rotation");
   assert.ok(/tn-tab-b done on/.test(h) && /<svg/.test(h.split("</li>")[0]), "viewed done step is marked on and shows a tick");
   assert.ok(!/data-k="2"[^>]*>/.test(h) || /data-k="2" disabled/.test(h), "locked step cannot be tapped");
