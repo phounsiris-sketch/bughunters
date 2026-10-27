@@ -17,9 +17,9 @@ function loadHome() {
   renderHome();
 }
 
-function _hsCard(cls, iconName, title, onclick, inner) {
+function _hsCard(cls, iconName, title, onclick, inner, key3d) {
   return '<button type="button" class="hs-card ' + cls + '" onclick="' + onclick + '">' +
-    '<div class="hs-title">' + icon(iconName, 16) + ' ' + title + '</div>' + inner + '</button>';
+    '<div class="hs-title">' + icon3(iconName, 28, "", key3d, 16) + ' ' + title + '</div>' + inner + '</button>';
 }
 
 /** Play: games this month, my last results as dots, rating and win rate */
@@ -37,7 +37,7 @@ function _homePlayCard(me) {
     '<div class="hs-big">' + played + ' <small>' + t("homeGamesMonth") + '</small></div>' +
     '<div class="hs-dots">' + dots + '</div>' +
     '<div class="hs-row"><span>' + icon("chart", 18) + ' ' + ratingText(me) + (delta ? ' ' + (delta > 0 ? '+' : '') + delta : '') + '</span>' +
-    (wr != null ? '<span>' + icon("medal", 18) + ' ' + wr + '% ' + t("homeWinRate") + '</span>' : '') + '</div>');
+    (wr != null ? '<span>' + icon("medal", 18) + ' ' + wr + '% ' + t("homeWinRate") + '</span>' : '') + '</div>', "game");
 }
 
 /** Spending: this year's total, a small bar per month, my share */
@@ -205,15 +205,15 @@ function _homeNextCard() {
   var g = _homeNextGame();
   _homeNextKey = g ? g.kind + g.id + (g.phase || "") : "";
   if (!g) {
-    return '<div class="home-next empty"><div class="hs-title">' + icon("sessions", 16) + ' ' + t("homeNextGame") + '</div>' +
+    return '<div class="home-next empty"><div class="hs-title">' + icon3("sessions", 28, "", null, 16) + ' ' + t("homeNextGame") + '</div>' +
       '<div class="hs-muted" style="margin:6px 0 12px">' + t("homeNoNext") + '</div>' +
       '<button class="btn-next" onclick="showCreatePoll()">' + icon("vote", 18) + ' ' + t("homeVote") + '</button></div>';
   }
   var d = new Date(g.date + "T00:00:00"), live = g.phase === "live";
   var tag = live
     ? '<span class="home-live-tag"><i class="live-dot"></i>' + t("momLive") + (g.win && g.win.timed ? ' \u00B7 <span id="homeElapsed" data-start="' + g.win.start + '">' + _elapsedText(Date.now() - g.win.start) + '</span>' : '') + '</span>'
-    : '<span class="home-next-tag">' + icon(g.kind === "poll" ? "vote" : "court", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span>';
-  var inner = '<div class="home-next-top"><div class="hs-title">' + icon("sessions", 16) + ' ' + t(live ? "momPlayingNow" : "homeNextGame") + '</div>' + tag + '</div>' +
+    : '<span class="home-next-tag">' + icon3(g.kind === "poll" ? "vote" : "court", 20, "", g.kind === "poll" ? "poll" : "game", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span>';
+  var inner = '<div class="home-next-top"><div class="hs-title">' + icon3("sessions", 28, "", null, 16) + ' ' + t(live ? "momPlayingNow" : "homeNextGame") + '</div>' + tag + '</div>' +
     '<div class="home-next-body"><div class="home-next-date"><span>' + weekdayShort(d.getDay()) + '</span><b>' + d.getDate() + '</b></div>' +
     '<div class="home-next-info"><div>' + icon("clock", 18) + ' ' + escapeHtml(g.time || "–") + '</div><div>' + icon("pin", 18) + ' ' + escapeHtml(g.court || "–") + '</div></div></div>';
   if (g.kind === "poll") {
@@ -336,18 +336,20 @@ function renderHome() {
   // Moments: what just happened in the group
 
   // 2. Shortcuts and create: see-through glass tiles, one short word each (the page background shows through)
-  var tile = function (iconName, bx, label, onclick) { return '<button type="button" class="hg-tile" onclick="' + onclick + '">' + icon(iconName, 24, "bx" + bx) + '<span>' + label + '</span></button>'; };
+  // px/key: the 3D object (pack "3d", no plate behind it); other packs keep the 24px icon on its box
+  var tile = function (iconName, bx, label, onclick, key, px) { return '<button type="button" class="hg-tile" onclick="' + onclick + '">' + icon3(iconName, px, "bx" + bx, key, 24) + '<span>' + label + '</span></button>'; };
+  var g3 = currentDashPack === "3d" ? " g3d" : "";   // 3D objects stand free: no card behind them
   if (groups) {
-    html += '<div class="hg-grid">' +
-      tile("court", 1, t("homeShortCourt"), "publicTab='games';showPage('public')") +
-      tile("users", 2, t("homeShortFriends"), "publicTab='buddies';showPage('public')") +
-      tile("other", 4, t("homeMarket"), "publicTab='market';showPage('public')") + '</div>';
+    html += '<div class="hg-grid' + g3 + '">' +
+      tile("court", 1, t("homeShortCourt"), "publicTab='games';showPage('public')", "court", 54) +
+      tile("users", 2, t("homeShortFriends"), "publicTab='buddies';showPage('public')", "friends", 54) +
+      tile("other", 4, t("homeMarket"), "publicTab='market';showPage('public')", "market", 54) + '</div>';
   }
-  html += '<div class="hg-head">' + icon("add", 16) + ' <span>' + t("homeCreate") + '</span></div><div class="hg-grid four">' +
-    tile("vote", 3, t("homeVote"), "showCreatePoll()") +
-    tile("court", 1, t("homeGame"), "createAdHocSession()") +
-    tile("manual", 2, t("homeShortScore"), "homeAddScore()") +
-    tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()") + '</div>';
+  html += '<div class="hg-head">' + icon("add", 16) + ' <span>' + t("homeCreate") + '</span></div><div class="hg-grid four' + g3 + '">' +
+    tile("vote", 3, t("homeVote"), "showCreatePoll()", "poll", 44) +
+    tile("court", 1, t("homeGame"), "createAdHocSession()", "game", 44) +
+    tile("manual", 2, t("homeShortScore"), "homeAddScore()", "score", 44) +
+    tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()", "stats", 44) + '</div>';
 
   // 4. Next game (on top instead while it is being played)
   if (!nextLive) html += nextCard;

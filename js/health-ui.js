@@ -113,7 +113,7 @@ function renderHealthPage() {
   var h = myHealth(), age = _healthAge(), ws = myWorkouts();
   var range = healthRangeBounds(_hk, _hoff, new Date()), sum = healthRangeSummary(ws, range);
   var label = _hk === "week" ? _fmtD(range.fromDate, { day: "numeric", month: "short" }) + " – " + _fmtD(range.toDate, { day: "numeric", month: "short" }) : _hk === "month" ? _fmtD(range.fromDate, { month: "long", year: "numeric" }) : String(range.fromDate.getFullYear());
-  var html = '<div class="me-title">' + icon("chart", 22) + ' ' + t("healthTitle") + '</div>' + _seg3(_hk, [["week", t("healthWeek")], ["month", t("healthMonth")], ["year", t("healthYear")]], "healthSetKind");
+  var html = '<div class="me-title">' + icon3("chart", 34, "", "stats", 22) + ' ' + t("healthTitle") + '</div>' + _seg3(_hk, [["week", t("healthWeek")], ["month", t("healthMonth")], ["year", t("healthYear")]], "healthSetKind");
   html += '<div class="card hv-sum"><div class="hv-range"><button type="button" class="hv-nav" aria-label="' + t("healthPrev") + '" onclick="healthMove(-1)">' + icon("prev", 18) + '</button><b>' + escapeHtml(label) + '</b><button type="button" class="hv-nav" aria-label="' + t("healthNext") + '" onclick="healthMove(1)"' + (_hoff >= 0 ? ' disabled' : '') + '>' + icon("next", 18) + '</button></div>' +
     '<div class="hv-big">' + _hmm(sum.totalMin) + ' <small>' + t("hShort").trim() + '</small></div>' +
     '<div class="hv-facts"><div><small>' + t("healthKcal") + '</small><b class="hl-kcal">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") : '–') + '</b></div><div><small>' + t("healthAvgBpm") + '</small><b class="hl-hr">' + (sum.avg || '–') + '</b></div>' +
@@ -122,10 +122,10 @@ function renderHealthPage() {
   // heart rate over the period, always shown (zone bands first, then one point per workout)
   html += '<div class="card" id="hvHeart"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthHeartRate") + '</div>' + healthTrendSvg(sum.items, range, healthZones(h, age)) + '</div>';
   // paths
-  html += '<div class="hv-paths"><button type="button" class="hv-path" onclick="document.getElementById(\'hvZones\').scrollIntoView({behavior:\'smooth\'})">' + icon("chart", 18) + '<span>' + t("healthZonesTitle") + '</span></button>' +
-    '<button type="button" class="hv-path" onclick="document.getElementById(\'hvList\').scrollIntoView({behavior:\'smooth\'})">' + icon("history", 18) + '<span>' + t("healthWorkouts") + '</span></button>' +
-    '<button type="button" class="hv-path" onclick="openPfSub(\'health\')">' + icon("user", 18) + '<span>' + t("healthDetails") + '</span></button>' +
-    '<button type="button" class="hv-path" onclick="openShareCard(\'\',\'overview\')">' + icon("shareOut", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
+  html += '<div class="hv-paths"><button type="button" class="hv-path" onclick="document.getElementById(\'hvZones\').scrollIntoView({behavior:\'smooth\'})">' + icon3("chart", 40, "", "health", 18) + '<span>' + t("healthZonesTitle") + '</span></button>' +
+    '<button type="button" class="hv-path" onclick="document.getElementById(\'hvList\').scrollIntoView({behavior:\'smooth\'})">' + icon3("history", 40, "", "training", 18) + '<span>' + t("healthWorkouts") + '</span></button>' +
+    '<button type="button" class="hv-path" onclick="openPfSub(\'health\')">' + icon3("user", 40, "", "health", 18) + '<span>' + t("healthDetails") + '</span></button>' +
+    '<button type="button" class="hv-path" onclick="openShareCard(\'\',\'overview\')">' + icon3("shareOut", 40, "", "share", 18) + '<span>' + t("shareMyCard") + '</span></button></div>';
   // zones for the range
   var zones = healthZones(h, age);
   html += '<div class="card" id="hvZones"><div class="card-title">' + icon("chart", 14) + ' ' + t("healthZonesTitle") + '</div>' +
@@ -176,19 +176,19 @@ function healthDashCardHtml() {
   if (!currentUser) return "";
   var ws = myWorkouts(), range = healthRangeBounds("week", 0, new Date()), sum = healthRangeSummary(ws, range);
   var bars = sum.buckets.map(function (b) { var m = Math.max.apply(null, sum.buckets.map(function (x) { return x.min; })) || 1; return '<i style="height:' + Math.max(b.min ? 12 : 4, Math.round(b.min / m * 100)) + '%"' + (b.min ? ' class="on"' : '') + '></i>'; }).join("");
-  var path = function (iconName, label, click) { return '<button type="button" class="hd-path" onclick="' + click + '">' + icon(iconName, 16) + '<span>' + label + '</span>' + icon("chevron", 14) + '</button>'; };
-  return '<div class="card hd-card"><button type="button" class="hd-head" onclick="openHealth(\'week\')"><span class="card-title" style="margin:0">' + icon("chart", 14) + ' ' + t("healthTitle") + '</span>' + icon("chevron", 16) + '</button>' +
+  var path = function (iconName, label, click, key3d) { return '<button type="button" class="hd-path" onclick="' + click + '">' + icon3(iconName, 30, "", key3d, 16) + '<span>' + label + '</span>' + icon("chevron", 14) + '</button>'; };
+  return '<div class="card hd-card"><button type="button" class="hd-head" onclick="openHealth(\'week\')"><span class="card-title" style="margin:0">' + icon3("chart", 26, "", "stats", 14) + ' ' + t("healthTitle") + '</span>' + icon("chevron", 16) + '</button>' +
     '<div class="hd-body"><div class="hd-num"><small>' + t("healthThisWeek") + '</small><b>' + _hmm(sum.totalMin) + ' <em>' + t("hShort").trim() + '</em></b>' +
     '<span>' + (sum.hasKcal ? '<span class="hl-kcal">' + sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + '</span> · ' : '') + sum.sessions + ' ' + t("healthSessions") + (sum.avg ? ' · <span class="hl-hr">' + sum.avg + ' bpm</span>' : '') + '</span></div><div class="hd-bars" aria-hidden="true">' + bars + '</div></div>' +
-    '<div class="hd-paths">' + path("calendar", t("healthWeek"), "openHealth('week')") + path("history", t("healthMonth"), "openHealth('month')") + path("scoreboard", t("healthWorkouts"), "openHealth('week','hvList')") +
-    path("chart", t("healthZonesTitle"), "openHealth('week','hvZones')") + path("user", t("healthDetails"), "openPfSub('health')") + path("share", t("shareMyCard"), "openShareCard('','overview')") + '</div></div>';
+    '<div class="hd-paths">' + path("calendar", t("healthWeek"), "openHealth('week')", "calendar") + path("history", t("healthMonth"), "openHealth('month')", "clock") + path("scoreboard", t("healthWorkouts"), "openHealth('week','hvList')", "training") +
+    path("chart", t("healthZonesTitle"), "openHealth('week','hvZones')", "health") + path("user", t("healthDetails"), "openPfSub('health')", "health") + path("share", t("shareMyCard"), "openShareCard('','overview')", "share") + '</div></div>';
 }
 
 /** Home swipe card: this month, one bar per week of the month (W1 to W4/W5), the current week brightest */
 function homeHealthCardHtml() {
   var ws = myWorkouts(), today = new Date(), sum = healthRangeSummary(ws, healthRangeBounds("month", 0, today)), weeks = healthMonthWeeks(ws, today), top = Math.max.apply(null, weeks.map(function (x) { return x.min; })) || 1;
   var bars = weeks.map(function (x) { return '<span class="hw' + (x.now ? ' now' : '') + '"><i style="height:' + Math.max(x.min ? 8 : 4, Math.round(x.min / top * 42)) + 'px"></i><small>' + t("healthWeekShort").replace("{n}", x.n) + '</small></span>'; }).join("");
-  return '<button type="button" class="hs-card hs-health" onclick="openHealth(\'month\')"><div class="hs-title">' + icon("chart", 16) + ' ' + t("healthTitle") + '</div>' +
+  return '<button type="button" class="hs-card hs-health" onclick="openHealth(\'month\')"><div class="hs-title">' + icon3("chart", 28, "", "stats", 16) + ' ' + t("healthTitle") + '</div>' +
     '<div class="hs-big">' + _hmm(sum.totalMin) + ' <small>' + t("healthThisMonth") + '</small></div><div class="hs-health-bars" aria-hidden="true">' + bars + '</div>' +
     '<div class="hs-sub">' + (sum.hasKcal ? sum.kcal.toLocaleString("en-US") + ' ' + t("healthKcalUnit") + ' \u00B7 ' : '') + sum.sessions + ' ' + t("healthSessions") + '</div></button>';
 }

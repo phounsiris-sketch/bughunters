@@ -6635,3 +6635,12 @@ body.tn-open { overflow: hidden; }
 
 /* ===== v240: Next game card: tight shadow on the neu plates (the wide halo spread over the gradient) ===== */
 body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-shadow: 2px 2px 4px rgba(0, 0, 0, .18), -1px -1px 2px rgba(255, 255, 255, .35); }
+
+/* v244: Dashboard pack "3D objects": the object stands alone, never on a plate or box */
+.ico-3d { flex: none; vertical-align: middle; overflow: visible; color: inherit; }
+.hg-tile .ico-3d { margin: -2px 0 0; }
+.hs-title .ico-3d { margin: -5px 0 -5px -3px; }
+.hv-path .ico-3d, .me-title .ico-3d, .hd-path .ico-3d, .hd-head .ico-3d { margin: -4px -2px -4px -4px; }
+.home-next-tag .ico-3d { margin: -3px 0; }
+.hg-grid.g3d .hg-tile { background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding-top: 6px; }
+.hg-grid.g3d .hg-tile:active { background: var(--glass-hi); }

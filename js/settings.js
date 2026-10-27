@@ -300,7 +300,11 @@ function _renderSettingsPage() {
       return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
         ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
     }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
-    _seg([["clay", t("dashPackClay")], ["sticker", t("dashPackSticker")], ["same", t("dashPackSame")]], currentDashPack, "setDashPack"));
+    '<div class="is-grid">' + [["clay", "dashPackClay"], ["sticker", "dashPackSticker"], ["3d", "dashPack3d"], ["same", "dashPackSame"]].map(function (p) {
+      var on = currentDashPack === p[0];
+      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setDashPack(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
+        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(p[0] === "same" ? currentIconTheme : p[0], n, 18); }).join("") + '</span><b>' + t(p[1]) + '</b></button>';
+    }).join("") + '</div>');
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
