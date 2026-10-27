@@ -620,23 +620,13 @@ function deletePoll(pollId) {
   });
 }
 
-/** A confirmed poll and the session made from it go together: both move to Recently deleted (30 days, Undo). Deleting only the poll (Delete poll) leaves the session alone. */
+/** v241: deleting a confirmed poll removes ONLY the poll (30 days, Undo). The session, its bill and its games stay; the session's pollId simply points at nothing. To remove a session use Delete session. */
 function deleteSessionAndPoll(pollId) {
   var poll = _findPoll(pollId);
   if (!poll || !canManagePoll(poll)) { showToast(t("noPermission")); return; }
-  var sid = poll.sessionId, ses = null;
-  lastSessions.forEach(function (x) { if (x.id === sid) ses = x; });
-  var label = ses && typeof trashLabelSession === "function" ? trashLabelSession(ses) : fmtDate(poll.date);
+  var label = (poll.title ? poll.title + " \u00b7 " : "") + fmtDate(poll.date) + (poll.time ? " " + poll.time : "");
   askConfirm({ title: t("unconfirmPollAsk").replace("{name}", label), kind: "danger", yes: t("unconfirmPollYes") }, function () {
-    // One Undo restores both: the session first, then the poll
-    var go = sid && ses
-      ? trashDoc("session", "sessions", sid, label, true).then(function (sTrash) {
-          return trashDoc("poll", "polls", pollId, label, true).then(function (pTrash) {
-            showUndoToast(t("movedToTrash").replace("{name}", label), sTrash + "," + pTrash);
-          });
-        })
-      : trashDoc("poll", "polls", pollId, label);
-    go.catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
+    trashDoc("poll", "polls", pollId, label).catch(function (e) { showToast(typeof _permError === "function" ? _permError(e) : e.message); });
   });
 }
 

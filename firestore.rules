@@ -75,6 +75,14 @@ service cloud.firestore {
       return isSuper() || (isMember(gid) && (get(memberPath(gid)).data.role in ['owner', 'admin']
         || get(memberPath(gid)).data.get('perms', {}).get(p, false) == true));
     }
+    // v241: whoever may delete a session (editSession, or its creator) may also delete and restore its games and its Hall of Fame record.
+    // The session must still exist and belong to that group, so this works only while the session is there (delete the rest first, restore the session first).
+    function sessionMgr(sid, gid) {
+      return isMember(gid) && sid is string && sid.size() > 0 && sid.size() <= 80
+        && exists(/databases/$(database)/documents/sessions/$(sid))
+        && get(/databases/$(database)/documents/sessions/$(sid)).data.get('groupId', '') == gid
+        && (canIn('editSession', gid) || get(/databases/$(database)/documents/sessions/$(sid)).data.get('createdBy', '') == request.auth.uid);
+    }
     function sameGroup() { return gidOf(request.resource.data) == gidOf(resource.data); }
 
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
@@ -113,11 +121,15 @@ service cloud.firestore {
         allow read: if isSuper() || isMember(gid);
         allow create: if idOk(sid) && isMember(gid) && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.sid == sid && request.resource.data.gid == gid && hofOk(request.resource.data);
+        // Restoring the record of a deleted session (Undo): its createdBy stays the original organiser's
+        allow create: if idOk(sid) && sessionMgr(sid, gid)
+          && request.resource.data.sid == sid && request.resource.data.gid == gid && hofOk(request.resource.data);
         allow update: if idOk(sid) && isMember(gid) && request.resource.data.createdBy == resource.data.createdBy
           && request.resource.data.sid == sid && request.resource.data.gid == gid && hofOk(request.resource.data)
           && (resource.data.createdBy == request.auth.uid || canIn('editSession', gid));
         // The organiser who saved it, someone who edits sessions, or a group admin
-        allow delete: if isSuper() || isGroupAdmin(gid) || canIn('editSession', gid) || resource.data.get('createdBy', '') == request.auth.uid;
+        allow delete: if isSuper() || isGroupAdmin(gid) || canIn('editSession', gid) || resource.data.get('createdBy', '') == request.auth.uid
+          || sessionMgr(sid, gid);
       }
       // Names of groups are not secret (public groups are listed; a private
       // group's invite code lives in groupSecrets, which only admins read)
@@ -265,6 +277,9 @@ service cloud.firestore {
       allow create: if request.resource.data.get('groupId', '') != '' && isMember(request.resource.data.groupId)
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.get('confirmed', false) == false;
+      // v241: Undo of a deleted session puts its games back as they were (original recorder, confirmed or not)
+      allow create: if request.resource.data.get('groupId', '') != '' && sessionMgr(request.resource.data.get('sessionId', ''), request.resource.data.groupId)
+        && request.resource.data.teamA is list && request.resource.data.teamB is list;
       allow update: if sameGroup() && isMember(gidOf(resource.data)) && (
         // Confirm: someone on the other team (not the recorder's team)
         (changed().hasOnly(['confirmed', 'confirmedBy', 'confirmedAt']) && request.resource.data.confirmed == true
@@ -277,7 +292,9 @@ service cloud.firestore {
             && request.resource.data.createdBy == resource.data.createdBy)
         || isGroupAdmin(gidOf(resource.data))
       );
-      allow delete: if (isCreator() && resource.data.get('confirmed', false) == false) || isGroupAdmin(gidOf(resource.data));
+      // v241: whoever may delete a session may delete its games (they go to the trash with it)
+      allow delete: if (isCreator() && resource.data.get('confirmed', false) == false) || isGroupAdmin(gidOf(resource.data))
+        || sessionMgr(resource.data.get('sessionId', ''), gidOf(resource.data));
     }
 
     // ── Profile extras ───────────────────────────────────────
