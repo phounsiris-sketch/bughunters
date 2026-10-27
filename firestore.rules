@@ -221,7 +221,9 @@ service cloud.firestore {
           && (!changed().hasAny(['voteLog']) || request.resource.data.voteLog.diff(resource.data.get('voteLog', {})).affectedKeys().hasOnly([request.auth.uid]))
           && resource.data.get('status', 'draft') in ['draft', 'open']
           && (!('closesAt' in resource.data) || request.time.toMillis() < resource.data.closesAt))
-        || canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data))));
+        || canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data)))
+        // v242: whoever edits sessions swaps a player of the linked session: the answer moves to the new player (responses, voteLog, responseFor)
+        || (canIn('editSession', gidOf(resource.data)) && changed().hasOnly(['responses', 'voteLog', 'responseFor'])));
       allow delete: if canIn('createPoll', gidOf(resource.data)) || (isCreator() && isMember(gidOf(resource.data)));
     }
 

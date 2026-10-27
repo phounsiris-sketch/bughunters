@@ -396,6 +396,45 @@ function sesEditToggle(uid) {
   document.getElementById("mSesCount").textContent = _sesEditPlayers.length;
 }
 
+/* ---------- v242: players changed in an edit: the tournament and the linked poll follow ---------- */
+/** Call go(players, ex) once the player list of an edit is settled. ex = null (nothing special) or { swap:{from,to}, tourney:<new value>, cancel:true }.
+    One player out and one in: the new player takes the place in the tournament games not played yet (and in the poll). Any other change while a tournament
+    is running asks first: cancel the tournament, or keep the old player list. The caller writes ex with the session (writeEx) and then calls sessionAfterPlayers. */
+function sessionPlayersGate(s, newPlayers, go) {
+  var T = typeof tourOf === "function" ? tourOf(s) : null, run = T && typeof tourComplete === "function" && !tourComplete(T);
+  var ch = tourPlayersChange(run ? T : null, s.players || [], newPlayers);
+  if (ch.kind === "none") return go(newPlayers, null);
+  if (ch.kind === "swap") {
+    var ex = { swap: { from: ch.from, to: ch.to } };
+    if (run) {
+      var T2 = JSON.parse(JSON.stringify(T)), liveGi = typeof live !== "undefined" && live && live.tour && live.tour.sid === s.id ? [live.tour.gi] : [];   // a live score game in progress keeps its lineup
+      if (tourSwap(T2, ch.from, ch.to, liveGi, function (i) { return plainUserName(findUser(tourUid(T2, i))); })) ex.tourney = T2;
+      else { ex = null; }
+    }
+    if (ex) return go(newPlayers, ex);
+  }
+  if (!run) return go(newPlayers, null);
+  askConfirm({ title: t("tourPlayersTitle"), body: t("tourPlayersBody"), kind: "warn", yes: t("tourCancelYes"), no: t("tourPlayersKeep"),
+    onNo: function () { go((s.players || []).slice(), null); } }, function () { go(newPlayers, { cancel: true }); });
+}
+/** The extra fields of the write (tournament + players belong together in one write) */
+function sessionWriteEx(data, ex) {
+  var w = Object.assign({}, data);
+  if (ex && ex.cancel) w.tourney = firebase.firestore.FieldValue.delete();
+  else if (ex && ex.tourney) w.tourney = ex.tourney;
+  return w;
+}
+/** After the session was saved: the same swap goes to the poll, the open screens see the new tournament */
+function sessionAfterPlayers(s, ex) {
+  if (!ex) return;
+  var cur = s && s.id ? (typeof currentSession !== "undefined" && currentSession && currentSession.id === s.id ? currentSession : s) : s;
+  if (ex.cancel) { cur.tourney = null; s.tourney = null; }
+  else if (ex.tourney) { cur.tourney = ex.tourney; s.tourney = ex.tourney; }
+  if (ex.swap && ex.tourney) showToast(t("tourSwapDone").replace("{to}", plainUserName(findUser(ex.swap.to))).replace("{from}", plainUserName(findUser(ex.swap.from))));
+  if (ex.swap && s.pollId && typeof pollApplySwap === "function")
+    pollApplySwap(s.pollId, ex.swap.from, ex.swap.to).catch(function () { showToast(t("pollSwapFail")); });
+}
+
 /** Edit date / time / court / duration / players from the session card */
 function showSessionDetailsModal(sessionId) {
   var s = null;
@@ -436,6 +475,12 @@ function showSessionDetailsModal(sessionId) {
       players: _sesEditPlayers.slice()
     };
     if (!data.players.length) { showToast(t("fillAllFields")); return; }
+    sessionPlayersGate(s, data.players, function (pl, ex) { data.players = pl; _sesDetailsSave(s, sessionId, court, duration, data, ex); });
+  };
+  openModal();
+}
+function _sesDetailsSave(s, sessionId, court, duration, data, ex) {
+  {
     // Court cost follows the new court / duration if the bill was already entered
     if (s.calculated && canEditBill(s)) {
       var cc = courtCostFor(court, data.time, duration);
@@ -447,11 +492,10 @@ function showSessionDetailsModal(sessionId) {
       if (!disc && s.discount) data.discount = null;
       data.grandTotal = computeLedger(Object.assign({}, s, data)).totals.grand;   // one number everywhere
     }
-    dbUpdateSession(sessionId, data)
-      .then(function () { closeModal(); showToast(t("save") + " ✔"); })
+    dbUpdateSession(sessionId, sessionWriteEx(data, ex))
+      .then(function () { closeModal(); showToast(t("save") + " ✔"); sessionAfterPlayers(s, ex); })
       .catch(function (error) { showToast(_permError(error)); });
-  };
-  openModal();
+  }
 }
 
 /** Open the session straight in the bill editor */
@@ -1582,18 +1626,22 @@ function showAddOtherCost() {
 function saveSessionCosts() {
   if (!edit || !currentSessionId) return;
   var data = _editToSessionData();
-  var canBill = canEditBill(currentSession);
 
   if (data.players.length < 2) { showToast(t("needTwoPlayers")); return; }
   if (!data.courtId) { showToast(t("selectCourt")); return; }
-
+  var s0 = currentSession;
+  sessionPlayersGate(s0, data.players, function (pl, ex) { data.players = pl; _saveSessionCostsGo(s0, data, ex); });
+}
+function _saveSessionCostsGo(s0, data, ex) {
+  var canBill = canEditBill(currentSession);
   if (!canBill) {
     // Details only (date, time, court, players): leave the bill untouched
     var details = {};
     ["date", "time", "duration", "courtId", "courtName", "courtLocation", "pricePerHour", "players"].forEach(function (k) { details[k] = data[k]; });
-    dbUpdateSession(currentSessionId, details)
+    dbUpdateSession(currentSessionId, sessionWriteEx(details, ex))
       .then(function () {
         if (currentSession) Object.assign(currentSession, details);
+        sessionAfterPlayers(s0, ex);
         sessionEditing = false;
         edit = null;
         showToast(t("save") + " \u2714");
@@ -1638,11 +1686,12 @@ function saveSessionCosts() {
       return new Promise(function (res) { askConfirm({ title: t("billChangedTitle"), body: t("billChangedBody"), yes: t("billReplace"), danger: true }, function () { res(true); }); });
     }).catch(function () { return true; });
     guard.then(function (go) { return go ? saveReceipt : Promise.reject({ code: "cancelled" }); })
-      .then(function () { return dbUpdateSession(currentSessionId, data); })
+      .then(function () { return dbUpdateSession(currentSessionId, sessionWriteEx(data, ex)); })
       .then(function () {
         _dropOrphanImgs(oldRefs, _imgRefsOf(data));
         // Show the result straight away, even if the snapshot hasn't arrived yet
         if (currentSession) Object.assign(currentSession, data);
+        sessionAfterPlayers(s0, ex);
         sessionEditing = false;
         edit = null;
         showToast(t("calculateSplit") + " \u2714");

@@ -286,7 +286,7 @@ assert.ok(!/\beval\s*\(|new Function/.test(src), "no eval, no new Function");
 assert.ok(/askYes\(t\("tourResetTitle"\)/.test(src) && /askConfirm\(\{ title: t\("tourCorrect"\)/.test(src), "reset and impact corrections ask first");
 assert.ok(/function tourCanRun\(s\)[^\n]*canEditSessionDetails\(s\) \|\| canEditBill\(s\)/.test(src), "only people who may edit the session run it");
 assert.ok(!/innerHTML[^;\n]*\+\s*(g\.lab|T\.ids\[)/.test(src), "labels and ids are never put in HTML raw");
-assert.ok(/getUserName\(T\.ids/.test(src) && /escapeHtml\(/.test(src), "names are escaped");
+assert.ok(/getUserName\((T\.ids|u\)|tourUid\(T)/.test(src) && /escapeHtml\(/.test(src), "names are escaped");
 assert.ok(/prefers-reduced-motion/.test(css) && /_tnReduced\(\)/.test(src), "the draw shuffle is skipped for reduced motion");
 // v227 hotfix: an old session already had `tournament` = { pairs, at, by } (v48 round robin); that and a half-saved value must not break the list
 (function () {
@@ -604,7 +604,7 @@ console.log("tournament v228 ok");
   var row = tn.match(/else if \(cur\) h \+= '<div class="tn-gbtns">[^\n]*\n[^\n]*\n[^\n]*/);
   assert.ok(row && /data-act="live"/.test(row[0]) && /data-act="edit"/.test(row[0]) && /data-act="sub"/.test(row[0]), "Live score, Add score and Replace player sit in the same .tn-gbtns row");
   assert.ok(/\.tn-gbtns\{display:flex;gap:6px;flex-wrap:nowrap\}/.test(css), "the row never wraps");
-  assert.ok(/tn-pchip[^\n]*avatarHtml\(T\.ids\[i\], 24\)/.test(tn) && /tn-pick[^\n]*avatarHtml\(T\.ids\[i\], 28\)/.test(tn), "who cannot play and who steps in show the profile picture");
+  assert.ok(/tn-pchip[^\n]*avatarHtml\(tourUid\(T, i\), 24\)/.test(tn) && /tn-pick[^\n]*avatarHtml\(tourUid\(T, i\), 28\)/.test(tn), "who cannot play and who steps in show the profile picture");
   assert.ok(/askConfirm\(\{ title: title, body: body, kind: "warn", yes: t\("tourSubYes"\)/.test(tn) && /askConfirm\(\{ title: _tnFill\(t\("tourBackInTitle"\)/.test(tn), "replace and back in ask first");
   assert.ok(/tourLiveSub\(\)/.test(ls) && /tourLiveApply\(T, tour, sa, sb, la, lb/.test(tn), "live score has Replace player and hands the stand-in back");
   ["tourSubBtn", "tourSubTag", "tourSubRow", "tourRestOut", "tourHurtTitle", "tourBackInTitle", "tourSubNone", "tourSubAll"].forEach(function (k) {

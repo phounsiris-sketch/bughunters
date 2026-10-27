@@ -68,10 +68,55 @@ function tourNew(uids, rnd) {
 }
 
 function tourAll(T) { return T.games.concat(T.po); }
+
+/* ---- v242: a player swapped in a session edit. Positions never change; T.swaps = [{ i, from, to, at, old? }] (oldest first):
+   from game number `at` (index in tourAll) position i is `to`; `old` lists later games already played (or live) that keep the player they had.
+   Games before `at` and the games in `old` stay with the earlier player. A tournament without swaps reads exactly as before. ---- */
+/** Index of game g in tourAll(T) (a number passes through), -1 when it is not a game of T */
+function _tourGi(T, g) { return typeof g === "number" ? g : tourAll(T).indexOf(g); }
+/** The user id on position i in game g (a game object or its index); with no game: the CURRENT player of that position */
+function tourUid(T, i, g) {
+  var sw = (T && T.swaps) || [], none = g === undefined || g === null, gi = none ? -1 : _tourGi(T, g), u = T.ids[i];
+  for (var k = 0; k < sw.length; k++) {
+    var x = sw[k];
+    if (x.i !== i) continue;
+    if (none || gi < 0 || (gi >= x.at && (x.old || []).indexOf(gi) < 0)) u = x.to;
+  }
+  return u;
+}
+/** Position whose player in game g (none: now) is user u, -1 when u is not in the tournament */
+function tourPosOf(T, u, g) { for (var i = 0; i < T.n; i++) if (tourUid(T, i, g) === u) return i; return -1; }
+/** Every player of the tournament now, by position */
+function tourCurIds(T) { var o = []; for (var i = 0; i < T.n; i++) o.push(tourUid(T, i)); return o; }
+/** One-for-one swap in a session edit: `to` takes the place of `from` in every game not played yet.
+    keep = indexes of unplayed games that must stay as they are (a live score game in progress). False (nothing changed) when it cannot be done. */
+function tourSwap(T, from, to, keep, nameOf) {
+  if (!T || !from || !to || from === to || tourComplete(T)) return false;
+  var pos = tourPosOf(T, from);
+  if (pos < 0 || tourPosOf(T, to) >= 0) return false;
+  if (tourHurtOf(T, pos)) tourBackIn(T, pos, nameOf);   // the new player is fit: the stand-ins and walkovers of the old one go
+  var all = tourAll(T), at = all.length, old = [], k;
+  for (k = 0; k < all.length; k++) if (!tourDone(all[k])) { at = k; break; }
+  for (k = at; k < all.length; k++) if (tourDone(all[k]) || (keep || []).indexOf(k) >= 0) old.push(k);
+  var x = { i: pos, from: from, to: to, at: at };
+  if (old.length) x.old = old;
+  T.swaps = (T.swaps || []).concat([x]);
+  return true;
+}
+/** How a session edit changes the players of a session with a tournament: "none", "swap" (one out, one in: { from, to }) or "count" (anything else) */
+function tourPlayersChange(T, oldPlayers, newPlayers) {
+  var np = newPlayers || [], cur = T ? tourCurIds(T) : (oldPlayers || []);
+  var out = cur.filter(function (u) { return np.indexOf(u) < 0; }), inn = np.filter(function (u) { return cur.indexOf(u) < 0; });
+  if (!out.length && !inn.length) return { kind: "none" };
+  if (out.length === 1 && inn.length === 1) return { kind: "swap", from: out[0], to: inn[0] };
+  return { kind: "count", out: out, inn: inn };
+}
 function tourNext(T) { var a = tourAll(T); for (var i = 0; i < a.length; i++) if (!tourDone(a[i])) return a[i]; return null; }
 function tourRotDone(T) { return T.games.length > 0 && T.games.every(tourDone); }
 
-/** Rotation table: wins, then point difference, then points for, then the coin drawn at the start */
+/** Rotation table: wins, then point difference, then points for, then the coin drawn at the start.
+    v242: a row is a POSITION: a player swapped in takes over the row (the old player's games stay in it, shown under the current name);
+    the per-player credit of old games lives in tourMatches (Rankings, Elo). */
 function tourStats(T) {
   var st = {}, i, out = [];
   for (i = 0; i < T.n; i++) st[i] = { id: i, w: 0, l: 0, pf: 0, pa: 0, p: 0 };
@@ -438,7 +483,7 @@ function _tourSameSet(x, y) { return x.length === y.length && x.every(function (
 function tourLiveApply(T, tour, sa, sb, la, lb, nameOf) {
   var gi = tour ? tour.gi : -1, g = T && tourAll(T)[gi];
   if (!g || tourDone(g) || g.wo || g.v) return false;
-  var on = tourOn(g), id = function (p) { return T.ids[p]; }, ea = on.a.map(id), eb = on.b.map(id), subs = tour.subs || [];
+  var on = tourOn(g), id = function (p) { return tourUid(T, p, gi); }, ea = on.a.map(id), eb = on.b.map(id), subs = tour.subs || [];
   subs.forEach(function (x) { [ea, eb].forEach(function (arr) { var k = arr.indexOf(x.from); if (k >= 0) arr[k] = x.to; }); });
   la = la || tour.a || []; lb = lb || tour.b || [];
   var flip;
@@ -447,7 +492,7 @@ function tourLiveApply(T, tour, sa, sb, la, lb, nameOf) {
   else return false;
   function put(X) {
     for (var k = 0; k < subs.length; k++) {
-      var x = subs[k], f = X.ids.indexOf(x.from), to = X.ids.indexOf(x.to);
+      var x = subs[k], f = tourPosOf(X, x.from, gi), to = tourPosOf(X, x.to, gi);
       if (f < 0 || to < 0 || !tourSub(X, gi, f, to, x.why, x.note, !!x.all, nameOf)) return false;
     }
     return true;
@@ -465,8 +510,8 @@ function tourMatches(s, gid) {
   var T = tourOf(s), out = [];
   if (!T) return out;
   var base = s.createdAt || 0;
-  function uid(i) { return T.ids[i]; }
   function add(g, idx, stage) {
+    function uid(i) { return tourUid(T, i, idx); }   // v242: the player who was on that position in THAT game
     if (!tourDone(g) || g.wo || g.v || !g.a || !g.b || g.a.length !== 2 || g.b.length !== 2) return;
     var on = tourOn(g), a = on.a.map(uid), b = on.b.map(uid);   // v238: the stand-in gets the game in Rankings and Elo
     if (a.concat(b).some(function (u) { return !u; })) return;
@@ -524,9 +569,10 @@ function tourOf(s) {
 function tourCanRun(s) { return !!s && (canEditSessionDetails(s) || canEditBill(s)); }
 function _tnReduced() { try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
 function _tnFill(str, o) { return String(str).replace(/\{(\w+)\}/g, function (m, k) { return o[k] === undefined ? m : o[k]; }); }
-function _tnPlain(T, i) { return plainUserName(findUser(T.ids[i])); }
-function _tnWho(T, i, sz) { return '<span class="tn-who">' + avatarHtml(T.ids[i], sz || 22) + '<span class="tn-nm">' + getUserName(T.ids[i]) + '</span></span>'; }
-function _tnPairName(T, m) { return m && m.length ? getUserName(T.ids[m[0]]) + " + " + getUserName(T.ids[m[1]]) : t("tourNobody"); }
+/** v242: g = the game (object or index) when the name is for one game; without it the current player of the position */
+function _tnPlain(T, i, g) { return plainUserName(findUser(tourUid(T, i, g))); }
+function _tnWho(T, i, sz, g) { var u = tourUid(T, i, g); return '<span class="tn-who">' + avatarHtml(u, sz || 22) + '<span class="tn-nm">' + getUserName(u) + '</span></span>'; }
+function _tnPairName(T, m) { return m && m.length ? getUserName(tourUid(T, m[0])) + " + " + getUserName(tourUid(T, m[1])) : t("tourNobody"); }
 function _tnPairPlain(T, m) { return m && m.length ? _tnPlain(T, m[0]) + " + " + _tnPlain(T, m[1]) : t("tourNobody"); }
 /** Both players of a side, or a dash when nobody is there (a void game above it) */
 function _tnTeam(T, arr, sz) { return arr && arr.length ? arr.map(function (i) { return _tnWho(T, i, sz || 22); }).join("") : '<span class="tn-who tn-none">\u2014</span>'; }
@@ -536,7 +582,7 @@ function _tnSide(T, g, side, sz) {
   if (!arr.length) return '<span class="tn-who tn-none">—</span>';
   return arr.map(function (i) {
     var sb = tourSubOf(g, i);
-    return _tnWho(T, i, sz || 22) + (sb ? '<span class="tn-si">' + escapeHtml(_tnFill(t("tourSubTag"), { name: _tnPlain(T, sb.from) })) + '</span>' : '');
+    return _tnWho(T, i, sz || 22, g) + (sb ? '<span class="tn-si">' + escapeHtml(_tnFill(t("tourSubTag"), { name: _tnPlain(T, sb.from, g) })) + '</span>' : '');
   }).join("");
 }
 /** v238: "Nith (injury)" for a player who is out */
@@ -757,7 +803,7 @@ function tourStartDraw(s, kind) {
 function tourLivePreset(s) {
   var T = tourOf(s), g = T && tourNext(T);
   if (!g || g.wo || g.v || typeof _lsBlank !== "function") return null;
-  var gi = tourAll(T).indexOf(g), on = tourOn(g), a = on.a.map(function (p) { return T.ids[p]; }), b = on.b.map(function (p) { return T.ids[p]; });
+  var gi = tourAll(T).indexOf(g), on = tourOn(g), a = on.a.map(function (p) { return tourUid(T, p, gi); }), b = on.b.map(function (p) { return tourUid(T, p, gi); });
   var st = _lsBlank(s.id, "md");
   st.a = a; st.b = b; st.tour = { sid: s.id, gi: gi, a: a.slice(), b: b.slice() };
   return st;
@@ -765,7 +811,7 @@ function tourLivePreset(s) {
 function tourStartLive(s, gi) {
   var T = tourOf(s), g = T && tourAll(T)[gi];
   if (!g || tourDone(g) || g.wo || g.v || typeof _lsBlank !== "function" || typeof _lsShow !== "function") return;
-  var on = tourOn(g), a = on.a.map(function (p) { return T.ids[p]; }), b = on.b.map(function (p) { return T.ids[p]; });
+  var on = tourOn(g), a = on.a.map(function (p) { return tourUid(T, p, gi); }), b = on.b.map(function (p) { return tourUid(T, p, gi); });
   live = _lsBlank(s.id, "md");
   live.a = a; live.b = b;
   live.tour = { sid: s.id, gi: gi, a: a.slice(), b: b.slice() };
@@ -911,7 +957,7 @@ function _tnSubDraw() {
   var h = '<div class="sheet tn-subsheet" role="dialog" aria-modal="true" aria-labelledby="tnSubT"><div class="sheet-grab"></div>' +
     '<div class="sheet-title" id="tnSubT">' + escapeHtml(_tnFill(t("tourSubTitle"), { game: lab })) + '</div>' +
     '<div class="tn-lbl">' + escapeHtml(t("tourSubWho")) + '</div><div class="tn-why">' +
-    st.on.map(function (i) { return '<button type="button" class="tn-chip tn-pchip' + (st.from === i ? ' on' : '') + '" data-sact="from" data-p="' + i + '" aria-pressed="' + (st.from === i) + '">' + avatarHtml(T.ids[i], 24) + '<span>' + escapeHtml(_tnPlain(T, i)) + '</span></button>'; }).join('') + '</div>';
+    st.on.map(function (i) { return '<button type="button" class="tn-chip tn-pchip' + (st.from === i ? ' on' : '') + '" data-sact="from" data-p="' + i + '" aria-pressed="' + (st.from === i) + '">' + avatarHtml(tourUid(T, i), 24) + '<span>' + escapeHtml(_tnPlain(T, i)) + '</span></button>'; }).join('') + '</div>';
   if (st.from >= 0) {
     var el2 = tourEligible(T, g, st.from, st.on), nm = _tnNameOf(T);
     if (!st.picked || el2.indexOf(st.to) < 0) { st.to = tourAutoPick(T, g, st.from, nm, st.on); st.picked = false; }
@@ -922,7 +968,7 @@ function _tnSubDraw() {
       '<div class="tn-lbl">' + escapeHtml(t("tourSubIn")) + '</div>';
     if (!el2.length) h += '<p class="tn-subnone" role="note">' + escapeHtml(t("tourSubNone")) + '</p>';
     else h += '<div class="tn-picks">' + el2.map(function (i) {
-      return '<button type="button" class="tn-pick' + (st.to === i ? ' on' : '') + '" data-sact="to" data-p="' + i + '" aria-pressed="' + (st.to === i) + '">' + avatarHtml(T.ids[i], 28) + '<span class="tn-pick-n">' + escapeHtml(_tnPlain(T, i)) + '</span><span class="tn-pick-k">' + escapeHtml(_tnFill(t("tourSubPlayed"), { k: tourPlayed(T, i) })) + '</span>' + (i === auto ? '<span class="tn-pick-t">' + escapeHtml(t("tourSubPicked")) + '</span>' : '') + '</button>';
+      return '<button type="button" class="tn-pick' + (st.to === i ? ' on' : '') + '" data-sact="to" data-p="' + i + '" aria-pressed="' + (st.to === i) + '">' + avatarHtml(tourUid(T, i), 28) + '<span class="tn-pick-n">' + escapeHtml(_tnPlain(T, i)) + '</span><span class="tn-pick-k">' + escapeHtml(_tnFill(t("tourSubPlayed"), { k: tourPlayed(T, i) })) + '</span>' + (i === auto ? '<span class="tn-pick-t">' + escapeHtml(t("tourSubPicked")) + '</span>' : '') + '</button>';
     }).join('') + '</div>';
     h += '<div class="tn-lbl">' + escapeHtml(t("tourSubFor")) + '</div><div class="tn-why">' +
       '<button type="button" class="tn-chip tn-wchip' + (!st.all ? ' on' : '') + '" data-sact="all" data-v="0" aria-pressed="' + !st.all + '">' + escapeHtml(t("tourSubOne")) + '</button>' +
@@ -980,12 +1026,12 @@ function tourLiveSub() {
   if (typeof live === "undefined" || !live || !live.tour) return;
   var s = _tnSession(live.tour.sid), T = tourOf(s);
   if (!T) return;
-  var pos = function (u) { return T.ids.indexOf(u); };
+  var lg = tourAll(T)[live.tour.gi], pos = function (u) { return tourPosOf(T, u, lg); };   // v242: the player of THAT game (a swap applies from a later game)
   var on = live.a.concat(live.b).map(pos).filter(function (i) { return i >= 0; });
   if (typeof lsMenu === "function") lsMenu(false);
   tourOpenSub(s, live.tour.gi, on, function (c) {
     if (!live || !live.tour) return;
-    var fu = T.ids[c.from];
+    var fu = tourUid(T, c.from, lg);
     if (c.to < 0) {   // nobody free: the game ends as a walkover
       var T2 = tourOf(_tnSession(s.id) || s);
       if (!T2 || !tourSub(T2, live.tour.gi, c.from, -1, c.why, c.note, c.all, _tnNameOf(T2))) { showToast(t("tourSubFail")); return; }
@@ -993,7 +1039,7 @@ function tourLiveSub() {
       _tnToast = _tnFill(t("tourSubWoDone"), { from: _tnPlain(T2, c.from) }); _tnToastKeep = true; _tnPut(s); _tnOpen(s.id);
       return;
     }
-    var tu = T.ids[c.to];
+    var tu = tourUid(T, c.to, lg);
     ["a", "b"].forEach(function (k) { var x = live[k].indexOf(fu); if (x >= 0) live[k][x] = tu; });
     live.tour.subs = (live.tour.subs || []).concat([{ from: fu, to: tu, why: c.why, note: c.note, all: c.all }]);
     lsSave(); liveMode = "count"; lsRender();
@@ -1044,15 +1090,15 @@ function _tnGame(T, g, idx, cur, label, org) {
   var on = _tourOnList(g), outs = [], i;
   if (g.ph === "rot") {
     var rest = [];
-    for (i = 0; i < T.n; i++) if (on.indexOf(i) < 0) { if (tourHurtOf(T, i) && (!d || (g.subs || []).some(function (x) { return x.from === i; }))) outs.push(_tnHurtName(T, i)); else rest.push(_tnPlain(T, i)); }
+    for (i = 0; i < T.n; i++) if (on.indexOf(i) < 0) { if (tourHurtOf(T, i) && (!d || (g.subs || []).some(function (x) { return x.from === i; }))) outs.push(_tnHurtName(T, i)); else rest.push(_tnPlain(T, i, g)); }
     h += '<div class="tn-rest">' + escapeHtml(t("tourResting")) + ' ' + escapeHtml(rest.join(", ") || "—") + (outs.length ? ' · ' + escapeHtml(_tnFill(t("tourRestOut"), { names: outs.join(", ") })) : '') + '</div>';
   } else if ((g.subs || []).length) {
-    h += '<div class="tn-rest">' + escapeHtml(_tnFill(t("tourRestOut"), { names: g.subs.map(function (x) { return tourHurtOf(T, x.from) ? _tnHurtName(T, x.from) : _tnPlain(T, x.from) + " (" + t("tourWhy_" + x.why) + ")"; }).join(", ") })) + '</div>';
+    h += '<div class="tn-rest">' + escapeHtml(_tnFill(t("tourRestOut"), { names: g.subs.map(function (x) { return tourHurtOf(T, x.from) ? _tnHurtName(T, x.from) : _tnPlain(T, x.from, g) + " (" + t("tourWhy_" + x.why) + ")"; }).join(", ") })) + '</div>';
   }
-  if (g.wo && g.woHurt !== undefined) h += '<div class="tn-rest">' + escapeHtml(_tnFill(t("tourSubWoLine"), { name: _tnPlain(T, g.woHurt) })) + '</div>';
+  if (g.wo && g.woHurt !== undefined) h += '<div class="tn-rest">' + escapeHtml(_tnFill(t("tourSubWoLine"), { name: _tnPlain(T, g.woHurt, g) })) + '</div>';
   if (!d) (g.subs || []).forEach(function (x) {   // v238: a stand-in with no rest gets a small warning
     var run = tourRowRun(T, g, x.to);
-    if (run >= 3) h += '<div class="tn-warn">' + escapeHtml(_tnFill(t("tourSubRow"), { name: _tnPlain(T, x.to), k: run })) + '</div>';
+    if (run >= 3) h += '<div class="tn-warn">' + escapeHtml(_tnFill(t("tourSubRow"), { name: _tnPlain(T, x.to, g), k: run })) + '</div>';
   });
   if (org && !g.wo && !g.v) {
     if (editing) h += _tnEditor(T, g);
@@ -1068,10 +1114,10 @@ function _tnMeetCard(T) {
   var m = tourMeet(T), n = T.n, rows = "", i, j;
   function k(a, b) { return a < b ? a + "-" + b : b + "-" + a; }
   var head = '<tr><th></th>';
-  for (j = 0; j < n; j++) head += '<th class="c">' + avatarHtml(T.ids[j], 22) + '</th>';
+  for (j = 0; j < n; j++) head += '<th class="c">' + avatarHtml(tourUid(T, j), 22) + '</th>';
   head += '</tr>';
   for (i = 0; i < n; i++) {
-    rows += '<tr><td>' + avatarHtml(T.ids[i], 22) + '</td>';
+    rows += '<tr><td>' + avatarHtml(tourUid(T, i), 22) + '</td>';
     for (j = 0; j < n; j++) {
       if (i === j) { rows += '<td class="c dim">·</td>'; continue; }
       var q = k(i, j), p = m.pc[q] || 0, o = m.oc[q] || 0;
@@ -1088,7 +1134,7 @@ function _tnRestCard(T) {
   for (var p = 0; p < T.n; p++) {
     var pl = 0, cells = "";
     T.games.forEach(function (g) { var on = g.a.indexOf(p) >= 0 || g.b.indexOf(p) >= 0; if (on) pl++; cells += '<i class="tn-rc' + (on ? ' on' : '') + '"></i>'; });
-    rows += '<div class="tn-rr" style="--g:' + G + '"><span class="tn-who">' + avatarHtml(T.ids[p], 22) + '<span class="tn-nm">' + getUserName(T.ids[p]) + '</span></span>' + cells + '<span class="e">' + escapeHtml(_tnFill(t("tourPlayRest"), { p: pl, r: G - pl })) + '</span></div>';
+    rows += '<div class="tn-rr" style="--g:' + G + '"><span class="tn-who">' + avatarHtml(tourUid(T, p), 22) + '<span class="tn-nm">' + getUserName(tourUid(T, p)) + '</span></span>' + cells + '<span class="e">' + escapeHtml(_tnFill(t("tourPlayRest"), { p: pl, r: G - pl })) + '</span></div>';
   }
   return '<div class="tn-sec"><h3>' + escapeHtml(t("tourRestTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourRestHint"), { p: G * 4 / T.n, r: G - G * 4 / T.n, mr: r.rest, mp: r.play })) + '</p><div class="tn-rt">' + rows + '</div></div>';
 }
@@ -1179,7 +1225,7 @@ function _tnWinner(T, sid) {
   // v237: a podium with levels; the pair stands on its block, 1st in the middle and highest
   function pl(k, cls, lab) {
     var p = order[k] >= 0 ? P[order[k]] : null;
-    return '<div class="tn-pl ' + cls + '" data-place="' + (k + 1) + '"><div class="tn-pnm">' + (p ? p.m.map(function (i) { return '<span class="tn-pw">' + avatarHtml(T.ids[i], 32) + '<span>' + getUserName(T.ids[i]) + '</span></span>'; }).join('') : '<span>\u2014</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div>' +
+    return '<div class="tn-pl ' + cls + '" data-place="' + (k + 1) + '"><div class="tn-pnm">' + (p ? p.m.map(function (i) { return '<span class="tn-pw">' + avatarHtml(tourUid(T, i), 32) + '<span>' + getUserName(tourUid(T, i)) + '</span></span>'; }).join('') : '<span>\u2014</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div>' +
       '<div class="tn-plinth">' + (k === 0 ? TN_CROWN : '') + '<span class="tn-medal">' + escapeHtml(lab) + '</span></div></div>';
   }
   return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div><button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
@@ -1189,7 +1235,7 @@ function _tnWinner(T, sid) {
 function _tnSummary(T, org) {
   var r = tourStats(T), top = r.slice(0, 3);
   var h = '<div class="tn-sec tn-sum"><h3>' + escapeHtml(_tnFill(t("tourSumTitle"), { g: T.games.length })) + '</h3><ol class="tn-sum-top">' +
-    top.map(function (x) { var d = x.pf - x.pa; return '<li>' + avatarHtml(T.ids[x.id], 22) + '<b>' + escapeHtml(getUserName(T.ids[x.id])) + '</b><span>' + x.w + '–' + x.l + ' · ' + (d > 0 ? '+' : '') + d + '</span></li>'; }).join('') + '</ol>' +
+    top.map(function (x) { var d = x.pf - x.pa; return '<li>' + avatarHtml(tourUid(T, x.id), 22) + '<b>' + escapeHtml(getUserName(tourUid(T, x.id))) + '</b><span>' + x.w + '–' + x.l + ' · ' + (d > 0 ? '+' : '') + d + '</span></li>'; }).join('') + '</ol>' +
     '<p>' + escapeHtml(t(T.n === 8 ? "tourSumNext8" : "tourSumNext6")) + '</p>';
   if (org) h += '<button type="button" class="tn-btn big" data-act="stage">' + TN_DICE + '<span>' + escapeHtml(T.n === 8 ? t("tourBtnSemi") : t("tourBtnPairs")) + '</span></button>';
   return h + '</div>';
