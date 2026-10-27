@@ -201,7 +201,7 @@ function normalizePoll(p) {
   if (p.answers) {
     return {
       date: p.date, time: p.time, duration: p.duration, courtId: p.courtId, courtName: p.courtName,
-      answers: p.answers, responses: p.responses || {}
+      answers: p.answers, responses: p.responses || {}, responseFor: p.responseFor || {}
     };
   }
   var idx = typeof p.confirmedOption === "number" ? p.confirmedOption : 0;
@@ -210,8 +210,48 @@ function normalizePoll(p) {
   ((p.votes || {})[idx] || []).forEach(function (uid) { responses[uid] = 0; });
   return {
     date: opt.date, time: opt.time, duration: opt.duration, courtId: opt.courtId, courtName: opt.courtName,
-    answers: [t("answerJoin"), t("answerSkip")], responses: responses
+    answers: [t("answerJoin"), t("answerSkip")], responses: responses, responseFor: {}
   };
+}
+
+/* ---------- v242: a player was swapped in the linked session: the new player takes the old player's answer ---------- */
+/** The field updates (dotted paths) that move `from`'s answer to `to`, or null when `from` has no answer.
+    responseFor[to] = the person the answer was first given by ("for MartinyBob"); swapping back clears it. DEL = FieldValue.delete(). Counts do not change. */
+function pollSwapFields(poll, from, to, by, DEL) {
+  var resp = poll && poll.responses || {};
+  if (!from || !to || from === to || !Object.prototype.hasOwnProperty.call(resp, from)) return null;
+  var a = resp[from], rf = poll.responseFor || {}, log = poll.voteLog || {}, fl = log[from], orig = rf[from] || from, upd = {};
+  upd["responses." + to] = a;
+  upd["responses." + from] = DEL;
+  if (fl) {   // keeps the old time, so the order of the answers and the vote notices do not jump
+    upd["voteLog." + to] = { a: a, at: fl.at || 0, by: by || "", "for": orig };
+    upd["voteLog." + from] = DEL;
+  }
+  upd["responseFor." + to] = orig === to ? DEL : orig;
+  if (rf[from] !== undefined && from !== to) upd["responseFor." + from] = DEL;
+  return upd;
+}
+/** Write the move in one transaction (fresh poll). Resolves false when there was nothing to move. */
+function pollApplySwap(pollId, from, to) {
+  var ref = fsdb.collection("polls").doc(pollId), DEL = firebase.firestore.FieldValue.delete();
+  return fsdb.runTransaction(function (tr) {
+    return tr.get(ref).then(function (d) {
+      if (!d.exists) return false;
+      var upd = pollSwapFields(d.data(), from, to, currentUser ? currentUser.uid : "", DEL);
+      if (!upd) return false;
+      tr.update(ref, upd);
+      return true;
+    });
+  });
+}
+/** "↺ for MartinyBob" notes of the people in one answer row */
+function _pollForNotes(np, uids) {
+  var h = '';
+  uids.forEach(function (u) {
+    var f = np.responseFor && np.responseFor[u];
+    if (f && f !== u) h += '<div class="poll-for"><b>' + escapeHtml(plainUserName(findUser(u))) + '</b> ' + escapeHtml(t("pollForTag").replace("{name}", plainUserName(findUser(f)))) + '</div>';
+  });
+  return h;
 }
 
 function _pollAnswerUids(np, idx) {
@@ -276,7 +316,7 @@ function _renderPollCard(poll) {
   for (var ai = 0; ai < np.answers.length; ai++) {
     var vu = _pollAnswerUids(np, ai);
     whoHtml += '<div class="poll-who-row"><b>' + escapeHtml(answerLabel(np.answers[ai])) + '</b> <span class="vote-count">' + vu.length + (ai === 0 ? '/' + minPlayers : '') + '</span>' +
-      (vu.length ? '<div class="poll-voters">' + peopleHtml(vu, 22, 8) + '</div>' : '') + '</div>';
+      (vu.length ? '<div class="poll-voters">' + peopleHtml(vu, 22, 8) + '</div>' + _pollForNotes(np, vu) : '') + '</div>';
   }
   if (isVotable) {
     if (myAnswer == null || myAnswer < 0) html += '<div class="vote-hint">' + t('voteTapHint') + '</div>';

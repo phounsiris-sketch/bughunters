@@ -12,7 +12,7 @@ var HOF_LOCAL_MAX = 50;
 
 function _hofTeam(T, m, nameOf) {
   if (typeof m !== "number" || m < 0 || !T.__P || !T.__P[m]) return null;   // pair 0 is a real pair
-  var pr = T.__P[m].m, uids = [T.ids[pr[0]], T.ids[pr[1]]];
+  var pr = T.__P[m].m, uids = [tourUid(T, pr[0]), tourUid(T, pr[1])];   // v242: the player on the position now (a swapped-in player is the champion)
   return { uids: uids, names: uids.map(function (u) { return String(nameOf(u) || "").slice(0, 60); }) };
 }
 
