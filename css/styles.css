@@ -1697,10 +1697,12 @@ textarea {
 /* ========== Themed dropdown (js/select.js) ==========
    Same language as the poll option cards: surface background,
    1px border, 10px radius, accent border + check when selected. */
-:root { color-scheme: dark; }
-[data-theme="light"] { color-scheme: light; }
-body[data-theme="light"] { color-scheme: light; }
-body[data-theme="dark"] { color-scheme: dark; }
+/* "only" = the app's own colours are final: browsers' forced darkening (Chrome Auto Dark, Samsung Internet, WebView force-dark) must not repaint them.
+   Native controls, scrollbars and pickers still follow the chosen theme. js/app.js applyTheme() mirrors this in <meta name="color-scheme">. */
+:root { color-scheme: only dark; }
+:root[data-theme="light"], [data-theme="light"] { color-scheme: only light; }
+body[data-theme="light"] { color-scheme: only light; }
+body[data-theme="dark"] { color-scheme: only dark; }
 
 .cs-native {
   position: absolute !important;

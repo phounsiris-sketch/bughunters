@@ -76,6 +76,16 @@ function _syncHeaderVar() {
 window.addEventListener("resize", _syncHeaderVar);
 window.addEventListener("load", _syncHeaderVar);
 
+/** The app's own colours are final: tell the browser (meta + root) so OS dark mode / forced darkening never repaints them */
+function _syncColorScheme(light) {
+  var cs = light ? "only light" : "only dark";
+  var m = document.querySelector('meta[name="color-scheme"]');
+  if (m) m.setAttribute("content", cs);
+  var sm = document.querySelector('meta[name="supported-color-schemes"]');
+  if (sm) sm.setAttribute("content", light ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+}
+
 /** Apply theme + dark style to the page and the phone's status bar */
 function applyTheme() {
   document.body.setAttribute("data-theme", currentTheme);
@@ -86,6 +96,7 @@ function applyTheme() {
   var list = light ? LIGHT_PALETTES : PALETTES, id = light ? currentLightPalette : currentPalette;
   var pal = list.filter(function (p) { return p[0] === id; })[0] || list[0];
   var sp = !light && currentSpecial ? SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0] : null;
+  _syncColorScheme(light);
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", sp ? sp[3] : pal[3]);
   _syncHeaderVar();
@@ -502,7 +513,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v242"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v243"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.
