@@ -244,6 +244,21 @@ function tourPlayersChange(T, oldPlayers, newPlayers) {
   return { kind: "count", out: out, inn: inn };
 }
 function tourNext(T) { var a = tourAll(T); for (var i = 0; i < a.length; i++) if (!tourDone(a[i])) return a[i]; return null; }
+/** v265: a best-of-3 game (3rd place or final series) that may be played in any order against the other series: the series games are only
+    added when the series asks for them (game 2 after game 1, game 3 only at 1-1), so every pending one is really needed. A walkover or void game is not played. */
+function tourAnyOrder(T, g) {
+  if (!T || !g || g.ph !== "po" || tourDone(g) || g.wo || g.v) return false;
+  return !!(g.th || g.fin || g.lab === "T") && T.po.indexOf(g) >= 0;
+}
+/** How many games can be played right now in any order (2 or more = the hint "play in any order" makes sense) */
+function tourAnyOrderCount(T) { return T ? T.po.filter(function (g) { return tourAnyOrder(T, g); }).length : 0; }
+/** v265: the index of a game by its label when games moved (a series game 2 or 3 was added before it); a rotation game has no label and keeps its index */
+function tourResolveGi(T, gi, lab) {
+  var all = T ? tourAll(T) : [];
+  if (!lab || (all[gi] && all[gi].lab === lab)) return gi;
+  for (var i = 0; i < all.length; i++) if (all[i].lab === lab) return i;
+  return gi;
+}
 function tourRotDone(T) { return T.games.length > 0 && T.games.every(tourDone); }
 
 /** Rotation table: wins, then point difference, then points for, then the coin drawn at the start.
@@ -658,7 +673,7 @@ function _tourSameSet(x, y) { return x.length === y.length && x.every(function (
     The teams must be the game's players with those stand-ins (either side first). The stand-ins are written first, then the score.
     Returns false (and changes nothing) when the teams do not match or a stand-in is not allowed any more. */
 function tourLiveApply(T, tour, sa, sb, la, lb, nameOf) {
-  var gi = tour ? tour.gi : -1, g = T && tourAll(T)[gi];
+  var gi = tour ? tourResolveGi(T, tour.gi, tour.lab) : -1, g = T && tourAll(T)[gi];   // v265: games of another series may have been played meanwhile and moved this one
   if (!g || tourDone(g) || g.wo || g.v) return false;
   var on = tourOn(g), id = function (p) { return tourUid(T, p, gi); }, ea = on.a.map(id), eb = on.b.map(id), subs = tour.subs || [];
   subs.forEach(function (x) { [ea, eb].forEach(function (arr) { var k = arr.indexOf(x.from); if (k >= 0) arr[k] = x.to; }); });
@@ -864,7 +879,7 @@ function _tnStageAct(s, st) {
   else if (st.act === "draw") tourStartDraw(s, "draw");
   else if (st.act === "play") {
     var g = tourNext(tourOf(s));
-    if (g) { _tnEdit = { gi: tourAll(tourOf(s)).indexOf(g), sa: 21, sb: 15, err: "" }; _tnToast = ""; tourRender(); _tnScroll(".tn-game.cur"); }
+    if (g) { _tnEdit = { gi: tourAll(tourOf(s)).indexOf(g), lab: g.lab, sa: 21, sb: 15, err: "" }; _tnToast = ""; tourRender(); _tnScroll(".tn-game.cur"); }
   } else if (st.act === "winner") _tnScroll("#tnWinner");
   else tourRender();
 }
@@ -922,6 +937,7 @@ function tourOnSessions() {
   var s = _tnSession(_tnSid);
   if (!s) { tourClose(); return; }
   if (_tnAnim || _tnBusy) return;
+  if (_tnEdit && tourOf(s)) _tnEdit.gi = tourResolveGi(tourOf(s), _tnEdit.gi, _tnEdit.lab);   // v265: a series game added before it moved its index
   if (_tnEdit && tourOf(s) && _tnEdit.gi >= tourAll(tourOf(s)).length) _tnEdit = null;
   if (_tnEdit || _tnOut) return;   // do not wipe the score or note being typed
   tourRender();
@@ -984,7 +1000,7 @@ function tourLivePreset(s) {
   if (!g || g.wo || g.v || typeof _lsBlank !== "function") return null;
   var gi = tourAll(T).indexOf(g), on = tourOn(g), a = on.a.map(function (p) { return tourUid(T, p, gi); }), b = on.b.map(function (p) { return tourUid(T, p, gi); });
   var st = _lsBlank(s.id, "md");
-  st.a = a; st.b = b; st.tour = { sid: s.id, gi: gi, a: a.slice(), b: b.slice() };
+  st.a = a; st.b = b; st.tour = { sid: s.id, gi: gi, lab: g.lab, a: a.slice(), b: b.slice() };
   return st;
 }
 function tourStartLive(s, gi) {
@@ -993,7 +1009,7 @@ function tourStartLive(s, gi) {
   var on = tourOn(g), a = on.a.map(function (p) { return tourUid(T, p, gi); }), b = on.b.map(function (p) { return tourUid(T, p, gi); });
   live = _lsBlank(s.id, "md");
   live.a = a; live.b = b;
-  live.tour = { sid: s.id, gi: gi, a: a.slice(), b: b.slice() };
+  live.tour = { sid: s.id, gi: gi, lab: g.lab, a: a.slice(), b: b.slice() };
   lsSave(); liveMode = "count";
   tourClose();
   _lsShow();
@@ -1030,7 +1046,7 @@ function _tnClick(ev) {
   if (!T || !org) return;
   if (act === "edit") {
     var gi = +b.getAttribute("data-i"), g = tourAll(T)[gi]; if (!g) return;
-    _tnToast = ""; _tnEdit = { gi: gi, sa: tourDone(g) ? g.sa : 21, sb: tourDone(g) ? g.sb : 15, err: "" }; tourRender();
+    _tnToast = ""; _tnEdit = { gi: gi, lab: g.lab, sa: tourDone(g) ? g.sa : 21, sb: tourDone(g) ? g.sb : 15, err: "" }; tourRender();
   } else if (act === "live") {
     tourStartLive(s, +b.getAttribute("data-i"));
   } else if (act === "adj" && _tnEdit) {
@@ -1058,12 +1074,13 @@ function _tnClick(ev) {
 }
 
 function tourSaveScore(s) {
-  var T = tourOf(s), e = _tnEdit, g = e && tourAll(T)[e.gi];
+  var T = tourOf(s), e = _tnEdit, g = e && tourAll(T)[tourResolveGi(T, e.gi, e.lab)];
+  if (e && T) e.gi = tourResolveGi(T, e.gi, e.lab);
   if (!g) { _tnEdit = null; tourRender(); return; }
   if (!tourScoreOk(e.sa, e.sb)) { e.err = t("tourNoDraw"); tourRender(); return; }
   var imp = tourImpact(T, g, e.sa, e.sb);
   function go() {
-    var cur = _tnSession(s.id) || s, T2 = tourOf(cur), g2 = T2 && tourAll(T2)[e.gi];
+    var cur = _tnSession(s.id) || s, T2 = tourOf(cur), g2 = T2 && tourAll(T2)[tourResolveGi(T2, e.gi, e.lab)];
     if (!g2) { _tnEdit = null; tourRender(); return; }
     var res = tourApply(T2, g2, e.sa, e.sb), msg = res.fixed ? t("tourScoreFixed") : t("tourScoreSaved");
     if (res.pairsChanged) msg += " " + _tnFill(t("tourPairsChanged"), { w: _tnDrawWord(T2) });
@@ -1207,6 +1224,7 @@ function tourLiveSub() {
   if (typeof live === "undefined" || !live || !live.tour) return;
   var s = _tnSession(live.tour.sid), T = tourOf(s);
   if (!T) return;
+  live.tour.gi = tourResolveGi(T, live.tour.gi, live.tour.lab);   // v265
   var lg = tourAll(T)[live.tour.gi], pos = function (u) { return tourPosOf(T, u, lg); };   // v242: the player of THAT game (a swap applies from a later game)
   var on = live.a.concat(live.b).map(pos).filter(function (i) { return i >= 0; });
   if (typeof lsMenu === "function") lsMenu(false);
@@ -1362,7 +1380,8 @@ function _tnEditor(T, g) {
 function _tnGame(T, g, idx, cur, label, org) {
   var d = tourDone(g), aw = d && !g.v && g.sa > g.sb, bw = d && !g.v && g.sb > g.sa, gi = tourAll(T).indexOf(g);
   var editing = _tnEdit && _tnEdit.gi === gi;
-  var h = '<div class="tn-game' + (cur ? ' cur' : '') + (!d && !cur ? ' wait' : '') + (g.wo ? ' wo' : '') + (g.v ? ' void' : '') + '"><div class="tn-gh"><span>' + escapeHtml(label || _tnFill(t("tourGame"), { k: idx })) + '</span><span>' + (d ? escapeHtml(g.v ? t("tourOutVoid") : g.wo ? t("tourWO") : t("tourFinalScore")) : (cur ? escapeHtml(t("tourUpNext")) : '<span class="tn-waiting">' + escapeHtml(t("tourWaiting")) + '</span>')) + '</span></div>';
+  var open = !d && !cur && tourAnyOrder(T, g);   // v265: a 3rd place or final game that can be played before the up-next game
+  var h = '<div class="tn-game' + (cur ? ' cur' : '') + (open ? ' open' : '') + (!d && !cur && !open ? ' wait' : '') + (g.wo ? ' wo' : '') + (g.v ? ' void' : '') + '"><div class="tn-gh"><span>' + escapeHtml(label || _tnFill(t("tourGame"), { k: idx })) + '</span><span>' + (d ? escapeHtml(g.v ? t("tourOutVoid") : g.wo ? t("tourWO") : t("tourFinalScore")) : (cur ? escapeHtml(t("tourUpNext")) : open ? escapeHtml(t("tourReady")) : '<span class="tn-waiting">' + escapeHtml(t("tourWaiting")) + '</span>')) + '</span></div>';
   [["a", aw, g.pa], ["b", bw, g.pb]].forEach(function (x) {
     h += '<div class="tn-tm ' + (d ? (x[1] ? 'win' : 'lose') : '') + '"><div class="tn-names">' + _tnSide(T, g, x[0], 22) + _tnOutTag(T, x[2]) + '</div><span class="tn-pts">' + escapeHtml(d ? _tnShow(g, x[0]) : '–') + '</span></div>';
   });
@@ -1380,10 +1399,11 @@ function _tnGame(T, g, idx, cur, label, org) {
     var run = tourRowRun(T, g, x.to);
     if (run >= 3) h += '<div class="tn-warn">' + escapeHtml(_tnFill(t("tourSubRow"), { name: _tnPlain(T, x.to, g), k: run })) + '</div>';
   });
+  if (!d && (cur || open) && tourAnyOrder(T, g) && tourAnyOrderCount(T) >= 2) h += '<div class="tn-any">' + escapeHtml(t("tourAnyOrder")) + '</div>';   // v265
   if (org && !g.wo && !g.v) {
     if (editing) h += _tnEditor(T, g);
     else if (d) h += '<button type="button" class="tn-b sm" data-act="edit" data-i="' + gi + '">' + escapeHtml(t("tourCorrect")) + '</button>';
-    else if (cur) h += '<div class="tn-gbtns"><button type="button" class="tn-b pri sm" data-act="live" data-i="' + gi + '"><span class="tn-gi">' + icon("scoreboard", 16) + '</span><span>' + escapeHtml(t("lsTitle")) + '</span></button>' +
+    else if (cur || open) h += '<div class="tn-gbtns"><button type="button" class="tn-b pri sm" data-act="live" data-i="' + gi + '"><span class="tn-gi">' + icon("scoreboard", 16) + '</span><span>' + escapeHtml(t("lsTitle")) + '</span></button>' +
       '<button type="button" class="tn-b sm" data-act="edit" data-i="' + gi + '"><span class="tn-gi">' + icon("ranking", 16) + '</span><span>' + escapeHtml(t("addScore")) + '</span></button>' +
       '<button type="button" class="tn-b sm tn-subb" data-act="sub" data-i="' + gi + '"><span class="tn-subi" aria-hidden="true">↺</span><span>' + escapeHtml(t("tourSubBtn")) + '</span></button></div>';
   }
