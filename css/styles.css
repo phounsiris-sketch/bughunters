@@ -761,13 +761,13 @@ textarea {
 }
 
 /* ========== Bottom Nav (v256: floating rounded bar, SVG bulge under the active item, light circle with accent glyph) ========== */
-:root { --nav-h: 66px; --nav-lift: 36px; --nav-inset: 12px; --nav-gap: 10px; --nav-bar: calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px)); }
+:root { --nav-h: 66px; --nav-lift: 36px; --nav-inset: 12px; --nav-gap: 4px; --nav-safe: calc(env(safe-area-inset-bottom, 0px) * .6); --nav-bar: calc(var(--nav-h) + var(--nav-gap) + var(--nav-safe)); }   /* v259: bar sits lower (gap 10 -> 4px, 60% of the home-indicator inset) */
 .bottom-nav {
   /* circle colours come from theme tokens: surface is white / near white, glyph is the accent darkened toward navy (>= 3:1 on the circle) */
   --nav-dot: #f8fafc;
   --nav-ico: color-mix(in srgb, var(--primary) 62%, #0b1220);   /* solid primary, darkened until it holds >= 4.5:1 on the circle */
   position: fixed;
-  bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--nav-gap) + var(--nav-safe));
   left: var(--nav-inset);
   right: var(--nav-inset);
   height: var(--nav-h);
