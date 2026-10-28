@@ -11,7 +11,7 @@ var pageHistory = [];
  * @param {boolean} pushHistory — whether to record in history stack (default true)
  */
 // Private pages need a current group (after the move to groups)
-var GROUP_PAGES = /^(home|games|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|match-record|reports|health|workout)$/;
+var GROUP_PAGES = /^(home|games|polls|sessions|dashboard|payments|config|session-detail|session-create|poll-create|group-settings|group-members|stats|matches|matches-all|match-record|reports|health|workout)$/;
 var PUBLIC_PAGES = /^(public|game-create|game-detail)$/;
 
 /** Header button with my picture (opens My profile) */
@@ -127,6 +127,8 @@ function showPage(page, pushHistory) {
     loadWorkoutPage();
   } else if (page === "stats" && typeof loadStats === "function") {
     loadStats();
+  } else if (page === "matches-all" && typeof loadMatchesAll === "function") {
+    loadMatchesAll();
   } else if (page === "matches" && typeof loadMatchesPage === "function") {
     loadMatchesPage();
   } else if (page === "match-record" && typeof loadMatchRecord === "function") {
