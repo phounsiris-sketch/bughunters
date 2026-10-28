@@ -22,7 +22,7 @@ assert.ok(/cubic-bezier\(\.34, 1\.56, \.64, 1\)/.test(css), "spring ease on the 
 var els = {};
 function mk(o) { var e = Object.assign({ style: {}, classList: { _c: {}, add: function (c) { this._c[c] = 1; }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } }, attrs: {}, getAttribute: function (k) { return this.attrs[k] || null; }, setAttribute: function (k, v) { this.attrs[k] = v; }, offsetWidth: 0 }, o); return e; }
 function run(slots, activeIdx, width) {
-  var parts = { ".nb-hump": mk({}) };
+  var parts = { ".nb-hump": mk({}), ".nb-bar": mk({}) };
   var bg = { querySelector: function (s) { return parts[s]; } };
   var w = width / slots, items = [];
   for (var i = 0; i < slots; i++) items.push(mk({ offsetLeft: i * w, offsetWidth: w }));
@@ -30,13 +30,14 @@ function run(slots, activeIdx, width) {
   var c = { document: { getElementById: function () { return navEl; } }, window: undefined, console: console };
   vm.createContext(c); vm.runInContext(fs.readFileSync("js/router.js", "utf8").split("var NAV_HUMP_W")[1] ? "var NAV_HUMP_W" + fs.readFileSync("js/router.js", "utf8").split("var NAV_HUMP_W")[1] : "", c);
   c.positionNavHump(true);
-  return { x: parseFloat(/translateX\((-?[\d.]+)px/.exec(parts[".nb-hump"].style.transform)[1]), t: parts[".nb-hump"].style.transform, nav: navEl };
+  return { x: parseFloat(/translateX\((-?[\d.]+)px/.exec(parts[".nb-hump"].style.transform)[1]), t: parts[".nb-hump"].style.transform, bar: parts[".nb-bar"].style, nav: navEl };
 }
 var a = run(5, 1, 390), b = run(3, 1, 390), z = run(5, 0, 360);
-assert.ok(Math.abs(a.x - (78 * 1.5 - 50)) < 1e-6, "5 slots: hump centered under slot 2");
-assert.ok(Math.abs(b.x - (130 * 1.5 - 50)) < 1e-6, "3 slots: hump centered under slot 2");
-assert.ok(Math.abs(z.x - (72 - 50)) < 1e-6, "first slot: hump centre is clamped so its base clears the rounded corner");
-assert.ok(Math.abs(run(5, 4, 390).x - (390 - 72 - 50)) < 1e-6, "last slot clamps on the right");
+assert.ok(Math.abs(a.x - (78 * 1.5 - 44)) < 1e-6, "5 slots: hump centered under slot 2");
+assert.ok(Math.abs(b.x - (130 * 1.5 - 44)) < 1e-6, "3 slots: hump centered under slot 2");
+assert.ok(Math.abs(z.x - (36 - 44)) < 1e-6, "first slot: hump stays centred on the item, no clamp");
+assert.ok(parseFloat(z.bar.borderTopLeftRadius) === 0 && parseFloat(z.bar.borderTopRightRadius) === 26, "first slot: the bar corner under the hump shrinks, the other keeps its radius");
+var last = run(5, 4, 390); assert.ok(Math.abs(last.x - (390 - 39 - 44)) < 1e-6 && parseFloat(last.bar.borderTopRightRadius) === 0 && parseFloat(last.bar.borderTopLeftRadius) === 26, "last slot is centred too; its end corner shrinks");
 assert.ok(/^translateX\(/.test(a.t), "hump moves with a transform only");
 assert.strictEqual(a.nav.attrs["data-ready"], "1", "first call is marked ready after the snap");
 assert.ok(!a.nav.classList.contains("nav-snap"), "snap class is removed again");

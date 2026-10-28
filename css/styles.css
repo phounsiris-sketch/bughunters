@@ -761,11 +761,11 @@ textarea {
 }
 
 /* ========== Bottom Nav (v256: floating rounded bar, SVG bulge under the active item, light circle with accent glyph) ========== */
-:root { --nav-h: 66px; --nav-lift: 40px; --nav-inset: 12px; --nav-gap: 10px; --nav-bar: calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px)); }
+:root { --nav-h: 66px; --nav-lift: 54px; --nav-inset: 12px; --nav-gap: 10px; --nav-bar: calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px)); }
 .bottom-nav {
   /* circle colours come from theme tokens: surface is white / near white, glyph is the accent darkened toward navy (>= 3:1 on the circle) */
   --nav-dot: #f8fafc;
-  --nav-ico: color-mix(in srgb, var(--accent) 54%, #0b1220);
+  --nav-ico: color-mix(in srgb, var(--primary) 62%, #0b1220);   /* solid primary, darkened until it holds >= 4.5:1 on the circle */
   position: fixed;
   bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
   left: var(--nav-inset);
@@ -774,14 +774,14 @@ textarea {
   display: flex;
   align-items: flex-start;
   z-index: 100;
-  padding: 0 30px;
+  padding: 0 34px;
 }
 body[data-theme="light"] .bottom-nav { --nav-dot: #fff; }
 /* the bar: a rounded rectangle plus one bulge piece that overlaps its top edge */
 .nav-bg { position: absolute; inset: 0; pointer-events: none; }
-.nb-bar { position: absolute; inset: 0; border-radius: 26px; background: var(--surface); box-shadow: inset 0 1px 0 var(--border), 0 8px 24px rgba(0, 0, 0, .28), 0 1px 3px rgba(0, 0, 0, .2); }
+.nb-bar { position: absolute; inset: 0; border-radius: 26px; transition: border-top-left-radius .4s ease-out, border-top-right-radius .4s ease-out; background: var(--surface); box-shadow: inset 0 1px 0 var(--border), 0 8px 24px rgba(0, 0, 0, .28), 0 1px 3px rgba(0, 0, 0, .2); }
 body[data-theme="light"] .nb-bar { box-shadow: inset 0 1px 0 var(--border), 0 8px 22px rgba(15, 23, 42, .14), 0 1px 3px rgba(15, 23, 42, .1); }
-.nb-hump { position: absolute; top: -36px; left: 0; width: 100px; height: 38px; will-change: transform; overflow: visible; }
+.nb-hump { position: absolute; top: -24px; left: 0; width: 88px; height: 26px; will-change: transform; overflow: visible; }
 .nb-fill { fill: var(--surface); }
 .nb-line { fill: none; stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .nb-hump { transition: transform .4s cubic-bezier(.34, 1.2, .64, 1); }
@@ -828,9 +828,9 @@ body[data-theme="light"] .nb-bar { box-shadow: inset 0 1px 0 var(--border), 0 8p
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
   border-radius: 50%;
   z-index: -1;
   background: var(--nav-dot);
@@ -843,11 +843,13 @@ body[data-theme="light"] .nb-bar { box-shadow: inset 0 1px 0 var(--border), 0 8p
 .nav-item .nav-text { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s; }
 .nav-item:hover { color: var(--text); }
 .nav-item.active { color: var(--accent-text, var(--accent)); font-weight: 700; }
-.nav-item.active .nav-icon { color: var(--nav-ico); transform: translateY(-32px); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), color .2s; }
+.nav-item.active .nav-icon { color: var(--nav-ico); transform: translateY(-46px); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), color .2s; }
 .nav-item.active .nav-icon::before { opacity: 1; transform: scale(1); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), opacity .15s; }
+/* the duotone glyph keeps its soft half strong inside the circle */
+.nav-item.active .nav-icon .si [opacity] { opacity: .88; }
 .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 14px; }
 @media (prefers-reduced-motion: reduce) {
-  .nb-hump, .nav-item, .nav-item .nav-icon, .nav-item .nav-icon::before, .nav-item .nav-text { transition: none !important; }
+  .nb-hump, .nb-bar, .nav-item, .nav-item .nav-icon, .nav-item .nav-icon::before, .nav-item .nav-text { transition: none !important; }
 }
 
 /* ========== Toast ========== */

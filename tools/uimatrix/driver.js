@@ -78,6 +78,8 @@
   function audit(pageEl, combo, page) {
     var W = window.innerWidth, add = function (type, el, extra) { D.issues.push({ type: type, sel: sel(el), combo: combo, page: page, extra: extra || "" }); };
     if (document.documentElement.scrollWidth > W + 1) D.issues.push({ type: "page-h-scroll", sel: "html", combo: combo, page: page, extra: document.documentElement.scrollWidth + ">" + W });
+    // optional "act":"nav-stats" in the wrapper hash: show that bar slot as active (screenshots of a middle / last slot on a calm page)
+    if (CONFIG.act) { document.querySelectorAll("#bottomNav .nav-item").forEach(function (b) { var on = b.id === CONFIG.act; b.classList.toggle("active", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }); if (typeof positionNavHump === "function") positionNavHump(true); }
     // v256: bottom bar contrast: glyph on the active circle >= 3, active label on the bar >= 4.5
     (function () {
       var ai = document.querySelector("#bottomNav .nav-item.active .nav-icon"), at = document.querySelector("#bottomNav .nav-item.active .nav-text"), bar = document.querySelector("#bottomNav .nb-bar");

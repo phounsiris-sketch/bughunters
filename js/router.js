@@ -270,19 +270,25 @@ function crumbBack() {
 
 /* v256: bottom bar bulge. One SVG hump rises above the bar's top edge and slides under the active item (transform only).
    The x position is measured from the active element, so 3 or 5 slots and any width/orientation work.
-   The centre is clamped so the hump's base stays on the flat part of the top edge, clear of the rounded corners. */
-var NAV_HUMP_W = 100, NAV_HUMP_EDGE = 22;
+   The hump is always centred on the item. When it would reach a rounded bar end, that top corner's radius shrinks to the room left,
+   so both shoulders always show and the base never floats over a corner. */
+var NAV_HUMP_W = 88, NAV_BAR_R = 26;
 function positionNavHump(instant) {
   var nav = document.getElementById("bottomNav");
   if (!nav || !nav.offsetWidth) return;
   var bg = nav.querySelector(".nav-bg");
   if (!bg) return;
   var w = nav.clientWidth, act = nav.querySelector(".nav-item.active");
-  var half = NAV_HUMP_W / 2;
-  var cx = act && act.offsetWidth ? act.offsetLeft + act.offsetWidth / 2 : w + NAV_HUMP_W + 40;   // no active item: hump parks off-screen
-  if (act && act.offsetWidth) cx = Math.max(half + NAV_HUMP_EDGE, Math.min(w - half - NAV_HUMP_EDGE, cx));
+  var half = NAV_HUMP_W / 2, on = !!(act && act.offsetWidth);
+  var cx = on ? act.offsetLeft + act.offsetWidth / 2 : w + NAV_HUMP_W + 40;   // no active item: hump parks off-screen
   if (instant || !nav.getAttribute("data-ready")) nav.classList.add("nav-snap");
   bg.querySelector(".nb-hump").style.transform = "translateX(" + (cx - half) + "px)";
+  var bar = bg.querySelector(".nb-bar");
+  if (bar) {
+    var rl = on ? Math.max(0, Math.min(NAV_BAR_R, cx - half)) : NAV_BAR_R, rr = on ? Math.max(0, Math.min(NAV_BAR_R, w - cx - half)) : NAV_BAR_R;
+    bar.style.borderTopLeftRadius = rl + "px";
+    bar.style.borderTopRightRadius = rr + "px";
+  }
   if (nav.classList.contains("nav-snap")) {
     void nav.offsetWidth;   // commit the jump, then allow motion again
     nav.classList.remove("nav-snap");
