@@ -2227,3 +2227,7 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 
 ## v261: Home shortcuts on frosted glass (80% transparent)
 - `.hg-tile` (Home shortcut row and Create row, all icon packs incl. 3D) = surface colour at 20% opacity, 16% white hairline, blur 14px + saturate, soft shadow; light themes use white at 20% with a dark hairline. The 3D pack keeps its no-plate objects but now sits on the glass tile.
+
+## v262: Icon pack applies on Home
+- Bug: since v245 the bottom-bar 'Dashboard' opens Home, but the dashboard pack (clay / sticker / 3D / same) was only applied while the old Dashboard stats page drew (`_dashCtx` in js/dashboard.js). On Home only 3D changed anything, so picking clay, sticker or same looked like it did nothing.
+- Fix: `renderHome` now draws inside `_dashCtx` (restoring the previous value), so `icon()` on Home follows the pack. Settings hint updated (EN + LA). Test: tests/pack-home-v262.test.js.
