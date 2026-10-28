@@ -583,7 +583,7 @@ function _renderProgress() {
   var uids = Object.keys(st.players);
   if (uids.indexOf(uid) < 0) uids.unshift(uid);
   var from = scopeFrom(statsScope);
-  var html = '<div class="card"><select class="form-select" onchange="progressUser=this.value;_progRefresh()">' + uids.map(function (u) {
+  var html = '<div class="card pg-filter"><select class="form-select" onchange="progressUser=this.value;_progRefresh()">' + uids.map(function (u) {
     return '<option value="' + u + '"' + (u === uid ? ' selected' : '') + '>' + escapeHtml(plainUserName(findUser(u))) + '</option>';
   }).join('') + '</select>' +
     scopeChipsHtml() + '</div>';
@@ -600,13 +600,14 @@ function _renderProgress() {
   var w = games.filter(function (x) { return x.won; }).length, l = games.length - w;
   var mins = all.reduce(function (s, m) { return s + (m.minutes || 0); }, 0);
   var pts = games.reduce(function (s, x) { return s + x.pts; }, 0);
-  html += '<div class="card"><div class="progress-head"><div><div class="form-hint" style="margin:0">' + t("ratingWord") + '</div><b class="progress-rating">' + Math.round(endR) + '</b> ' + _trend(endR, startR) + '</div>' +
-    '<div class="progress-wl"><b>' + fmtWL(w, l) + '</b><small>' + pct(w, games.length) + ' ' + t("winRate") + '</small></div></div>' +
+  html += '<div class="card"><div class="progress-head"><div class="ph-lab">' + t("ratingWord") + '</div><div class="ph-lab r">' + pct(w, games.length) + ' ' + t("winRate") + '</div>' +
+    '<div class="ph-num"><b class="progress-rating">' + Math.round(endR) + '</b> ' + _trend(endR, startR) + '</div><div class="ph-num r"><b class="progress-wl-n">' + fmtWL(w, l) + '</b></div></div>' +
     _sparkline([startR].concat(inP.map(function (h) { return h.r; })), { start: t("startWord") + ' ' + Math.round(startR), games: inP.length }) + '</div>';
-  html += '<div class="card"><div class="my-stats-facts">' +
-    '<span><b>' + all.length + '</b> ' + t("gamesWord") + '</span><span><b>' + mins + '</b> ' + t("minShort") + '</span>' +
-    '<span><b>' + (games.length ? (pts / games.length >= 0 ? '+' : '') + (pts / games.length).toFixed(1) : '0') + '</b> ' + t("ptsPerGame") + '</span>' +
-    '<span>' + t("streak") + ' <b>' + (sfp.streakNow > 0 ? sfp.streakNow + t("winShort") : sfp.streakNow < 0 ? (-sfp.streakNow) + t("lossShort") : '\u2013') + '</b></span></div></div>';
+  var stat = function (v, lab) { return '<div class="pg-stat"><b>' + v + '</b><small>' + lab + '</small></div>'; };
+  html += '<div class="card"><div class="pg-stats">' +
+    stat(all.length, t("gamesWord")) + stat(mins, t("minShort")) +
+    stat(games.length ? (pts / games.length >= 0 ? '+' : '') + (pts / games.length).toFixed(1) : '0', t("ptsPerGame")) +
+    stat(sfp.streakNow > 0 ? sfp.streakNow + t("winShort") : sfp.streakNow < 0 ? (-sfp.streakNow) + t("lossShort") : '\u2013', t("streak")) + '</div></div>';
   html += _pairInsightsHtml(uid, games);
   // Breakdown: by week for one month, by month otherwise
   var byWeek = statsScope === "month", buckets = {};
@@ -724,7 +725,7 @@ function _sparkline(vals, opts) {
   if (vals.length < 2) return '<div class="form-hint">' + t("needMoreMonths") + '</div>';
   var w = 300, h = 70, lo = Math.min.apply(null, vals) - 10, hi = Math.max.apply(null, vals) + 10;
   var pts = vals.map(function (v, i) { return (i * w / (vals.length - 1)).toFixed(1) + "," + (h - (v - lo) / (hi - lo) * h).toFixed(1); });
-  return '<svg class="sparkline" viewBox="-6 -6 ' + (w + 12) + ' ' + (h + 12) + '" preserveAspectRatio="none"><polyline points="' + pts.join(" ") + '"/>' +
+  return '<svg class="sparkline" viewBox="' + (opts ? '-14 -12 ' + (w + 28) + ' ' + (h + 24) : '-6 -6 ' + (w + 12) + ' ' + (h + 12)) + '" preserveAspectRatio="none"><polyline points="' + pts.join(" ") + '"/>' +
     pts.map(function (p, i) { var xy = p.split(","); return '<circle' + (opts && i === 0 ? ' class="start"' : '') + ' cx="' + xy[0] + '" cy="' + xy[1] + '" r="3"/>'; }).join('') + '</svg>' +
     (opts ? '<div class="spark-legend"><span><i class="sk-dot start"></i>' + escapeHtml(opts.start) + '</span>' +
       '<span><i class="sk-dot"></i>' + t("gamesDots").replace("{n}", opts.games) + '</span></div>' : '');
