@@ -303,7 +303,9 @@ function tourFinals(T) { return T.po.filter(function (g) { return g.fin; }); }
 function tourThirds(T) { return T.po.filter(function (g) { return g.th; }); }
 function _tourSer(T, key) { return T.po.filter(function (g) { return g[key]; }); }
 function _tourSerWins(T, key) { var wa = 0, wb = 0; _tourSer(T, key).forEach(function (g) { if (tourDone(g) && !g.v) { if (g.sa > g.sb) wa++; else wb++; } }); return { wa: wa, wb: wb }; }
-function _tourSerDecided(T, key) { var f = _tourSer(T, key); if (f.length && f[0].v) return true; var w = _tourSerWins(T, key); return w.wa === 2 || w.wb === 2; }
+/** v266: wins that decide a series: 2 (best of 3, the default) or 1 when the organiser shortened it (T.bo = { th: 1 } and / or { fin: 1 }) */
+function tourSerNeed(T, key) { return T && T.bo && T.bo[key] === 1 ? 1 : 2; }
+function _tourSerDecided(T, key) { var f = _tourSer(T, key); if (f.length && f[0].v) return true; var w = _tourSerWins(T, key), n = tourSerNeed(T, key); return w.wa >= n || w.wb >= n; }
 function tourFinalWins(T) { return _tourSerWins(T, "fin"); }
 function tourFinalDecided(T) { return _tourSerDecided(T, "fin"); }
 function tourThirdWins(T) { return _tourSerWins(T, "th"); }
@@ -318,7 +320,7 @@ function tourOutOf(T, p) { var o = T.out || []; for (var i = 0; i < o.length; i+
 function _tourSerKeep(T, key) {
   var f = _tourSer(T, key), wa = 0, wb = 0, keep = 0;
   for (var i = 0; i < f.length; i++) {
-    if (wa === 2 || wb === 2) break;
+    if (wa >= tourSerNeed(T, key) || wb >= tourSerNeed(T, key)) break;
     keep = i + 1;
     if (!tourDone(f[i])) break;
     if (f[i].v) break;
@@ -343,8 +345,8 @@ function _tourSerGrow(T, key, prefix) {
   var f = _tourSer(T, key), kept = f.slice(0, _tourSerKeep(T, key));
   var rest = T.po.filter(function (g) { return !g[key]; });
   T.po = rest.concat(kept);
-  var w = _tourSerWins(T, key);
-  if (kept.length && kept.every(tourDone) && !kept[0].v && w.wa < 2 && w.wb < 2 && kept.length < 3) {
+  var w = _tourSerWins(T, key), need = tourSerNeed(T, key);
+  if (kept.length && kept.every(tourDone) && !kept[0].v && w.wa < need && w.wb < need && kept.length < 3) {
     var k = kept[0], ng = { ph: "po", a: k.a, b: k.b, pa: k.pa, pb: k.pb, lab: prefix + (kept.length + 1), sa: null, sb: null };
     ng[key] = true; T.po.push(ng);
   }
@@ -357,6 +359,32 @@ function tourSync(T) {
   var base = T.po.filter(function (g) { return !g.fin && !g.th; });
   T.po = base.concat(tourThirds(T), tourFinals(T));
   _tourRemap(T, oldAll);
+}
+
+/** v266: the played games a shortening of the series would drop (every played game after game 1; walkovers and void games are not counted) */
+function tourShortenLoss(T, key) { return _tourSer(T, key).slice(1).filter(function (g) { return tourDone(g) && !g.wo && !g.v; }).length; }
+/** v266: can this series be decided by game 1 (it exists, is best of 3 now, and game 1 is not a void game) */
+function tourCanShorten(T, key) { var f = T && (key === "th" || key === "fin") ? _tourSer(T, key) : []; return !!f.length && tourSerNeed(T, key) === 2 && !f[0].v; }
+/** v266: decide the series by ONE game: later games go (the played ones too), tourSync does not make them again, the winner is the winner of game 1 */
+function tourShorten(T, key) {
+  if (!tourCanShorten(T, key)) return false;
+  T.bo = Object.assign({}, T.bo || {}); T.bo[key] = 1;
+  tourResolve(T);
+  return true;
+}
+/** v266: back to best of 3 (not once the tournament is finished: its champion and Hall of Fame record are settled) */
+function tourLengthen(T, key) {
+  if (!T || tourSerNeed(T, key) !== 1 || tourComplete(T)) return false;
+  delete T.bo[key]; if (!Object.keys(T.bo).length) delete T.bo;
+  tourResolve(T);
+  return true;
+}
+/** v266: remove one played game of a series (game 2 or 3) = decide the series by game 1. Returns { key, lost } or null. */
+function tourRemoveGame(T, gi) {
+  var g = T && tourAll(T)[gi], key = g && g.th ? "th" : g && g.fin ? "fin" : "";
+  if (!key || !tourDone(g) || g.wo || g.v || _tourSer(T, key).indexOf(g) < 1) return null;
+  var lost = tourShortenLoss(T, key);
+  return tourShorten(T, key) ? { key: key, lost: lost } : null;
 }
 
 /** Build the playoff games from what is drawn and played so far */
@@ -740,6 +768,7 @@ var _tnAnim = null;      // { kind: "teams" | "draw" } while the draw plays
 var _tnTimer = null;
 var _tnToast = "";
 var _tnBusy = false;
+var _tnUndo = null;      // v266: { sid, snap } the tournament as it was before a series was shortened, for one Undo on this screen
 var _tnOut = null;       // { p, why, note } the "mark pair out" panel that is open
 var _tnTab = null;       // v237: the step tab being looked at (null = follow the current step)
 var _tnSig = "";       // what the tournaments of all sessions looked like when the stats games were last built
@@ -909,7 +938,7 @@ function _tnKey(e) {
 }
 function tourClose() {
   _tnInfoClose(true); _tnFairClose(true);
-  clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null;
+  clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null; _tnUndo = null;
   var el = document.getElementById("tnScreen"); if (el) el.remove();
   document.body.classList.remove("tn-open");
   document.removeEventListener("keydown", _tnKey, true);
@@ -955,6 +984,7 @@ function tourSessionsChanged() {
 }
 
 function _tnPut(s) {
+  _tnUndo = null;   // v266: any save ends the undo of a shortened series (it would overwrite what came after)
   _tnBusy = true;
   return dbUpdateSession(s.id, { tourney: JSON.parse(JSON.stringify(s.tourney)) }).then(function () {
     _tnBusy = false;
@@ -1059,6 +1089,10 @@ function _tnClick(ev) {
   else if (act === "out-cancel") { _tnOut = null; tourRender(); }
   else if (act === "out-save" && _tnOut) tourSaveOut(s);
   else if (act === "out-undo") tourAskUndoOut(s, +b.getAttribute("data-p"));
+  else if (act === "rm") tourAskRemove(s, +b.getAttribute("data-i"));
+  else if (act === "short") tourAskShorten(s, b.getAttribute("data-k"));
+  else if (act === "long") tourAskLengthen(s, b.getAttribute("data-k"));
+  else if (act === "undo") tourUndoShorten(s);
   else if (act === "sub") _tnSubFromScreen(s, +b.getAttribute("data-i"));
   else if (act === "back-in") tourAskBackIn(s, +b.getAttribute("data-p"));
   else if (act === "reset") {
@@ -1094,6 +1128,58 @@ function tourSaveScore(s) {
   if (imp.kind === "pairs") body = _tnFill(t("tourWarnPairs"), { pairs: imp.pairs.map(function (m) { return _tnPlain(T, m[0]) + " + " + _tnPlain(T, m[1]); }).join(", "), k: imp.played });
   else body = t(imp.kind === "semi" ? "tourWarnSemi" : imp.kind === "third" ? "tourWarnThird" : "tourWarnFinal");
   askConfirm({ title: t("tourCorrect"), body: body, kind: "warn", yes: t("tourYesChange"), no: t("tourKeep") }, go);
+}
+
+/* ---- v266: a series decided by ONE game (remove game 2 / "Decide by 1 game" / back to best of 3) ----
+   The games of a session tournament are not stored as match documents: Rankings, Elo and stats read them from session.tourney (tourMatches),
+   so dropping the game from the tourney removes its match everywhere. The Hall of Fame record is rewritten by hofSave in _tnPut when the tournament is finished. */
+function _tnSerName(key) { return t(key === "fin" ? "tourSerFinal" : "tourSerThird"); }
+/** Change the series after the yes: snap = the tournament before (one Undo), then save */
+function _tnShortGo(s, key, fn, msgKey) {
+  var cur = _tnSession(s.id) || s, T2 = tourOf(cur);
+  if (!T2) return;
+  var snap = JSON.parse(JSON.stringify(T2));
+  if (!fn(T2)) { tourRender(); return; }
+  _tnEdit = null; _tnTab = null; _tnToast = _tnFill(t(msgKey), { s: _tnSerName(key) });
+  _tnPut(cur);
+  _tnUndo = { sid: cur.id, snap: snap };
+  tourRender(); _tnScroll(".tn-game.cur");
+}
+function tourAskRemove(s, gi) {
+  var T = tourOf(s), g = T && tourAll(T)[gi];
+  if (!g || !tourDone(g) || g.wo || g.v || !(g.th || g.fin)) return;
+  var key = g.th ? "th" : "fin";
+  if (_tourSer(T, key).indexOf(g) !== 1 || !tourCanShorten(T, key)) return;
+  var lab = _tnLab(g), lost = tourShortenLoss(T, key);
+  askConfirm({ title: _tnFill(t("tourRmTitle"), { g: lab, s: _tnSerName(key) }), body: _tnFill(t("tourRmBody"), { g: lab, s: _tnSerName(key), k: lost }), kind: "danger", yes: t("tourRmYes"), no: t("cancel") }, function () {
+    var cur = _tnSession(s.id) || s, T2 = tourOf(cur), g2 = T2 && tourAll(T2)[tourResolveGi(T2, gi, g.lab)];
+    if (!g2 || g2.lab !== g.lab) { tourRender(); return; }
+    _tnShortGo(s, key, function (X) { return !!tourRemoveGame(X, tourResolveGi(X, gi, g.lab)); }, "tourRmDone");
+  });
+}
+function tourAskShorten(s, key) {
+  var T = tourOf(s);
+  if (!T || !tourCanShorten(T, key)) return;
+  var lost = tourShortenLoss(T, key);
+  askConfirm({ title: _tnFill(t("tourBo1Title"), { s: _tnSerName(key) }), body: _tnFill(t("tourBo1Body"), { s: _tnSerName(key) }) + (lost ? " " + _tnFill(t("tourBo1Loses"), { k: lost }) : ""), kind: lost ? "danger" : "warn", yes: t("tourBo1Yes"), no: t("cancel") }, function () {
+    _tnShortGo(s, key, function (X) { return tourShorten(X, key); }, "tourBo1Done");
+  });
+}
+function tourAskLengthen(s, key) {
+  var T = tourOf(s);
+  if (!T || tourSerNeed(T, key) !== 1 || tourComplete(T)) return;
+  askConfirm({ title: _tnFill(t("tourBo3Title"), { s: _tnSerName(key) }), body: t("tourBo3Body"), kind: "warn", yes: t("tourBo3Yes"), no: t("cancel") }, function () {
+    _tnShortGo(s, key, function (X) { return tourLengthen(X, key); }, "tourBo3Done");
+  });
+}
+function tourUndoShorten(s) {
+  var u = _tnUndo;
+  if (!u || u.sid !== s.id) return;
+  var cur = _tnSession(s.id) || s;
+  cur.tourney = u.snap;
+  _tnToast = t("tourUndone");
+  _tnPut(cur);
+  tourRender(); _tnScroll(".tn-game.cur");
 }
 
 /** Mark the pair out (asks first), save, and say what happened */
@@ -1402,7 +1488,11 @@ function _tnGame(T, g, idx, cur, label, org) {
   if (!d && (cur || open) && tourAnyOrder(T, g) && tourAnyOrderCount(T) >= 2) h += '<div class="tn-any">' + escapeHtml(t("tourAnyOrder")) + '</div>';   // v265
   if (org && !g.wo && !g.v) {
     if (editing) h += _tnEditor(T, g);
-    else if (d) h += '<button type="button" class="tn-b sm" data-act="edit" data-i="' + gi + '">' + escapeHtml(t("tourCorrect")) + '</button>';
+    else if (d) {
+      var rmOk = (g.th || g.fin) && _tourSer(T, g.th ? "th" : "fin").indexOf(g) === 1;   // v266: only game 2 of a series can be removed
+      h += (rmOk ? '<div class="tn-gbtns tn-gdone">' : '') + '<button type="button" class="tn-b sm" data-act="edit" data-i="' + gi + '">' + escapeHtml(t("tourCorrect")) + '</button>' +
+        (rmOk ? '<button type="button" class="tn-b sm tn-rmb" data-act="rm" data-i="' + gi + '">' + escapeHtml(t("tourRmGame")) + '</button></div>' : '');
+    }
     else if (cur || open) h += '<div class="tn-gbtns"><button type="button" class="tn-b pri sm" data-act="live" data-i="' + gi + '"><span class="tn-gi">' + icon("scoreboard", 16) + '</span><span>' + escapeHtml(t("lsTitle")) + '</span></button>' +
       '<button type="button" class="tn-b sm" data-act="edit" data-i="' + gi + '"><span class="tn-gi">' + icon("ranking", 16) + '</span><span>' + escapeHtml(t("addScore")) + '</span></button>' +
       '<button type="button" class="tn-b sm tn-subb" data-act="sub" data-i="' + gi + '"><span class="tn-subi" aria-hidden="true">↺</span><span>' + escapeHtml(t("tourSubBtn")) + '</span></button></div>';
@@ -1493,29 +1583,31 @@ function _tnSemiBox(T, g, cur) {
     _tnPbRow(T, g, "a", d ? _tnShow(g, "a") : "–", aw, bw, '') + _tnPbRow(T, g, "b", d ? _tnShow(g, "b") : "–", bw, aw, '') + '</div>';
 }
 /** A best-of-3 series box: key "fin" = the final, "th" = 3rd place (v249) */
-function _tnSeriesBox(T, key, cur) {
-  var f = _tourSer(T, key), isF = key === "fin", ttl = t(isF ? "tourFinalBo3" : "tourThirdBo3");
+function _tnSeriesBox(T, key, cur, org) {
+  var f = _tourSer(T, key), isF = key === "fin", one = tourSerNeed(T, key) === 1, ttl = t(isF ? (one ? "tourFinalBo1" : "tourFinalBo3") : (one ? "tourThirdBo1" : "tourThirdBo3"));
   if (!f.length) return '<div class="tn-pb' + (isF ? ' fin' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span></div><div class="tn-pn tbd">' + escapeHtml(t(isF ? "tourFinalTbd" : "tourThirdTbd")) + '</div></div>';
   var w = _tourSerWins(T, key), dec = _tourSerDecided(T, key), k = f[0], vd = !!k.v;
-  function pips(n) { return '<span class="tn-pip' + (n >= 1 ? ' on' : '') + '"></span><span class="tn-pip' + (n >= 2 ? ' on' : '') + '"></span>'; }
+  function pips(n) { return '<span class="tn-pip' + (n >= 1 ? ' on' : '') + '"></span>' + (one ? '' : '<span class="tn-pip' + (n >= 2 ? ' on' : '') + '"></span>'); }
   var kk = f.filter(function (g) { return !tourDone(g); })[0] || f[f.length - 1];   // v238: the lineup of the game being played (stand-ins included)
   function row(side, wins, win, pi) {
     return '<div class="tn-pr' + (win ? ' w' : (dec && !vd ? ' l' : '')) + '"><div class="tn-pn">' + _tnSide(T, kk, side, 22) + _tnOutTag(T, pi) + '</div><span class="tn-ps">' + (win && isF ? TN_CROWN : '') + pips(wins) + '</span></div>';
   }
   return '<div class="tn-pb' + (isF ? ' fin' : '') + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span><span>' + (dec && !vd ? escapeHtml(t(isF ? "tourChampion" : "tourPlace3")) : (vd ? escapeHtml(t("tourOutVoid")) : '')) + '</span></div>' +
-    row("a", w.wa, w.wa === 2, k.pa) + row("b", w.wb, w.wb === 2, k.pb) +
-    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t("tourFirstTo2")) + '</div></div>';
+    row("a", w.wa, w.wa >= tourSerNeed(T, key), k.pa) + row("b", w.wb, w.wb >= tourSerNeed(T, key), k.pb) +
+    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t(one ? "tourFirstTo1" : "tourFirstTo2")) + '</div>' +
+    (one ? '<div class="tn-one"><span class="tn-onetag">' + escapeHtml(t("tourOneTag")) + '</span>' + (org && !tourComplete(T) ? '<button type="button" class="tn-b sm" data-act="long" data-k="' + key + '">' + escapeHtml(t("tourBo3Back")) + '</button>' : '') + '</div>'
+      : (org && tourCanShorten(T, key) ? '<div class="tn-one"><button type="button" class="tn-b sm" data-act="short" data-k="' + key + '">' + escapeHtml(t("tourBo1Btn")) + '</button></div>' : '')) + '</div>';
 }
 function _tnFinalBox(T, cur) { return _tnSeriesBox(T, "fin", cur); }
-function _tnBracket(T, ng) {
+function _tnBracket(T, ng, org) {
   var kind = tourKind(T);
   if (kind === "rr" || !T.drawn) return "";
-  if (kind === "final") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourFinalTitle")) + '</h3>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; })) + '</div>';
+  if (kind === "final") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourFinalTitle")) + '</h3>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; }), org) + '</div>';
   if (T.po.length < 2) return "";
   var third = T.po[2], semisDone = tourDone(T.po[0]) && tourDone(T.po[1]), f2 = tourFmt(T) === 2;
-  var thirdBox = f2 ? _tnSeriesBox(T, "th", tourThirds(T).some(function (g) { return g === ng; })) : (third ? _tnSemiBox(T, third, third === ng) : '<div class="tn-pb tbd">' + escapeHtml(t("tourThirdTbd")) + '</div>');
+  var thirdBox = f2 ? _tnSeriesBox(T, "th", tourThirds(T).some(function (g) { return g === ng; }), org) : (third ? _tnSemiBox(T, third, third === ng) : '<div class="tn-pb tbd">' + escapeHtml(t("tourThirdTbd")) + '</div>');
   return '<div class="tn-sec"><h3>' + escapeHtml(t("tourBracketTitle")) + '</h3><div class="tn-bk"><div class="tn-bks">' + _tnSemiBox(T, T.po[0], T.po[0] === ng) + _tnSemiBox(T, T.po[1], T.po[1] === ng) +
-    '</div><div class="tn-bkc' + (semisDone ? ' on' : '') + '"></div><div>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; })) + '</div></div>' +
+    '</div><div class="tn-bkc' + (semisDone ? ' on' : '') + '"></div><div>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; }), org) + '</div></div>' +
     '<div class="tn-third">' + (f2 ? '' : '<div class="tn-bt">' + escapeHtml(t("tourThirdTitle")) + '</div>') + thirdBox + '</div></div>';
 }
 
@@ -1590,7 +1682,7 @@ function tourRender() {
   if (sub) sub.textContent = fmtDate(s.date) + (s.courtName ? " · " + s.courtName : "");
   var h = "";
   if (st) h += '<div class="tn-startrow"><button type="button" class="tn-btn big" data-act="stage"' + (st.disabled ? ' disabled' : '') + '>' + (st.icon || "") + '<span>' + escapeHtml(st.label) + '</span></button>' + (T ? '' : _tnInfoBtn('data-act="info"')) + '</div>';
-  if (_tnToast) h += '<div class="tn-toast" role="status">' + escapeHtml(_tnToast) + '</div>';
+  if (_tnToast) h += '<div class="tn-toast" role="status">' + escapeHtml(_tnToast) + (_tnUndo && _tnUndo.sid === s.id && org ? ' <button type="button" class="tn-b sm tn-undo" data-act="undo">' + escapeHtml(t("undo")) + '</button>' : '') + '</div>';
   if (!T) {
     if (_tnAnim) h += _tnDrawCard(null);
     else h += '<div class="tn-sec"><h3>' + escapeHtml(t("tourHowTitle")) + '</h3><p>' + escapeHtml(t("tourHow1")) + '</p><p>' + escapeHtml(t("tourHow2")) + '</p><p>' + escapeHtml(t("tourHow3")) + '</p></div>';
@@ -1655,7 +1747,7 @@ function _tnPanel(T, view, ng, ph, org, s) {
     if (part === "sum") return _tnAnim ? '' : _tnSummary(T, org);
     if (part === "pairs") return P ? _tnPairCard(T, P, org) : '';
     if (part === "drawsec") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourPlayoffTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourDrawHint"), { w: _tnDrawBtn(T) })) + '</p></div>';
-    if (part === "bracket") return _tnBracket(T, ng);
+    if (part === "bracket") return _tnBracket(T, ng, org);
     if (part === "winner") return _tnWinner(T, s.id) + (org ? '<button type="button" class="tn-b dng" data-act="reset">' + escapeHtml(t("tourReset")) + '</button>' : '');
     if (part === "po") {
       if (!T.drawn || !P) return '';

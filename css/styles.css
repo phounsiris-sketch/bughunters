@@ -6494,6 +6494,11 @@ body.tn-open { overflow: hidden; }
 .tn-pip.on { background: var(--accent); border-color: var(--accent); }
 .tn-crown { width: 18px; height: 18px; color: var(--tn-gold); }
 .tn-pbn { font-size: 11px; color: var(--text-muted); }
+.tn-one { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 2px; }   /* v266: series shortened / the button for it */
+.tn-onetag { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: var(--accent); background: rgba(var(--accent-rgb), .15); border-radius: 999px; padding: 3px 10px; }
+.tn-one .tn-b.sm { min-height: 40px; }
+.tn-rmb { border-color: var(--red); color: var(--red); }
+.tn-toast .tn-undo { margin-left: 8px; padding: 4px 10px; min-height: 32px; vertical-align: middle; }
 .tn-pod { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; align-items: end; }
 .tn-pl { border-radius: 14px 14px 4px 4px; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; background: var(--surface); }
 .tn-medal { font-weight: 900; font-size: 18px; }
