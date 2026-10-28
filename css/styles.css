@@ -6841,5 +6841,6 @@ button.ma-game { cursor: pointer; }
 .cm-ico { flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .cm-ico > * { max-width: 100%; max-height: 100%; }
 .cm-item.danger { color: #dc2626; }
+body:not([data-theme="light"]) .cm-item.danger { color: #f87171; }   /* v260: readable red on dark sheets */
 .cm-sep { height: 1px; background: var(--border); margin: 6px 0; }
 .sheet.ask .sheet-body { white-space: pre-line; }
