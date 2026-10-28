@@ -3,16 +3,12 @@
    FIREBASE_SERVICE_ACCOUNT), finds events since the last run and sends
    web pushes through Firebase Cloud Messaging. */
 const admin = require("firebase-admin");
-const { collectMessages } = require("./events");
+const { Filter } = require("firebase-admin/firestore");
+const { runOnce } = require("./runner");
 
 const APP_URL = process.env.APP_URL || "https://phounsiris-sketch.github.io/bughunters/";
-const TZ_OFFSET_H = 7;  // Vientiane / Bangkok (UTC+7)
-const REMIND_HOUR = 9;  // daily payment reminder from 9:00
-const TRASH_DAYS = 30;  // Recently deleted keeps items this long
-// Read only what can still produce a push (this job runs ~144 times a day,
-// so reading whole collections would use up the free Firestore quota):
-const POLL_DAYS = 45;     // polls created in the last 45 days (+ every open poll)
-const SESSION_DAYS = 180; // sessions played in the last 180 days (bills, payments, reminders)
+/* v250: runner.js does the two-phase run (a few small queries first, the full
+   load only when something is due). This file only talks to Firebase. */
 
 /** Firebase Admin: the service account in CI, or the local emulator in tests */
 function initAdmin() {
@@ -24,35 +20,74 @@ function initAdmin() {
   return admin.firestore();
 }
 
-/** Live data only: open polls, recent polls, recent sessions (+ users, devices) */
-async function loadData(db, now) {
-  const since = admin.firestore.Timestamp.fromMillis(now - POLL_DAYS * 86400e3);
-  const fromDay = new Date(now - SESSION_DAYS * 86400e3 + TZ_OFFSET_H * 3600e3).toISOString().slice(0, 10);
-  const [usersSnap, openSnap, recentSnap, sessionsSnap, tokensSnap, membersSnap, groupsSnap, gamesSnap, invitesSnap] = await Promise.all([
-    db.collection("users").get(),
-    db.collection("polls").where("status", "in", ["draft", "open"]).get(),
-    db.collection("polls").where("createdAt", ">=", since).get(),
-    db.collection("sessions").where("date", ">=", fromDay).get(),
-    db.collection("pushTokens").get(),
-    db.collection("members").get(),
-    db.collection("groups").get(),
-    db.collection("openGames").where("createdAt", ">=", now - POLL_DAYS * 86400e3).get(),
-    db.collection("invites").where("createdAt", ">=", now - POLL_DAYS * 86400e3).get()
-  ]);
-  // members === null before the move to groups (everyone gets poll news, as before)
-  const members = membersSnap.empty ? null : membersSnap.docs.map((d) => d.data());
-  const groups = {}; groupsSnap.forEach((d) => (groups[d.id] = d.data()));
-  const openGames = gamesSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-  const invites = invitesSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-  const users = {}; usersSnap.forEach((d) => (users[d.id] = d.data()));
-  const byId = {};
-  [openSnap, recentSnap].forEach((snap) => snap.forEach((d) => (byId[d.id] = Object.assign({ id: d.id }, d.data()))));
-  const polls = Object.values(byId);
-  const sessions = sessionsSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-  const tokens = {}, langs = {};
-  tokensSnap.forEach((d) => { tokens[d.id] = Object.keys(d.data().tokens || {}); langs[d.id] = d.data().lang; });
-  const reads = usersSnap.size + openSnap.size + recentSnap.size + sessionsSnap.size + tokensSnap.size + membersSnap.size + groupsSnap.size + gamesSnap.size + invitesSnap.size;
-  return { users, polls, sessions, tokens, langs, reads, members, groups, openGames, invites };
+/** The runner's store, on top of Firestore */
+function adminStore(db) {
+  const stateRef = db.collection("pushState").doc("main");
+  const val = (v) => (v && typeof v === "object" && "ts" in v ? admin.firestore.Timestamp.fromMillis(v.ts) : v);
+  const one = (coll, c) => db.collection(coll).where(c.f, c.op, val(c.v));
+  const pack = (snap) => snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+  return {
+    async getState() { return (await stateRef.get()).data(); },
+    async setState(patch) { await stateRef.set(patch, { merge: true }); },
+    async all(coll) { return pack(await db.collection(coll).get()); },
+    async query(coll, anyOf) {
+      if (anyOf.length === 1) return pack(await one(coll, anyOf[0]).get());
+      try {
+        // one OR query (billed by documents returned)
+        return pack(await db.collection(coll).where(Filter.or(...anyOf.map((c) => Filter.where(c.f, c.op, val(c.v))))).get());
+      } catch (e) {
+        // OR not accepted for some reason: one query per clause, merged (still far cheaper than reading everything)
+        console.log(`  (${coll}: OR query failed: ${e.message}; using ${anyOf.length} queries)`);
+        const merged = {};
+        for (const c of anyOf) pack(await one(coll, c).get()).forEach((d) => (merged[d.id] = d));
+        return Object.values(merged);
+      }
+    },
+    async getByIds(coll, ids) {
+      const snaps = await db.getAll(...ids.map((id) => db.collection(coll).doc(id)));
+      return snaps.map((s) => ({ id: s.id, data: s.exists ? s.data() : null }));
+    },
+    async purgeTrash(cutoff) {
+      const old = await db.collection("trash").where("deletedAt", "<", cutoff).get();
+      for (const d of old.docs) await d.ref.delete();
+      return old.size;
+    }
+  };
+}
+
+/** Sends the messages through FCM; forgets devices that uninstalled / revoked permission */
+function makeDeliver(db) {
+  return async function deliver(messages, tokens) {
+    let sent = 0, failed = 0;
+    const dead = {}; // uid -> [bad tokens]
+    for (const m of messages) {
+      const list = tokens[m.uid] || [];
+      if (!list.length) continue;
+      const res = await admin.messaging().sendEachForMulticast({
+        tokens: list,
+        notification: { title: m.title, body: m.body },
+        // Same tag = the new banner replaces the previous one for that poll
+        data: { tag: m.tag || m.link },
+        webpush: { fcmOptions: { link: m.link }, notification: { tag: m.tag || m.link } }
+      });
+      res.responses.forEach((r, i) => {
+        if (r.success) sent++;
+        else {
+          failed++;
+          const code = r.error && r.error.code;
+          if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
+            (dead[m.uid] = dead[m.uid] || []).push(list[i]);
+          }
+        }
+      });
+    }
+    for (const uid of Object.keys(dead)) {
+      const upd = {};
+      dead[uid].forEach((tk) => (upd["tokens." + tk] = admin.firestore.FieldValue.delete()));
+      await db.collection("pushTokens").doc(uid).update(upd).catch(() => {});
+    }
+    return { sent, failed };
+  };
 }
 
 async function main() {
@@ -61,80 +96,9 @@ async function main() {
     return;
   }
   const db = initAdmin();
-  const now = Date.now();
-
   if (process.env.PUSH_TEST === "true") return sendTest(db);
-
-  const stateRef = db.collection("pushState").doc("main");
-  const state = (await stateRef.get()).data() || {};
-  if (!state.lastRun) {
-    // First run: start from now, don't replay old events
-    await stateRef.set({ lastRun: now });
-    console.log("Initialised; pushes start from now.");
-    return;
-  }
-
-  const { users, polls, sessions, tokens, langs, reads, members, groups, openGames, invites } = await loadData(db, now);
-
-  // Daily payment reminder: first run after 9:00 Bangkok time, once a day
-  const local = new Date(now + TZ_OFFSET_H * 3600e3);
-  const today = local.toISOString().slice(0, 10);
-  const remind = local.getUTCHours() >= REMIND_HOUR && state.lastReminder !== today;
-
-  // "Game in 1 hour" reminders already sent (forget after 2 days)
-  const startSent = {};
-  Object.entries(state.startSent || {}).forEach(([id, at]) => { if (now - at < 2 * 86400e3) startSent[id] = at; });
-
-  // Votes already announced, per open poll (others are forgotten)
-  const openPolls = new Set(polls.filter((p) => p.status === "draft" || p.status === "open").map((p) => p.id));
-  const voteSent = {};
-  Object.entries(state.voteSent || {}).forEach(([id, m]) => { if (openPolls.has(id)) voteSent[id] = m; });
-
-  const all = collectMessages({ users, polls, sessions, langs, members, groups, openGames, invites }, state.lastRun, now, { remind, appUrl: APP_URL, startSent, voteSent });
-  all.forEach((m) => {
-    if (m.startOf) startSent[m.startOf] = now;
-    if (m.voteAnnounce) { const v = m.voteAnnounce; (voteSent[v.pollId] = voteSent[v.pollId] || {})[v.voter] = v.a; }
-  });
-  const messages = all.filter((m) => !m.voteAnnounce);
-  let sent = 0, failed = 0;
-  const dead = {}; // uid -> [bad tokens]
-
-  for (const m of messages) {
-    const list = tokens[m.uid] || [];
-    if (!list.length) continue;
-    const res = await admin.messaging().sendEachForMulticast({
-      tokens: list,
-      notification: { title: m.title, body: m.body },
-      // Same tag = the new banner replaces the previous one for that poll
-      data: { tag: m.tag || m.link },
-      webpush: { fcmOptions: { link: m.link }, notification: { tag: m.tag || m.link } }
-    });
-    res.responses.forEach((r, i) => {
-      if (r.success) sent++;
-      else {
-        failed++;
-        const code = r.error && r.error.code;
-        if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
-          (dead[m.uid] = dead[m.uid] || []).push(list[i]);
-        }
-      }
-    });
-  }
-
-  // Forget devices that uninstalled / revoked permission
-  for (const uid of Object.keys(dead)) {
-    const upd = {};
-    dead[uid].forEach((tk) => (upd["tokens." + tk] = admin.firestore.FieldValue.delete()));
-    await db.collection("pushTokens").doc(uid).update(upd).catch(() => {});
-  }
-
-  // Recently deleted: remove entries older than 30 days for good
-  const old = await db.collection("trash").where("deletedAt", "<", now - TRASH_DAYS * 86400e3).get();
-  for (const d of old.docs) await d.ref.delete();
-  if (old.size) console.log(`trash: removed ${old.size} item(s) older than ${TRASH_DAYS} days`);
-
-  await stateRef.set({ lastRun: now, lastReminder: remind ? today : (state.lastReminder || null), startSent, voteSent }, { merge: true });
-  console.log(`read ${reads} docs (${polls.length} polls, ${sessions.length} sessions) · events: ${messages.length}, pushes sent: ${sent}, failed: ${failed}${remind ? ", daily payment reminder sent" : ""}`);
+  const out = await runOnce(adminStore(db), Date.now(), { appUrl: APP_URL, deliver: makeDeliver(db) });
+  console.log(out.line);
 }
 
 /** Manual test: one push to every registered device, nothing else changes */
