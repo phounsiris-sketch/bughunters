@@ -109,7 +109,7 @@ function showCreateSheet() {
   };
   var html = '<div class="home-news two-up">' +
     tile("vote", t("homeVote"), t("csVoteSub"), "showCreatePoll()", "n1") +
-    tile("court", t("homeGame"), t("csGameSub"), "createAdHocSession()", "n2") + '</div>' +
+    tile("court", t("homeShortPlay"), t("csGameSub"), "createAdHocSession()", "n2") + '</div>' +
     '<div class="home-news two-up" style="margin-top:10px">' +
     '<button type="button" class="home-new row" onclick="closeModal();homeAddScore()"><span class="home-new-ico n3">' + icon("add", 22) + '</span>' + t("homeAddScore") + '</button>' +
     '<button type="button" class="home-new row" onclick="closeModal();showLiveScore()"><span class="home-new-ico n4">' + icon("scoreboard", 22) + '</span>' + t("lsTitle") + '</button></div>';

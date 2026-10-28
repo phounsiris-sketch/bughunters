@@ -336,7 +336,7 @@ function renderHome() {
   }
   html += '<div class="hg-head">' + icon("add", 16) + ' <span>' + t("homeCreate") + '</span></div><div class="hg-grid four' + g3 + '">' +
     tile("vote", 3, t("homeVote"), "showCreatePoll()", "poll", 44) +
-    tile("court", 1, t("homeGame"), "createAdHocSession()", "game", 44) +
+    tile("court", 1, t("homeShortPlay"), "createAdHocSession()", "game", 44) +
     tile("manual", 2, t("homeShortScore"), "homeAddScore()", "score", 44) +
     tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()", "live", 44) + '</div>';
 

@@ -7,7 +7,8 @@ vm.runInContext(fs.readFileSync("js/i18n.js", "utf8") + "\n;this.__tr = translat
 var T = ctx.__tr, en = T.en, la = T.la;
 
 assert.deepStrictEqual(Object.keys(en).sort(), Object.keys(la).sort(), "EN and LA have the same key set");
-assert.strictEqual(en.navGames, "Sessions"); assert.strictEqual(la.navGames, "ນັດຫຼິ້ນ");
+assert.strictEqual(en.navGames, "Session"); assert.strictEqual(la.navGames, "ເຊດຊັນ");   // v254: user named the bar item
+assert.strictEqual(en.homeShortPlay, "Play"); assert.strictEqual(la.homeShortPlay, "ຫຼິ້ນ");   // v254: Create shortcut
 assert.strictEqual(en.sessionTabGames, "Matches"); assert.strictEqual(la.sessionTabGames, "ແມັດ");
 assert.strictEqual(en.sessionTabBill, "Bill"); assert.strictEqual(la.sessionTabBill, "ບິນ");
 assert.strictEqual(en.matches, "Matches"); assert.strictEqual(la.matches, "ແມັດ");
@@ -16,6 +17,7 @@ assert.strictEqual(en.homeGame, "Session"); assert.strictEqual(la.homeGame, "ນ
 assert.strictEqual(la.lastNGames, "{n} ແມັດລ່າສຸດ"); assert.strictEqual(en.maCrumb, "All matches"); assert.strictEqual(la.maCrumb, "ແມັດທັງໝົດ");
 
 Object.keys(la).forEach(function (k) {
+  if (k === "navGames") return;   // v254: the bar item is "ເຊດຊັນ" by the user's choice
   assert.ok(!/ເກມ|ເຊດຊັນ|ເຊສຊັ່ນ/.test(la[k]), "LA " + k + " still uses an old word: " + la[k]);
 });
 Object.keys(en).forEach(function (k) {
@@ -26,5 +28,5 @@ Object.keys(en).forEach(function (k) {
 var ev = fs.readFileSync("push/events.js", "utf8");
 assert.ok(!/ເກມ/.test(ev) && !/\bGame\b/.test(ev.replace(/ \* .*|\/\/.*/g, "")), "push texts use session wording");
 var idx = fs.readFileSync("index.html", "utf8");
-assert.ok(/data-i18n="navGames">Sessions</.test(idx), "static nav fallback text");
+assert.ok(/data-i18n="navGames">Session</.test(idx), "static nav fallback text");
 console.log("names-v253 ok");
