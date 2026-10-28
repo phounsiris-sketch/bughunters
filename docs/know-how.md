@@ -2191,3 +2191,5 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 - User named them: bottom bar `navGames` = "Session" / "ເຊດຊັນ" (also the breadcrumb root); the Create tile that starts a session now (Home Create row and the create sheet) uses the new key `homeShortPlay` = "Play" / "ຫຼິ້ນ".
 - `homeGame` keeps "Session" / "ນັດຫຼິ້ນ" for the other places (public game detail breadcrumb). Matches stay "Match / ແມັດ", the money tab stays "Bill / ບິນ".
 
+## v255: 3D Market icon is a market stall
+- `ART_3D.market` (js/icons.js) redrawn: red striped awning on two posts, wooden counter, a teal shuttle tube and a racket. Original art, existing `g3d-` gradients only (no new defs). Same drawing for all three Friends/Live variants.
