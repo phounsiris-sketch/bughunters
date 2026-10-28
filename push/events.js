@@ -22,15 +22,15 @@ const TEXT = {
     billT: "🧾 Bill ready", billOwe: "{date}: you owe {amount}. Tap to pay.", billNone: "{date}: nothing for you to pay.",
     paidT: "💸 Payment received", paidB: "{name} paid you {amount}",
     remindT: "⏰ Payment reminder", remindB: "You still owe {list} — {amount} in total. Tap to pay.",
-    startT: "⏰ Game in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)",
+    startT: "⏰ Session in 1 hour — get ready!", startB: "Badminton {time} at {court} ({min} min to go)",
     voteT: "🗳️ New answers · {date}", voteB: "{list} · {n}/{min} joining",
     join: "Join", skip: "Skip", cleared: "removed",
     closeSoonT: "⏰ Voting closes in 3 hours", closeSoonB: "{date} {time} at {court} — Join or Skip? Answer now",
     closedT: "🔒 Voting closed · {date}", closedCreatorB: "{n}/{min} joined — tap to confirm or cancel the plan", closedB: "{n}/{min} joined — waiting for {name} to confirm",
     fullT: "🎉 Enough players · {date}", fullCreatorB: "{n}/{min} joined — tap to confirm the plan", fullB: "{n}/{min} joined — waiting for {name} to confirm",
-    gameJoinT: "🏸 {list} joined your game", gameJoinB: "{date} {time} at {court} · {n}/{slots} players",
-    gameFullT: "✅ Game full — it's on!", gameFullB: "{date} {time} at {court} · {n} players",
-    gameCancelT: "❌ Game cancelled", gameCancelB: "{name} cancelled {date} {time} at {court}",
+    gameJoinT: "🏸 {list} joined your session", gameJoinB: "{date} {time} at {court} · {n}/{slots} players",
+    gameFullT: "✅ Session full — it's on!", gameFullB: "{date} {time} at {court} · {n} players",
+    gameCancelT: "❌ Session cancelled", gameCancelB: "{name} cancelled {date} {time} at {court}",
     reqT: "👋 Join request · {group}", reqB: "{name} asked to join{msg}",
     approvedT: "🎉 Welcome to {group}", approvedB: "Your request was approved — tap to open the group",
     inviteT: "🏸 {name} invited you to play", inviteB: "{date} {time} at {court}{msg}",
@@ -49,9 +49,9 @@ const TEXT = {
     closeSoonT: "⏰ ອີກ 3 ຊົ່ວໂມງປິດໂຫວດ", closeSoonB: "{date} {time} ທີ່ {court} — ມາ ຫຼື ບໍ່ມາ? ຕອບດຽວນີ້",
     closedT: "🔒 ປິດໂຫວດແລ້ວ · {date}", closedCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນ ຫຼື ຍົກເລີກແຜນ", closedB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ",
     fullT: "🎉 ຄົນພໍແລ້ວ · {date}", fullCreatorB: "ມາ {n}/{min} ຄົນ — ແຕະເພື່ອຢືນຢັນແຜນ", fullB: "ມາ {n}/{min} ຄົນ — ລໍຖ້າ {name} ຢືນຢັນ",
-    gameJoinT: "🏸 {list} ເຂົ້າຮ່ວມເກມຂອງທ່ານ", gameJoinB: "{date} {time} ທີ່ {court} · {n}/{slots} ຄົນ",
-    gameFullT: "✅ ເກມເຕັມແລ້ວ — ຫຼິ້ນແນ່ນອນ!", gameFullB: "{date} {time} ທີ່ {court} · {n} ຄົນ",
-    gameCancelT: "❌ ເກມຖືກຍົກເລີກ", gameCancelB: "{name} ຍົກເລີກ {date} {time} ທີ່ {court}",
+    gameJoinT: "🏸 {list} ເຂົ້າຮ່ວມນັດຫຼິ້ນຂອງທ່ານ", gameJoinB: "{date} {time} ທີ່ {court} · {n}/{slots} ຄົນ",
+    gameFullT: "✅ ນັດຫຼິ້ນເຕັມແລ້ວ — ຫຼິ້ນແນ່ນອນ!", gameFullB: "{date} {time} ທີ່ {court} · {n} ຄົນ",
+    gameCancelT: "❌ ນັດຫຼິ້ນຖືກຍົກເລີກ", gameCancelB: "{name} ຍົກເລີກ {date} {time} ທີ່ {court}",
     reqT: "👋 ຄຳຂໍເຂົ້າຮ່ວມ · {group}", reqB: "{name} ຂໍເຂົ້າຮ່ວມ{msg}",
     approvedT: "🎉 ຍິນດີຕ້ອນຮັບສູ່ {group}", approvedB: "ຄຳຂໍຂອງທ່ານຖືກອະນຸມັດແລ້ວ — ແຕະເພື່ອເປີດກຸ່ມ",
     inviteT: "🏸 {name} ຊວນທ່ານຫຼິ້ນ", inviteB: "{date} {time} ທີ່ {court}{msg}",
@@ -84,7 +84,7 @@ function pollInfo(p) {
  * @param opts { remind: boolean (daily payment reminder), appUrl,
  *                startSent: { sessionId: ms } sessions already reminded }
  * @returns [{ uid, title, body, link, startOf? }] — startOf = session id of a
- *          "game in 1 hour" reminder (the caller records it in startSent)
+ *          "session in 1 hour" reminder (the caller records it in startSent)
  */
 function collectMessages(data, since, now, opts) {
   opts = opts || {};

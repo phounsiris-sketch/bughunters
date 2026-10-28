@@ -286,7 +286,7 @@ assert.ok(!ctx.tourOf({ tourney: { v: 1, fmt: 2, n: 3, ids: ["a", "b", "c"], gam
   for (var n = 4; n <= 20; n++) { sess.players = uids(n); var s2 = ctx.tourStage(sess); assert.ok(s2.act === "start" && !s2.disabled, "start for " + n); }
   // the confirm: a warning line when the estimate's upper bound is above the booked time
   sess.players = uids(12); asked.length = 0; ctx.tourAskStart(sess, true);
-  var a = asked[0].o; assert.strictEqual(a.detail, "This takes about 4h15, longer than the 2h booked."); assert.strictEqual(a.kind, "warn"); assert.ok(/12 players/.test(a.body) && /3 games/.test(a.body));
+  var a = asked[0].o; assert.strictEqual(a.detail, "This takes about 4h15, longer than the 2h booked."); assert.strictEqual(a.kind, "warn"); assert.ok(/12 players/.test(a.body) && /3 matches/.test(a.body));
   sess.duration = 5; asked.length = 0; ctx.tourAskStart(sess, true); assert.ok(!asked[0].o.detail && asked[0].o.kind === "ask", "no warning when it fits");
   sess.duration = 4.25; asked.length = 0; ctx.tourAskStart(sess, true); assert.ok(!asked[0].o.detail, "exactly the booked time is fine");
   sess.duration = 4; asked.length = 0; ctx.tourAskStart(sess, true); assert.strictEqual(asked[0].o.detail, "This takes about 4h15, longer than the 4h booked.");
@@ -294,14 +294,14 @@ assert.ok(!ctx.tourOf({ tourney: { v: 1, fmt: 2, n: 3, ids: ["a", "b", "c"], gam
   sess.players = uids(4); sess.duration = 1; asked.length = 0; ctx.tourAskStart(sess, true); assert.strictEqual(asked[0].o.detail, "This takes about 1h30, longer than the 1h booked.");
   // the info model, personalised
   var m = ctx.tourInfoModel(12, null), txt = m.secs.map(function (x) { return x.p.join(" "); }).join(" | ");
-  assert.ok(/Everyone plays 3 games\. 9 mix games in all\./.test(txt) && /Players resting in each game: 8\./.test(txt), txt);
-  assert.ok(/The top 8 play\. Pairs, best with worst: #1\+#8, #2\+#7, #3\+#6, #4\+#5\./.test(txt) && /3rd place and the final/.test(txt) && /Best of 3: the first pair to 2 wins\. Game 3 is played only if it is 1–1\./.test(txt), txt);
-  assert.ok(/Most wins first, then point difference, then points scored/.test(txt) && /About 3h45–4h15 in all \(15–17 games, 15 minutes each/.test(txt) && /Replace player/.test(txt) && /Players below the line are done/.test(txt), txt);
+  assert.ok(/Everyone plays 3 matches\. 9 mix matches in all\./.test(txt) && /Players resting in each match: 8\./.test(txt), txt);
+  assert.ok(/The top 8 play\. Pairs, best with worst: #1\+#8, #2\+#7, #3\+#6, #4\+#5\./.test(txt) && /3rd place and the final/.test(txt) && /Best of 3: the first pair to 2 wins\. Match 3 is played only if it is 1–1\./.test(txt), txt);
+  assert.ok(/Most wins first, then point difference, then points scored/.test(txt) && /About 3h45–4h15 in all \(15–17 matches, 15 minutes each/.test(txt) && /Replace player/.test(txt) && /Players below the line are done/.test(txt), txt);
   var m5 = ctx.tourInfoModel(5, null), t5 = m5.secs.map(function (x) { return x.p.join(" "); }).join(" | ");
-  assert.ok(/Everyone plays 4 games\. 5 mix games/.test(t5) && /resting in each game: 1\./.test(t5) && /The top 4 play\. Pairs, best with worst: #1\+#4, #2\+#3\./.test(t5) && /final: #1\+#4 against #2\+#3/.test(t5), t5);
+  assert.ok(/Everyone plays 4 matches\. 5 mix matches/.test(t5) && /resting in each match: 1\./.test(t5) && /The top 4 play\. Pairs, best with worst: #1\+#4, #2\+#3\./.test(t5) && /final: #1\+#4 against #2\+#3/.test(t5), t5);
   var m7 = ctx.tourInfoModel(7, null), t7 = m7.secs.map(function (x) { return x.p.join(" "); }).join(" | ");
-  assert.ok(/#1\+#6, #2\+#5, #3\+#4/.test(t7) && /play each other once \(3 games\)/.test(t7) && !/Best of 3/.test(t7), t7);
-  var m4 = ctx.tourInfoModel(4, null), t4 = m4.secs.map(function (x) { return x.p.join(" "); }).join(" | "); assert.ok(!/below the line/.test(t4) && /resting in each game: 0\./.test(t4), t4);
+  assert.ok(/#1\+#6, #2\+#5, #3\+#4/.test(t7) && /play each other once \(3 matches\)/.test(t7) && !/Best of 3/.test(t7), t7);
+  var m4 = ctx.tourInfoModel(4, null), t4 = m4.secs.map(function (x) { return x.p.join(" "); }).join(" | "); assert.ok(!/below the line/.test(t4) && /resting in each match: 0\./.test(t4), t4);
   var mo = ctx.tourInfoModel(25, null); assert.ok(/Up to 20 players \(now 25\)/.test(mo.secs[0].p[0]));
   for (n = 4; n <= 20; n++) { var mm = ctx.tourInfoModel(n, null); mm.secs.forEach(function (x) { x.p.concat([x.h]).forEach(function (q) { assert.ok(!/undefined|NaN|\{\w+\}/.test(q), "info for " + n + " has no holes: " + q); }); }); }
   // the sheet itself: a dialog, labelled, closes, focus goes back
@@ -331,7 +331,7 @@ assert.ok(!ctx.tourOf({ tourney: { v: 1, fmt: 2, n: 3, ids: ["a", "b", "c"], gam
   assert.ok(stages.indexOf("rot") >= 0 && stages.indexOf("T1") >= 0 && stages.indexOf("F1") >= 0 && stages.indexOf("S1") >= 0, stages.join(","));
   var merged = ctx.tourMergeMatches([{ id: "m1", sessionId: "Z", teamA: ["a", "b"], teamB: ["c", "d"], games: [{ a: 21, b: 5 }], date: "2026-10-01" }], [s], "g1");
   assert.strictEqual(merged.length, ms.length + 1); assert.ok(merged.filter(function (m) { return m.tid; }).length === ms.length);
-  assert.strictEqual(ctx.tourLabText("T2"), "3rd place · game 2"); assert.strictEqual(ctx.tourLabText("T"), "3rd place"); assert.strictEqual(ctx.tourLabText("F3"), "Final · game 3"); assert.strictEqual(ctx.tourLabText("S2"), "Semi 2");
+  assert.strictEqual(ctx.tourLabText("T2"), "3rd place · match 2"); assert.strictEqual(ctx.tourLabText("T"), "3rd place"); assert.strictEqual(ctx.tourLabText("F3"), "Final · match 3"); assert.strictEqual(ctx.tourLabText("S2"), "Semi 2");
   // the All matches page lists tournament games by tid (filter "tournament")
   var ma = fs.readFileSync("js/matches-all.js", "utf8"); assert.ok(/f\.type === "tournament" && !g\.tid/.test(ma) && /if \(g\.tid\) so\.tour = true/.test(ma));
 })();
