@@ -336,4 +336,25 @@ function sessionStart(s) {
   return Date.UTC(y, m - 1, d, hh - 7, mm || 0);
 }
 
-module.exports = { collectMessages, computeLedger, sessionStart, pollCloseMs };
+/** What the cheap sender (push/runner.js) has to keep an eye on, because "payment received" has no
+    top-level timestamp to query (the paid time is written inside the map settledAt.<key>):
+      keys = every payment key (from__to) of every calculated session, queried as `settledAt.<key> > lastRun`
+      ids  = sessions with an unpaid transfer dated on/after `recentFrom` (YYYY-MM-DD), re-read by id on every run
+             (covers edits that create new keys without a new bill time, e.g. swapping a player), plus any
+             session whose keys cannot be used as a field path */
+function watchInfo(data, recentFrom) {
+  const curOf = (gid) => { const g = (data.groups || {})[gid]; return (g && SYMBOL[g.currency] && g.currency) || "LAK"; };
+  const keys = new Set(), ids = [];
+  (data.sessions || []).forEach((s) => {
+    if (!s.calculated) return;
+    ctx.ROUND_TO = curOf(s.groupId) === "LAK" ? 1000 : 1;
+    const settled = s.settled || {};
+    const L = computeLedger(s);
+    let odd = false;
+    L.transfers.forEach((tr) => { if (/^[A-Za-z0-9_-]+$/.test(tr.key)) keys.add(tr.key); else odd = true; });
+    if (odd || (s.date >= recentFrom && L.transfers.some((tr) => !settled[tr.key]))) ids.push(s.id);
+  });
+  return { keys: [...keys].sort(), ids };
+}
+
+module.exports = { collectMessages, computeLedger, sessionStart, pollCloseMs, watchInfo, ms, VOTE_SETTLE };
