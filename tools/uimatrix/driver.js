@@ -10,6 +10,7 @@
     currentUser = { uid: "me", emailVerified: true, displayName: "Me", email: "me@example.com" };
     currentUserProfile = DB_CACHE.users[0];
     GROUPS_ON = true; currentGroupId = "g1";
+    ["nav-public", "nav-stats"].forEach(function (id) { var e = document.getElementById(id); if (e) e.style.display = ""; });   // v256: 5-slot bottom bar
     currentGroup = { id: "g1", name: "Godsmash Club", type: "private", ownerId: "me", currency: "LAK", city: "Vientiane" };
     myMemberships = { g1: { id: "g1_me", gid: "g1", uid: "me", role: "owner", status: "active", perms: {} } };
     groupMembers = ids.map(function (u, i) { return { id: "g1_" + u, gid: "g1", uid: u, role: i ? "member" : "owner", status: "active" }; });
@@ -77,6 +78,21 @@
   function audit(pageEl, combo, page) {
     var W = window.innerWidth, add = function (type, el, extra) { D.issues.push({ type: type, sel: sel(el), combo: combo, page: page, extra: extra || "" }); };
     if (document.documentElement.scrollWidth > W + 1) D.issues.push({ type: "page-h-scroll", sel: "html", combo: combo, page: page, extra: document.documentElement.scrollWidth + ">" + W });
+    // optional "act":"nav-stats" in the wrapper hash: show that bar slot as active (screenshots of a middle / last slot on a calm page)
+    if (CONFIG.act) { document.querySelectorAll("#bottomNav .nav-item").forEach(function (b) { var on = b.id === CONFIG.act; b.classList.toggle("active", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }); if (typeof positionNavHump === "function") positionNavHump(true); }
+    // v256: bottom bar contrast: glyph on the active circle >= 3, active label on the bar >= 4.5
+    (function () {
+      var ai = document.querySelector("#bottomNav .nav-item.active .nav-icon"), at = document.querySelector("#bottomNav .nav-item.active .nav-text"), bar = document.querySelector("#bottomNav .nb-bar");
+      if (!ai || !at || !bar) return;
+      var nt = document.getElementById("uim-nt"); if (!nt) { nt = document.createElement("style"); nt.id = "uim-nt"; nt.textContent = "#bottomNav *, #bottomNav *::before { transition: none !important; }"; document.head.appendChild(nt); }   // read settled colours, not mid-transition ones
+      void ai.offsetWidth;
+      var cv = document.createElement("canvas"); cv.width = cv.height = 1; var cx = cv.getContext("2d", { willReadFrequently: true });
+      function rgba(c) { cx.clearRect(0, 0, 1, 1); cx.fillStyle = "#000"; cx.fillStyle = c; cx.fillRect(0, 0, 1, 1); var d = cx.getImageData(0, 0, 1, 1).data; return { r: d[0], g: d[1], b: d[2], a: d[3] / 255 }; }   // color-mix() computes to color(srgb ..), so normalise through a canvas
+      var dot = rgba(getComputedStyle(ai, "::before").backgroundColor), ic = over(rgba(getComputedStyle(ai).color), dot), r1 = cr(ic, dot);
+      var bb = over(rgba(getComputedStyle(bar).backgroundColor), { r: 0, g: 0, b: 0, a: 1 }), lb = over(rgba(getComputedStyle(at).color), bb), r2 = cr(lb, bb);
+      if (r1 < 3) add("nav-icon-contrast", ai, r1.toFixed(2)); if (r2 < 4.5) add("nav-label-contrast", at, r2.toFixed(2));
+      D.navC = D.navC || {}; D.navC[combo] = r1.toFixed(1) + "/" + r2.toFixed(1) + " " + (document.querySelector("#bottomNav .nb-hump").style.transform || "none") + " " + document.querySelector("#bottomNav .nb-hump").getBoundingClientRect().top;
+    })();
     pageEl.querySelectorAll("details").forEach(function (d) { d.open = true; });   // check folded content too
     var all = pageEl.querySelectorAll("*"), seen = {}; D.audited += all.length;
     for (var i = 0; i < all.length; i++) {

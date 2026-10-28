@@ -11,35 +11,37 @@ assert.ok(/data-i18n="navDashboard"/.test(nav) && !/nav-center/.test(nav + fs.re
 assert.ok(/id="navBadge-games"/.test(nav) && /id="navBadge-public"/.test(nav), "badges kept");
 assert.strictEqual((nav.match(/data-plain/g) || []).length, 5, "every nav icon is a plain glyph");
 assert.ok(/id="nav-stats" style="display:none"/.test(nav) && /id="nav-public" style="display:none"/.test(nav), "Rank and Community hidden until groups are on");
-assert.ok(/nb-notch/.test(nav) && /aria-hidden="true"/.test(nav), "notch shape present and hidden from screen readers");
+assert.ok(/nb-hump/.test(nav) && /nb-bar/.test(nav) && !/nb-notch/.test(nav) && /aria-hidden="true"/.test(nav), "bulge shape present and hidden from screen readers");
 var i18n = fs.readFileSync("js/i18n.js", "utf8");
 ["navDashboard: \"Dashboard\"", "navDashboard: \"ແດຊບອດ\"", "tourStepRotL: \"Rotation\"", "tourStepRotL: \"ໝູນວຽນ\"", "tourStepPairsL: \"ຄູ່\"", "tourStepPlayoffL: \"ຮອບຕັດສິນ\"", "tourStepWinnerL: \"ຜູ້ຊະນະ\""].forEach(function (k) { assert.ok(i18n.indexOf(k) > 0, "i18n " + k); });
 var css = fs.readFileSync("css/styles.css", "utf8");
-assert.ok(/prefers-reduced-motion: reduce\) \{\s*\.nb-l/.test(css), "reduced motion switches the bar motion off");
+assert.ok(/prefers-reduced-motion: reduce\) \{\s*\.nb-hump/.test(css), "reduced motion switches the bar motion off");
 assert.ok(/cubic-bezier\(\.34, 1\.56, \.64, 1\)/.test(css), "spring ease on the bubble");
 
 // ---- 2. notch positioning from the active element ----
 var els = {};
 function mk(o) { var e = Object.assign({ style: {}, classList: { _c: {}, add: function (c) { this._c[c] = 1; }, remove: function (c) { delete this._c[c]; }, contains: function (c) { return !!this._c[c]; } }, attrs: {}, getAttribute: function (k) { return this.attrs[k] || null; }, setAttribute: function (k, v) { this.attrs[k] = v; }, offsetWidth: 0 }, o); return e; }
 function run(slots, activeIdx, width) {
-  var parts = { ".nb-notch": mk({}), ".nb-l": mk({}), ".nb-r": mk({}) };
+  var parts = { ".nb-hump": mk({}), ".nb-bar": mk({}) };
   var bg = { querySelector: function (s) { return parts[s]; } };
   var w = width / slots, items = [];
   for (var i = 0; i < slots; i++) items.push(mk({ offsetLeft: i * w, offsetWidth: w }));
   var navEl = mk({ offsetWidth: width, clientWidth: width, querySelector: function (s) { return s === ".nav-bg" ? bg : (s === ".nav-item.active" ? (activeIdx < 0 ? null : items[activeIdx]) : null); } });
   var c = { document: { getElementById: function () { return navEl; } }, window: undefined, console: console };
-  vm.createContext(c); vm.runInContext(fs.readFileSync("js/router.js", "utf8").split("var NAV_NOTCH_W")[1] ? "var NAV_NOTCH_W" + fs.readFileSync("js/router.js", "utf8").split("var NAV_NOTCH_W")[1] : "", c);
-  c.positionNavNotch(true);
-  return { x: parseFloat(/translateX\((-?[\d.]+)px/.exec(parts[".nb-notch"].style.transform)[1]), l: parts[".nb-l"].style.transform, r: parts[".nb-r"].style.transform, nav: navEl };
+  vm.createContext(c); vm.runInContext(fs.readFileSync("js/router.js", "utf8").split("var NAV_HUMP_W")[1] ? "var NAV_HUMP_W" + fs.readFileSync("js/router.js", "utf8").split("var NAV_HUMP_W")[1] : "", c);
+  c.positionNavHump(true);
+  return { x: parseFloat(/translateX\((-?[\d.]+)px/.exec(parts[".nb-hump"].style.transform)[1]), t: parts[".nb-hump"].style.transform, bar: parts[".nb-bar"].style, nav: navEl };
 }
-var a = run(5, 1, 390), b = run(3, 2, 390), z = run(5, 0, 360);
-assert.ok(Math.abs(a.x - (78 * 1.5 - 60)) < 1e-6, "5 slots: notch centered under slot 2");
-assert.ok(Math.abs(b.x - (130 * 2.5 - 60)) < 1e-6, "3 slots: notch centered under slot 3");
-assert.ok(Math.abs(z.x - (36 - 60)) < 1e-6, "narrow width follows the measured slot");
-assert.ok(/translateX/.test(a.l) && /translateX/.test(a.r), "fillers move with transforms only");
+var a = run(5, 1, 390), b = run(3, 1, 390), z = run(5, 0, 360);
+assert.ok(Math.abs(a.x - (78 * 1.5 - 44)) < 1e-6, "5 slots: hump centered under slot 2");
+assert.ok(Math.abs(b.x - (130 * 1.5 - 44)) < 1e-6, "3 slots: hump centered under slot 2");
+assert.ok(Math.abs(z.x - (36 - 44)) < 1e-6, "first slot: hump stays centred on the item, no clamp");
+assert.ok(parseFloat(z.bar.borderTopLeftRadius) === 0 && parseFloat(z.bar.borderTopRightRadius) === 26, "first slot: the bar corner under the hump shrinks, the other keeps its radius");
+var last = run(5, 4, 390); assert.ok(Math.abs(last.x - (390 - 39 - 44)) < 1e-6 && parseFloat(last.bar.borderTopRightRadius) === 0 && parseFloat(last.bar.borderTopLeftRadius) === 26, "last slot is centred too; its end corner shrinks");
+assert.ok(/^translateX\(/.test(a.t), "hump moves with a transform only");
 assert.strictEqual(a.nav.attrs["data-ready"], "1", "first call is marked ready after the snap");
 assert.ok(!a.nav.classList.contains("nav-snap"), "snap class is removed again");
-var none = run(5, -1, 390); assert.ok(none.x > 390, "no active item parks the notch off-screen");
+var none = run(5, -1, 390); assert.ok(none.x > 390, "no active item parks the hump off-screen");
 
 // ---- 3. session tabs: Games first and default ----
 var sess = fs.readFileSync("js/sessions.js", "utf8");
