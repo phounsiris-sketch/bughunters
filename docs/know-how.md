@@ -2213,3 +2213,6 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 ## v258: Bottom bar circle sits lower
 - User: the bubble stood too high. Circle lift 46px -> 28px (`.nav-item.active .nav-icon` translateY), hump rise 24px -> 14px (`.nb-hump` 88x16, top -14px, same S-curve), `--nav-lift` 54px -> 36px (FAB/toasts follow). The circle now sits half in the bar, cradled by a low bump; design otherwise as v256.
 - Session detail tab `sessionTabGames` is "Games" / "ເກມ" again (user: "this is game, not match"). Elsewhere a single scored record stays Match / ແມັດ.
+
+## v259: Bottom bar a bit lower
+- `--nav-gap` 10px -> 4px and a new `--nav-safe` = 60% of `env(safe-area-inset-bottom)` (about 20px on iPhones with a home bar instead of 34px). `--nav-bar` and the bar's `bottom` both use it, so page padding, FAB, toasts and action bars follow.
