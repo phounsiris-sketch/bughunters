@@ -1,7 +1,7 @@
 /* ============================================================
    hallfame.js — tournament winner card and the Hall of Fame (v229)
    A finished session tournament leaves a record in groups/{gid}/hallOfFame/{sid}:
-   { v, sid, gid, date, n, champion:{uids,names}, runnerUp|null, third|null, finalScore, finalGames:[text], outs:[{uids,why}], createdBy, createdAt }
+   { v, sid, gid, date, n (4–20), champion:{uids,names}, runnerUp|null, third|null, finalScore, finalGames:[text], outs:[{uids,why}], createdBy, createdAt }
    The record stays when the session (or its tournament) is deleted. The Hall of Fame page (Rankings > Hall of fame) is built
    from the saved records; a finished tournament that is still in the sessions but not saved yet (rules not updated, or offline)
    is shown too, and a record that could not be saved is kept on this phone until it can.
@@ -26,7 +26,7 @@ function hofRecord(s, gid, nameOf, me) {
   T.__P = tourPairs(T);
   var rec = { v: 1, sid: String(s.id), gid: String(gid || s.groupId || ""), date: String(s.date || ""), n: T.n, champion: _hofTeam(T, order[0], nameOf), runnerUp: _hofTeam(T, order[1], nameOf), third: _hofTeam(T, order[2], nameOf),
     finalScore: "", finalGames: [], outs: [], createdBy: String(me || ""), createdAt: s.createdAt || 0 };
-  if (T.n === 8) {
+  if (tourKind(T) !== "rr") {   // v249: a final (top 4 or top 8); a round robin (top 6) has none
     var fs = tourFinals(T), w = tourFinalWins(T), champIsA = fs.length && order[0] === fs[0].pa;
     rec.finalScore = (champIsA ? w.wa : w.wb) + "–" + (champIsA ? w.wb : w.wa);
     rec.finalGames = fs.slice(0, 3).map(function (g) { return g.v ? "-" : g.wo ? "W/O" : (champIsA ? g.sa + "–" + g.sb : g.sb + "–" + g.sa); });
@@ -39,6 +39,11 @@ function hofRecord(s, gid, nameOf, me) {
   return rec;
 }
 
+/** v249: tournaments of 4–20 players; an odd value falls back to 8 as before */
+function _hofSizeOf(n) { return typeof n === "number" && Math.floor(n) === n && n >= 4 && n <= 20 ? n : 8; }
+/** v249: a record has a final unless the playoff was the 6-player round robin (n 6 or 7) */
+function _hofHasFinal(n) { return n !== 6 && n !== 7; }
+
 /** A record read from the database, made safe: strings cut, lists capped, shape fixed. null when it has no champion. */
 function hofClean(r) {
   if (!r || typeof r !== "object") return null;
@@ -50,7 +55,7 @@ function hofClean(r) {
   }
   var champ = team(r.champion);
   if (!champ) return null;
-  return { v: 1, sid: s(r.sid, 80), gid: s(r.gid, 80), date: s(r.date, 10), n: r.n === 6 ? 6 : 8, champion: champ, runnerUp: team(r.runnerUp), third: team(r.third),
+  return { v: 1, sid: s(r.sid, 80), gid: s(r.gid, 80), date: s(r.date, 10), n: _hofSizeOf(r.n), champion: champ, runnerUp: team(r.runnerUp), third: team(r.third),
     finalScore: s(r.finalScore, 8), finalGames: (Array.isArray(r.finalGames) ? r.finalGames : []).slice(0, 3).map(function (v) { return s(v, 8); }),
     outs: (Array.isArray(r.outs) ? r.outs : []).slice(0, 4).map(function (o) { return { uids: Array.isArray(o && o.uids) ? o.uids.slice(0, 2).map(function (v) { return s(v, 80); }) : [], why: s(o && o.why, 10) }; }),
     createdBy: s(r.createdBy, 80), createdAt: typeof r.createdAt === "number" ? r.createdAt : 0 };
@@ -175,7 +180,7 @@ function hofHtml() {
     }).join("") + '</div></div>';
   h += '<div class="card"><div class="card-title">' + icon("trophy", 14) + ' ' + escapeHtml(t("hofList")) + '</div><div class="hof-rows">' +
     m.list.map(function (r) {
-      return '<div class="hof-t"><div class="hof-t-h"><b>' + escapeHtml(fmtDate(r.date)) + '</b><span class="hof-t-n">' + escapeHtml(t(r.n === 8 ? "hofSize8" : "hofSize6")) + (r.finalScore ? ' · ' + escapeHtml(r.finalScore) : '') + '</span>' +
+      return '<div class="hof-t"><div class="hof-t-h"><b>' + escapeHtml(fmtDate(r.date)) + '</b><span class="hof-t-n">' + escapeHtml(t("hofSizeN").replace("{n}", r.n)) + (r.finalScore ? ' · ' + escapeHtml(r.finalScore) : '') + '</span>' +
         '<span class="hof-t-acts"><button type="button" class="how-btn" aria-label="' + escapeHtml(t("hofShare")) + '" onclick="openShareCard(\'\',\'tournament\',\'' + jsq(r.sid) + '\')">' + icon("shareOut", 14) + '</button>' +
         (_hofCanRemove(r) ? '<button type="button" class="delete-btn" aria-label="' + escapeHtml(t("delete")) + '" onclick="hofRemove(\'' + jsq(r.sid) + '\')">' + icon("trash", 14) + '</button>' : '') + '</span></div>' +
         '<div class="hof-t-c">' + icon("crown", 14) + ' ' + _hofTeamHtml(r.champion, 24) + '</div>' +
@@ -242,7 +247,7 @@ function drawTournamentCard(canvas, d, id, fmt) {
   var sy = ay + ar + (sq ? 200 : 260);
   if (r.finalScore) {
     c.save(); c.shadowColor = P.accent; c.shadowBlur = 30; c.fillStyle = P.text; c.font = font(sq ? 150 : 190, 800); c.fillText(r.finalScore, W / 2, sy); c.restore();
-    c.fillStyle = P.dim; c.font = font(28, 700); c.fillText((r.n === 8 ? t("hofFinalLine") : t("hofRoundRobin")).toUpperCase() + (r.finalGames.length ? "   " + r.finalGames.join("  ·  ") : ""), W / 2, sy + 52);
+    c.fillStyle = P.dim; c.font = font(28, 700); c.fillText((_hofHasFinal(r.n) ? t("hofFinalLine") : t("hofRoundRobin")).toUpperCase() + (r.finalGames.length ? "   " + r.finalGames.join("  ·  ") : ""), W / 2, sy + 52);
   }
   // runner-up and third
   var y = sy + (sq ? 100 : 130);

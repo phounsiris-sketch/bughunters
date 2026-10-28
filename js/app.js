@@ -515,7 +515,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v248"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v249"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.

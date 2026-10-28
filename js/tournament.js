@@ -1,14 +1,17 @@
 /* ============================================================
-   tournament.js — a tournament inside one session (v227)
-   1. Rotation: 6 players play 9 games, 8 players play 6, with a random partner each game
-      and an even rest (everyone plays the same number of games).
-   2. Pairs: best with worst, from the rotation table.
-   3. Playoff: 8 players = 2 semis (drawn at random), 3rd place (1 game), final best of 3.
-               6 players = round robin of the 3 pairs.
+   tournament.js — a tournament inside one session (v227, any size 4–20 since v249)
+   FORMAT 2 (T.fmt === 2, new tournaments, 4–20 players, 1 court):
+   1. Mix: doubles, partners change every game, everyone plays k games (k = 3 when n % 4 == 0, else 4), n*k/4 games (tourMixShape).
+      Table: wins, point difference, points scored.
+   2. Playoff by size: n 4–5 = top 4: pairs 1+4 v 2+3, final best of 3. n 6–7 = top 6: pairs 1+6, 2+5, 3+4 round robin.
+      n 8–20 = top 8: pairs 1+8, 2+7, 3+6, 4+5; semis (P1 v P4, P2 v P3, one game), 3rd place best of 3, final best of 3.
+   FORMAT 1 (no T.fmt: tournaments saved before v249, 6 or 8 players) keeps the old logic: 6 players 9 games + round robin,
+   8 players 6 games + random semis + 3rd place (one game) + final best of 3. tourKind(T) / tourQ(T) / tourFmt(T) tell them apart.
    The first part of this file is the plain engine (tour*), no DOM, tested in tests/tournament.test.js.
    The state is one object saved as sessions/{id}.tourney (NOT .tournament: the v48 round robin already used that name):
-   { v, n, ids:[uid], coin:[idx], games:[{ph,a:[idx],b:[idx],sa,sb}], po:[{ph,lab,fin,a,b,pa,pb,sa,sb,wo?,v?}], drawn, semi:[0..3]|null,
+   { v, fmt?, n, q?, ids:[uid], coin:[idx], games:[{ph,a:[idx],b:[idx],sa,sb}], po:[{ph,lab,fin?,th?,a,b,pa,pb,sa,sb,wo?,v?}], drawn, semi:[0..3]|null,
      out:[{p:pairNo, why:"injury"|"left"|"other", note}] }   (v228: a pair that is out gives walkovers; wo = walkover game, v = void game)
+   v249: fmt 2, q = players in the playoff (4, 6 or 8); th = a 3rd place series game (labels T1..T3), fin = a final game (F1..F3).
    v238: hurt:[{i, why, note}] players out for the games left; a game can carry subs:[{from, to, why, note}] (a stand-in plays for `from`)
    and woHurt (walkover because nobody could stand in). Both are optional, older data stays valid.
    Players inside games are positions (0..n-1) in `ids`, so the nested arrays stay legal in Firestore.
@@ -28,8 +31,45 @@ function tourShuffle(a, rnd) {
   return a;
 }
 function tourDone(g) { return !!g && g.sa !== null && g.sa !== undefined; }
-function tourSizeOk(n) { return n === 6 || n === 8; }
-function tourRounds(n) { return TOUR_BASE[n] ? TOUR_BASE[n].length : 0; }
+/* ---- v249: format 2 (T.fmt === 2): any size 4–20 on one court; a tournament without T.fmt is format 1 (6 or 8 players) and keeps the old logic ---- */
+var TOUR_MIN_N = 4, TOUR_MAX_N = 20;
+var TOUR_MIN_PER_GAME = 15;   // minutes per game in the estimate (the one place to change it)
+function tourSizeOk(n) { return typeof n === "number" && Math.floor(n) === n && n >= TOUR_MIN_N && n <= TOUR_MAX_N; }
+/** Mix games each player plays: 3 when the group is a multiple of 4, else 4 (the only way to keep it equal with 4 on court) */
+function tourK(n) { return n % 4 === 0 ? 3 : 4; }
+/** Mix games in all (format 2) */
+function tourMixGames(n) { return n * tourK(n) / 4; }
+/** Players in the playoff: 4 (n 4–5), 6 (n 6–7), 8 (n 8–20) */
+function tourPlayoffSize(n) { return n <= 5 ? 4 : n <= 7 ? 6 : 8; }
+function tourFmt(T) { return T && T.fmt === 2 ? 2 : 1; }
+/** Players in the playoff of this tournament; format 1 = everybody (6 or 8) */
+function tourQ(T) { return tourFmt(T) === 2 ? (T.q || tourPlayoffSize(T.n)) : T.n; }
+/** "final" (top 4: one final), "rr" (top 6: round robin of 3 pairs), "bracket" (top 8: semis, 3rd place, final) */
+function tourKind(T) { var q = tourQ(T); return q === 4 ? "final" : q === 6 ? "rr" : "bracket"; }
+/** Rotation (mix) games of a new tournament; kept for format 1 sessions in tests: 6 -> 9, 8 -> 6 */
+function tourRounds(n) { return tourSizeOk(n) ? tourMixGames(n) : 0; }
+
+/** Pure estimate at `per` minutes a game (default TOUR_MIN_PER_GAME). Playoff games: final bo3 2–3, round robin 3, bracket 2 semis + 3rd bo3 + final bo3. */
+function tourEstimate(n, per) {
+  per = per || TOUR_MIN_PER_GAME;
+  var q = tourPlayoffSize(n), kind = q === 4 ? "final" : q === 6 ? "rr" : "bracket", mix = tourMixGames(n);
+  var po = kind === "final" ? [2, 3] : kind === "rr" ? [3, 3] : [6, 8];
+  return { n: n, k: tourK(n), mix: mix, rest: n - 4, q: q, kind: kind, poMin: po[0], poMax: po[1], minGames: mix + po[0], maxGames: mix + po[1], minMin: (mix + po[0]) * per, maxMin: (mix + po[1]) * per, per: per };
+}
+/** 135 -> "2h15", 120 -> "2h00" (pad) or "2h" (no pad) */
+function tourFmtDur(min, pad) {
+  min = Math.round(min); var h = Math.floor(min / 60), m = min % 60;
+  return h + "h" + (m || pad ? (m < 10 ? "0" : "") + m : "");
+}
+/** "3h45–4h15", or "2h15" when both ends are the same */
+function tourEstimateText(e) { return e.minMin === e.maxMin ? tourFmtDur(e.minMin, true) : tourFmtDur(e.minMin, true) + "\u2013" + tourFmtDur(e.maxMin, true); }
+/** Games a tournament has in all, { min, max }: used for "game k of m" and the progress bar */
+function tourTotals(T) {
+  if (tourFmt(T) === 2) { var e = tourEstimate(T.n); return { min: e.minGames, max: e.maxGames }; }
+  return T.n === 8 ? { min: 11, max: 12 } : { min: 12, max: 12 };
+}
+/** Booked minutes of a session (duration is in hours), 0 when unknown */
+function tourBookedMin(s) { var d = s && +s.duration; return d > 0 ? Math.round(d * 60) : 0; }
 
 /** Longest rest and longest play streak of any player */
 function tourRuns(games, n) {
@@ -60,11 +100,103 @@ function tourPickShape(n, rnd) {
   return best;
 }
 
-/** A new tournament for the players of a session (6 or 8 user ids) */
-function tourNew(uids, rnd) {
+/** Format 1 (6 or 8 players, the v227 shape): a new tournament in the old format. The app does not start these any more; tests and old data use it. */
+function tourNewV1(uids, rnd) {
   var n = uids.length, ids = [], i;
   for (i = 0; i < n; i++) ids.push(i);
   return { v: 1, n: n, ids: uids.slice(), coin: tourShuffle(ids, rnd), games: tourPickShape(n, rnd), po: [], drawn: false, semi: null, out: [] };
+}
+
+/* ---- v249: the mix schedule for any n (4–20): n*k/4 games, everybody plays k (3 when n % 4 == 0, else 4) ----
+   Search: start from "the 4 players with most games left", then swap players between games / inside a game / move games,
+   keep what lowers the cost. Cost: a pair that partners twice (very high), play and rest streaks, opponents met more than needed. */
+function tourMixCost(gs, n) {
+  var G = gs.length, i, g, p, cost = 0, pc = [], oc = [], play = [], run, kind;
+  for (i = 0; i < n * n; i++) { pc.push(0); oc.push(0); }
+  for (p = 0; p < n; p++) { var row = []; for (g = 0; g < G; g++) row.push(0); play.push(row); }
+  for (g = 0; g < G; g++) {
+    var a = gs[g].a, b = gs[g].b;
+    pc[Math.min(a[0], a[1]) * n + Math.max(a[0], a[1])]++;
+    pc[Math.min(b[0], b[1]) * n + Math.max(b[0], b[1])]++;
+    for (i = 0; i < 2; i++) for (var j = 0; j < 2; j++) oc[Math.min(a[i], b[j]) * n + Math.max(a[i], b[j])]++;
+    play[a[0]][g] = play[a[1]][g] = play[b[0]][g] = play[b[1]][g] = 1;
+  }
+  for (i = 0; i < n * n; i++) { if (pc[i] > 1) cost += (pc[i] - 1) * 1000; if (oc[i] > 1) cost += (oc[i] - 1) * (oc[i] - 1) * 3; }
+  for (p = 0; p < n; p++) {
+    run = 0; kind = -1;
+    for (g = 0; g <= G; g++) {
+      var v = g < G ? play[p][g] : -2;
+      if (v === kind) { run++; continue; }
+      if (kind === 0 && run > 1) cost += (run - 1) * (run - 1) * 20;    // rest streak
+      if (kind === 1 && run > 1) cost += (run - 1) * (run - 1) * 30;    // play streak
+      kind = v; run = 1;
+    }
+  }
+  return cost;
+}
+function _tourMixInit(n, G, k, rnd) {
+  var left = [], p, g, gs = [];
+  for (p = 0; p < n; p++) left.push(k);
+  var last = []; for (p = 0; p < n; p++) last.push(-9);
+  for (g = 0; g < G; g++) {
+    var ord = tourShuffle(left.map(function (c, i) { return i; }), rnd);
+    ord.sort(function (x, y) { return left[y] - left[x] || last[x] - last[y]; });   // most games left, then the longest rested
+    var four = tourShuffle(ord.slice(0, 4), rnd);
+    four.forEach(function (x) { left[x]--; last[x] = g; });
+    gs.push({ ph: "rot", a: [four[0], four[1]], b: [four[2], four[3]], sa: null, sb: null });
+  }
+  return gs;
+}
+function _tourSlot(g, s) { return s < 2 ? g.a : g.b; }
+function _tourHas(g, x) { return g.a[0] === x || g.a[1] === x || g.b[0] === x || g.b[1] === x; }
+function tourMixShape(n, rnd) {
+  rnd = rnd || Math.random;
+  var k = tourK(n), G = n * k / 4, best = null, bc = 1e12, rs, it, ITER = 2600;
+  for (rs = 0; rs < 3; rs++) {
+    var gs = _tourMixInit(n, G, k, rnd), c = tourMixCost(gs, n), bestHere = JSON.stringify(gs), bcHere = c, still = 0;
+    for (it = 0; it < ITER && c > 0; it++) {
+      var temp = 12 * (1 - it / ITER) + 0.3, mv = rnd(), g1 = Math.floor(rnd() * G), g2 = Math.floor(rnd() * G), s1 = Math.floor(rnd() * 4), s2 = Math.floor(rnd() * 4), undo = null, x, y;
+      if (mv < 0.55) {   // swap two players between two games
+        if (g1 === g2) continue;
+        var A = gs[g1], B = gs[g2];
+        x = _tourSlot(A, s1)[s1 % 2]; y = _tourSlot(B, s2)[s2 % 2];
+        if (x === y || _tourHas(B, x) || _tourHas(A, y)) continue;
+        _tourSlot(A, s1)[s1 % 2] = y; _tourSlot(B, s2)[s2 % 2] = x;
+        undo = function () { _tourSlot(A, s1)[s1 % 2] = x; _tourSlot(B, s2)[s2 % 2] = y; };
+      } else if (mv < 0.75) {   // change the pairing inside one game
+        if (s1 === s2) continue;
+        var C = gs[g1];
+        x = _tourSlot(C, s1)[s1 % 2]; y = _tourSlot(C, s2)[s2 % 2];
+        if ((s1 < 2) === (s2 < 2)) continue;
+        _tourSlot(C, s1)[s1 % 2] = y; _tourSlot(C, s2)[s2 % 2] = x;
+        undo = function () { _tourSlot(C, s1)[s1 % 2] = x; _tourSlot(C, s2)[s2 % 2] = y; };
+      } else if (mv < 0.9) {   // swap the order of two games
+        if (g1 === g2) continue;
+        var t0 = gs[g1]; gs[g1] = gs[g2]; gs[g2] = t0;
+        undo = function () { var t1 = gs[g1]; gs[g1] = gs[g2]; gs[g2] = t1; };
+      } else {   // move a game to another place
+        if (g1 === g2) continue;
+        var mg = gs.splice(g1, 1)[0]; gs.splice(g2, 0, mg);
+        undo = function () { var m2 = gs.splice(g2, 1)[0]; gs.splice(g1, 0, m2); };
+      }
+      var nc = tourMixCost(gs, n);
+      if (nc <= c || rnd() < Math.exp((c - nc) / temp)) {
+        c = nc;
+        if (c < bcHere) { bcHere = c; bestHere = JSON.stringify(gs); still = 0; }
+      } else undo();
+      if (++still > 1400) break;
+    }
+    if (bcHere < bc) { bc = bcHere; best = JSON.parse(bestHere); }
+    if (bc <= 0) break;
+  }
+  return best;
+}
+
+/** A new tournament for the players of a session (4–20 user ids), format 2 */
+function tourNew(uids, rnd) {
+  var n = uids.length, ids = [], i;
+  for (i = 0; i < n; i++) ids.push(i);
+  return { v: 1, fmt: 2, n: n, q: tourPlayoffSize(n), ids: uids.slice(), coin: tourShuffle(ids, rnd), games: tourMixShape(n, rnd), po: [], drawn: false, semi: null, out: [] };
 }
 
 function tourAll(T) { return T.games.concat(T.po); }
@@ -141,7 +273,7 @@ function tourStats(T) {
 
 /** Best with worst: #1+#n, #2+#n-1 ... Sorted by the pair's combined point difference; seed = place in this list */
 function tourPairs(T) {
-  var r = tourStats(T), n = T.n, out = [];
+  var r = tourStats(T), n = tourQ(T), out = [];   // v249: only the top q of the table play the playoff (format 1: everybody)
   for (var k = 0; k < n / 2; k++) {
     var a = r[k], b = r[n - 1 - k];
     out.push({ m: [a.id, b.id], ranks: [k + 1, n - k], diff: (a.pf - a.pa) + (b.pf - b.pa) });
@@ -152,17 +284,24 @@ function tourPairs(T) {
 function tourSig(T) { return tourPairs(T).map(function (p) { return p.m.slice().sort().join("-"); }).join("|"); }
 
 function tourFinals(T) { return T.po.filter(function (g) { return g.fin; }); }
-function tourFinalWins(T) { var wa = 0, wb = 0; tourFinals(T).forEach(function (g) { if (tourDone(g) && !g.v) { if (g.sa > g.sb) wa++; else wb++; } }); return { wa: wa, wb: wb }; }
-function tourFinalDecided(T) { var f = tourFinals(T); if (f.length && f[0].v) return true; var w = tourFinalWins(T); return w.wa === 2 || w.wb === 2; }
+/** v249: the 3rd place series of format 2 (best of 3, games flagged th); format 1 has one plain game labelled "T" */
+function tourThirds(T) { return T.po.filter(function (g) { return g.th; }); }
+function _tourSer(T, key) { return T.po.filter(function (g) { return g[key]; }); }
+function _tourSerWins(T, key) { var wa = 0, wb = 0; _tourSer(T, key).forEach(function (g) { if (tourDone(g) && !g.v) { if (g.sa > g.sb) wa++; else wb++; } }); return { wa: wa, wb: wb }; }
+function _tourSerDecided(T, key) { var f = _tourSer(T, key); if (f.length && f[0].v) return true; var w = _tourSerWins(T, key); return w.wa === 2 || w.wb === 2; }
+function tourFinalWins(T) { return _tourSerWins(T, "fin"); }
+function tourFinalDecided(T) { return _tourSerDecided(T, "fin"); }
+function tourThirdWins(T) { return _tourSerWins(T, "th"); }
+function tourThirdDecided(T) { return _tourSerDecided(T, "th"); }
 /** Pair numbers (seed - 1) of the winner and the loser of a played playoff game; -1 for a void game or an empty side */
 function _tourW(g) { return g.v ? -1 : (g.sa > g.sb ? g.pa : g.pb); }
 function _tourL(g) { return g.v ? -1 : (g.sa > g.sb ? g.pb : g.pa); }
 function _tourSide(P, x) { return x >= 0 && P[x] ? P[x].m : []; }
 /** The out mark of a pair (seed - 1), or null */
 function tourOutOf(T, p) { var o = T.out || []; for (var i = 0; i < o.length; i++) if (o[i].p === p) return o[i]; return null; }
-/** How many final games the current results need (the series ends at 2 wins) */
-function tourFinalKeep(T) {
-  var f = tourFinals(T), wa = 0, wb = 0, keep = 0;
+/** How many games of a best-of-3 series the current results need (the series ends at 2 wins) */
+function _tourSerKeep(T, key) {
+  var f = _tourSer(T, key), wa = 0, wb = 0, keep = 0;
   for (var i = 0; i < f.length; i++) {
     if (wa === 2 || wb === 2) break;
     keep = i + 1;
@@ -172,50 +311,76 @@ function tourFinalKeep(T) {
   }
   return keep;
 }
-/** Trim final games the score no longer needs, add game 2 or 3 when the series asks for it */
-function tourSync(T) {
-  var f = tourFinals(T);
-  if (!f.length) return;
-  var kept = f.slice(0, tourFinalKeep(T));
-  T.po = T.po.filter(function (g) { return !g.fin; }).concat(kept);
-  var w = tourFinalWins(T);
-  if (kept.every(tourDone) && !kept[0].v && w.wa < 2 && w.wb < 2 && kept.length < 3) {
-    var k = kept[0];
-    T.po.push({ ph: "po", fin: true, a: k.a, b: k.b, pa: k.pa, pb: k.pb, lab: "F" + (kept.length + 1), sa: null, sb: null });
+function tourFinalKeep(T) { return _tourSerKeep(T, "fin"); }
+/** v249: after games moved (a 3rd place game came in before the final), the v242 swap marks follow the games they were made for */
+function _tourRemap(T, oldAll) {
+  if (!(T.swaps || []).length) return;
+  var nw = tourAll(T), same = oldAll.length === nw.length && oldAll.every(function (g, i) { return g === nw[i]; });
+  if (same) return;
+  function ni(i) { var x = nw.indexOf(oldAll[i]); return x; }
+  var last = -1; oldAll.forEach(function (g, i) { var x = ni(i); if (x > last) last = x; });
+  T.swaps.forEach(function (w) {
+    if (w.at >= oldAll.length) w.at = last + 1; else { var x = ni(w.at); if (x >= 0) w.at = x; }
+    if (w.old) w.old = w.old.map(ni).filter(function (x) { return x >= 0; });
+  });
+}
+function _tourSerGrow(T, key, prefix) {
+  var f = _tourSer(T, key), kept = f.slice(0, _tourSerKeep(T, key));
+  var rest = T.po.filter(function (g) { return !g[key]; });
+  T.po = rest.concat(kept);
+  var w = _tourSerWins(T, key);
+  if (kept.length && kept.every(tourDone) && !kept[0].v && w.wa < 2 && w.wb < 2 && kept.length < 3) {
+    var k = kept[0], ng = { ph: "po", a: k.a, b: k.b, pa: k.pa, pb: k.pb, lab: prefix + (kept.length + 1), sa: null, sb: null };
+    ng[key] = true; T.po.push(ng);
   }
+}
+/** Trim series games the score no longer needs, add game 2 or 3 when a series asks for it. Order: other games, 3rd place series, final series. */
+function tourSync(T) {
+  if (!tourFinals(T).length && !tourThirds(T).length) return;
+  var oldAll = tourAll(T);
+  _tourSerGrow(T, "th", "T"); _tourSerGrow(T, "fin", "F");
+  var base = T.po.filter(function (g) { return !g.fin && !g.th; });
+  T.po = base.concat(tourThirds(T), tourFinals(T));
+  _tourRemap(T, oldAll);
 }
 
 /** Build the playoff games from what is drawn and played so far */
 function tourBuild(T) {
   if (!tourRotDone(T) || !T.drawn) { T.po = []; return; }
-  var P = tourPairs(T);
+  var P = tourPairs(T), kind = tourKind(T), f2 = tourFmt(T) === 2;
   function mk(x, lab) { return { ph: "po", a: _tourSide(P, x[0]), b: _tourSide(P, x[1]), pa: x[0], pb: x[1], lab: lab, sa: null, sb: null }; }
   if (!T.po.length) {
-    if (T.n === 6) T.po = [mk([0, 1], "R1"), mk([0, 2], "R2"), mk([1, 2], "R3")];
+    if (kind === "rr") T.po = [mk([0, 1], "R1"), mk([0, 2], "R2"), mk([1, 2], "R3")];
+    else if (kind === "final") { var f0 = mk([0, 1], "F1"); f0.fin = true; T.po = [f0]; }   // v249: top 4: #1+#4 against #2+#3
     else { var o = T.semi || [0, 1, 2, 3]; T.po = [mk([o[0], o[1]], "S1"), mk([o[2], o[3]], "S2")]; }
   }
-  if (T.n === 8 && T.po.length >= 2 && tourDone(T.po[0]) && tourDone(T.po[1])) {
+  if (kind === "bracket" && T.po.length >= 2 && tourDone(T.po[0]) && tourDone(T.po[1])) {
     if (T.po.length === 2) {
       var g0 = T.po[0], g1 = T.po[1];
       var w1 = _tourW(g0), l1 = _tourL(g0), w2 = _tourW(g1), l2 = _tourL(g1);
-      T.po.push({ ph: "po", a: _tourSide(P, l1), b: _tourSide(P, l2), pa: l1, pb: l2, lab: "T", sa: null, sb: null });
+      var th = { ph: "po", a: _tourSide(P, l1), b: _tourSide(P, l2), pa: l1, pb: l2, lab: f2 ? "T1" : "T", sa: null, sb: null };
+      if (f2) th.th = true;   // format 2: 3rd place is best of 3; format 1: one game
+      T.po.push(th);
       T.po.push({ ph: "po", fin: true, a: _tourSide(P, w1), b: _tourSide(P, w2), pa: w1, pb: w2, lab: "F1", sa: null, sb: null });
     }
     tourSync(T);
-  }
+  } else if (kind === "final") tourSync(T);
 }
 
-/** Draw the playoff (semifinals at random for 8 players, the pairs for 6) once the rotation is played */
+/** Draw the playoff once the rotation is played: format 1 draws the semis at random (8 players); format 2 seeds them 1 v 4 and 2 v 3 */
 function tourDraw(T, rnd) {
   if (!tourRotDone(T)) return false;
-  T.drawn = true; T.semi = T.n === 8 ? tourShuffle([0, 1, 2, 3], rnd) : null; T.po = []; T.out = [];
+  T.drawn = true; T.semi = tourKind(T) === "bracket" ? (tourFmt(T) === 2 ? [0, 3, 1, 2] : tourShuffle([0, 1, 2, 3], rnd)) : null; T.po = []; T.out = [];
   tourResolve(T);   // v238: a player who is out already gets a stand-in in the new games
   return true;
 }
 
 function tourComplete(T) {
   if (!T.po.length || !T.po.every(tourDone)) return false;
-  return T.n === 6 ? T.po.length === 3 : (T.po.length >= 4 && tourFinalDecided(T));
+  var kind = tourKind(T);
+  if (kind === "rr") return T.po.length === 3;
+  if (kind === "final") return tourFinalDecided(T);
+  return T.po.length >= 4 && tourFinalDecided(T) && (tourFmt(T) === 1 || tourThirdDecided(T));
 }
 /** 0 rotation, 1 pairs drawn / waiting for the draw, 2 playoff running, 3 done */
 function tourPhase(T) {
@@ -226,11 +391,11 @@ function tourPhase(T) {
 
 /** 6 players: the round-robin table of the three pairs (wins, point diff, the game between them, seed) */
 function tourPairTable(T) {
-  var P = tourPairs(T), tab = P.map(function (p) { return { i: p.seed - 1, w: 0, l: 0, d: 0 }; });
+  var P = tourPairs(T), f2 = tourFmt(T) === 2, tab = P.map(function (p) { return { i: p.seed - 1, w: 0, l: 0, d: 0, f: 0 }; });
   T.po.forEach(function (g) {
     if (!tourDone(g) || g.v || g.lab.charAt(0) !== "R") return;
     var df = g.sa - g.sb;
-    tab[g.pa].d += df; tab[g.pb].d -= df;
+    tab[g.pa].d += df; tab[g.pb].d -= df; tab[g.pa].f += g.sa; tab[g.pb].f += g.sb;
     if (df > 0) { tab[g.pa].w++; tab[g.pb].l++; } else { tab[g.pb].w++; tab[g.pa].l++; }
   });
   function h2h(x, y) {
@@ -242,16 +407,24 @@ function tourPairTable(T) {
     }
     return 0;
   }
-  return tab.sort(function (x, y) { return y.w - x.w || y.d - x.d || h2h(x.i, y.i) || x.i - y.i; });
+  return tab.sort(function (x, y) { return y.w - x.w || y.d - x.d || (f2 ? y.f - x.f : 0) || h2h(x.i, y.i) || x.i - y.i; });   // v249: format 2 breaks a tie by points scored before the game between them
 }
 
-/** [1st, 2nd, 3rd] as pair numbers (seed - 1), once everything is played */
+/** [1st, 2nd, 3rd] as pair numbers (seed - 1), once everything is played. Top 4 (format 2): [1st, 2nd], there is no 3rd place. */
 function tourOrder(T) {
   if (!tourComplete(T)) return null;
-  if (T.n === 8) {
-    var t3 = T.po[2], f0 = T.po[3], fw = tourFinalWins(T);
-    if (f0.v) return [-1, -1, _tourW(t3)];
-    return [fw.wa > fw.wb ? f0.pa : f0.pb, fw.wa > fw.wb ? f0.pb : f0.pa, _tourW(t3)];
+  var kind = tourKind(T);
+  if (kind === "final") {
+    var ff = tourFinals(T), fw2 = tourFinalWins(T);
+    if (ff[0].v) return [-1, -1];
+    return [fw2.wa > fw2.wb ? ff[0].pa : ff[0].pb, fw2.wa > fw2.wb ? ff[0].pb : ff[0].pa];
+  }
+  if (kind === "bracket") {
+    var f0 = tourFinals(T)[0], fw = tourFinalWins(T), third;
+    if (tourFmt(T) === 2) { var ts = tourThirds(T), tw = tourThirdWins(T); third = !ts.length || ts[0].v ? -1 : (tw.wa > tw.wb ? ts[0].pa : ts[0].pb); }
+    else third = _tourW(T.po[2]);
+    if (f0.v) return [-1, -1, third];
+    return [fw.wa > fw.wb ? f0.pa : f0.pb, fw.wa > fw.wb ? f0.pb : f0.pa, third];
   }
   return tourPairTable(T).map(function (x) { return x.i; });
 }
@@ -287,13 +460,17 @@ function tourImpact(T, g, sa, sb) {
   }
   var i = T.po.indexOf(g);
   if (g.wo || g.v) return null;
-  if (g.ph === "po" && T.n === 8 && i >= 0 && i < 2 && T.po.length > 2) {
+  if (g.ph === "po" && tourKind(T) === "bracket" && i >= 0 && i < 2 && T.po.length > 2) {
     var flip = (g.sa > g.sb) !== (sa > sb);
     if (flip && (tourDone(T.po[2]) || tourFinals(T).some(tourDone))) return { kind: "semi" };
   }
   if (g.fin) {
     var lost = _tourTry(g, sa, sb, function () { return tourFinals(T).slice(tourFinalKeep(T)).some(tourDone); });
     if (lost) return { kind: "final" };
+  }
+  if (g.th) {   // v249: a 3rd place game that changes the series (and the final already started, or later 3rd place games were played)
+    var lostT = _tourTry(g, sa, sb, function () { return tourThirds(T).slice(_tourSerKeep(T, "th")).some(tourDone); });
+    if (lostT) return { kind: "third" };
   }
   return null;
 }
@@ -308,7 +485,7 @@ function tourApply(T, g, sa, sb) {
   if (g.ph === "rot") {
     if (before !== null && tourSig(T) !== before) { T.po = []; T.drawn = false; T.semi = null; T.out = []; res.pairsChanged = true; }
     tourBuild(T);
-  } else if (T.n === 8 && i >= 0 && i < 2 && T.po.length > 2 && was && oldA !== (sa > sb)) {
+  } else if (tourKind(T) === "bracket" && i >= 0 && i < 2 && T.po.length > 2 && was && oldA !== (sa > sb)) {
     T.po.length = 2; res.semiReset = true; tourBuild(T);
   } else tourBuild(T);
   tourResolve(T);
@@ -339,7 +516,7 @@ function tourResolve(T, nameOf) {
 
 /** Mark a pair (seed - 1) out. Only once the pairs are drawn. Returns false when it cannot be done. */
 function tourMarkOut(T, p, why, note) {
-  if (!T || !T.drawn || tourComplete(T) || p < 0 || p >= T.n / 2 || tourOutOf(T, p)) return false;
+  if (!T || !T.drawn || tourComplete(T) || p < 0 || p >= tourQ(T) / 2 || tourOutOf(T, p)) return false;
   if (TOUR_WHY.indexOf(why) < 0) why = "other";
   T.out = (T.out || []).concat([{ p: p, why: why, note: String(note || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 60) }]);
   tourResolve(T);
@@ -351,7 +528,7 @@ function tourUndoImpact(T, p) {
   if (!tourOutOf(T, p)) return 0;
   var flagged = T.po.some(function (g) { return g.wo || g.v; });
   if (!flagged) return 0;
-  if (T.n === 8 && (T.po.slice(0, 2).some(function (g) { return g.wo || g.v; }))) return T.po.slice(2).filter(function (g) { return tourDone(g) && !g.wo && !g.v; }).length;
+  if (tourKind(T) === "bracket" && (T.po.slice(0, 2).some(function (g) { return g.wo || g.v; }))) return T.po.slice(2).filter(function (g) { return tourDone(g) && !g.wo && !g.v; }).length;
   return 0;
 }
 
@@ -359,7 +536,7 @@ function tourUndoImpact(T, p) {
 function tourUndoOut(T, p) {
   if (!tourOutOf(T, p)) return false;
   T.out = T.out.filter(function (o) { return o.p !== p; });
-  var semiFlag = T.n === 8 && T.po.slice(0, 2).some(function (g) { return g.wo || g.v; });
+  var semiFlag = tourKind(T) === "bracket" && T.po.slice(0, 2).some(function (g) { return g.wo || g.v; });
   T.po.forEach(function (g) { if (g.wo || g.v) { g.sa = null; g.sb = null; delete g.wo; delete g.v; } });
   if (semiFlag) T.po.length = 2;
   tourResolve(T);
@@ -465,7 +642,7 @@ function tourBackIn(T, i, nameOf) {
   var rotLocked = tourRotDone(T) && T.drawn, semiFlag = false;
   tourAll(T).forEach(function (g) {
     if (g.wo && g.woHurt === i && !(g.ph === "rot" && rotLocked)) {
-      if (T.n === 8 && T.po.indexOf(g) >= 0 && T.po.indexOf(g) < 2) semiFlag = true;
+      if (tourKind(T) === "bracket" && T.po.indexOf(g) >= 0 && T.po.indexOf(g) < 2) semiFlag = true;
       g.sa = null; g.sb = null; delete g.wo; delete g.woHurt;
     }
     if (tourDone(g) || !g.subs) return;
@@ -562,7 +739,7 @@ function _tnSession(sid) {
 /** The session's tournament, only if it has the right shape: an old or half-saved value counts as none, so a bad field can never break the list */
 function tourOf(s) {
   var T = s && s.tourney;
-  return T && T.v === 1 && Array.isArray(T.games) && Array.isArray(T.po) && Array.isArray(T.ids) && T.n === T.ids.length ? T : null;
+  return T && T.v === 1 && Array.isArray(T.games) && Array.isArray(T.po) && Array.isArray(T.ids) && T.n === T.ids.length && (T.fmt !== 2 || tourSizeOk(T.n)) ? T : null;
 }
 
 /** Only people who may edit the session (or its bill) run the tournament; everyone else watches */
@@ -609,16 +786,14 @@ function tourLabText(lab) {
   if (c === "S") return _tnFill(t("tourSemi"), { n: n });
   if (c === "R") return _tnFill(t("tourRound"), { n: n });
   if (c === "F") return _tnFill(t("tourFinalG"), { n: n });
-  return t("tourThirdPlace");
+  return n ? _tnFill(t("tourThirdG"), { n: n }) : t("tourThirdPlace");   // v249: "T1".."T3" = 3rd place game 1..3 (format 1 has one game, "T")
 }
-function _tnLab(g) {
-  var c = g.lab.charAt(0), n = g.lab.slice(1);
-  if (c === "S") return _tnFill(t("tourSemi"), { n: n });
-  if (c === "R") return _tnFill(t("tourRound"), { n: n });
-  if (c === "F") return _tnFill(t("tourFinalG"), { n: n });
-  return t("tourThirdPlace");
-}
-function _tnDrawWord(T) { return T.n === 8 ? t("tourWordSemi") : t("tourWordPairs"); }
+function _tnLab(g) { return tourLabText(g.lab); }
+/** v249: only a format 1 tournament of 8 draws its semis at random; format 2 makes the pairs and the semis follow the table */
+function _tnRandSemi(T) { return tourFmt(T) === 1 && T.n === 8; }
+function _tnDrawWord(T) { return _tnRandSemi(T) ? t("tourWordSemi") : t("tourWordPairs"); }
+function _tnDrawBtn(T) { return t(_tnRandSemi(T) ? "tourBtnSemi" : tourFmt(T) === 2 ? "tourBtnMake" : "tourBtnPairs"); }
+function _tnTotalsTxt(T) { var x = tourTotals(T); return x.min === x.max ? String(x.max) : x.min + "\u2013" + x.max; }
 
 /** What the main button says and does for this session now */
 function tourStage(s) {
@@ -626,12 +801,12 @@ function tourStage(s) {
   if (_tnAnim && _tnSid === s.id) return { act: "", label: t("tourDrawing"), disabled: true };
   if (!T) {
     if (!org) return null;
-    if (!tourSizeOk(n)) return { act: "", label: t("tourNeed"), disabled: true };
-    return { act: "start", icon: TN_DICE, label: _tnFill(t("tourBtnStart"), { n: n, g: tourRounds(n) }) };
+    if (!tourSizeOk(n)) return { act: "", label: _tnFill(t(n < TOUR_MIN_N ? "tourNeedMin" : "tourNeedMax"), { n: n }), disabled: true };
+    return { act: "start", icon: TN_DICE, label: _tnFill(t("tourBtnStart"), { n: n, est: tourEstimateText(tourEstimate(n)) }) };
   }
   if (tourComplete(T)) return { act: "winner", icon: icon("trophy", 20), label: t("tourBtnWinner") };
   if (!org) return { act: "view", label: t("tourBtnView") };
-  if (tourRotDone(T) && !T.drawn) return { act: "draw", icon: TN_DICE, label: T.n === 8 ? t("tourBtnSemi") : t("tourBtnPairs") };
+  if (tourRotDone(T) && !T.drawn) return { act: "draw", icon: TN_DICE, label: _tnDrawBtn(T) };
   var g = tourNext(T);
   if (!g) return { act: "view", label: t("tourBtnView") };
   if (g.ph === "rot") return { act: "play", label: _tnFill(t("tourBtnPlay"), { k: T.games.filter(tourDone).length + 1, g: T.games.length }) };
@@ -654,9 +829,9 @@ function tourCardHtml(s) {
   var T = tourOf(s), played = T ? tourAll(T).filter(tourDone).length : 0;
   return '<div class="tn-card">' +
     '<div class="tn-card-line">' + icon("trophy", 14) + '<span>' + escapeHtml(_tnLine(T)) + '</span></div>' +
-    (T ? '<div class="tn-bar"><i style="width:' + (tourComplete(T) ? 100 : Math.round(played / 12 * 100)) + '%"></i></div>' : '') +
-    '<button type="button" class="tn-btn"' + (st.disabled ? ' disabled' : '') + ' onclick="tourCardAct(\'' + jsq(s.id) + '\')">' + (st.icon || "") + '<span>' + escapeHtml(st.label) + '</span></button>' +
-    '</div>';
+    (T ? '<div class="tn-bar"><i style="width:' + (tourComplete(T) ? 100 : Math.round(played / tourTotals(T).max * 100)) + '%"></i></div>' : '') +
+    '<div class="tn-startrow"><button type="button" class="tn-btn"' + (st.disabled ? ' disabled' : '') + ' onclick="tourCardAct(\'' + jsq(s.id) + '\')">' + (st.icon || "") + '<span>' + escapeHtml(st.label) + '</span></button>' +
+    (T ? '' : _tnInfoBtn('onclick="tourOpenInfo(\'' + jsq(s.id) + '\', this)"')) + '</div></div>';
 }
 
 function tourCardAct(sid) {
@@ -671,8 +846,11 @@ function tourCardAct(sid) {
 
 /** v237: starting a tournament asks first; on yes the screen opens and the teams are drawn straight away */
 function tourAskStart(s, open) {
-  var n = (s.players || []).length;
-  askConfirm({ title: t("tourStartTitle"), body: _tnFill(t("tourStartBody"), { g: tourRounds(n), n: n }), kind: "ask", yes: t("tourStartYes"), no: t("cancel") }, function () {
+  var n = (s.players || []).length, e = tourEstimate(n), booked = tourBookedMin(s), over = booked > 0 && e.maxMin > booked;
+  // v249: the time it takes, and a warning line when that is longer than the session's booked time
+  askConfirm({ title: t("tourStartTitle"), body: _tnFill(t("tourStartBody"), { g: e.mix, n: n, k: e.k, est: tourEstimateText(e) }),
+    detail: over ? _tnFill(t("tourStartLong"), { est: tourFmtDur(e.maxMin, true), booked: tourFmtDur(booked) }) : undefined,
+    kind: over ? "warn" : "ask", yes: t("tourStartYes"), no: t("cancel") }, function () {
     var cur = _tnSession(s.id) || s;
     if (tourOf(cur)) return;
     if (open || !document.getElementById("tnScreen")) _tnOpen(cur.id);
@@ -700,7 +878,7 @@ function _tnOpen(sid) {
     el.id = "tnScreen"; el.className = "tn-screen";
     el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", t("tourTitle"));
     el.innerHTML = '<div class="tn-top"><button type="button" class="tn-close" data-act="close" aria-label="' + escapeHtml(t("close")) + '">' + icon("back", 20) + '</button>' +
-      '<div class="tn-ttl"><b>' + escapeHtml(t("tourTitle")) + '</b><small id="tnSub"></small></div></div><div class="tn-wrap" id="tnBody"></div>';
+      '<div class="tn-ttl"><b>' + escapeHtml(t("tourTitle")) + '</b><small id="tnSub"></small></div>' + _tnInfoBtn('data-act="info"') + '</div><div class="tn-wrap" id="tnBody"></div>';
     el.onclick = _tnClick;
     el.oninput = function (ev) { if (_tnOut && ev.target && ev.target.id === "tnOutNote") _tnOut.note = String(ev.target.value).slice(0, 60); };
     document.body.appendChild(el);
@@ -711,10 +889,11 @@ function _tnOpen(sid) {
 }
 function _tnKey(e) {
   if (e.key !== "Escape") return;
-  if (document.getElementById("askSheet")) return;   // the ask sheet closes first
+  if (document.getElementById("askSheet") || document.getElementById("tnSubSheet") || document.getElementById("tnInfoSheet")) return;   // a sheet on top closes first
   tourClose();
 }
 function tourClose() {
+  _tnInfoClose(true);
   clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null;
   var el = document.getElementById("tnScreen"); if (el) el.remove();
   document.body.classList.remove("tn-open");
@@ -784,7 +963,7 @@ function tourStartDraw(s, kind) {
       _tnToast = _tnFill(t("tourTeamsDrawn"), { g: cur.tourney.games.length });
     } else {
       if (!tourOf(cur) || !tourDraw(cur.tourney)) { tourRender(); return; }
-      _tnToast = cur.tourney.n === 8 ? t("tourSemiDrawn") : t("tourPairsDrawn");
+      _tnToast = _tnRandSemi(cur.tourney) ? t("tourSemiDrawn") : t("tourPairsDrawn");
     }
     _tnTab = null;
     _tnPut(cur);
@@ -835,6 +1014,7 @@ function _tnClick(ev) {
   if (!b) return;
   var s = _tnSession(_tnSid), act = b.getAttribute("data-act");
   if (act === "close") { tourClose(); return; }
+  if (act === "info") { tourOpenInfo(_tnSid, b); return; }
   if (!s) return;
   var T = tourOf(s), org = tourCanRun(s);
   if (act === "share") { if (T && tourComplete(T) && typeof openShareCard === "function") openShareCard("", "tournament", s.id); return; }
@@ -894,7 +1074,7 @@ function tourSaveScore(s) {
   if (!imp) { go(); return; }
   var body;
   if (imp.kind === "pairs") body = _tnFill(t("tourWarnPairs"), { pairs: imp.pairs.map(function (m) { return _tnPlain(T, m[0]) + " + " + _tnPlain(T, m[1]); }).join(", "), k: imp.played });
-  else body = t(imp.kind === "semi" ? "tourWarnSemi" : "tourWarnFinal");
+  else body = t(imp.kind === "semi" ? "tourWarnSemi" : imp.kind === "third" ? "tourWarnThird" : "tourWarnFinal");
   askConfirm({ title: t("tourCorrect"), body: body, kind: "warn", yes: t("tourYesChange"), no: t("tourKeep") }, go);
 }
 
@@ -1067,6 +1247,64 @@ function tourAskBackIn(s, i) {
   });
 }
 
+/* ---- v249: the ⓘ rules sheet: the mechanic in plain words for this group size ---- */
+
+var TN_INFO = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>';
+var _tnInfoOpener = null;
+/** The round "i" button; attrs = the click wiring (data-act="info" inside the screen, onclick on the session card) */
+function _tnInfoBtn(attrs) { return '<button type="button" class="tn-info" ' + attrs + ' aria-label="' + escapeHtml(t("tourInfoBtn")) + '" aria-haspopup="dialog">' + TN_INFO + '</button>'; }
+/** "#1+#4, #2+#3" for the playoff of q players */
+function tourPairsList(q) { var o = []; for (var k = 1; k <= q / 2; k++) o.push("#" + k + "+#" + (q + 1 - k)); return o.join(", "); }
+/** What the sheet says, as sections [{ h, p:[text] }] (plain strings, no HTML). T = the tournament when there is one (format 1 gets the old rules), n = players. */
+function tourInfoModel(n, T) {
+  var secs = [], hurt = { h: t("tourInfoH5"), p: [t("tourInfoHurt")] };
+  if (T && tourFmt(T) === 1) {   // a tournament started before v249: same rules as always
+    secs.push({ h: t("tourInfoHOld"), p: [t(T.n === 8 ? "tourRule8" : "tourRule6"), t(T.n === 8 ? "tourHow8" : "tourHowRR")] });
+    secs.push(hurt);
+    return { title: t("tourInfoTitle"), sub: _tnFill(t("tourInfoFor"), { n: T.n }), secs: secs };
+  }
+  if (!tourSizeOk(n)) return { title: t("tourInfoTitle"), sub: "", secs: [{ h: "", p: [_tnFill(t(n < TOUR_MIN_N ? "tourNeedMin" : "tourNeedMax"), { n: n }), t("tourInfoRange")] }, hurt] };
+  var e = tourEstimate(n), pairs = tourPairsList(e.q), po = [_tnFill(t("tourInfoPoIntro"), { q: e.q, pairs: pairs })];
+  if (e.kind === "final") po.push(t("tourInfoPoFinal"));
+  else if (e.kind === "rr") po.push(t("tourInfoPoRR"));
+  else po.push(t("tourInfoPoBracket"));
+  if (e.kind !== "rr") po.push(t("tourInfoBo3"));
+  if (n > e.q) po.push(t("tourInfoBelow"));
+  secs.push({ h: t("tourInfoH1"), p: [_tnFill(t("tourInfoMix"), { k: e.k, g: e.mix }), _tnFill(t("tourInfoRest"), { r: e.rest })] });
+  secs.push({ h: t("tourInfoH2"), p: [t("tourInfoTable")] });
+  secs.push({ h: t("tourInfoH3"), p: po });
+  secs.push({ h: t("tourInfoH4"), p: [_tnFill(t("tourInfoEst"), { est: tourEstimateText(e), per: e.per, games: e.minGames === e.maxGames ? String(e.maxGames) : e.minGames + "–" + e.maxGames })] });
+  secs.push(hurt);
+  return { title: t("tourInfoTitle"), sub: _tnFill(t("tourInfoFor"), { n: n }), secs: secs };
+}
+function tourOpenInfo(sid, opener) {
+  var s = _tnSession(sid), T = tourOf(s), n = T ? T.n : ((s && s.players) || []).length;
+  _tnInfoClose(true);
+  _tnInfoOpener = opener || document.activeElement;
+  var m = tourInfoModel(n, T), el = document.createElement("div");
+  el.id = "tnInfoSheet"; el.className = "sheet-wrap tn-subwrap";
+  el.onclick = function (ev) { if (ev.target === el || (ev.target.closest && ev.target.closest("[data-iact]"))) _tnInfoClose(); };
+  el.innerHTML = '<div class="sheet tn-subsheet tn-infosheet" role="dialog" aria-modal="true" aria-labelledby="tnInfoT"><div class="sheet-grab"></div>' +
+    '<div class="sheet-title" id="tnInfoT">' + escapeHtml(m.title) + '</div>' + (m.sub ? '<div class="tn-info-sub">' + escapeHtml(m.sub) + '</div>' : '') +
+    m.secs.map(function (x) { return '<div class="tn-info-sec">' + (x.h ? '<h4>' + escapeHtml(x.h) + '</h4>' : '') + x.p.map(function (q) { return '<p>' + escapeHtml(q) + '</p>'; }).join('') + '</div>'; }).join('') +
+    '<div class="tn-btns"><button type="button" class="tn-b pri" data-iact="close">' + escapeHtml(t("close")) + '</button></div></div>';
+  document.body.appendChild(el);
+  document.addEventListener("keydown", _tnInfoKey, true);
+  try { el.querySelector("[data-iact]").focus(); } catch (e) {}
+}
+function _tnInfoKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); _tnInfoClose(); }
+  else if (e.key === "Tab") { e.preventDefault(); var b = document.querySelector("#tnInfoSheet [data-iact]"); if (b) b.focus(); }   // the close button is the only control: focus stays in the sheet
+}
+function _tnInfoClose(quiet) {
+  var el = document.getElementById("tnInfoSheet");
+  document.removeEventListener("keydown", _tnInfoKey, true);
+  if (!el) return;
+  el.remove();
+  var o = _tnInfoOpener; _tnInfoOpener = null;
+  if (!quiet && o && o.focus && document.contains(o)) { try { o.focus(); } catch (e) {} }
+}
+
 /* ---- views ---- */
 
 function _tnStepper(T, g, side, sc) {
@@ -1111,13 +1349,13 @@ function _tnGame(T, g, idx, cur, label, org) {
 }
 
 function _tnMeetCard(T) {
-  var m = tourMeet(T), n = T.n, rows = "", i, j;
+  var m = tourMeet(T), n = T.n, rows = "", i, j, av = n > 10 ? 16 : 22;   // v249: up to 20 players: smaller avatars, the table scrolls
   function k(a, b) { return a < b ? a + "-" + b : b + "-" + a; }
   var head = '<tr><th></th>';
-  for (j = 0; j < n; j++) head += '<th class="c">' + avatarHtml(tourUid(T, j), 22) + '</th>';
+  for (j = 0; j < n; j++) head += '<th class="c">' + avatarHtml(tourUid(T, j), av) + '</th>';
   head += '</tr>';
   for (i = 0; i < n; i++) {
-    rows += '<tr><td>' + avatarHtml(tourUid(T, i), 22) + '</td>';
+    rows += '<tr><td>' + avatarHtml(tourUid(T, i), av) + '</td>';
     for (j = 0; j < n; j++) {
       if (i === j) { rows += '<td class="c dim">·</td>'; continue; }
       var q = k(i, j), p = m.pc[q] || 0, o = m.oc[q] || 0;
@@ -1129,7 +1367,7 @@ function _tnMeetCard(T) {
 }
 function _tnRestCard(T) {
   var G = T.games.length, r = tourRuns(T.games, T.n), rows = '<div class="tn-rr" style="--g:' + G + '"><span></span>';
-  for (var k = 0; k < G; k++) rows += '<span class="h">G' + (k + 1) + '</span>';
+  for (var k = 0; k < G; k++) rows += '<span class="h">' + (G > 10 && (k + 1) % 5 !== 0 && k !== 0 ? '' : 'G' + (k + 1)) + '</span>';   // v249: many games: a label every 5th
   rows += '<span></span></div>';
   for (var p = 0; p < T.n; p++) {
     var pl = 0, cells = "";
@@ -1144,12 +1382,14 @@ function _tnStandTag(T, i) {
   return _tnHurtTag(T, i) + (k ? '<span class="tn-si">' + escapeHtml(_tnFill(t("tourSubPlus"), { k: k })) + '</span>' : '');
 }
 function _tnStandCard(T, ph) {
-  var r = tourStats(T), body = '';
+  var r = tourStats(T), body = '', q = tourQ(T), f2 = tourFmt(T) === 2;
   r.forEach(function (s, i) {
     var d = s.pf - s.pa;
-    body += '<tr class="' + ((ph >= 1 && (i < 2 || i >= r.length - 2)) ? 'top' : '') + '"><td class="dim">' + (i + 1) + '</td><td>' + _tnWho(T, s.id, 22) + _tnStandTag(T, s.id) + '</td><td>' + s.p + '</td><td>' + s.w + '</td><td>' + s.l + '</td><td>' + (d > 0 ? '+' : '') + d + '</td></tr>';
+    // format 1: best and worst two are marked (they are paired); format 2: the top q play the playoff, the cut line is drawn under place q
+    var cls = f2 ? (ph >= 1 && q < r.length ? (i < q ? 'top' : 'below') + (i === q - 1 ? ' cut' : '') : (ph >= 1 ? 'top' : '')) : ((ph >= 1 && (i < 2 || i >= r.length - 2)) ? 'top' : '');
+    body += '<tr class="' + cls + '"><td class="dim">' + (i + 1) + '</td><td>' + _tnWho(T, s.id, 22) + _tnStandTag(T, s.id) + '</td><td>' + s.p + '</td><td>' + s.w + '</td><td>' + s.l + '</td><td>' + (d > 0 ? '+' : '') + d + '</td></tr>';
   });
-  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourStandTitle")) + '</h3><div class="tn-scroll"><table class="tn-tab"><tr><th>#</th><th class="l">' + escapeHtml(t("tourPlayer")) + '</th><th>' + escapeHtml(t("tourColP")) + '</th><th>' + escapeHtml(t("tourColW")) + '</th><th>' + escapeHtml(t("tourColL")) + '</th><th>+/−</th></tr>' + body + '</table></div><p class="tn-note">' + escapeHtml(t("tourStandHint")) + '</p></div>';
+  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourStandTitle")) + '</h3><div class="tn-scroll"><table class="tn-tab"><tr><th>#</th><th class="l">' + escapeHtml(t("tourPlayer")) + '</th><th>' + escapeHtml(t("tourColP")) + '</th><th>' + escapeHtml(t("tourColW")) + '</th><th>' + escapeHtml(t("tourColL")) + '</th><th>+/−</th></tr>' + body + '</table></div><p class="tn-note">' + escapeHtml(f2 ? _tnFill(t(q < r.length ? "tourStandHintQ" : "tourStandHintAll"), { q: q }) : t("tourStandHint")) + '</p></div>';
 }
 function _tnOutPanel(T, p) {
   var o = _tnOut;
@@ -1159,7 +1399,7 @@ function _tnOutPanel(T, p) {
     '<div class="tn-btns"><button type="button" class="tn-b dng" data-act="out-save">' + escapeHtml(t("tourOutSave")) + '</button><button type="button" class="tn-b" data-act="out-cancel">' + escapeHtml(t("cancel")) + '</button></div></div>';
 }
 function _tnPairCard(T, P, org) {
-  var h = '<div class="tn-sec"><h3>' + escapeHtml(t("tourPairsTitle")) + '</h3><p>' + escapeHtml(t(T.n === 8 ? "tourPairsHint8" : "tourPairsHint6")) + '</p><div class="tn-pairs">';
+  var h = '<div class="tn-sec"><h3>' + escapeHtml(t("tourPairsTitle")) + '</h3><p>' + escapeHtml(tourFmt(T) === 2 ? _tnFill(t("tourPairsHintQ"), { list: tourPairsList(tourQ(T)) }) : t(T.n === 8 ? "tourPairsHint8" : "tourPairsHint6")) + '</p><div class="tn-pairs">';
   var live = org && T.drawn && !tourComplete(T);
   P.forEach(function (p, k) {
     var out = tourOutOf(T, k);
@@ -1173,7 +1413,12 @@ function _tnPairCard(T, P, org) {
     }
     h += '</div>';
   });
-  return h + '</div></div>';
+  h += '</div>';
+  if (tourFmt(T) === 2 && T.n > tourQ(T)) {   // v249: players below the playoff line are done after the mix games
+    var below = tourStats(T).slice(tourQ(T)).map(function (x) { return _tnPlain(T, x.id); }).join(", ");
+    h += '<p class="tn-note tn-below">' + escapeHtml(_tnFill(t("tourBelowLine"), { names: below })) + '</p>';
+  }
+  return h + '</div>';
 }
 
 function _tnPbRow(T, g, side, score, win, lose, extra) {
@@ -1185,34 +1430,40 @@ function _tnSemiBox(T, g, cur) {
   return '<div class="tn-pb' + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(_tnLab(g)) + '</span><span>' + (d ? escapeHtml(g.v ? t("tourOutVoid") : g.wo ? t("tourWO") : t("tourFinalScore")) : (cur ? escapeHtml(t("tourUpNext")) : escapeHtml(t("tourWaiting")))) + '</span></div>' +
     _tnPbRow(T, g, "a", d ? _tnShow(g, "a") : "–", aw, bw, '') + _tnPbRow(T, g, "b", d ? _tnShow(g, "b") : "–", bw, aw, '') + '</div>';
 }
-function _tnFinalBox(T, cur) {
-  var f = tourFinals(T);
-  if (!f.length) return '<div class="tn-pb fin"><div class="tn-pbt"><span>' + escapeHtml(t("tourFinalBo3")) + '</span></div><div class="tn-pn tbd">' + escapeHtml(t("tourFinalTbd")) + '</div></div>';
-  var w = tourFinalWins(T), dec = tourFinalDecided(T), k = f[0], vd = !!k.v;
+/** A best-of-3 series box: key "fin" = the final, "th" = 3rd place (v249) */
+function _tnSeriesBox(T, key, cur) {
+  var f = _tourSer(T, key), isF = key === "fin", ttl = t(isF ? "tourFinalBo3" : "tourThirdBo3");
+  if (!f.length) return '<div class="tn-pb' + (isF ? ' fin' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span></div><div class="tn-pn tbd">' + escapeHtml(t(isF ? "tourFinalTbd" : "tourThirdTbd")) + '</div></div>';
+  var w = _tourSerWins(T, key), dec = _tourSerDecided(T, key), k = f[0], vd = !!k.v;
   function pips(n) { return '<span class="tn-pip' + (n >= 1 ? ' on' : '') + '"></span><span class="tn-pip' + (n >= 2 ? ' on' : '') + '"></span>'; }
   var kk = f.filter(function (g) { return !tourDone(g); })[0] || f[f.length - 1];   // v238: the lineup of the game being played (stand-ins included)
   function row(side, wins, win, pi) {
-    return '<div class="tn-pr' + (win ? ' w' : (dec && !vd ? ' l' : '')) + '"><div class="tn-pn">' + _tnSide(T, kk, side, 22) + _tnOutTag(T, pi) + '</div><span class="tn-ps">' + (win ? TN_CROWN : '') + pips(wins) + '</span></div>';
+    return '<div class="tn-pr' + (win ? ' w' : (dec && !vd ? ' l' : '')) + '"><div class="tn-pn">' + _tnSide(T, kk, side, 22) + _tnOutTag(T, pi) + '</div><span class="tn-ps">' + (win && isF ? TN_CROWN : '') + pips(wins) + '</span></div>';
   }
-  return '<div class="tn-pb fin' + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(t("tourFinalBo3")) + '</span><span>' + (dec && !vd ? escapeHtml(t("tourChampion")) : (vd ? escapeHtml(t("tourOutVoid")) : '')) + '</span></div>' +
+  return '<div class="tn-pb' + (isF ? ' fin' : '') + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span><span>' + (dec && !vd ? escapeHtml(t(isF ? "tourChampion" : "tourPlace3")) : (vd ? escapeHtml(t("tourOutVoid")) : '')) + '</span></div>' +
     row("a", w.wa, w.wa === 2, k.pa) + row("b", w.wb, w.wb === 2, k.pb) +
-    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' · ') + ' · ' + escapeHtml(t("tourFirstTo2")) + '</div></div>';
+    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t("tourFirstTo2")) + '</div></div>';
 }
+function _tnFinalBox(T, cur) { return _tnSeriesBox(T, "fin", cur); }
 function _tnBracket(T, ng) {
-  if (T.n !== 8 || !T.drawn || T.po.length < 2) return "";
-  var third = T.po[2], semisDone = tourDone(T.po[0]) && tourDone(T.po[1]);
+  var kind = tourKind(T);
+  if (kind === "rr" || !T.drawn) return "";
+  if (kind === "final") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourFinalTitle")) + '</h3>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; })) + '</div>';
+  if (T.po.length < 2) return "";
+  var third = T.po[2], semisDone = tourDone(T.po[0]) && tourDone(T.po[1]), f2 = tourFmt(T) === 2;
+  var thirdBox = f2 ? _tnSeriesBox(T, "th", tourThirds(T).some(function (g) { return g === ng; })) : (third ? _tnSemiBox(T, third, third === ng) : '<div class="tn-pb tbd">' + escapeHtml(t("tourThirdTbd")) + '</div>');
   return '<div class="tn-sec"><h3>' + escapeHtml(t("tourBracketTitle")) + '</h3><div class="tn-bk"><div class="tn-bks">' + _tnSemiBox(T, T.po[0], T.po[0] === ng) + _tnSemiBox(T, T.po[1], T.po[1] === ng) +
-    '</div><div class="tn-bkc' + (semisDone ? ' on' : '') + '"></div><div>' + _tnFinalBox(T, tourFinals(T).some(function (g) { return g === ng; })) + '</div></div>' +
-    '<div class="tn-third"><div class="tn-bt">' + escapeHtml(t("tourThirdTitle")) + '</div>' + (third ? _tnSemiBox(T, third, third === ng) : '<div class="tn-pb tbd">' + escapeHtml(t("tourThirdTbd")) + '</div>') + '</div></div>';
+    '</div><div class="tn-bkc' + (semisDone ? ' on' : '') + '"></div><div>' + _tnSeriesBox(T, "fin", tourFinals(T).some(function (g) { return g === ng; })) + '</div></div>' +
+    '<div class="tn-third">' + (f2 ? '' : '<div class="tn-bt">' + escapeHtml(t("tourThirdTitle")) + '</div>') + thirdBox + '</div></div>';
 }
 
 function _tnDrawCard(T) {
-  var a = _tnAnim, s = _tnSession(_tnSid), h = '<div class="tn-sec"><h3>' + escapeHtml(a.kind === "teams" ? t("tourDrawingTeams") : (T && T.n === 8 ? t("tourDrawingSemi") : t("tourDrawingPairs"))) + '</h3><div class="tn-draw">';
+  var a = _tnAnim, s = _tnSession(_tnSid), h = '<div class="tn-sec"><h3>' + escapeHtml(a.kind === "teams" ? t("tourDrawingTeams") : (T && _tnRandSemi(T) ? t("tourDrawingSemi") : t("tourDrawingPairs"))) + '</h3><div class="tn-draw">';
   if (a.kind === "teams") {
     tourShuffle(s ? s.players : [], Math.random).forEach(function (u) { h += '<div class="tn-slot">' + avatarHtml(u, 28) + '<span>' + getUserName(u) + '</span></div>'; });
   } else if (T) {
     var P = tourPairs(T);
-    if (T.n === 6) tourShuffle([0, 1, 2]).forEach(function (i, k) { h += '<div class="tn-slot"><small>' + escapeHtml(_tnFill(t("tourPairN"), { n: k + 1 })) + '</small>' + _tnPairName(T, P[i].m) + '</div>'; });
+    if (!_tnRandSemi(T)) tourShuffle(P.map(function (x, i) { return i; })).forEach(function (i, k) { h += '<div class="tn-slot"><small>' + escapeHtml(_tnFill(t("tourPairN"), { n: k + 1 })) + '</small>' + _tnPairName(T, P[i].m) + '</div>'; });
     else { var o = tourShuffle([0, 1, 2, 3]); [[0, 1], [2, 3]].forEach(function (x, k) { h += '<div class="tn-slot"><small>' + escapeHtml(_tnFill(t("tourSemi"), { n: k + 1 })) + '</small>' + _tnPairName(T, P[o[x[0]]].m) + '<small>v</small>' + _tnPairName(T, P[o[x[1]]].m) + '</div>'; }); }
   }
   return h + '</div></div>';
@@ -1224,20 +1475,25 @@ function _tnWinner(T, sid) {
   var P = tourPairs(T);
   // v237: a podium with levels; the pair stands on its block, 1st in the middle and highest
   function pl(k, cls, lab) {
+    if (k >= order.length) return '';   // v249: top 4 (a final only): no 3rd place
     var p = order[k] >= 0 ? P[order[k]] : null;
     return '<div class="tn-pl ' + cls + '" data-place="' + (k + 1) + '"><div class="tn-pnm">' + (p ? p.m.map(function (i) { return '<span class="tn-pw">' + avatarHtml(tourUid(T, i), 32) + '<span>' + getUserName(tourUid(T, i)) + '</span></span>'; }).join('') : '<span>\u2014</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div>' +
       '<div class="tn-plinth">' + (k === 0 ? TN_CROWN : '') + '<span class="tn-medal">' + escapeHtml(lab) + '</span></div></div>';
   }
-  return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div><button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
+  return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod' + (order.length < 3 ? ' two' : '') + '">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div><button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
 }
 
+function _tnSumKey(T) {
+  if (tourFmt(T) === 1) return T.n === 8 ? "tourSumNext8" : "tourSumNext6";
+  var k = tourKind(T); return k === "final" ? "tourSumNext4" : k === "rr" ? "tourSumNext6" : "tourSumNext8b";
+}
 /** v236: after the last rotation game, a short summary and the one button that draws the playoff bracket */
 function _tnSummary(T, org) {
   var r = tourStats(T), top = r.slice(0, 3);
   var h = '<div class="tn-sec tn-sum"><h3>' + escapeHtml(_tnFill(t("tourSumTitle"), { g: T.games.length })) + '</h3><ol class="tn-sum-top">' +
     top.map(function (x) { var d = x.pf - x.pa; return '<li>' + avatarHtml(tourUid(T, x.id), 22) + '<b>' + escapeHtml(getUserName(tourUid(T, x.id))) + '</b><span>' + x.w + '–' + x.l + ' · ' + (d > 0 ? '+' : '') + d + '</span></li>'; }).join('') + '</ol>' +
-    '<p>' + escapeHtml(t(T.n === 8 ? "tourSumNext8" : "tourSumNext6")) + '</p>';
-  if (org) h += '<button type="button" class="tn-btn big" data-act="stage">' + TN_DICE + '<span>' + escapeHtml(T.n === 8 ? t("tourBtnSemi") : t("tourBtnPairs")) + '</span></button>';
+    '<p>' + escapeHtml(t(_tnSumKey(T))) + '</p>';
+  if (org) h += '<button type="button" class="tn-btn big" data-act="stage">' + TN_DICE + '<span>' + escapeHtml(_tnDrawBtn(T)) + '</span></button>';
   return h + '</div>';
 }
 var _tnSumSeen = "";
@@ -1250,7 +1506,7 @@ function tourRender() {
   var sub = document.getElementById("tnSub");
   if (sub) sub.textContent = fmtDate(s.date) + (s.courtName ? " · " + s.courtName : "");
   var h = "";
-  if (st) h += '<button type="button" class="tn-btn big" data-act="stage"' + (st.disabled ? ' disabled' : '') + '>' + (st.icon || "") + '<span>' + escapeHtml(st.label) + '</span></button>';
+  if (st) h += '<div class="tn-startrow"><button type="button" class="tn-btn big" data-act="stage"' + (st.disabled ? ' disabled' : '') + '>' + (st.icon || "") + '<span>' + escapeHtml(st.label) + '</span></button>' + (T ? '' : _tnInfoBtn('data-act="info"')) + '</div>';
   if (_tnToast) h += '<div class="tn-toast" role="status">' + escapeHtml(_tnToast) + '</div>';
   if (!T) {
     if (_tnAnim) h += _tnDrawCard(null);
@@ -1262,8 +1518,8 @@ function tourRender() {
   // v237: cancel stays near the top until the tournament is done (the session goes back to normal games)
   if (org && !tourComplete(T) && !_tnAnim) h += '<button type="button" class="tn-b tn-cancel" data-act="reset">' + icon("close", 16) + '<span>' + escapeHtml(t("tourCancelBtn")) + '</span></button>';
   h += _tnSteps(now, view);
-  h += '<div class="tn-prog"><span>' + escapeHtml(ph === 3 ? _tnFill(t("tourLineDone"), { k: played }) : _tnFill(t("tourProgress"), { k: played + 1, m: T.n === 8 ? "11–12" : "12" })) + '</span><span>' + escapeHtml(_tnFill(t("tourPlayed"), { k: played })) + '</span></div>';
-  h += '<div class="tn-bar"><i style="width:' + (ph === 3 ? 100 : Math.round(played / 12 * 100)) + '%"></i></div>';
+  h += '<div class="tn-prog"><span>' + escapeHtml(ph === 3 ? _tnFill(t("tourLineDone"), { k: played }) : _tnFill(t("tourProgress"), { k: played + 1, m: _tnTotalsTxt(T) })) + '</span><span>' + escapeHtml(_tnFill(t("tourPlayed"), { k: played })) + '</span></div>';
+  h += '<div class="tn-bar"><i style="width:' + (ph === 3 ? 100 : Math.round(played / tourTotals(T).max * 100)) + '%"></i></div>';
   h += _tnHurtCard(T, org);
   if (view !== now) h += '<button type="button" class="tn-b sm tn-back" data-act="tab" data-k="' + now + '">' + escapeHtml(_tnFill(t("tourBackToNow"), { step: t(TOUR_LABELS[now]) })) + '</button>';
   if (_tnAnim) h += _tnDrawCard(T);
@@ -1299,10 +1555,16 @@ function tourTabParts(T, view) {
   if (view === 2) return ["bracket", "po"];
   return ["winner", "bracket"];
 }
+/** The one-line rule above the rotation games */
+function _tnRuleTxt(T) {
+  if (tourFmt(T) === 1) return t(T.n === 8 ? "tourRule8" : "tourRule6");
+  var e = tourEstimate(T.n);
+  return _tnFill(t("tourRuleF2"), { n: T.n, g: e.mix, k: e.k, r: e.rest, po: t(e.kind === "final" ? "tourPoShort4" : e.kind === "rr" ? "tourPoShort6" : "tourPoShort8"), games: e.minGames === e.maxGames ? String(e.maxGames) : e.minGames + "\u2013" + e.maxGames });
+}
 function _tnPanel(T, view, ng, ph, org, s) {
   var P = tourRotDone(T) ? tourPairs(T) : null;
   return tourTabParts(T, view).map(function (part) {
-    if (part === "rule") return '<p class="tn-note">' + escapeHtml(t(T.n === 8 ? "tourRule8" : "tourRule6")) + '</p>';
+    if (part === "rule") return '<p class="tn-note">' + escapeHtml(_tnRuleTxt(T)) + '</p>';
     if (part === "hint") return org && !T.drawn ? '<div class="tn-sec tn-hint"><h3>' + escapeHtml(t("tourOutRotTitle")) + '</h3><p>' + escapeHtml(t("tourOutRotHint")) + '</p></div>' : '';
     if (part === "rot") return '<div class="tn-sec"><h3>' + escapeHtml(_tnFill(t("tourRotTitle"), { a: 1, b: T.games.length })) + '</h3><div class="tn-games">' + T.games.map(function (g, i) { return _tnGame(T, g, i + 1, g === ng, null, org); }).join('') + '</div></div>';
     if (part === "meet") return _tnMeetCard(T);
@@ -1310,20 +1572,20 @@ function _tnPanel(T, view, ng, ph, org, s) {
     if (part === "stand") return _tnStandCard(T, ph);
     if (part === "sum") return _tnAnim ? '' : _tnSummary(T, org);
     if (part === "pairs") return P ? _tnPairCard(T, P, org) : '';
-    if (part === "drawsec") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourPlayoffTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourDrawHint"), { w: T.n === 8 ? t("tourBtnSemi") : t("tourBtnPairs") })) + '</p></div>';
+    if (part === "drawsec") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourPlayoffTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourDrawHint"), { w: _tnDrawBtn(T) })) + '</p></div>';
     if (part === "bracket") return _tnBracket(T, ng);
     if (part === "winner") return _tnWinner(T, s.id) + (org ? '<button type="button" class="tn-b dng" data-act="reset">' + escapeHtml(t("tourReset")) + '</button>' : '');
     if (part === "po") {
       if (!T.drawn || !P) return '';
-      var h = '<div class="tn-sec"><h3>' + escapeHtml(_tnFill(t("tourPlayoffGames"), { a: T.games.length + 1 })) + '</h3>';
-      if (T.n === 8) h += '<div class="tn-how">' + escapeHtml(t("tourHow8")) + '</div>';
+      var h = '<div class="tn-sec"><h3>' + escapeHtml(_tnFill(t("tourPlayoffGames"), { a: T.games.length + 1, b: tourTotals(T).max })) + '</h3>';
+      if (tourKind(T) !== "rr") h += '<div class="tn-how">' + escapeHtml(t(tourFmt(T) === 1 ? "tourHow8" : tourKind(T) === "final" ? "tourHowFinal" : "tourHow8b")) + '</div>';
       else {
         var pt = tourPairTable(T);
         h += '<div class="tn-how">' + escapeHtml(t("tourHowRR")) + '</div><div class="tn-scroll"><table class="tn-tab"><tr><th>#</th><th class="l">' + escapeHtml(t("tourColPair")) + '</th><th>' + escapeHtml(t("tourColW")) + '</th><th>' + escapeHtml(t("tourColL")) + '</th><th>+/−</th></tr>' +
           pt.map(function (x, k) { return '<tr class="' + (k === 0 && x.w + x.l > 0 ? 'top' : '') + '"><td class="dim">' + (k + 1) + '</td><td>' + _tnPairName(T, P[x.i].m) + _tnOutTag(T, x.i) + '</td><td>' + x.w + '</td><td>' + x.l + '</td><td>' + (x.d > 0 ? '+' : '') + x.d + '</td></tr>'; }).join('') + '</table></div>';
       }
       h += '<div class="tn-games">' + T.po.map(function (g, i) { return _tnGame(T, g, T.games.length + i + 1, g === ng, _tnLab(g) + ' · ' + _tnFill(t("tourGame"), { k: T.games.length + i + 1 }), org); }).join('') + '</div>';
-      if (T.n === 8 && T.po.length === 2) h += '<p class="tn-note">' + escapeHtml(t("tourAfterSemis")) + '</p>';
+      if (tourKind(T) === "bracket" && T.po.length === 2) h += '<p class="tn-note">' + escapeHtml(t("tourAfterSemis")) + '</p>';
       return h + '</div>';
     }
     return '';

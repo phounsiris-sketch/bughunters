@@ -12,7 +12,7 @@ ctx.window = ctx; vm.createContext(ctx);
 function seeded(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 var ids = []; for (var i = 0; i < 8; i++) ids.push("u" + i);
 
-var T = ctx.tourNew(ids, seeded(3));
+var T = ctx.tourNewV1(ids, seeded(3));
 T.games.forEach(function (g, k) { ctx.tourApply(T, g, 21, 8 + k); });
 var sess = { id: "S1", date: "2026-10-24", groupId: "g", createdAt: 1000, players: ids, tourney: T };
 ctx.lastSessions = [sess]; ctx._matchesReal = [];
@@ -59,7 +59,7 @@ var core = fs.readFileSync("js/stats-core.js", "utf8");
 assert.ok(!/_matchesReal/.test(core), "stats-core reads only lastMatches");
 
 // sessions changed -> rebuild (and nothing when the tournaments did not change)
-ctx.lastSessions = [{ id: "S2", date: "2026-10-25", groupId: "g", createdAt: 2000, tourney: ctx.tourNew(ids, seeded(4)) }];
+ctx.lastSessions = [{ id: "S2", date: "2026-10-25", groupId: "g", createdAt: 2000, tourney: ctx.tourNewV1(ids, seeded(4)) }];
 ctx.tourSessionsChanged(); assert.strictEqual(ctx.lastMatches.length, 0, "a new tournament with no scores adds no games");
 var s3 = ctx.lastSessions[0]; ctx.tourApply(s3.tourney, s3.tourney.games[0], 21, 5);
 ctx.tourSessionsChanged(); assert.strictEqual(ctx.lastMatches.length, 1, "a played game shows up straight away");

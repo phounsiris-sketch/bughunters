@@ -10,7 +10,7 @@ assert.deepStrictEqual(dups, [], "top-level function names repeat: " + dups.join
 // the score editor draws its -/+ buttons, the step stepper draws the step list
 var tc = { console: console, Math: Math, JSON: JSON, isFinite: isFinite, t: function (k) { return "[" + k + "]"; }, escapeHtml: function (v) { return String(v); }, icon: function (n) { return "<i>" + n + "</i>"; } };
 vm.createContext(tc); vm.runInContext(fs.readFileSync("js/tournament.js", "utf8"), tc);
-var T = tc.tourNew(["u0", "u1", "u2", "u3", "u4", "u5", "u6", "u7"], function () { return 0.42; });
+var T = tc.tourNewV1(["u0", "u1", "u2", "u3", "u4", "u5", "u6", "u7"], function () { return 0.42; });
 tc._tnSide = function () { return "<span>side</span>"; };
 var ed = tc._tnStepper(T, T.games[0], "a", 7);
 assert.ok(/data-act="adj"[^>]*data-d="-1"/.test(ed) && /data-d="1"/.test(ed) && /<b>7<\/b>/.test(ed), "score stepper: minus, plus and the score");

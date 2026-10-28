@@ -19,6 +19,8 @@
     lastSessions = [{ id: "s1", groupId: "g1", date: d(2), time: "18:00", duration: 2, courtId: "c1", courtName: "Lao Badminton Hall", pricePerHour: 80000, players: ids, status: "upcoming", mode: "competition", createdBy: "me", payers: {} },
       { id: "s2", groupId: "g1", date: d(-3), time: "19:00", duration: 3, courtId: "c2", courtName: "Sports Center", pricePerHour: 60000, players: ids.slice(0, 4), status: "done", mode: "competition", createdBy: "me", payers: {} }];
     lastPolls = [{ id: "p1", groupId: "g1", title: "Friday game", date: d(4), time: "18:00", status: "open", options: ["Yes", "No", "Maybe"], votes: { 0: ["me", "john"], 1: ["al"], 2: [] }, createdBy: "me", courtId: "c1" }];
+    // v249: a running 4-player tournament on s2 (card with progress + the i button); s1 (6 players, no tournament) shows the Start button with the estimate
+    try { var T4 = tourNew(ids.slice(0, 4), function () { return 0.37; }); T4.games.slice(0, 2).forEach(function (g, i) { g.sa = 21; g.sb = 12 + i; }); lastSessions[1].tourney = T4; } catch (e) { D.errors.push("tourney fixture: " + e.message); }
     var M = [], mk = function (a, b, w, day) { return { id: "m" + M.length, groupId: "g1", date: d(day), sessionId: "s2", teamA: a, teamB: b, games: [w ? { a: 21, b: 14 } : { a: 15, b: 21 }], startAt: Date.now() - 86400000 * -day, endAt: Date.now() - 86400000 * -day + 1500000 }; };
     for (var i = 0; i < 8; i++) M.push(mk(["me", "ton"], ["al", "bo"], i % 3 !== 0, -(i % 6) - 1));
     for (var j = 0; j < 4; j++) M.push(mk(["me", "john"], ["mike", "bo"], j % 2, -j - 2));

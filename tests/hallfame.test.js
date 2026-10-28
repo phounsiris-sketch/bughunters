@@ -18,7 +18,7 @@ ctx.window = ctx; vm.createContext(ctx);
 var uids = function (n) { var a = []; for (var i = 0; i < n; i++) a.push("u" + i); return a; };
 function nameOf(u) { return names[u] || u; }
 function finished(n, seed, fin) {
-  var T = ctx.tourNew(uids(n), seeded(seed)); T.games.forEach(function (g, i) { ctx.tourApply(T, g, 21, 8 + (i % 9)); }); ctx.tourDraw(T, seeded(seed + 7));
+  var T = ctx.tourNewV1(uids(n), seeded(seed)); T.games.forEach(function (g, i) { ctx.tourApply(T, g, 21, 8 + (i % 9)); }); ctx.tourDraw(T, seeded(seed + 7));
   var guard = 0; while (ctx.tourNext(T) && guard++ < 30) { var g = ctx.tourNext(T); ctx.tourApply(T, g, (fin && fin(g)) ? 15 : 21, (fin && fin(g)) ? 21 : 14); }
   return T;
 }
@@ -33,7 +33,7 @@ var o8 = ctx.tourOrder(T8), P8 = ctx.tourPairs(T8);
 assert.deepStrictEqual(JSON.stringify(r8.champion.uids), JSON.stringify([T8.ids[P8[o8[0]].m[0]], T8.ids[P8[o8[0]].m[1]]]), "champion = first of the final order");
 assert.ok(!("__P" in T8), "the engine object is left clean");
 // not finished, no tournament, old v48 value: no record
-var half = ctx.tourNew(uids(8), seeded(5)); assert.strictEqual(ctx.hofRecord(S("H", half), "g1", nameOf, "u0"), null);
+var half = ctx.tourNewV1(uids(8), seeded(5)); assert.strictEqual(ctx.hofRecord(S("H", half), "g1", nameOf, "u0"), null);
 assert.strictEqual(ctx.hofRecord({ id: "o", tournament: { pairs: [["a", "b"]], at: 1, by: "a" } }, "g1", nameOf, "u0"), null, "the old round robin value is ignored");
 assert.strictEqual(ctx.hofRecord({ id: "x" }, "g1", nameOf, "u0"), null);
 // the final series ending 2-1
@@ -42,11 +42,11 @@ var r21 = ctx.hofRecord(S("S2", T21), "g1", nameOf, "u0"); assert.ok(r21.finalSc
 // 6 players: round robin
 var T6 = finished(6, 4), r6 = ctx.hofRecord(S("S3", T6), "g1", nameOf, "u0"); assert.ok(r6 && r6.n === 6 && /^\d–\d$/.test(r6.finalScore), "round robin record");
 // a pair that was out is written, the champion is still the pair left
-var TO = ctx.tourNew(uids(8), seeded(11)); TO.games.forEach(function (g, i) { ctx.tourApply(TO, g, 21, 9 + i); }); ctx.tourDraw(TO, seeded(2));
+var TO = ctx.tourNewV1(uids(8), seeded(11)); TO.games.forEach(function (g, i) { ctx.tourApply(TO, g, 21, 9 + i); }); ctx.tourDraw(TO, seeded(2));
 var outP = TO.po[0].pa; ctx.tourMarkOut(TO, outP, "injury", "knee"); var guard = 0; while (ctx.tourNext(TO) && guard++ < 20) ctx.tourApply(TO, ctx.tourNext(TO), 21, 10);
 var rO = ctx.hofRecord(S("S4", TO), "g1", nameOf, "u0"); assert.ok(rO && rO.outs.length === 1 && rO.outs[0].why === "injury" && rO.outs[0].uids.length === 2, "the out pair is recorded: " + JSON.stringify(rO.outs));
 // everybody out but one: still a champion; nobody left: none
-var TV = ctx.tourNew(uids(8), seeded(13)); TV.games.forEach(function (g, i) { ctx.tourApply(TV, g, 21, 9 + i); }); ctx.tourDraw(TV, seeded(2));
+var TV = ctx.tourNewV1(uids(8), seeded(13)); TV.games.forEach(function (g, i) { ctx.tourApply(TV, g, 21, 9 + i); }); ctx.tourDraw(TV, seeded(2));
 assert.strictEqual(ctx.hofRecord(S("V", TV), "g1", nameOf, "u0"), null, "unfinished tournament: nothing to keep");
 
 // ---- 2. a record read from the database is made safe ----

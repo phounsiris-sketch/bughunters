@@ -61,7 +61,7 @@ function states(h) { return (h.match(/<li class="tn-li[^"]*"><button[^>]*>/g) ||
 function seeded(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 [6, 8].forEach(function (n) {
   var ids = []; for (var i = 0; i < n; i++) ids.push("u" + i);
-  var T = tc.tourNew(ids, seeded(7));
+  var T = tc.tourNewV1(ids, seeded(7));
   var h = tc._tnSteps(tc._tnViewNow(T), 0);
   assert.deepStrictEqual(states(h), ["now*", "lock!", "lock!", "lock!"], n + " players: rotation is current, the rest are locked");
   assert.ok(/aria-label="\[tourTitle\]"/.test(h) && /<ol class="tn-steps"/.test(h), "list with a label");
