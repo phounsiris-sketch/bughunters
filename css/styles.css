@@ -4260,12 +4260,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .rank-text small { font-size: 12px; color: var(--text-muted); }
 .rank-rating { font-weight: 700; color: var(--text); white-space: nowrap; }
 .vs { color: var(--text-muted); font-size: 12px; align-self: center; padding: 0 4px; }
-.h2h-card { text-align: center; }
-.h2h-names { display: flex; justify-content: space-between; gap: 10px; }
-.h2h-names > span { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; }
-.h2h-names > span > .person-avatar { display: inline-flex; }
-.h2h-score { font-size: 40px; font-weight: 800; margin: 8px 0; color: var(--text); }
-.h2h-facts { font-size: 13px; color: var(--text-secondary); }
 .wl { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; margin-left: 3px; }
 .wl.w { background: #16a34a; } .wl.l { background: #dc2626; }
 .sparkline { width: 100%; height: 80px; }
@@ -4413,8 +4407,7 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 #gSaleBox[hidden] { display: none; }
 .match-by { margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: center; }
 
-/* Head-to-head summary + progress */
-.h2h-total { text-align: center; }
+/* Rivals & partners rows + progress */
 .h2h-row .rank-avatars { min-width: 52px; }
 .h2h-rec { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
 .h2h-rec b { font-size: 16px; }
@@ -4455,7 +4448,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .badge-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
 .badge-item.earned .badge-bar i { background: #f59e0b; }
 .badge-val { font-size: 12px; color: var(--text-muted); }
-.h2h-total-who { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
 .gear-row { align-items: center; }
 .sale-line { display: flex !important; align-items: center; gap: 4px; color: var(--accent) !important; font-weight: 600; margin-top: 2px; }
 .sale-line.sold { color: var(--text-muted) !important; }
@@ -4602,15 +4594,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 .ins-tips li { margin-bottom: 6px; }
 
 /* Head to head: pair vs pair */
-.pvp-card { padding: 14px; }
-.pvp-vs { text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 8px 0; text-transform: uppercase; letter-spacing: 1px; }
-.pvp-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 4px; }
-.pvp-score b { font-size: 30px; }
-.pvp-side { display: inline-flex; }
-.pvp-list { margin-top: 10px; border-top: 1px solid var(--border); }
-.pvp-game { display: flex; justify-content: space-between; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.pvp-date { color: var(--text-muted); }
-.pvp-pts { font-weight: 700; } .pvp-pts.won { color: #16a34a; } .pvp-pts.lost { color: #ef4444; }
 
 /* Restaurants: picker, form, bill view, reviews */
 .rest-picked { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--surface); }
@@ -6675,8 +6658,6 @@ body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-sha
 .rank-note { margin: 8px 2px 0; }
 .rank-see { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-height: 40px; margin-top: 8px; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip-bg); color: var(--accent); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
 [data-theme="light"] .rank-see { color: var(--primary); }
-.h2h-all .period-toggle { justify-content: flex-start; margin: 0 0 6px; flex-wrap: wrap; }
-.h2h-all .period-btn { padding: 7px 11px; min-height: 36px; }
 .rank-row .rk-side { min-width: 48px; }
 
 .how-btn.badge-btn { width: auto; min-width: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: rgba(245, 158, 11, .18); border-color: transparent; color: #fcd34d; font-size: 13px; }
@@ -6758,3 +6739,21 @@ button.ma-game { cursor: pointer; }
 [data-theme="light"] .trend.up { color: #15803d; } [data-theme="light"] .trend.down { color: #b91c1c; }   /* 3:1+ on a white card */
 .mh-tl em.down, .trend.down { color: #f87171; } [data-theme="light"] .mh-tl em.down, [data-theme="light"] .trend.down { color: #b91c1c; }   /* v247: red on a dark card was 2.8:1 */
 [data-theme="light"] .mh-tl em.up { color: #15803d; }
+
+/* v251: Rivals & partners (Head-to-head tab) */
+.h2h-head { display: grid; gap: 10px; }
+.h2h-sec { padding-block: 10px; }
+.h2h-ct { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.h2h-ct h3 { flex: 1; margin: 0; font-size: 15px; font-weight: 800; }
+.h2h-more { min-height: 36px; padding: 4px 8px; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+[data-theme="light"] .h2h-more { color: var(--primary); }
+.h2h-row { width: 100%; min-width: 0; border-top: 0; border-left: 0; border-right: 0; background: none; color: inherit; font: inherit; text-align: left; }
+.h2h-row .rank-avatars.one { min-width: 0; }
+.h2h-row .rank-text { min-width: 0; flex: 1; }
+.h2h-head .ma-segb { font-size: 12px; }
+.h2h-row .rank-text b, .h2h-row .rank-text small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h2h-row:last-child { border-bottom: 0; }
+.h2h-empty { padding: 10px 0 4px; font-size: 13px; color: var(--text-secondary); }
+.h2h-more:focus-visible, .h2h-row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[data-theme="light"] .h2h-rec.up b { color: #15803d; }
+[data-theme="light"] .h2h-rec.down b { color: #b91c1c; }
