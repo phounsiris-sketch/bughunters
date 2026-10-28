@@ -38,6 +38,7 @@
     M.sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
     lastMatches = M; _matchesReal = M; _matchesUnsub = function () {};   // v247: the stub snapshot would otherwise empty the list on the first Rankings visit
     try { _statsCache = null; } catch (e) {}
+    try { sessionsUnsubscribe = function () {}; pollsUnsubscribe = function () {}; } catch (e) {}   // v260: the stub snapshot would empty lastSessions / lastPolls on the first Sessions visit (cards were never drawn)
     window.fxStart = function () {}; window.fxStop = function () {};
     var ac = document.getElementById("auth-container"), ap = document.getElementById("app-container"); if (ac) ac.style.display = "none"; if (ap) ap.style.display = "";
     try { hideSplash(); } catch (e) {}
@@ -55,6 +56,7 @@
     if (th.pal) currentPalette = th.pal; if (th.lpal) currentLightPalette = th.lpal;
     try { if (typeof applyAppearance === "function") applyAppearance(); else if (typeof applyTheme_ === "function") applyTheme_(); } catch (e) {}
     var b = document.body;
+    document.documentElement.setAttribute("data-theme", th.mode);   // v260: the real app sets it on <html> too (_syncColorScheme); rules like :root:not([data-theme="light"]) need it
     b.setAttribute("data-theme", th.mode); if (th.sp) b.setAttribute("data-special", th.sp); else b.removeAttribute("data-special");
     b.setAttribute("data-palette", currentPalette); b.setAttribute("data-lpalette", currentLightPalette);
     var ip = String(icons).split("+"); currentIconTheme = ip[0]; currentDashPack = ip[1] || "clay"; _chromeKey = "reset"; applyChromeIcons();   // "box+3d" = icon style box with the dashboard pack 3d
@@ -117,10 +119,21 @@
         var bg = bgOf(el); if (bg) { var fg = over(parse(cs.color), bg), ratio = cr(fg, bg); if (ratio < 3 && +cs.opacity > .5 && parseFloat(cs.fontSize) >= 11) { seen["t" + sel(el)] = 1; add("low-contrast", el, ratio.toFixed(2)); } }
       }
     }
+    // v260: the overlay action must not cover any text or pill of its card
+    Array.prototype.forEach.call(pageEl.querySelectorAll("[data-overlay]"), function (o) {
+      if (!visible(o)) return;
+      var O = o.getBoundingClientRect(), card = o.parentElement;
+      Array.prototype.forEach.call(card.querySelectorAll(".gc-court, .gc-stats, .pill, .gc-cta, .gc-people, .date-block"), function (tx) {
+        var R = tx.getBoundingClientRect(), ix = Math.min(O.right, R.right) - Math.max(O.left, R.left), iy = Math.min(O.bottom, R.bottom) - Math.max(O.top, R.top);
+        if (ix > 1 && iy > 1) add("overlay-covers-text", tx, sel(o));
+      });
+    });
     // controls that overlap each other
     var ctl = Array.prototype.filter.call(pageEl.querySelectorAll("button, a.nav-row, .chip, input, select"), function (e) { return visible(e) && !(e.closest("details:not([open])") && !e.closest("summary")); });
     for (var a = 0; a < ctl.length && a < 160; a++) for (var b = a + 1; b < ctl.length && b < 160; b++) {
       if (ctl[a].contains(ctl[b]) || ctl[b].contains(ctl[a])) continue;
+      // v260: an overlay action sitting on its card (.gc-more) is meant to overlap the card button; what matters is that it never covers card text: checked below
+      if (ctl[a].hasAttribute("data-overlay") || ctl[b].hasAttribute("data-overlay")) continue;
       var A = ctl[a].getBoundingClientRect(), B = ctl[b].getBoundingClientRect(), ix = Math.min(A.right, B.right) - Math.max(A.left, B.left), iy = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top);
       if (ix > 6 && iy > 6 && ix * iy > .25 * Math.min(A.width * A.height, B.width * B.height) && !seen["x" + sel(ctl[a]) + sel(ctl[b])]) { seen["x" + sel(ctl[a]) + sel(ctl[b])] = 1; add("overlap", ctl[a], sel(ctl[b])); }
     }

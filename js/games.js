@@ -74,10 +74,86 @@ function _gameCard(it) {
     onclick = "showSessionDetail('" + it.id + "')";
   }
   var seg = '<div class="gseg">' + [0, 1, 2, 3].map(function (i) { return '<i' + (i <= step ? ' class="on"' : '') + '></i>'; }).join("") + '</div>';
-  return '<button type="button" class="game-card2" onclick="' + onclick + '">' +
+  var more = _gameMoreBtn(it);
+  return '<div class="gcard-wrap">' + '<button type="button" class="game-card2" onclick="' + onclick + '">' +
     '<div class="gc-top">' + dateBlockHtml(it.date) +
     '<div class="gc-main"><div class="gc-court">' + escapeHtml(it.court || "–") + '</div><div class="gc-stats">' + stats + '</div></div>' + pillHtml(pillKind, pillText) + '</div>' +
-    seg + people + '<div class="gc-cta">' + cta + ' ' + icon("chevron", 16) + '</div></button>';
+    seg + people + '<div class="gc-cta">' + cta + ' ' + icon("chevron", 16) + '</div></button>' + more + '</div>';
+}
+
+/* v260: ⋯ on a card, shown only to people who may act on it; opens a small action sheet (Edit / Bill / Delete) */
+function _gameCanMore(it) {
+  if (it.kind === "poll") return canManagePoll(it.poll);
+  return canDeleteSession(it.s) || canEditSessionDetails(it.s) || canEditBill(it.s);
+}
+function _gameMoreBtn(it) {
+  if (!_gameCanMore(it)) return "";
+  return '<button type="button" class="gc-more" data-overlay aria-label="' + escapeHtml(t("cmMore")) + '" aria-haspopup="dialog" onclick="event.stopPropagation();openCardMenu(\'' + it.kind + '\',\'' + jsq(it.id) + '\',this)">\u22ef</button>';
+}
+
+/** The actions of a card as [{ key, label, danger, run }], what the viewer may do (separator = { sep: true }) */
+function cardMenuItems(kind, id) {
+  var out = [];
+  if (kind === "poll") {
+    var p = typeof _findPoll === "function" ? _findPoll(id) : null;
+    if (!p || !canManagePoll(p)) return out;
+    out.push({ key: "editVote", label: t("cmEditVote"), run: function () { showEditPoll(id); } });
+    out.push({ sep: true });
+    out.push({ key: "deleteVote", label: t("cmDeleteVote"), danger: true, run: function () { deletePoll(id); } });
+    return out;
+  }
+  var s = null;
+  lastSessions.forEach(function (x) { if (x.id === id) s = x; });
+  if (!s) return out;
+  if (canEditSessionDetails(s)) out.push({ key: "editDetails", label: t("cmEditDetails"), run: function () { showSessionDetailsModal(id); } });
+  if (canEditBill(s)) out.push({ key: "bill", label: t("cmBill"), run: function () { openSessionBill(id); } });
+  if (canDeleteSession(s)) {
+    if (out.length) out.push({ sep: true });
+    out.push({ key: "deleteSession", label: t("cmDeleteSession"), danger: true, run: function () { deleteSessionById(id); } });
+  }
+  return out;
+}
+
+var _cardMenuOpener = null;
+function openCardMenu(kind, id, opener) {
+  var items = cardMenuItems(kind, id);
+  if (!items.length) return;
+  closeCardMenu(true);
+  _cardMenuOpener = opener || document.activeElement;
+  var el = document.createElement("div");
+  el.id = "cardSheet"; el.className = "sheet-wrap";
+  var ico = { editVote: "pen", editDetails: "pen", bill: "bill", deleteVote: "trash", deleteSession: "trash" };
+  el.innerHTML = '<div class="sheet cardmenu" role="dialog" aria-modal="true" aria-label="' + escapeHtml(t("cmMore")) + '"><div class="sheet-grab"></div><div class="cm-list">' +
+    items.map(function (it, i) {
+      return it.sep ? '<div class="cm-sep" role="separator"></div>' :
+        '<button type="button" class="cm-item' + (it.danger ? ' danger' : '') + '" data-cm="' + i + '"><span class="cm-ico" aria-hidden="true">' + icon(ico[it.key] || "pen", 18) + '</span><span>' + escapeHtml(it.label) + '</span></button>';
+    }).join("") + '</div></div>';
+  el.onclick = function (e) {
+    if (e.target === el) { closeCardMenu(); return; }
+    var b = e.target.closest ? e.target.closest("[data-cm]") : null;
+    if (!b) return;
+    var run = items[+b.getAttribute("data-cm")].run;
+    closeCardMenu();              // focus goes back to the ⋯ button, so the next sheet's Cancel / Esc returns there
+    run();
+  };
+  document.addEventListener("keydown", _cardMenuKey, true);
+  document.body.appendChild(el);
+  var f = el.querySelector(".cm-item"); if (f) f.focus();
+}
+function _cardMenuKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeCardMenu(); return; }
+  if (e.key === "Tab") {
+    var el = document.getElementById("cardSheet"); if (!el) return;
+    var f = [].slice.call(el.querySelectorAll(".cm-item")), first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+}
+function closeCardMenu(quiet) {
+  document.removeEventListener("keydown", _cardMenuKey, true);
+  var el = document.getElementById("cardSheet"); if (el) el.remove();
+  var o = _cardMenuOpener; _cardMenuOpener = null;
+  if (!quiet && o && o.focus && document.contains(o)) { try { o.focus(); } catch (e) {} }
 }
 
 function renderGames() {
