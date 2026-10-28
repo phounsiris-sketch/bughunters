@@ -49,7 +49,7 @@ assert.ok(!/groupTopPair/.test(html), "the Top pair row is gone");
 assert.ok(!/badges-card|badge-grid/.test(html), "the badges card is gone from the Ranking tab");
 assert.ok(/class="how-btn badge-btn"/.test(html) && /openBadgesSheet\(\)/.test(html), "the badge button is in the hero");
 assert.ok(/openMatchesAll\(''\)/.test(html) && !/recent-wrap|recent-games/.test(html), "All my matches link, no <details> last-5 list");
-assert.ok(/statsPairGo\(this\.getAttribute\('data-k'\)\)/.test(html), "pair rows open that pair in Head-to-head");
+assert.ok(/statsPairGo\(this\.getAttribute\('data-k'\)\)/.test(html), "pair rows open that pair in All matches");
 assert.ok(/progressUser='p\d'|progressUser='me'/.test(html), "player rows still open Progress");
 var pairs = ctx._rankLists().pairs.length;
 assert.ok(pairs > 10, "the fake data has more than 10 pairs (" + pairs + ")");
@@ -67,17 +67,23 @@ var hl = ctx._highlightsHtml(ctx.computeStats(), "all");
 assert.ok(/bestScore/.test(hl) && !/groupTopPair/.test(hl));
 assert.strictEqual(ctx._highlightsHtml({ h2h: [] }, "all"), "", "no games: no card");
 
-// See all: Head-to-head with the full list at the top
-ctx.renderStats = function () {};
+// See all (v251): the list opens in place on the Ranking tab, the same button then reads "seeLess"
+var renders = 0; ctx.renderStats = function () { renders++; };
 ctx.statsSeeAll("pairs");
-var h2h = ctx._h2hAllHtml();
-assert.ok(/allPairs/.test(h2h) && !/rank-gap|rank-see/.test(h2h), "full list, no gap");
-assert.strictEqual((h2h.match(/class="rank-row/g) || []).length, pairs, "every pair is listed");
-ctx.statsTab = "ranking"; ctx.setStatsTab("h2h");
-assert.strictEqual(ctx._h2hAllHtml(), "", "opening the tab by hand shows no full list");
-ctx.document = { getElementById: function () { return null; } };
-ctx.statsPairGo("p1+p2");
-assert.strictEqual(ctx.statsTab, "h2h"); assert.strictEqual(ctx.h2hPairA, "p1+p2"); assert.strictEqual(ctx.h2hPairB, null);
+assert.strictEqual(ctx.rankExpand.pairs, true); assert.strictEqual(renders, 1);
+var open = ctx._pairListHtml(ctx._rankLists(), ctx.rankExpand.pairs);
+assert.ok(!/rank-gap/.test(open), "expanded list has no gap");
+assert.strictEqual((open.match(/class="rank-row/g) || []).length, pairs, "every pair is listed");
+assert.ok(/seeLess/.test(open) && !/seeAllN/.test(open), "Show less instead of See all");
+ctx.statsSeeAll("pairs");
+assert.strictEqual(ctx.rankExpand.pairs, false);
+assert.ok(/seeAllN/.test(ctx._pairListHtml(ctx._rankLists(), ctx.rankExpand.pairs)), "collapsed again");
+// pair row: All matches of the first member, partner = the second
+var go = null; ctx.openMatchesAll = function (u, o) { go = { u: u, o: o }; };
+ctx.statsScope = "month"; ctx.statsPairGo("p1+p2");
+assert.deepStrictEqual(JSON.parse(JSON.stringify(go)), { u: "p1", o: { partner: "p2", period: "month" } });
+ctx.statsScope = "3m"; ctx.statsPairGo("p1+p2"); assert.strictEqual(go.o.period, "all", "3 months has no slot in All matches");
+ctx.statsScope = "all";
 
 /* ---- badges ---- */
 var bl = ctx.badgesFor("me"), got = bl.filter(function (b) { return b.earned; }).length;
@@ -145,7 +151,7 @@ assert.ok(/matches-all/.test(read("js/router.js")) && /loadMatchesAll/.test(read
 assert.ok(/"matches-all"/.test(read("tools/uimatrix/driver.js")), "UI matrix covers the page");
 assert.ok(!/_homeBadgeCard|hs-badges/.test(read("js/home.js")), "Home has no Badges swipe card");
 var i18n = read("js/i18n.js");
-["ratingMonthHint", "rankMore", "provFadedNote", "seeAllN", "allPairs", "allPlayers", "badgesBtnLabel", "badgeBestN", "badgeEarned", "allMyMatches", "maCrumb", "maPlayer", "maP30", "maTypeAll", "maTypeDoubles",
+["ratingMonthHint", "rankMore", "provFadedNote", "seeAllN", "seeLess", "allPlayers", "badgesBtnLabel", "badgeBestN", "badgeEarned", "allMyMatches", "maCrumb", "maPlayer", "maP30", "maTypeAll", "maTypeDoubles",
   "maPartner", "maPartnerAll", "maOpp", "maOppAll", "maOther", "maShowOlder", "maNoMatch", "maClear", "maSummary"].forEach(function (k) {
   assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN and LA");
 });

@@ -209,7 +209,7 @@ function loadStats() {
   renderStats();
 }
 
-function setStatsTab(tab) { statsTab = tab; h2hAll = null; renderStats(); }
+function setStatsTab(tab) { statsTab = tab; renderStats(); }
 function setStatsPeriod(p) { setStatsScope(p); }
 
 function renderStats() {
@@ -364,7 +364,7 @@ function _rankListHtml(list, rowFn, isMine, isProv, min, kind, full) {
     html += it.gap ? '<div class="rank-gap" aria-hidden="true">\u00B7 \u00B7 \u00B7 ' + t("rankMore").replace("{n}", it.gap) + ' \u00B7 \u00B7 \u00B7</div>' : rowFn(list[it.i], it.i);
   });
   if (list.some(isProv)) html += '<div class="form-hint rank-note">' + t("provFadedNote").replace("{min}", min) + '</div>';
-  if (!full && list.length > RANK_FULL_MAX) html += '<button type="button" class="rank-see" onclick="statsSeeAll(\'' + kind + '\')">' + t("seeAllN").replace("{n}", list.length) + ' ' + icon("chevron", 12) + '</button>';
+  if (list.length > RANK_FULL_MAX) html += '<button type="button" class="rank-see" aria-expanded="' + !!full + '" onclick="statsSeeAll(\'' + kind + '\')">' + (full ? t("seeLess") : t("seeAllN").replace("{n}", list.length) + ' ' + icon("chevron", 12)) + '</button>';
   return html;
 }
 function _pairListHtml(L, full) {
@@ -385,40 +385,31 @@ function _renderRanking() {
   html += _highlightsHtml(st, statsScope);
   // 1. Pair rank (men's doubles is how most of us play)
   html += '<div class="settings-section">1. ' + t("pairRank") + '</div><div class="card rank-list">';
-  html += L.pairs.length ? _pairListHtml(L, false) : '<div class="empty-state" style="padding:12px">' + t("noPairsYet").replace("{n}", PAIR_MIN_MATCHES) + '</div>';
+  html += L.pairs.length ? _pairListHtml(L, rankExpand.pairs) : '<div class="empty-state" style="padding:12px">' + t("noPairsYet").replace("{n}", PAIR_MIN_MATCHES) + '</div>';
   html += '</div>';
   // 2. Player rank: the same list rankOf() numbers
   html += '<div class="settings-section">2. ' + t("playerRank") + '</div><div class="card rank-list">';
-  html += L.ranked.length ? _playerListHtml(L, false) : '<div class="empty-state" style="padding:12px">' + t("noRankYet").replace("{n}", RANK_MIN_MATCHES) + '</div>';
+  html += L.ranked.length ? _playerListHtml(L, rankExpand.players) : '<div class="empty-state" style="padding:12px">' + t("noRankYet").replace("{n}", RANK_MIN_MATCHES) + '</div>';
   html += '</div>';
   return html;
 }
 
-/** "See all N": the Head-to-head tab with the full list at the top */
+/** v251: "See all N" on the Ranking tab opens the rest of that list in place; the same button then reads "Show less" */
+var rankExpand = { pairs: false, players: false };
 function statsSeeAll(kind) {
-  statsTab = "h2h"; h2hAll = kind === "players" ? "players" : "pairs";
+  var k = kind === "players" ? "players" : "pairs";
+  rankExpand[k] = !rankExpand[k];
   renderStats();
-  if (typeof window !== "undefined" && window.scrollTo) window.scrollTo(0, 0);
 }
 
-/** Tap on a pair row: Head-to-head with that pair preselected in the pair-vs-pair section, scrolled to it */
+/** Tap on a pair row of the Ranking tab: All matches of the pair's first member, partner = the second member, same period (3 and 6 months have no slot there: all time) */
 function statsPairGo(key) {
-  if (!key) return;
-  statsTab = "h2h"; h2hPairA = key; h2hPairB = null;
-  renderStats();
-  var el = document.getElementById("pvpCard");
-  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  var us = key ? pairUids(key) : [];
+  if (us.length < 2) return;
+  openMatchesAll(us[0], { partner: us[1], period: statsScope === "month" || statsScope === "1y" ? statsScope : "all" });
 }
 
-/** The full list at the top of Head-to-head (after "See all"), same row markup, same scope */
-function _h2hAllHtml() {
-  if (!h2hAll) return '';
-  var L = _rankLists(), pairs = h2hAll === "pairs";
-  return '<div class="settings-section">' + t(pairs ? "allPairs" : "allPlayers") + ' (' + (pairs ? L.pairs.length : L.ranked.length) + ')</div>' +
-    '<div class="card rank-list h2h-all">' + scopeChipsHtml() + (pairs ? _pairListHtml(L, true) : _playerListHtml(L, true)) + '</div>';
-}
-
-/* ---------- Head-to-head: my record, by pair and by single ---------- */
+/* ---------- Head-to-head = "Rivals & partners" (v251) ---------- */
 
 /** All saved games with a winner that uid played (any mode), oldest first */
 function _myGames(uid, fromIso) {
@@ -431,107 +422,92 @@ function _myGames(uid, fromIso) {
   });
 }
 
-function _h2hRows(groups, avatarsOf, nameOf) {
-  var keys = Object.keys(groups).sort(function (a, b) { return groups[b].n - groups[a].n || groups[b].w - groups[a].w; });
-  if (!keys.length) return '<div class="empty-state" style="padding:12px">' + t("h2hNone") + '</div>';
-  return keys.map(function (k) {
-    var g = groups[k], l = g.n - g.w, wr = Math.round(g.w / g.n * 100);
-    return '<div class="rank-row h2h-row"><span class="rank-avatars">' + avatarsOf(k) + '</span>' +
-      '<span class="rank-text"><b>' + nameOf(k) + '</b><small>' + g.n + ' ' + t("gamesWord") + ' \u00B7 ' + (g.pts >= 0 ? '+' : '') + g.pts + ' ' + t("ptsShort") + '</small></span>' +
-      '<span class="h2h-rec ' + (g.w > l ? 'up' : g.w < l ? 'down' : '') + '"><b>' + g.w + '\u2013' + l + '</b><small>' + wr + '%</small></span></div>';
-  }).join('');
+var h2hUser = null;                 // whose rivals and partners the tab shows (null = me); the period is maPeriod (shared with All matches)
+var h2hOpen = {};                   // card id -> true once "See all" opened it
+var H2H_MIN = 2, H2H_TOP = 3;       // fewest games for a row in Best partners / Toughest / Easiest, and rows shown before "See all"
+
+/** { partners, toughest, easiest, singles, n } for uid in a period (month | 30d | 1y | all). Rows: { k, n, w, l, pts }.
+    Partners: doubles partners, best win rate first. Pairs: opposing pairs in doubles; Toughest = win rate under 50% (lowest first, then most losses),
+    Easiest = over 50% (highest first). Exactly 50% is in neither (it is neither tough nor easy). Ties: more games, then better point difference. */
+function h2hAggregate(uid, period) {
+  var partners = {}, vs = {}, singles = {}, games = _myGames(uid, maPeriodFrom(period));
+  var add = function (map, k, x) { var g = map[k] || (map[k] = { k: k, n: 0, w: 0, l: 0, pts: 0 }); g.n++; if (x.won) g.w++; else g.l++; g.pts += x.pts; };
+  games.forEach(function (x) {
+    if (x.mine.length === 2 && x.them.length === 2) {
+      add(vs, pairKey(x.them), x);
+      add(partners, x.mine.filter(function (u) { return u !== uid; })[0], x);
+    } else if (x.mine.length === 1 && x.them.length === 1) add(singles, x.them[0], x);
+  });
+  var list = function (map) { return Object.keys(map).map(function (k) { return map[k]; }); };
+  var rate = function (g) { return g.w / g.n; };
+  var enough = function (g) { return g.n >= H2H_MIN; };
+  var best = function (a, b) { return rate(b) - rate(a) || b.n - a.n || b.pts - a.pts; };
+  return {
+    n: games.length,
+    partners: list(partners).filter(enough).sort(best),
+    toughest: list(vs).filter(function (g) { return enough(g) && g.w * 2 < g.n; }).sort(function (a, b) { return rate(a) - rate(b) || b.l - a.l || b.n - a.n || a.pts - b.pts; }),
+    easiest: list(vs).filter(function (g) { return enough(g) && g.w * 2 > g.n; }).sort(best),
+    singles: list(singles).sort(function (a, b) { return b.n - a.n || rate(b) - rate(a) || b.pts - a.pts; })
+  };
 }
 
-var h2hUser = null;   // whose record the Head-to-head tab shows (me by default)
-var h2hAll = null;    // v247: "pairs" | "players" = the full ranking list shown at the top of the tab (set by See all)
+/** What a row opens in All matches: { uid, opts } (opts: partner | oppPair | opp + type, and the shared period) */
+function h2hGoParams(kind, key) {
+  var o = { period: maPeriod };
+  if (kind === "partner") o.partner = key;
+  else if (kind === "pair") o.oppPair = key;
+  else { o.opp = key; o.type = "singles"; }
+  return { uid: h2hUser || currentUser.uid, opts: o };
+}
+function h2hGo(kind, key) { var p = h2hGoParams(kind, key); openMatchesAll(p.uid, p.opts); }
+function h2hToggle(id) { h2hOpen[id] = !h2hOpen[id]; renderStats(); }
+function h2hSetPeriod(p) { maPeriod = p; renderStats(); }
+
+function _h2hRowHtml(g, kind) {
+  var l = g.l, rate = Math.round(g.w / g.n * 100), names, avs;
+  if (kind === "pair") {
+    var us = pairUids(g.k);
+    avs = '<span class="rank-avatars">' + us.map(function (u) { return avatarHtml(u, 26); }).join('') + '</span>';
+    names = us.map(function (u) { return escapeHtml(getUserName(u)); }).join(' + ');
+  } else {
+    avs = '<span class="rank-avatars one">' + avatarHtml(g.k, 30) + '</span>';
+    names = escapeHtml(getUserName(g.k));
+  }
+  return '<button type="button" class="rank-row h2h-row" data-kind="' + kind + '" data-k="' + escapeHtml(g.k) + '" onclick="h2hGo(this.getAttribute(\'data-kind\'),this.getAttribute(\'data-k\'))">' + avs +
+    '<span class="rank-text"><b>' + names + '</b><small>' + maGamesN(g.n) + ' · ' + t("h2hPtDiff") + ' ' + (g.pts >= 0 ? '+' : '−') + Math.abs(g.pts) + '</small></span>' +
+    '<span class="h2h-rec ' + (g.w > l ? 'up' : g.w < l ? 'down' : '') + '"><b>' + g.w + '–' + l + '</b><small>' + rate + '%</small></span></button>';
+}
+
+/** One card: title, "See all N" / "Show less" when there are more than 3 rows, the rows (3 or all), or the empty text */
+function _h2hCardHtml(id, title, rows, kind, emptyKey) {
+  var open = !!h2hOpen[id], more = rows.length > H2H_TOP;
+  return '<div class="card h2h-sec" id="h2h-' + id + '"><div class="h2h-ct"><h3>' + t(title) + '</h3>' +
+    (more ? '<button type="button" class="h2h-more" aria-expanded="' + open + '" onclick="h2hToggle(\'' + id + '\')">' + (open ? t("seeLess") : t("seeAllN").replace("{n}", rows.length)) + '</button>' : '') + '</div>' +
+    (rows.length ? (open ? rows : rows.slice(0, H2H_TOP)).map(function (g) { return _h2hRowHtml(g, kind); }).join('') : '<div class="h2h-empty">' + t(emptyKey) + '</div>') + '</div>';
+}
 
 function _renderH2H() {
-  var me = h2hUser || currentUser.uid;
+  var me = currentUser.uid, who = h2hUser || me;
   // Pick a player: everyone who has played a game
-  var who = {};
-  lastMatches.forEach(function (m) { (m.teamA || []).concat(m.teamB || []).forEach(function (u) { who[u] = true; }); });
-  who[currentUser.uid] = true;
-  var uids = Object.keys(who).sort(function (a, b) { return a === currentUser.uid ? -1 : b === currentUser.uid ? 1 : getUserName(a).localeCompare(getUserName(b)); });
-  var picker = '<div class="card"><select class="form-select" id="h2hUser" onchange="h2hUser=this.value;renderStats()">' + uids.map(function (u) {
-    return '<option value="' + u + '"' + (u === me ? ' selected' : '') + '>' + escapeHtml(plainUserName(findUser(u))) + (u === currentUser.uid ? ' (' + t("you") + ')' : '') + '</option>';
-  }).join('') + '</select></div>';
-  var games = _myGames(me), top = _h2hAllHtml();
-  if (!games.length) return top + picker + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("noMatchesYet") + '</div></div>' + _pairVsPairHtml(me);
-  var vsPairs = {}, withPartner = {}, vsSingles = {}, tot = { n: 0, w: 0, pts: 0 };
-  var add = function (map, k, x) { var g = map[k] || (map[k] = { n: 0, w: 0, pts: 0 }); g.n++; if (x.won) g.w++; g.pts += x.pts; };
-  games.forEach(function (x) {
-    tot.n++; if (x.won) tot.w++; tot.pts += x.pts;
-    if (x.mine.length === 2 && x.them.length === 2) {
-      add(vsPairs, pairKey(x.them), x);
-      add(withPartner, x.mine.filter(function (u) { return u !== me; })[0], x);
-    } else if (x.mine.length === 1 && x.them.length === 1) add(vsSingles, x.them[0], x);
-  });
-  var pairAv = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
-  var oneAv = function (u) { return avatarHtml(u, 30); };
-  var oneName = function (u) { return escapeHtml(getUserName(u)); };
-  var html = top + picker + '<div class="card h2h-total"><div class="h2h-total-who">' + avatarHtml(me, 30) + '<b>' + escapeHtml(getUserName(me)) + '</b></div><div class="h2h-score">' + tot.w + ' \u2013 ' + (tot.n - tot.w) + '</div>' +
-    '<div class="h2h-facts">' + t(me === currentUser.uid ? "h2hMine" : "h2hTheirs").replace("{n}", tot.n) + ' \u00B7 ' + (tot.pts >= 0 ? '+' : '') + tot.pts + ' ' + t("ptsShort") + '</div></div>';
-  html += '<div class="settings-section">' + t("h2hVsPairs") + '</div><div class="card rank-list">' + _h2hRows(vsPairs, pairAv, pairName) + '</div>';
-  html += '<div class="settings-section">' + t(me === currentUser.uid ? "h2hWithPartner" : "h2hWithPartners") + '</div><div class="card rank-list">' + _h2hRows(withPartner, oneAv, oneName) + '</div>';
-  html += '<div class="settings-section">' + t("h2hVsSingles") + '</div><div class="card rank-list">' + _h2hRows(vsSingles, oneAv, oneName) + '</div>';
-  html += _pairVsPairHtml(me);
-  return html;
-}
-
-/* ---------- Pair vs pair: pick two pairs, see their record against each other ---------- */
-
-var h2hPairA = null, h2hPairB = null;
-
-function _plainPair(key) { return pairUids(key).map(function (u) { return plainUserName(findUser(u)); }).join(" & "); }
-function _disjoint(ka, kb) { var a = ka.split("+"); return kb.split("+").every(function (u) { return a.indexOf(u) < 0; }); }
-
-function _pairVsPairHtml(me) {
-  var ms = lastMatches.filter(function (m) { return m.teamA && m.teamB && m.teamA.length === 2 && m.teamB.length === 2 && matchWinner(m); });
-  if (!ms.length) return '';
-  var pairsSet = {}, meet = {};   // meet[ka][kb] = games
-  ms.forEach(function (m) {
-    var ka = pairKey(m.teamA), kb = pairKey(m.teamB);
-    pairsSet[ka] = pairsSet[kb] = true;
-    (meet[ka] = meet[ka] || {})[kb] = (meet[ka][kb] || 0) + 1;
-    (meet[kb] = meet[kb] || {})[ka] = (meet[kb][ka] || 0) + 1;
-  });
-  var keys = Object.keys(pairsSet).sort(function (a, b) { return _plainPair(a).localeCompare(_plainPair(b)); });
-  var games = function (k) { var n = 0; Object.keys(meet[k] || {}).forEach(function (o) { n += meet[k][o]; }); return n; };
-  // Defaults: my most-played pair, then the pair it has met most
-  if (!h2hPairA || !pairsSet[h2hPairA]) {
-    var mine = keys.filter(function (k) { return k.split("+").indexOf(me) >= 0; });
-    h2hPairA = (mine.length ? mine : keys).slice().sort(function (a, b) { return games(b) - games(a); })[0];
-    h2hPairB = null;
-  }
-  var others = keys.filter(function (k) { return _disjoint(h2hPairA, k); });
-  if (!h2hPairB || others.indexOf(h2hPairB) < 0) {
-    h2hPairB = others.slice().sort(function (a, b) { return ((meet[h2hPairA] || {})[b] || 0) - ((meet[h2hPairA] || {})[a] || 0); })[0] || null;
-  }
-  var opts = function (list, sel) { return list.map(function (k) { return '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + escapeHtml(_plainPair(k)) + '</option>'; }).join(''); };
-  var html = '<div class="settings-section" id="pvpCard">' + t("h2hPairVsPair") + '</div><div class="card pvp-card">' +
-    '<select class="form-select" onchange="h2hPairA=this.value;h2hPairB=null;renderStats()">' + opts(keys, h2hPairA) + '</select>' +
-    '<div class="pvp-vs">' + t("vsWord") + '</div>' +
-    '<select class="form-select" onchange="h2hPairB=this.value;renderStats()">' + opts(others, h2hPairB) + '</select>';
-  if (!h2hPairB) return html + '<div class="form-hint" style="margin-top:10px">' + t("pvpNoOpponent") + '</div></div>';
-  var rows = [], wa = 0, wb = 0, pts = 0;
-  ms.forEach(function (m) {
-    var ka = pairKey(m.teamA), kb = pairKey(m.teamB), aIsA = ka === h2hPairA;
-    if (!((ka === h2hPairA && kb === h2hPairB) || (ka === h2hPairB && kb === h2hPairA))) return;
-    var sc = matchScore(m), g = (m.games || [])[0] || {}, aWon = (matchWinner(m) === "A") === aIsA;
-    if (aWon) wa++; else wb++;
-    pts += aIsA ? sc.pts : -sc.pts;
-    rows.push({ date: m.date || "", a: aIsA ? g.a : g.b, b: aIsA ? g.b : g.a, aWon: aWon });
-  });
-  var av = function (k) { return pairUids(k).map(function (u) { return avatarHtml(u, 26); }).join(''); };
-  html += '<div class="pvp-score"><span class="pvp-side">' + av(h2hPairA) + '</span><b>' + wa + ' \u2013 ' + wb + '</b><span class="pvp-side">' + av(h2hPairB) + '</span></div>';
-  if (!rows.length) return html + '<div class="form-hint" style="text-align:center">' + t("pvpNeverMet") + '</div></div>';
-  html += '<div class="h2h-facts" style="text-align:center">' + rows.length + ' ' + t("gamesWord") + ' \u00B7 ' + (pts >= 0 ? '+' : '') + pts + ' ' + t("ptsShort") + '</div>';
-  rows.sort(function (x, y) { return y.date.localeCompare(x.date); });
-  html += '<div class="pvp-list">' + rows.map(function (r) {
-    return '<div class="pvp-game"><span class="pvp-date">' + (r.date ? fmtDate(r.date) : '') + '</span>' +
-      '<span class="pvp-pts ' + (r.aWon ? 'won' : 'lost') + '">' + (r.a != null ? r.a : '\u2013') + ' \u2013 ' + (r.b != null ? r.b : '\u2013') + '</span></div>';
-  }).join('') + '</div></div>';
-  return html;
+  var seen = {};
+  lastMatches.forEach(function (m) { (m.teamA || []).concat(m.teamB || []).forEach(function (u) { seen[u] = true; }); });
+  seen[me] = seen[who] = true;
+  var nm = function (u) { return plainUserName(findUser(u)); };
+  var uids = Object.keys(seen).sort(function (a, b) { return a === me ? -1 : b === me ? 1 : String(nm(a)).localeCompare(String(nm(b))); });
+  var periods = [["month", t("thisMonth")], ["30d", t("maP30Short")], ["1y", t("period_1y")], ["all", t("allWord")]];
+  var head = '<div class="card h2h-head"><div class="ma-pick"><span class="ma-pick-av" aria-hidden="true">' + avatarHtml(who, 28) + '</span>' +
+    '<select class="form-select" id="h2hUser" aria-label="' + escapeHtml(t("maPlayer")) + '" onchange="h2hUser=this.value;renderStats()">' + uids.map(function (u) {
+      return '<option value="' + escapeHtml(u) + '"' + (u === who ? ' selected' : '') + '>' + escapeHtml(nm(u)) + (u === me ? ' (' + t("you") + ')' : '') + '</option>';
+    }).join('') + '</select></div>' +
+    '<div class="ma-seg s4" role="group" aria-label="' + escapeHtml(t("h2hPeriod")) + '">' + periods.map(function (o) {
+      return '<button type="button" class="ma-segb' + (maPeriod === o[0] ? ' on' : '') + '" aria-pressed="' + (maPeriod === o[0]) + '" onclick="h2hSetPeriod(\'' + o[0] + '\')">' + escapeHtml(o[1]) + '</button>';
+    }).join('') + '</div></div>';
+  var a = h2hAggregate(who, maPeriod);
+  if (!a.n) return head + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("h2hNoGames") + '</div></div>';
+  return head + _h2hCardHtml("partners", "h2hBestPartners", a.partners, "partner", "h2hEmptyPartners") +
+    _h2hCardHtml("toughest", "h2hToughest", a.toughest, "pair", "h2hEmptyToughest") +
+    _h2hCardHtml("easiest", "h2hEasiest", a.easiest, "pair", "h2hEmptyEasiest") +
+    (a.singles.length ? _h2hCardHtml("singles", "h2hSingles", a.singles, "single", "h2hNone") : '');
 }
 
 /* ---------- Progress over a period (1 month, quarter, 6 months, year) ---------- */

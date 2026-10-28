@@ -14,6 +14,7 @@ var maPeriod = "30d";           // month | 30d | 1y | all
 var maResult = "all";           // all | won | lost
 var maType = "all";             // all | doubles | singles | tournament
 var maPartner = "", maOpp = "";
+var maOppPair = "";             // v251: both opponents (a pairKey) - set by Head-to-head rows; the opponent select then shows "A + B"
 var maDays = MA_DAYS_PAGE;
 var maOpenDays = {};            // date -> true/false once the person folds or opens a day
 
@@ -41,7 +42,7 @@ function maGames(uid) {
   });
 }
 
-/** f = { from, result: all|won|lost, type: all|doubles|singles|tournament, partner: uid|"", opp: uid|"" } */
+/** f = { from, result: all|won|lost, type: all|doubles|singles|tournament, partner: uid|"", opp: uid|"", oppPair: pairKey|"" } */
 function maFilter(games, f) {
   return games.filter(function (g) {
     if (f.from && (g.m.date || "") < f.from) return false;
@@ -52,6 +53,7 @@ function maFilter(games, f) {
     if (f.type === "tournament" && !g.tid) return false;
     if (f.partner && g.mine.indexOf(f.partner) < 0) return false;
     if (f.opp && g.them.indexOf(f.opp) < 0) return false;
+    if (f.oppPair && (g.them.length !== 2 || pairKey(g.them) !== f.oppPair)) return false;
     return true;
   });
 }
@@ -102,8 +104,10 @@ function maGroup(list, sessions) {
 
 /* ---------- Page ---------- */
 
-function openMatchesAll(uid) {
-  maUser = uid || null; maResult = "all"; maType = "all"; maPartner = ""; maOpp = ""; maDays = MA_DAYS_PAGE; maOpenDays = {};
+/** o (optional): { period, partner, opp, oppPair, type } preset filters (Head-to-head rows, pair rows); the period stays as it is when not given */
+function openMatchesAll(uid, o) {
+  o = o || {};
+  maUser = uid || null; maResult = "all"; maType = o.type || "all"; maPartner = o.partner || ""; maOpp = o.opp || ""; maOppPair = o.oppPair || ""; if (o.period) maPeriod = o.period; maDays = MA_DAYS_PAGE; maOpenDays = {};
   showPage("matches-all");
 }
 
@@ -115,17 +119,17 @@ function loadMatchesAll() {
 
 /** Change one filter / the player; every change starts from the newest days again */
 function maSet(key, val) {
-  if (key === "user") { maUser = val === (currentUser && currentUser.uid) ? null : val; maPartner = ""; maOpp = ""; }
+  if (key === "user") { maUser = val === (currentUser && currentUser.uid) ? null : val; maPartner = ""; maOpp = ""; maOppPair = ""; }
   else if (key === "period") maPeriod = val;
   else if (key === "result") maResult = val;
   else if (key === "type") maType = val;
   else if (key === "partner") maPartner = val;
-  else if (key === "opp") maOpp = val;
+  else if (key === "opp") { if (val.indexOf("pair:") === 0) { maOppPair = val.slice(5); maOpp = ""; } else { maOpp = val; maOppPair = ""; } }
   maDays = MA_DAYS_PAGE; maOpenDays = {};
   renderMatchesAll();
 }
 function maMore() { maDays += MA_DAYS_PAGE; renderMatchesAll(); }
-function maClear() { maResult = "all"; maType = "all"; maPartner = ""; maOpp = ""; maPeriod = "all"; maDays = MA_DAYS_PAGE; maOpenDays = {}; renderMatchesAll(); }
+function maClear() { maResult = "all"; maType = "all"; maPartner = ""; maOpp = ""; maOppPair = ""; maPeriod = "all"; maDays = MA_DAYS_PAGE; maOpenDays = {}; renderMatchesAll(); }
 function maToggleDay(date, open) { maOpenDays[date] = !!open; }
 
 function _maDeltaHtml(d) {
@@ -239,6 +243,8 @@ function renderMatchesAll() {
     all.forEach(function (g) { g[map].forEach(function (u) { if (u !== uid && !seen[u]) { seen[u] = true; out.push(u); } }); });
     return [["", first]].concat(out.sort(function (a, b) { return String(nm(a)).localeCompare(String(nm(b))); }).map(function (u) { return [u, nm(u)]; }));
   };
+  var oppOpts = people("them", t("maOppAll"));
+  if (maOppPair) oppOpts.splice(1, 0, ["pair:" + maOppPair, pairUids(maOppPair).map(nm).join(" + ")]);   // the pair from Head-to-head, above the single players
   var html = '<div class="card ma-filters">' +
     _maSelect("user", t("maPlayer"), uid, uids.map(function (u) { return [u, nm(u) + (u === me ? ' (' + t("you") + ')' : '')]; }), "", avatarHtml(uid, 28)) +
     _maChips("period", maPeriod, [["month", t("thisMonth")], ["30d", t("maP30Short")], ["1y", t("period_1y")], ["all", t("allWord")]]) +
@@ -246,12 +252,12 @@ function renderMatchesAll() {
     '<div class="ma-sels">' +
     _maSelect("type", t("gameType"), maType, [["all", t("maTypeAll")], ["doubles", t("maTypeDoubles")], ["singles", t("gameType_singles")], ["tournament", t("tourBadge")]], t("maTypeCap")) +
     _maSelect("partner", t("maPartner"), maPartner, people("mine", t("maPartnerAll")), t("maPartner")) +
-    _maSelect("opp", t("maOpp"), maOpp, people("them", t("maOppAll")), t("maOpp")) + '</div></div>';
+    _maSelect("opp", t("maOpp"), maOppPair ? "pair:" + maOppPair : maOpp, oppOpts, t("maOpp")) + '</div></div>';
   if (!all.length) {
     box.innerHTML = html + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("noMatchesYet") + '</div></div>';
     return;
   }
-  var list = maFilter(all, { from: maPeriodFrom(maPeriod), result: maResult, type: maType, partner: maPartner, opp: maOpp });
+  var list = maFilter(all, { from: maPeriodFrom(maPeriod), result: maResult, type: maType, partner: maPartner, opp: maOpp, oppPair: maOppPair });
   if (!list.length) {
     box.innerHTML = html + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("maNoMatch") + '</div>' +
       '<button type="button" class="btn-secondary" style="margin-top:10px" onclick="maClear()">' + t("maClear") + '</button></div>';
