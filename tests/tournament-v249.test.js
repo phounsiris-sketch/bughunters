@@ -317,7 +317,7 @@ assert.ok(!ctx.tourOf({ tourney: { v: 1, fmt: 2, n: 3, ids: ["a", "b", "c"], gam
 (function () {
   var src = fs.readFileSync("js/tournament.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8");
   assert.ok(/_tnInfoBtn\('data-act="info"'\)/.test(src) && /tourOpenInfo\(\\'' \+ jsq\(s\.id\)/.test(src), "the i button is in the header and next to Start (screen and card)");
-  assert.ok(/getElementById\("tnInfoSheet"\)\) return;/.test(src), "Escape closes the sheet before the screen");
+  assert.ok(/getElementById\("tnInfoSheet"\) \|\| document\.getElementById\("tnFairSheet"\)\) return;/.test(src), "Escape closes the sheet (rules or fairness) before the screen");
   assert.ok(/\.tn-info\b/.test(css) && /width: 44px; min-height: 44px/.test(css), "a 44px touch target");
 })();
 

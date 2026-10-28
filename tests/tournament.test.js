@@ -244,7 +244,7 @@ function eightToSemis(seed) {
   assert.ok(/<ol class="tn-steps"/.test(h) && /tn-s tn-tab-b now on" data-act="tab" data-k="0" aria-current="step"/.test(h) && /data-k="1" disabled/.test(h), "stepper: rotation is current, later steps wait");
   assert.strictEqual((h.match(/tn-waiting/g) || []).length, 5, "the 5 games after the up-next one say Waiting");
   assert.strictEqual((h.match(/data-act="live"/g) || []).length, 1, "only the up-next game has Live score");
-  assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourMeetTitle/.test(h) && /tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, who-meets-who, rest and table are shown");
+  assert.ok(/tourBtnPlay/.test(h) && /tn-game cur/.test(h) && /tourFairBtn/.test(h) && !/tourMeetTitle/.test(h) && !/tourRestTitle/.test(h) && /tourStandTitle/.test(h), "rotation, the Fairness button (partners and rest are behind it, v257) and table are shown");
   assert.ok(!/undefined|NaN/.test(h), "no undefined or NaN in the screen");
   // enter a score through the screen's own click handler
   var click = function (act, extra) { var attrs = Object.assign({ "data-act": act }, extra || {}); c2.document.getElementById("tnScreen").onclick({ target: { closest: function () { return { getAttribute: function (k) { return attrs[k]; } }; } } }); };
@@ -482,7 +482,7 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
 // ---- v237: what each step tab shows ----
 (function () {
   var T = ctx.tourNewV1(uids(8), seeded(9));
-  assert.strictEqual(J(ctx.tourTabParts(T, 0)), J(["rule", "hint", "rot", "meet", "rest", "stand"]));
+  assert.strictEqual(J(ctx.tourTabParts(T, 0)), J(["rule", "hint", "rot", "fair", "stand"]));
   assert.strictEqual(J(ctx.tourTabParts(T, 1)), J(["sum", "stand", "pairs", "drawsec"]), "before the draw: summary and the draw");
   assert.strictEqual(J(ctx.tourTabParts(T, 2)), J(["bracket", "po"]));
   assert.strictEqual(J(ctx.tourTabParts(T, 3)), J(["winner", "bracket"]));

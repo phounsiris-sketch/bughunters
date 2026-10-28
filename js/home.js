@@ -91,7 +91,7 @@ function _homeRatingCard(me) {
   }
   var delta = p && p.monthStart != null ? Math.round(p.rating - p.monthStart) : 0;
   var best = p && p.history && p.history.length ? Math.max.apply(null, p.history.map(function (h) { return h.r; })) : ratingOf(me);   // real peak, not only the last 12
-  return _hsCard("hs-rating", "ranking", t("homeRating"), "progressUser=currentUser.uid;statsTab='progress';showPage('stats')",
+  return _hsCard("hs-rating", "ranking", t("homeRating"), "openProgress(currentUser.uid, this)",
     '<div class="hs-big">' + ratingText(me) + (delta ? ' <small>' + (delta > 0 ? '\u25B2 +' : '\u25BC ') + delta + '</small>' : '') + '</div>' + chart +
     '<div class="hs-pills"><span>' + icon("crown", 14) + ' ' + t("homeBest") + ' ' + (p && p.comp ? Math.round(best) : '\u2013') + '</span><span>' + icon("court", 14) + ' ' + statsFor(me, "all").played + ' ' + t("gamesWord") + '</span>' +
     '</div>');
@@ -316,8 +316,9 @@ function renderHome() {
   // 1. My stat cards, swipe sideways
   var cards = [];
   if (groups) cards.push(_homePlayCard(me));
-  cards.push(_homeSpendCard(), _homePayCard());
+  cards.push(_homeSpendCard());
   if (groups) cards.push(_homeRatingCard(me), typeof homeHealthCardHtml === "function" ? homeHealthCardHtml() : "");
+  cards.push(_homePayCard());   // v257: Payments is the last card (dots follow)
   cards = cards.filter(function (c) { return !!c; });   // a card with nothing to show (e.g. Health off) must not get a dot
   html += '<div class="hs-strip" id="homeStrip" onscroll="_homeStripDots()">' + cards.join("") + '</div>' +
     '<div class="hs-dots-nav" id="homeStripDots">' + cards.map(function (c, i) { return '<i class="' + (i === 0 ? 'on' : '') + '"></i>'; }).join("") + '</div>';

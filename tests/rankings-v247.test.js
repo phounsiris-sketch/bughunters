@@ -50,7 +50,7 @@ assert.ok(!/badges-card|badge-grid/.test(html), "the badges card is gone from th
 assert.ok(/class="how-btn badge-btn"/.test(html) && /openBadgesSheet\(\)/.test(html), "the badge button is in the hero");
 assert.ok(/openMatchesAll\(''\)/.test(html) && !/recent-wrap|recent-games/.test(html), "All my matches link, no <details> last-5 list");
 assert.ok(/statsPairGo\(this\.getAttribute\('data-k'\)\)/.test(html), "pair rows open that pair in All matches");
-assert.ok(/progressUser='p\d'|progressUser='me'/.test(html), "player rows still open Progress");
+assert.ok(/openProgress\('(p\d|me)', this\)/.test(html) && !/setStatsTab\('progress'\)/.test(html), "player rows open the progress sheet (v257: no Progress tab)");
 var pairs = ctx._rankLists().pairs.length;
 assert.ok(pairs > 10, "the fake data has more than 10 pairs (" + pairs + ")");
 var players = ctx._rankLists().ranked.length;
@@ -155,4 +155,25 @@ var i18n = read("js/i18n.js");
   "maPartner", "maPartnerAll", "maOpp", "maOppAll", "maOther", "maShowOlder", "maNoMatch", "maClear", "maSummary"].forEach(function (k) {
   assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN and LA");
 });
+
+/* ---- v257: no Progress tab; the hero button, the hero chart and the rows open the progress sheet ---- */
+(function () {
+  var tabsPart = fs.readFileSync("js/stats.js", "utf8").match(/dashboard-tabs stats-tabs[\s\S]*?\.join/)[0];
+  assert.ok(!/"progress"/.test(tabsPart) && /"ranking"/.test(tabsPart) && /"h2h"/.test(tabsPart) && /"hof"/.test(tabsPart), "tabs: Ranking, Rivals, Hall of fame (no Progress)");
+  var h = ctx._myStatsCard();
+  assert.ok(/class="mh-go"[^>]*onclick="openProgress\(currentUser\.uid, this\)"/.test(h), "the chart button in the hero opens the progress sheet");
+  assert.ok(!/setStatsTab\('progress'\)/.test(fs.readFileSync("js/stats.js", "utf8")) && !/statsTab='progress'/.test(fs.readFileSync("js/home.js", "utf8")), "nothing sends to the removed tab");
+  // the sheet: a dialog with the former Progress content (period chips, rating, tips), the player picker, Esc and close
+  var els = {}, appended = null, keys = {};
+  ctx.document = { getElementById: function (id) { return id === "pgSheet" ? appended : els[id] || null; }, activeElement: null, body: { appendChild: function (e) { appended = e; }, contains: function () { return true; } },
+    createElement: function () { var e = { id: "", className: "", _h: "", set innerHTML(v) { this._h = v; }, get innerHTML() { return this._h; }, remove: function () { appended = null; }, querySelector: function () { return { focus: function () {}, onclick: null }; }, contains: function () { return true; } }; return e; },
+    addEventListener: function (k, f) { keys[k] = f; }, removeEventListener: function (k) { delete keys[k]; }, querySelectorAll: function () { return []; } };
+  ctx.monthYear = function (y, m) { return y + "-" + m; }; ctx.openProgress("p1", null);
+  assert.ok(appended && /role="dialog" aria-modal="true" aria-labelledby="pgTitle"/.test(appended.innerHTML) && /id="pgClose"/.test(appended.innerHTML), "a labelled dialog with a close button");
+  assert.ok(/<select class="form-select" onchange="progressUser=this\.value;_progRefresh\(\)"/.test(appended.innerHTML) && /period-btn/.test(appended.innerHTML), "player picker and the period chips are inside");
+  assert.ok(/progress-head|empty-state/.test(appended.innerHTML), "the rating head (or the empty state) of the viewed player");
+  assert.strictEqual(ctx.progressUser, "p1", "the viewed player is the one tapped");
+  assert.ok(keys.keydown, "Esc handler is on while open");
+  ctx.closeProgress(); assert.ok(!appended && !keys.keydown, "close removes the sheet and the handler");
+})();
 console.log("rankings-v247 OK");

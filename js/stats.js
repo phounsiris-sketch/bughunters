@@ -15,7 +15,7 @@
 var lastMatches = [];         // the saved matches plus the games of session tournaments (v228), oldest first
 var _matchesReal = [];        // only what is saved in matches/
 var _matchesUnsub = null;
-var statsTab = "ranking";     // ranking | h2h | progress | hof
+var statsTab = "ranking";     // ranking | h2h | hof (v257: Progress is a sheet opened from the Ranking hero, see openProgress)
 var progressUser = null;
 
 var RATING_START = 1500;
@@ -216,13 +216,14 @@ function renderStats() {
   var box = document.getElementById("statsContent");
   if (!box) return;
   var tabs = '<div class="me-title">' + icon("ranking", 22) + ' ' + t("navRankings") + '</div>' +
-    '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["progress", "progress", "chart"], ["hof", "hofTab", "trophy"]].map(function (x) {
+    '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["hof", "hofTab", "trophy"]].map(function (x) {
     return '<button role="tab" class="dash-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 14) + ' ' + t(x[1]) + '</button>';
   }).join('') + '</div>';
   var note = '<div class="private-note">' + icon("lock", 12) + ' ' + t("statsPrivate").replace("{group}", escapeHtml(currentGroup ? currentGroup.name : "")) + '</div>';
-  var body = statsTab === "h2h" ? _renderH2H() : statsTab === "progress" ? _renderProgress() : statsTab === "hof" && typeof hofHtml === "function" ? hofHtml() : _renderRanking();
+  var body = statsTab === "h2h" ? _renderH2H() : statsTab === "hof" && typeof hofHtml === "function" ? hofHtml() : _renderRanking();
   box.innerHTML = tabs + note + body;
-  uiMotion(box, statsTab + "|" + statsScope + "|" + (typeof progressUser !== "undefined" ? progressUser : ""));
+  uiMotion(box, statsTab + "|" + statsScope);
+  if (document.getElementById("pgSheet")) _progRefresh();   // the period chips inside the progress sheet call setStatsScope
 }
 
 function _trend(now, start) {
@@ -255,7 +256,7 @@ function _myStatsCard() {
     '<div class="mh-rate"><small>' + t("homeRating") + '</small><b>' + (p && p.comp ? Math.round(p.rating) : '\u2013') + '</b>' + (p && p.comp ? _provTag(p.comp, RANK_MIN_MATCHES) : '') + '</div></div>';
   html += '<div class="mh-scope">' + scopeChipsHtml() + '</div>';
   // Facts for the chosen period: icon + number chips (the words are in the tooltip)
-  var progressBtn = '<button class="mh-go" aria-label="' + escapeHtml(t("seeMyProgress")) + '" title="' + escapeHtml(t("seeMyProgress")) + '" onclick="progressUser=currentUser.uid;setStatsTab(\'progress\')">' + icon("chart", 18) + '</button>';
+  var progressBtn = '<button class="mh-go" aria-label="' + escapeHtml(t("seeMyProgress")) + '" title="' + escapeHtml(t("seeMyProgress")) + '" onclick="openProgress(currentUser.uid, this)">' + icon("chart", 18) + '</button>';
   html += '<div class="mh-facts">' +
     '<span class="mh-chip" title="' + escapeHtml(t("winRate")) + '">' + icon("medal", 18) + '<span><b>' + pct(sf.wins, sf.decided) + '</b><small>' + t("winRate") + '</small></span></span>' +
     '<span class="mh-chip" title="' + escapeHtml(t("gamesWord")) + '">' + icon("court", 18) + '<span><b>' + sf.played + '</b><small>' + t("gamesWord") + '</small></span></span>' +
@@ -266,7 +267,7 @@ function _myStatsCard() {
   var line = t(ins.key).replace("{n}", ins.n).replace("{pct}", ins.pct || "").replace("{name}", ins.uid ? '<b>' + escapeHtml(getUserName(ins.uid)) + '</b>' : "");
   html += '<div class="mh-insight ' + ins.key + '"><span class="mh-ii">' + icon(ins.key === "insLineTough" ? "chart" : ins.key === "insLineStart" ? "court" : "ranking", 18) + '</span><span>' + line + '</span></div>';
   if (tr && tr.vals.length > 2) {
-    html += '<div class="mh-trend">' + _sparkline(tr.vals) +
+    html += '<div class="mh-trend mh-open" role="button" tabindex="0" aria-label="' + escapeHtml(t("seeMyProgress")) + '" onclick="openProgress(currentUser.uid, this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openProgress(currentUser.uid, this)}">' + _sparkline(tr.vals) +
       '<div class="mh-tl"><span>' + t("startWord") + ' <b>' + tr.start + '</b></span><span>' + t("homeBest") + ' <b>' + tr.peak + '</b></span><span>' + t("nowWord") + ' <b>' + tr.end + '</b>' +
       (tr.delta ? ' <em class="' + (tr.delta > 0 ? 'up' : 'down') + '">' + (tr.delta > 0 ? '\u25B2 +' : '\u25BC ') + tr.delta + '</em>' : '') + '</span></div></div>';
   }
@@ -349,7 +350,7 @@ function _pairRowHtml(L, p, i) {
 
 function _playerRowHtml(L, p, i) {
   var sf = statsFor(p.uid, statsScope);
-  return '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + (p.comp < RANK_MIN_MATCHES ? ' prov' : '') + '" onclick="progressUser=\'' + jsq(p.uid) + '\';setStatsTab(\'progress\')">' +
+  return '<div class="rank-row' + (p.uid === currentUser.uid ? ' me' : '') + (p.comp < RANK_MIN_MATCHES ? ' prov' : '') + '" role="button" tabindex="0" onclick="openProgress(\'' + jsq(p.uid) + '\', this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openProgress(\'' + jsq(p.uid) + '\', this)}">' +
     '<span class="rank-no">' + (i + 1) + '</span>' + avatarHtml(p.uid, 32) +
     '<span class="rank-text"><b>' + getUserName(p.uid) + ' ' + levelBadgeHtml(playerLevel(p.uid), true) + '</b>' +
     '<small>' + Math.round(p.rating) + ' \u00B7 ' + pct(sf.wins, sf.decided) + ' \u00B7 ' + fmtWL(sf.wins, sf.losses) + '</small></span>' + _rankTrend(p.rating, p.monthStart) + '</div>';
@@ -531,13 +532,58 @@ function _weekKey(iso) {
   return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
 }
 
+/* ---------- v257: the progress detail is a sheet (it was the Progress tab): the hero button, the hero chart, a player row and the Home rating card open it ---------- */
+var _pgOpener = null;
+function _progBody() { return '<div class="pg-in">' + _renderProgress() + '</div>'; }
+function openProgress(uid, opener) {
+  if (!currentUser) return;
+  progressUser = uid || currentUser.uid;
+  var had = document.getElementById("pgSheet");
+  if (had) { _progRefresh(); return; }
+  _pgOpener = opener || document.activeElement;
+  var el = document.createElement("div"); el.id = "pgSheet"; el.className = "sheet-wrap";
+  el.onclick = function (e) { if (e.target === el) closeProgress(); };
+  el.innerHTML = '<div class="sheet pg-sheet" role="dialog" aria-modal="true" aria-labelledby="pgTitle"><div class="sheet-grab"></div>' +
+    '<div class="pg-head"><b id="pgTitle">' + icon("chart", 16) + ' ' + escapeHtml(t("progress")) + '</b><button type="button" class="lg-close" id="pgClose" aria-label="' + escapeHtml(t("close")) + '">' + icon("close", 18) + '</button></div>' +
+    '<div class="pg-body" id="pgBody" tabindex="-1">' + _progBody() + '</div></div>';
+  document.body.appendChild(el);
+  document.addEventListener("keydown", _progKey, true);
+  el.querySelector("#pgClose").onclick = closeProgress;
+  el.querySelector("#pgClose").focus();
+}
+/** Redraw the open sheet (another player or another period); the scroll place and the focused control stay */
+function _progRefresh() {
+  var b = document.getElementById("pgBody"); if (!b) return;
+  var top = b.scrollTop, ae = document.activeElement, isSel = ae && ae.tagName === "SELECT" && b.contains(ae);
+  b.innerHTML = _progBody(); b.scrollTop = top;
+  if (isSel) { var s = b.querySelector("select"); if (s) s.focus(); }
+}
+function _progKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeProgress(); return; }
+  if (e.key !== "Tab") return;
+  var f = Array.prototype.slice.call(document.querySelectorAll("#pgSheet button, #pgSheet select, #pgSheet [tabindex='0']")).filter(function (x) { return !x.disabled; });
+  if (!f.length) return;
+  var first = f[0], last = f[f.length - 1], sh = document.getElementById("pgSheet");
+  if (!sh || !sh.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+function closeProgress() {
+  var el = document.getElementById("pgSheet");
+  document.removeEventListener("keydown", _progKey, true);
+  if (!el) return;
+  el.remove();
+  var o = _pgOpener; _pgOpener = null;
+  if (o && o.focus && document.body.contains(o)) { try { o.focus(); } catch (e) {} }
+}
+
 function _renderProgress() {
   var st = computeStats();
   var uid = progressUser || currentUser.uid;
   var uids = Object.keys(st.players);
   if (uids.indexOf(uid) < 0) uids.unshift(uid);
   var from = scopeFrom(statsScope);
-  var html = '<div class="card"><select class="form-select" onchange="progressUser=this.value;renderStats()">' + uids.map(function (u) {
+  var html = '<div class="card"><select class="form-select" onchange="progressUser=this.value;_progRefresh()">' + uids.map(function (u) {
     return '<option value="' + u + '"' + (u === uid ? ' selected' : '') + '>' + escapeHtml(plainUserName(findUser(u))) + '</option>';
   }).join('') + '</select>' +
     scopeChipsHtml() + '</div>';

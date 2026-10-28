@@ -209,58 +209,139 @@ function loadTournamentAvatars(sid) {
   return Promise.all(uids.map(function (u) { return _scLoadAvatar(u).then(function (im) { _hofAv[u] = im; }); }));
 }
 
-function _hofDrawAvatar(c, uid, x, y, r, P, nm, font) {
+/* v257: the winner card is a podium: champion pair on a gold step in the middle (spotlight, crown, confetti), 2nd on a silver step on the left,
+   3rd on a bronze step on the right (no 3rd place with 4-5 players: two steps). All art is drawn here from simple shapes. */
+var HOF_METAL = [["#fff0a8", "#f6c431", "#b97a0b"], ["#f7f9fc", "#c7ceda", "#8b94a6"], ["#f6c394", "#d08a47", "#8f5322"]];   // light, mid, dark: gold, silver, bronze
+var HOF_INIT_COLS = ["#7c3aed", "#0d9488", "#db2777", "#2563eb", "#ea580c", "#16a34a", "#9333ea", "#0891b2"];
+/** A steady colour for a player without a photo (same player, same colour) */
+function _hofColor(uid) { var h = 0, k = String(uid || "?"); for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0; return HOF_INIT_COLS[h % HOF_INIT_COLS.length]; }
+
+/** Round avatar: photo, or the first letter on a coloured circle. ring = the metal colour. */
+function _hofAvatar(c, uid, x, y, r, ring, nm, font) {
   var im = _hofAv[uid];
-  c.save(); c.shadowColor = P.accent; c.shadowBlur = 24; c.strokeStyle = P.accent; c.lineWidth = 6; c.beginPath(); c.arc(x, y, r + 6, 0, 7); c.stroke(); c.restore();
+  c.save(); c.shadowColor = ring; c.shadowBlur = 26; c.fillStyle = ring; c.beginPath(); c.arc(x, y, r + Math.max(5, r * .06), 0, 7); c.fill(); c.restore();
   c.save(); c.beginPath(); c.arc(x, y, r, 0, 7); c.clip();
   if (im) { var s = Math.min(im.width, im.height); c.drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, x - r, y - r, r * 2, r * 2); }
-  else { c.fillStyle = P.pill; c.fillRect(x - r, y - r, r * 2, r * 2); c.fillStyle = "#fff"; c.font = font(r, 800); c.textBaseline = "middle"; c.textAlign = "center"; c.fillText(String(nm || "?").charAt(0).toUpperCase(), x, y + 4); c.textBaseline = "alphabetic"; }
+  else { c.fillStyle = _hofColor(uid); c.fillRect(x - r, y - r, r * 2, r * 2); c.fillStyle = "#fff"; c.font = font(Math.round(r * 1.05), 800); c.textBaseline = "middle"; c.textAlign = "center"; c.fillText(String(nm || "?").charAt(0).toUpperCase(), x, y + 4); c.textBaseline = "alphabetic"; }
   c.restore();
 }
 function _hofFit(c, txt, max) { txt = String(txt); while (c.measureText(txt).width > max && txt.length > 3) txt = txt.slice(0, -2); return txt; }
+
+/** Gold crown with a band of jewels. (x, y) = middle of its bottom edge, s = width. */
+function _hofCrown(c, x, y, s) {
+  c.save(); c.translate(x, y); c.lineJoin = "round";
+  var g = c.createLinearGradient(0, -s * .78, 0, 0); g.addColorStop(0, "#fff3b0"); g.addColorStop(.45, "#f6c431"); g.addColorStop(1, "#b97a0b");
+  c.shadowColor = "rgba(255,200,60,.7)"; c.shadowBlur = s * .3; c.fillStyle = g; c.strokeStyle = "#8f5a05"; c.lineWidth = Math.max(2, s * .022);
+  c.beginPath(); c.moveTo(-s / 2, 0); c.lineTo(-s / 2, -s * .56); c.lineTo(-s * .26, -s * .24); c.lineTo(0, -s * .74); c.lineTo(s * .26, -s * .24); c.lineTo(s / 2, -s * .56); c.lineTo(s / 2, 0); c.closePath(); c.fill(); c.shadowBlur = 0; c.stroke();
+  c.fillStyle = "rgba(255,255,255,.26)"; c.beginPath(); c.moveTo(0, -s * .74); c.lineTo(-s * .26, -s * .24); c.lineTo(-s * .06, -s * .17); c.closePath(); c.fill();   // light facets on the left,
+  c.beginPath(); c.moveTo(-s / 2, -s * .56); c.lineTo(-s * .26, -s * .24); c.lineTo(-s * .45, -s * .17); c.closePath(); c.fill();
+  c.fillStyle = "rgba(120,60,0,.2)"; c.beginPath(); c.moveTo(0, -s * .74); c.lineTo(s * .26, -s * .24); c.lineTo(s * .06, -s * .17); c.closePath(); c.fill();   // shade on the right
+  c.beginPath(); c.moveTo(s / 2, -s * .56); c.lineTo(s * .26, -s * .24); c.lineTo(s * .45, -s * .17); c.closePath(); c.fill();
+  var bg = c.createLinearGradient(0, -s * .17, 0, 0); bg.addColorStop(0, "#f0b323"); bg.addColorStop(1, "#a56a06");
+  c.fillStyle = bg; _scRound(c, -s / 2, -s * .18, s, s * .18, s * .04); c.fill(); c.stroke();
+  [[-s * .3, "#ef4444"], [0, "#38bdf8"], [s * .3, "#22c55e"]].forEach(function (j) {
+    c.fillStyle = j[1]; c.beginPath(); c.arc(j[0], -s * .09, s * .042, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = "rgba(255,255,255,.75)"; c.beginPath(); c.arc(j[0] - s * .012, -s * .1, s * .014, 0, 7); c.fill();
+  });
+  c.fillStyle = "#fff3b0"; [[-s / 2, -s * .58], [0, -s * .77], [s / 2, -s * .58]].forEach(function (b) { c.beginPath(); c.arc(b[0], b[1], s * .055, 0, 7); c.fill(); c.stroke(); });
+  c.restore();
+}
+
+/** Static confetti: small rectangles and dots, the same every time (no random: the picture of a card never changes) */
+function _hofConfetti(c, W, y0, y1, n, cols) {
+  var rnd = function (i) { var x = Math.sin(i * 91.7 + 13.3) * 43758.5453; return x - Math.floor(x); };
+  c.save();
+  for (var i = 0; i < n; i++) {
+    var x = 30 + rnd(i) * (W - 60), y = y0 + rnd(i + 200) * (y1 - y0), r = rnd(i + 400) * 6.28;
+    c.globalAlpha = .35 + rnd(i + 600) * .4; c.fillStyle = cols[i % cols.length];
+    if (i % 3 === 0) { c.beginPath(); c.arc(x, y, 5 + rnd(i + 800) * 4, 0, 7); c.fill(); }
+    else { c.save(); c.translate(x, y); c.rotate(r); c.fillRect(-9, -4, 18, 8); c.restore(); }
+  }
+  c.restore();
+}
+
+/** One podium step: metal block, light top edge, gloss, the place number and a dark plaque per player name */
+function _hofStep(c, x, topY, w, h, k, names, font, sc) {
+  var m = HOF_METAL[k], g = c.createLinearGradient(0, topY, 0, topY + h);
+  g.addColorStop(0, m[1]); g.addColorStop(1, m[2]);
+  c.save(); c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 24; c.fillStyle = g; _scRound(c, x, topY, w, h, 18); c.fill(); c.restore();
+  var gl = c.createLinearGradient(x, 0, x + w, 0); gl.addColorStop(0, "rgba(255,255,255,.28)"); gl.addColorStop(.5, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(0,0,0,.16)");
+  c.fillStyle = gl; _scRound(c, x, topY, w, h, 18); c.fill();
+  c.fillStyle = m[0]; _scRound(c, x, topY, w, 26 * sc, 14); c.fill();
+  c.strokeStyle = "rgba(255,255,255,.55)"; c.lineWidth = 3; _scRound(c, x, topY, w, h, 18); c.stroke();
+  var cx = x + w / 2, ns = Math.round(Math.min(w * .4, h * .36)), ny = topY + 26 * sc + ns * .95;
+  c.textAlign = "center"; c.font = font(ns, 800);
+  c.fillStyle = "rgba(255,255,255,.6)"; c.fillText(String(k + 1), cx, ny + 3);
+  c.fillStyle = "rgba(80,40,0,.55)"; c.fillText(String(k + 1), cx, ny);
+  var fs = Math.round((k === 0 ? 40 : 31) * sc), lh = Math.round(fs * 1.5), py = ny + 22 * sc;
+  names.forEach(function (nm, i) {
+    c.font = font(fs, 800);
+    var tx = _hofFit(c, nm, w - 56), tw = Math.min(w - 24, c.measureText(tx).width + 36), yy = py + i * (lh + 8);
+    c.fillStyle = "rgba(0,0,0,.34)"; _scRound(c, cx - tw / 2, yy, tw, lh, lh / 2); c.fill();
+    c.fillStyle = "#fff"; c.fillText(tx, cx, yy + lh * .72);
+  });
+}
 
 /** The winner card. d = shareTournamentNow(...) */
 function drawTournamentCard(canvas, d, id, fmt) {
   var r = d.rec, W = 1080, H = fmt === "square" ? 1350 : 1920, P = _scPalette(id), c = canvas.getContext("2d"), sq = fmt === "square";
   canvas.width = W; canvas.height = H;
   var font = function (px, w) { return (w || 700) + " " + px + "px Montserrat, 'Noto Sans Lao', 'Noto Sans', sans-serif"; };
+  P.line = "rgba(255,255,255,.12)";   // court lines stay in the background
   _scBackdrop(c, W, H, id, P); _scCourt(c, W, H, P);
-  var top = sq ? 70 : 150;
+  var sc = sq ? .8 : 1, top = sq ? 70 : 150, ay = sq ? 470 : 760, r1 = sq ? 80 : 100, h1 = sq ? 330 : 470, r2 = Math.round(r1 * .64);
+  // spotlight from above the champion, soft rays, confetti
+  var sp = c.createRadialGradient(W / 2, ay - 40, 20, W / 2, ay - 40, sq ? 620 : 760); sp.addColorStop(0, "rgba(255,236,160,.5)"); sp.addColorStop(.45, "rgba(255,220,120,.16)"); sp.addColorStop(1, "rgba(255,220,120,0)");
+  c.fillStyle = sp; c.fillRect(0, 0, W, H);
+  c.save(); c.fillStyle = "rgba(255,240,190,.07)";
+  for (var ri = -4; ri <= 4; ri++) { c.beginPath(); c.moveTo(W / 2, ay - 120); c.lineTo(W / 2 + ri * 260 - 70, ay + 900); c.lineTo(W / 2 + ri * 260 + 70, ay + 900); c.closePath(); c.fill(); }
+  c.restore();
+  _hofConfetti(c, W, top + 80, ay + r1 + 260, sq ? 44 : 64, ["#fde047", "#ffffff", P.accent, "#f87171", "#60a5fa", "#34d399"]);
+  // brand, tournament, date, group
   c.textAlign = "center"; c.fillStyle = P.accent; c.font = font(36, 800); c.fillText("GODSMASH  BADMINTON", W / 2, top);
   _scShuttle(c, 150, top - 12, 46, -35, P.text, .95); _scShuttle(c, W - 150, top - 12, 46, 35, P.text, .95);
-  c.fillStyle = P.dim; c.font = font(28, 600); c.fillText(t("tourTitle") + "  ·  " + d.date + (d.group ? "  ·  " + d.group : ""), W / 2, top + 46);
-  // crown
-  var cy = top + (sq ? 120 : 200);
-  c.save(); c.shadowColor = P.accent; c.shadowBlur = 30; c.fillStyle = P.accent; c.beginPath();
-  c.moveTo(W / 2 - 70, cy + 40); c.lineTo(W / 2 - 84, cy - 30); c.lineTo(W / 2 - 38, cy + 4); c.lineTo(W / 2, cy - 54); c.lineTo(W / 2 + 38, cy + 4); c.lineTo(W / 2 + 84, cy - 30); c.lineTo(W / 2 + 70, cy + 40); c.closePath(); c.fill();
-  c.fillRect(W / 2 - 70, cy + 50, 140, 14); c.restore();
-  c.fillStyle = P.text; c.font = font(sq ? 52 : 60, 800); c.fillText(t("hofChampions").toUpperCase(), W / 2, cy + (sq ? 130 : 150));
-  // champion pair
-  var ar = sq ? 120 : 150, ay = cy + (sq ? 290 : 350), ch = r.champion;
-  [0, 1].forEach(function (i) {
-    var ux = W / 2 + (i ? 1 : -1) * (ar + 40), uid = ch.uids[i];
-    if (!uid) return;
-    _hofDrawAvatar(c, uid, ux, ay, ar, P, ch.names[i], font);
-    c.fillStyle = P.text; c.font = font(sq ? 40 : 46, 800); c.textAlign = "center"; c.fillText(_hofFit(c, _hofName(uid, ch.names[i]), ar * 2 + 60), ux, ay + ar + (sq ? 64 : 76));
-  });
-  // final score
-  var sy = ay + ar + (sq ? 200 : 260);
-  if (r.finalScore) {
-    c.save(); c.shadowColor = P.accent; c.shadowBlur = 30; c.fillStyle = P.text; c.font = font(sq ? 150 : 190, 800); c.fillText(r.finalScore, W / 2, sy); c.restore();
-    c.fillStyle = P.dim; c.font = font(28, 700); c.fillText((_hofHasFinal(r.n) ? t("hofFinalLine") : t("hofRoundRobin")).toUpperCase() + (r.finalGames.length ? "   " + r.finalGames.join("  ·  ") : ""), W / 2, sy + 52);
+  c.fillStyle = P.dim; c.font = font(28, 600); c.fillText(t("tourTitle") + "  ·  " + d.date, W / 2, top + 46);
+  if (d.group) {
+    c.font = font(sq ? 28 : 32, 800); var gt = _hofFit(c, d.group, 640), gw = c.measureText(gt).width + 64, gy = top + (sq ? 70 : 100), gh = sq ? 48 : 56;
+    c.fillStyle = P.card; _scRound(c, W / 2 - gw / 2, gy, gw, gh, gh / 2); c.fill(); c.strokeStyle = P.edge; c.lineWidth = 3; c.stroke();
+    c.fillStyle = P.text; c.fillText(gt, W / 2, gy + gh * .68);
   }
-  // runner-up and third
-  var y = sy + (sq ? 100 : 130);
-  [[r.runnerUp, t("tourPlace2")], [r.third, t("tourPlace3")]].forEach(function (x) {
-    if (!x[0]) return;
-    c.fillStyle = P.card; _scRound(c, 90, y, W - 180, sq ? 104 : 120, 36); c.fill(); c.strokeStyle = P.edge; c.lineWidth = 3; c.stroke();
-    c.textAlign = "left"; c.fillStyle = P.dim; c.font = font(26, 700); c.fillText(x[1].toUpperCase(), 130, y + (sq ? 42 : 48));
-    c.fillStyle = P.text; c.font = font(sq ? 36 : 42, 800); c.fillText(_hofFit(c, x[0].uids.map(function (u, i) { return _hofName(u, x[0].names[i]); }).join(" + "), W - 300), 130, y + (sq ? 88 : 98));
-    c.textAlign = "center"; y += (sq ? 104 : 120) + 24;
+  c.fillStyle = P.text; c.font = font(Math.round(60 * sc), 800); c.save(); c.shadowColor = "rgba(255,200,60,.6)"; c.shadowBlur = 24;
+  var labY = sq ? 262 : 440; c.fillText(t("hofChampions").toUpperCase(), W / 2, labY); c.restore();
+  _hofCrown(c, W / 2, ay - r1 - 14, sq ? 140 : 190);
+  // podium: steps abut, 2nd left, 1st in the middle, 3rd right; two places = centred pair of steps
+  var base = ay + r1 + 14 + h1, w1 = 400, w2 = 300, has3 = !!r.third && !!r.runnerUp;
+  var slots = [];
+  if (r.runnerUp) slots.push({ k: 1, tm: r.runnerUp, w: w2, h: Math.round(h1 * .72), r: r2 });
+  slots.push({ k: 0, tm: r.champion, w: w1, h: h1, r: r1 });
+  if (has3) slots.push({ k: 2, tm: r.third, w: w2, h: Math.round(h1 * .57), r: r2 });
+  var tot = slots.reduce(function (a, x) { return a + x.w; }, 0), sx = (W - tot) / 2;
+  slots.forEach(function (sl) {
+    var topY = base - sl.h, cx = sx + sl.w / 2, nms = sl.tm.uids.map(function (u, i) { return _hofName(u, sl.tm.names[i]); }), off = sl.r + (sl.k === 0 ? 8 : 6);
+    _hofStep(c, sx, topY, sl.w, sl.h, sl.k, nms, font, sc);
+    sl.tm.uids.forEach(function (u, i) { if (u) _hofAvatar(c, u, cx + (i ? 1 : -1) * off, topY - 14 - sl.r, sl.r, HOF_METAL[sl.k][1], nms[i], font); });
+    sx += sl.w;
   });
+  c.fillStyle = "rgba(255,255,255,.22)"; _scRound(c, (W - tot) / 2 - 20, base + 6, tot + 40, 8, 4); c.fill();   // the floor
+  // final score, one pill per game
+  var y = base + (sq ? 44 : 56), games = r.finalGames || [];
+  if (r.finalScore) {
+    var ph = sq ? 215 : 285, pw = W - 180, pillY;
+    c.fillStyle = P.card; _scRound(c, 90, y, pw, ph, 36); c.fill(); c.strokeStyle = P.edge; c.lineWidth = 3; c.stroke();
+    c.fillStyle = P.dim; c.font = font(26, 700); c.fillText((_hofHasFinal(r.n) ? t("hofFinalLine") : t("hofRoundRobin")).toUpperCase(), W / 2, y + 44);
+    c.save(); c.shadowColor = P.accent; c.shadowBlur = 26; c.fillStyle = P.text; c.font = font(sq ? 96 : 130, 800); c.fillText(r.finalScore, W / 2, y + (sq ? 124 : 158)); c.restore();
+    if (games.length) {
+      var gw2 = sq ? 170 : 200, gh2 = sq ? 46 : 56, gap = 18, gx = W / 2 - (games.length * gw2 + (games.length - 1) * gap) / 2; pillY = y + ph - gh2 - (sq ? 14 : 20);
+      games.forEach(function (gm, i) {
+        var bx = gx + i * (gw2 + gap); c.fillStyle = P.pill; _scRound(c, bx, pillY, gw2, gh2, gh2 / 2); c.fill(); c.strokeStyle = P.accent; c.lineWidth = 3; c.stroke();
+        c.fillStyle = "#fff"; c.font = font(sq ? 28 : 34, 800); c.fillText(gm, bx + gw2 / 2, pillY + gh2 * .7);
+      });
+    }
+    y += ph + 34;
+  }
   if (r.outs.length) {
     c.fillStyle = P.dim; c.font = font(24, 600);
-    c.fillText(_hofFit(c, r.outs.map(function (o) { return o.uids.map(function (u) { return _hofName(u, ""); }).join(" + ") + " · " + _hofOutWhy(o.why); }).join("   "), W - 160), W / 2, y + 30);
+    c.fillText(_hofFit(c, r.outs.map(function (o) { return o.uids.map(function (u) { return _hofName(u, ""); }).join(" + ") + " · " + _hofOutWhy(o.why); }).join("   "), W - 160), W / 2, y + 10);
   }
   c.fillStyle = P.dim; c.font = font(26, 600); c.fillText("phounsiris-sketch.github.io/bughunters", W / 2, H - (sq ? 40 : 70));
 }
