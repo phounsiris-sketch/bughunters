@@ -2208,3 +2208,8 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 - Progress tab removed. `openProgress(uid, opener)` opens it as a sheet (`#pgSheet`) from the hero chart button, the hero sparkline, a Player rank row and the Home rating card; period chips and the player picker work inside it (`_progRefresh`).
 - uimatrix driver: `post` config (code run after the page is drawn) for screenshots of sheets and screens.
 - New strings (Lao not native-reviewed): `tourFairBtn` "Fairness: partners & rest" / "ຄວາມຍຸຕິທຳ: ຄູ່ ແລະ ການພັກ"; `tourFairTitle` "Fairness" / "ຄວາມຍຸຕິທຳ".
+
+
+## v258: Bottom bar circle sits lower
+- User: the bubble stood too high. Circle lift 46px -> 28px (`.nav-item.active .nav-icon` translateY), hump rise 24px -> 14px (`.nb-hump` 88x16, top -14px, same S-curve), `--nav-lift` 54px -> 36px (FAB/toasts follow). The circle now sits half in the bar, cradled by a low bump; design otherwise as v256.
+- Session detail tab `sessionTabGames` is "Games" / "ເກມ" again (user: "this is game, not match"). Elsewhere a single scored record stays Match / ແມັດ.
