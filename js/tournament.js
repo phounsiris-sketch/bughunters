@@ -889,11 +889,11 @@ function _tnOpen(sid) {
 }
 function _tnKey(e) {
   if (e.key !== "Escape") return;
-  if (document.getElementById("askSheet") || document.getElementById("tnSubSheet") || document.getElementById("tnInfoSheet")) return;   // a sheet on top closes first
+  if (document.getElementById("askSheet") || document.getElementById("tnSubSheet") || document.getElementById("tnInfoSheet") || document.getElementById("tnFairSheet")) return;   // a sheet on top closes first
   tourClose();
 }
 function tourClose() {
-  _tnInfoClose(true);
+  _tnInfoClose(true); _tnFairClose(true);
   clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null;
   var el = document.getElementById("tnScreen"); if (el) el.remove();
   document.body.classList.remove("tn-open");
@@ -1015,6 +1015,7 @@ function _tnClick(ev) {
   var s = _tnSession(_tnSid), act = b.getAttribute("data-act");
   if (act === "close") { tourClose(); return; }
   if (act === "info") { tourOpenInfo(_tnSid, b); return; }
+  if (act === "fair") { tourOpenFair(_tnSid, b); return; }
   if (!s) return;
   var T = tourOf(s), org = tourCanRun(s);
   if (act === "share") { if (T && tourComplete(T) && typeof openShareCard === "function") openShareCard("", "tournament", s.id); return; }
@@ -1305,6 +1306,47 @@ function _tnInfoClose(quiet) {
   if (!quiet && o && o.focus && document.contains(o)) { try { o.focus(); } catch (e) {} }
 }
 
+/* ---- v257: Fairness sheet: partner grid + rest balance, one tap away from the main screen (a sheet of its own: the rules sheet is text only) ---- */
+var _tnFairOpener = null;
+function _tnFairBtn() {
+  return '<button type="button" class="tn-fair" data-act="fair" aria-haspopup="dialog"><span class="tn-fair-i" aria-hidden="true">' + TN_INFO + '</span><span>' + escapeHtml(t("tourFairBtn")) + '</span>' + icon("chevron", 16) + '</button>';
+}
+function tourOpenFair(sid, opener) {
+  var s = _tnSession(sid), T = tourOf(s);
+  if (!T) return;
+  _tnFairClose(true);
+  _tnFairOpener = opener || document.activeElement;
+  var el = document.createElement("div");
+  el.id = "tnFairSheet"; el.className = "sheet-wrap tn-subwrap";
+  el.onclick = function (ev) { if (ev.target === el || (ev.target.closest && ev.target.closest("[data-fact]"))) _tnFairClose(); };
+  el.innerHTML = '<div class="sheet tn-subsheet tn-fairsheet" role="dialog" aria-modal="true" aria-labelledby="tnFairT"><div class="sheet-grab"></div>' +
+    '<div class="sheet-title" id="tnFairT">' + escapeHtml(t("tourFairTitle")) + '</div>' +
+    _tnMeetCard(T) + _tnRestCard(T) +
+    '<div class="tn-btns"><button type="button" class="tn-b pri" data-fact="close">' + escapeHtml(t("close")) + '</button></div></div>';
+  document.body.appendChild(el);
+  document.addEventListener("keydown", _tnFairKey, true);
+  try { el.querySelector("[data-fact]").focus(); } catch (e) {}
+}
+function _tnFairKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); _tnFairClose(); }
+  else if (e.key === "Tab") {   // focus stays inside: the scrollable grids and the close button
+    var f = document.querySelectorAll("#tnFairSheet [tabindex='0'], #tnFairSheet [data-fact]");
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!document.querySelector("#tnFairSheet").contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  }
+}
+function _tnFairClose(quiet) {
+  var el = document.getElementById("tnFairSheet");
+  document.removeEventListener("keydown", _tnFairKey, true);
+  if (!el) return;
+  el.remove();
+  var o = _tnFairOpener; _tnFairOpener = null;
+  if (!quiet && o && o.focus && document.contains(o)) { try { o.focus(); } catch (e) {} }
+}
+
 /* ---- views ---- */
 
 function _tnStepper(T, g, side, sc) {
@@ -1363,7 +1405,7 @@ function _tnMeetCard(T) {
     }
     rows += '</tr>';
   }
-  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourMeetTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourMeetHint"), { a: m.cover, b: m.total, c: m.partners })) + '</p><div class="tn-scroll"><table class="tn-tab">' + head + rows + '</table></div></div>';
+  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourMeetTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourMeetHint"), { a: m.cover, b: m.total, c: m.partners })) + '</p><div class="tn-scroll tn-meetscroll" tabindex="0" role="region" aria-label="' + escapeHtml(t("tourMeetTitle")) + '"><table class="tn-tab">' + head + rows + '</table></div></div>';
 }
 function _tnRestCard(T) {
   var G = T.games.length, r = tourRuns(T.games, T.n), rows = '<div class="tn-rr" style="--g:' + G + '"><span></span>';
@@ -1374,7 +1416,7 @@ function _tnRestCard(T) {
     T.games.forEach(function (g) { var on = g.a.indexOf(p) >= 0 || g.b.indexOf(p) >= 0; if (on) pl++; cells += '<i class="tn-rc' + (on ? ' on' : '') + '"></i>'; });
     rows += '<div class="tn-rr" style="--g:' + G + '"><span class="tn-who">' + avatarHtml(tourUid(T, p), 22) + '<span class="tn-nm">' + getUserName(tourUid(T, p)) + '</span></span>' + cells + '<span class="e">' + escapeHtml(_tnFill(t("tourPlayRest"), { p: pl, r: G - pl })) + '</span></div>';
   }
-  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourRestTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourRestHint"), { p: G * 4 / T.n, r: G - G * 4 / T.n, mr: r.rest, mp: r.play })) + '</p><div class="tn-rt">' + rows + '</div></div>';
+  return '<div class="tn-sec"><h3>' + escapeHtml(t("tourRestTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourRestHint"), { p: G * 4 / T.n, r: G - G * 4 / T.n, mr: r.rest, mp: r.play })) + '</p><div class="tn-scroll" tabindex="0" role="region" aria-label="' + escapeHtml(t("tourRestTitle")) + '"><div class="tn-rt" style="--g:' + G + '">' + rows + '</div></div></div>';
 }
 /** v238: in the table, a stand-in shows how many rotation games were for someone else; a hurt player shows Out */
 function _tnStandTag(T, i) {
@@ -1469,18 +1511,39 @@ function _tnDrawCard(T) {
   return h + '</div></div>';
 }
 
+/** v257: the winner crown, gold with jewels (original art; one on screen, so one gradient id is enough) */
+var TN_CROWN3D = '<svg class="tn-crown3d" viewBox="0 0 100 74" aria-hidden="true" focusable="false"><defs><linearGradient id="tnCrG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f6c431"/><stop offset="1" stop-color="#b97a0b"/></linearGradient></defs>' +
+  '<path d="M6 62V20l22 20L50 4l22 36 22-20v42z" fill="url(#tnCrG)" stroke="#8f5a05" stroke-width="2.5" stroke-linejoin="round"/><path d="M50 4 28 40l18 8z" fill="#fff" opacity=".26"/><path d="M50 4l22 36-18 8z" fill="#783c00" opacity=".2"/>' +
+  '<rect x="6" y="50" width="88" height="15" rx="3" fill="#d99a10" stroke="#8f5a05" stroke-width="2.5"/><circle cx="26" cy="57.5" r="3.8" fill="#ef4444"/><circle cx="50" cy="57.5" r="3.8" fill="#38bdf8"/><circle cx="74" cy="57.5" r="3.8" fill="#22c55e"/>' +
+  '<g fill="#fff3b0" stroke="#8f5a05" stroke-width="2"><circle cx="6" cy="20" r="4.5"/><circle cx="50" cy="4.5" r="4.5"/><circle cx="94" cy="20" r="4.5"/></g></svg>';
+/** v257: confetti bits: fixed places and colours (no random), they drift slowly; still under reduced motion */
+function _tnConfetti() {
+  var cols = ["#fde047", "#ffffff", "#f87171", "#60a5fa", "#34d399", "#f59e0b"], h = '<div class="tn-conf" aria-hidden="true">';
+  for (var i = 0; i < 16; i++) h += '<i style="left:' + ((i * 37 + 8) % 96) + '%;top:' + ((i * 53) % 70) + '%;background:' + cols[i % cols.length] + ';animation-delay:-' + (i % 7) * .8 + 's"></i>';
+  return h + '</div>';
+}
 function _tnWinner(T, sid) {
   var order = tourOrder(T);
   if (!order) return "";
-  var P = tourPairs(T);
-  // v237: a podium with levels; the pair stands on its block, 1st in the middle and highest
+  var P = tourPairs(T), s = _tnSession(sid), rec = null;
+  try { if (s && typeof hofRecord === "function") rec = hofRecord(s, typeof currentGroupId !== "undefined" ? currentGroupId : "", function (u) { return getUserName(u); }, ""); } catch (e) { rec = null; }
+  // v237/v257: a podium with levels: 1st in the middle on the highest gold step, 2nd silver on the left, 3rd bronze on the right
   function pl(k, cls, lab) {
     if (k >= order.length) return '';   // v249: top 4 (a final only): no 3rd place
-    var p = order[k] >= 0 ? P[order[k]] : null;
-    return '<div class="tn-pl ' + cls + '" data-place="' + (k + 1) + '"><div class="tn-pnm">' + (p ? p.m.map(function (i) { return '<span class="tn-pw">' + avatarHtml(tourUid(T, i), 32) + '<span>' + getUserName(tourUid(T, i)) + '</span></span>'; }).join('') : '<span>\u2014</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div>' +
-      '<div class="tn-plinth">' + (k === 0 ? TN_CROWN : '') + '<span class="tn-medal">' + escapeHtml(lab) + '</span></div></div>';
+    var p = order[k] >= 0 ? P[order[k]] : null, av = k === 0 ? 46 : 34;
+    return '<div class="tn-pl ' + cls + '" data-place="' + (k + 1) + '">' + (k === 0 ? TN_CROWN3D : '') + '<div class="tn-pnm">' + (p ? p.m.map(function (i) { return '<span class="tn-pw">' + avatarHtml(tourUid(T, i), av) + '<span>' + getUserName(tourUid(T, i)) + '</span></span>'; }).join('') : '<span>—</span>') + (p ? _tnOutTag(T, order[k]) : '') + '</div>' +
+      '<div class="tn-plinth"><span class="tn-medal">' + escapeHtml(lab) + '</span></div></div>';
   }
-  return '<div class="tn-sec" id="tnWinner"><h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3><div class="tn-pod' + (order.length < 3 ? ' two' : '') + '">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div><button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
+  var grp = typeof currentGroup !== "undefined" && currentGroup ? currentGroup.name : "";
+  var score = '';
+  if (rec && rec.finalScore) {
+    score = '<div class="tn-wscore"><span class="tn-wlab">' + escapeHtml(t(_hofHasFinal(rec.n) ? "hofFinalLine" : "hofRoundRobin")) + '</span><b>' + escapeHtml(rec.finalScore) + '</b>' +
+      (rec.finalGames.length ? '<span class="tn-gps">' + rec.finalGames.map(function (g) { return '<span class="tn-gp">' + escapeHtml(g) + '</span>'; }).join('') + '</span>' : '') + '</div>';
+  }
+  return '<div class="tn-sec tn-win" id="tnWinner">' + _tnConfetti() + '<h3>' + escapeHtml(t("tourWinnerTitle")) + '</h3>' +
+    '<div class="tn-win-meta"><span>' + escapeHtml(t("tourTitle") + (s ? ' · ' + fmtDate(s.date) : '')) + '</span>' + (grp ? '<span class="tn-win-grp">' + escapeHtml(grp) + '</span>' : '') + '</div>' +
+    '<div class="tn-pod' + (order.length < 3 ? ' two' : '') + '">' + pl(1, 'p2', t("tourPlace2")) + pl(0, 'p1', t("tourPlace1")) + pl(2, 'p3', t("tourPlace3")) + '</div>' + score +
+    '<button type="button" class="tn-b sm tn-share" data-act="share">' + icon("shareOut", 16) + ' ' + escapeHtml(t("hofShareBtn")) + '</button></div>';
 }
 
 function _tnSumKey(T) {
@@ -1550,7 +1613,7 @@ function _tnViewNow(T) {
 }
 /** v237: which sections each step tab shows (names only, so a test can check the map) */
 function tourTabParts(T, view) {
-  if (view === 0) return ["rule", "hint", "rot", "meet", "rest", "stand"];
+  if (view === 0) return ["rule", "hint", "rot", "fair", "stand"];   // v257: partners + rest balance sit behind the "Fairness" info button
   if (view === 1) return (T.drawn ? [] : ["sum"]).concat(["stand", "pairs"], T.drawn ? [] : ["drawsec"]);
   if (view === 2) return ["bracket", "po"];
   return ["winner", "bracket"];
@@ -1567,8 +1630,7 @@ function _tnPanel(T, view, ng, ph, org, s) {
     if (part === "rule") return '<p class="tn-note">' + escapeHtml(_tnRuleTxt(T)) + '</p>';
     if (part === "hint") return org && !T.drawn ? '<div class="tn-sec tn-hint"><h3>' + escapeHtml(t("tourOutRotTitle")) + '</h3><p>' + escapeHtml(t("tourOutRotHint")) + '</p></div>' : '';
     if (part === "rot") return '<div class="tn-sec"><h3>' + escapeHtml(_tnFill(t("tourRotTitle"), { a: 1, b: T.games.length })) + '</h3><div class="tn-games">' + T.games.map(function (g, i) { return _tnGame(T, g, i + 1, g === ng, null, org); }).join('') + '</div></div>';
-    if (part === "meet") return _tnMeetCard(T);
-    if (part === "rest") return _tnRestCard(T);
+    if (part === "fair") return _tnFairBtn();
     if (part === "stand") return _tnStandCard(T, ph);
     if (part === "sum") return _tnAnim ? '' : _tnSummary(T, org);
     if (part === "pairs") return P ? _tnPairCard(T, P, org) : '';

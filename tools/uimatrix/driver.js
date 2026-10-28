@@ -140,7 +140,10 @@
         try { if (pi === 0) applyTheme(th, ic); showPage(PAGES[pi]); var pg = document.getElementById("page-" + PAGES[pi]); if (pg) audit(pg, combo, PAGES[pi]); D.renders++; } catch (e) { D.errors.push(PAGES[pi] + ": " + String(e.message).slice(0, 140)); }
         if (CONFIG.shot) { ti = T.length; } else if (++pi >= PAGES.length) { pi = 0; if (++ii >= ICONS.length) { ii = 0; ti++; } }
       }
-      if (CONFIG.shot) { finish(); return; }
+      if (CONFIG.shot) {   // "post": code run after the page is drawn (open a sheet, scroll), then a short wait for it to draw
+        if (CONFIG.post) { try { window.eval(CONFIG.post); } catch (e) { D.errors.push("post: " + String(e.message).slice(0, 140)); } setTimeout(finish, 700); } else finish();
+        return;
+      }
       if (ti < T.length) setTimeout(step, 0); else finish();
     }
     step();
