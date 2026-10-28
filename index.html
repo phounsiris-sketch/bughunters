@@ -305,11 +305,10 @@
 
   <!-- Bottom Nav -->
   <nav class="bottom-nav" id="bottomNav">
-    <!-- v245: the bar is three pieces (left filler, soft notch, right filler) plus a base; JS slides them under the active item with transforms only -->
+    <!-- v256: floating rounded bar (.nb-bar) plus one SVG bulge (.nb-hump) that rises above its top edge and slides under the active item (transform only) -->
     <div class="nav-bg" aria-hidden="true">
-      <i class="nb-l"></i><i class="nb-r"></i>
-      <svg class="nb-notch" viewBox="0 0 120 40" width="120" height="40" preserveAspectRatio="none" focusable="false"><path class="nb-fill" d="M0 .5 C20 .5 26 2.5 34 12.5 C42 22.5 48 34.5 60 34.5 C72 34.5 78 22.5 86 12.5 C94 2.5 100 .5 120 .5 L120 40 L0 40 Z"/><path class="nb-line" d="M0 .5 C20 .5 26 2.5 34 12.5 C42 22.5 48 34.5 60 34.5 C72 34.5 78 22.5 86 12.5 C94 2.5 100 .5 120 .5"/></svg>
-      <i class="nb-base"></i>
+      <i class="nb-bar"></i>
+      <svg class="nb-hump" viewBox="0 0 100 38" width="100" height="38" focusable="false"><path class="nb-fill" d="M0 36.5 C18 36.5 20 .5 50 .5 C80 .5 82 36.5 100 36.5 L100 38 L0 38 Z"/><path class="nb-line" d="M0 36.5 C18 36.5 20 .5 50 .5 C80 .5 82 36.5 100 36.5"/></svg>
     </div>
     <button type="button" class="nav-item active" onclick="showPage('home')" id="nav-dashboard" aria-current="page">
       <span class="nav-icon" data-icon="dashboard" data-size="24" data-plain></span>

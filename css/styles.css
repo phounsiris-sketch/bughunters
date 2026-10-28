@@ -61,7 +61,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: calc(var(--nav-h, 66px) + var(--nav-lift, 24px) + 16px + env(safe-area-inset-bottom, 0px));   /* clears the bar and the raised bubble */
+  padding-bottom: calc(var(--nav-bar, 76px) + 16px);   /* clears the bar and the raised bubble */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -760,28 +760,32 @@ textarea {
   color: #fff;
 }
 
-/* ========== Bottom Nav (v245: flat bar, floating bubble on the active item, soft notch) ========== */
-:root { --nav-h: 66px; --nav-lift: 24px; --nav-bar: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); }
+/* ========== Bottom Nav (v256: floating rounded bar, SVG bulge under the active item, light circle with accent glyph) ========== */
+:root { --nav-h: 66px; --nav-lift: 40px; --nav-inset: 12px; --nav-gap: 10px; --nav-bar: calc(var(--nav-h) + var(--nav-gap) + env(safe-area-inset-bottom, 0px)); }
 .bottom-nav {
+  /* circle colours come from theme tokens: surface is white / near white, glyph is the accent darkened toward navy (>= 3:1 on the circle) */
+  --nav-dot: #f8fafc;
+  --nav-ico: color-mix(in srgb, var(--accent) 54%, #0b1220);
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: var(--nav-bar);
+  bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
+  left: var(--nav-inset);
+  right: var(--nav-inset);
+  height: var(--nav-h);
   display: flex;
   align-items: flex-start;
   z-index: 100;
-  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  padding: 0 30px;
 }
-/* the bar itself: left filler + notch + right filler + base, all painted from theme tokens */
-.nav-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.nb-l, .nb-r { position: absolute; top: 0; left: 0; width: 200%; height: 40px; background: var(--surface); box-shadow: inset 0 1px 0 var(--border); will-change: transform; }
-.nb-notch { position: absolute; top: 0; left: 0; width: 120px; height: 40px; will-change: transform; overflow: visible; }
+body[data-theme="light"] .bottom-nav { --nav-dot: #fff; }
+/* the bar: a rounded rectangle plus one bulge piece that overlaps its top edge */
+.nav-bg { position: absolute; inset: 0; pointer-events: none; }
+.nb-bar { position: absolute; inset: 0; border-radius: 26px; background: var(--surface); box-shadow: inset 0 1px 0 var(--border), 0 8px 24px rgba(0, 0, 0, .28), 0 1px 3px rgba(0, 0, 0, .2); }
+body[data-theme="light"] .nb-bar { box-shadow: inset 0 1px 0 var(--border), 0 8px 22px rgba(15, 23, 42, .14), 0 1px 3px rgba(15, 23, 42, .1); }
+.nb-hump { position: absolute; top: -36px; left: 0; width: 100px; height: 38px; will-change: transform; overflow: visible; }
 .nb-fill { fill: var(--surface); }
 .nb-line { fill: none; stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.nb-base { position: absolute; left: 0; right: 0; top: 34px; bottom: 0; background: var(--surface); }
-.nb-l, .nb-r, .nb-notch { transition: transform .4s cubic-bezier(.34, 1.2, .64, 1); }
-.bottom-nav.nav-snap .nb-l, .bottom-nav.nav-snap .nb-r, .bottom-nav.nav-snap .nb-notch { transition: none; }
+.nb-hump { transition: transform .4s cubic-bezier(.34, 1.2, .64, 1); }
+.bottom-nav.nav-snap .nb-hump { transition: none; }
 
 .nav-item {
   position: relative;
@@ -824,13 +828,14 @@ textarea {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52px;
-  height: 52px;
-  margin: -26px 0 0 -26px;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
   border-radius: 50%;
   z-index: -1;
-  background: linear-gradient(135deg, var(--primary), var(--blue));
-  box-shadow: 0 8px 18px rgba(0, 0, 0, .35);
+  background: var(--nav-dot);
+  /* ring in the bar colour separates the circle from the page; the glow is the accent at 35% */
+  box-shadow: 0 0 0 3px var(--surface), inset 0 0 0 1px rgba(var(--accent-rgb), .22), 0 6px 18px rgba(var(--accent-rgb), .35);
   opacity: 0;
   transform: scale(.4);
   transition: transform .26s ease-out, opacity .2s ease-out;
@@ -838,11 +843,11 @@ textarea {
 .nav-item .nav-text { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s; }
 .nav-item:hover { color: var(--text); }
 .nav-item.active { color: var(--accent-text, var(--accent)); font-weight: 700; }
-.nav-item.active .nav-icon { color: #fff; transform: translateY(-22px); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), color .2s; }
+.nav-item.active .nav-icon { color: var(--nav-ico); transform: translateY(-32px); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), color .2s; }
 .nav-item.active .nav-icon::before { opacity: 1; transform: scale(1); transition: transform .42s cubic-bezier(.34, 1.56, .64, 1), opacity .15s; }
 .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 14px; }
 @media (prefers-reduced-motion: reduce) {
-  .nb-l, .nb-r, .nb-notch, .nav-item, .nav-item .nav-icon, .nav-item .nav-icon::before, .nav-item .nav-text { transition: none !important; }
+  .nb-hump, .nav-item, .nav-item .nav-icon, .nav-item .nav-icon::before, .nav-item .nav-text { transition: none !important; }
 }
 
 /* ========== Toast ========== */

@@ -378,7 +378,7 @@ function updateHeaderGroup() {
     var el = document.getElementById(id);
     if (el) el.style.display = GROUPS_ON ? "" : "none";
   });
-  if (typeof positionNavNotch === "function") positionNavNotch(true);   // slot count changed
+  if (typeof positionNavHump === "function") positionNavHump(true);   // slot count changed
 }
 
 function showGroupSwitcher() {

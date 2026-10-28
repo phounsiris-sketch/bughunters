@@ -58,7 +58,7 @@ function showPage(page, pushHistory) {
   var navOf = { "home": "dashboard", "health": "dashboard", "workout": "dashboard", "polls": "games", "sessions": "games", "session-detail": "games", "session-create": "games", "poll-create": "games", "settings": "settings", "config": "settings", "trash": "settings", "group-settings": "settings", "group-members": "settings", "groups": "settings", "reports": "settings", "game-create": "public", "game-detail": "public", "matches": "games", "match-record": "games" };
   var activeNav = document.getElementById("nav-" + (navOf[page] || page));
   if (activeNav) { activeNav.classList.add("active"); activeNav.setAttribute("aria-current", "page"); }
-  positionNavNotch(false);
+  positionNavHump(false);
   if (typeof applyChromeIcons === "function") applyChromeIcons();   // nav bar + app bar icons follow the chosen icon style
   // Settings lives behind the gear in the header
   var gear = document.getElementById("gearBtn");
@@ -268,22 +268,21 @@ function crumbBack() {
 }
 
 
-/* v245: bottom bar notch. The notch and the two bar fillers slide under the active item (transforms only).
-   The x position is measured from the active element, so 3 or 5 slots and any width/orientation work. */
-var NAV_NOTCH_W = 120;
-function positionNavNotch(instant) {
+/* v256: bottom bar bulge. One SVG hump rises above the bar's top edge and slides under the active item (transform only).
+   The x position is measured from the active element, so 3 or 5 slots and any width/orientation work.
+   The centre is clamped so the hump's base stays on the flat part of the top edge, clear of the rounded corners. */
+var NAV_HUMP_W = 100, NAV_HUMP_EDGE = 22;
+function positionNavHump(instant) {
   var nav = document.getElementById("bottomNav");
   if (!nav || !nav.offsetWidth) return;
   var bg = nav.querySelector(".nav-bg");
   if (!bg) return;
   var w = nav.clientWidth, act = nav.querySelector(".nav-item.active");
-  var cx = act && act.offsetWidth ? act.offsetLeft + act.offsetWidth / 2 : w + NAV_NOTCH_W;   // no active item: notch parks off-screen
-  var half = NAV_NOTCH_W / 2;
+  var half = NAV_HUMP_W / 2;
+  var cx = act && act.offsetWidth ? act.offsetLeft + act.offsetWidth / 2 : w + NAV_HUMP_W + 40;   // no active item: hump parks off-screen
+  if (act && act.offsetWidth) cx = Math.max(half + NAV_HUMP_EDGE, Math.min(w - half - NAV_HUMP_EDGE, cx));
   if (instant || !nav.getAttribute("data-ready")) nav.classList.add("nav-snap");
-  bg.querySelector(".nb-notch").style.transform = "translateX(" + (cx - half) + "px)";
-  // fillers overlap the notch by 1px each side so no seam shows between them
-  bg.querySelector(".nb-l").style.transform = "translateX(" + (cx - half + 1 - 2 * w) + "px)";
-  bg.querySelector(".nb-r").style.transform = "translateX(" + (cx + half - 1) + "px)";
+  bg.querySelector(".nb-hump").style.transform = "translateX(" + (cx - half) + "px)";
   if (nav.classList.contains("nav-snap")) {
     void nav.offsetWidth;   // commit the jump, then allow motion again
     nav.classList.remove("nav-snap");
@@ -292,7 +291,7 @@ function positionNavNotch(instant) {
 }
 (function () {
   if (typeof window === "undefined") return;
-  var again = function () { positionNavNotch(true); };
+  var again = function () { positionNavHump(true); };
   window.addEventListener("resize", again);
   window.addEventListener("orientationchange", again);
   window.addEventListener("load", again);
