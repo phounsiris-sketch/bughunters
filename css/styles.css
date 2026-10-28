@@ -6646,7 +6646,10 @@ body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-sha
 .hs-title .ico-3d { margin: -5px 0 -5px -3px; }
 .hv-path .ico-3d, .me-title .ico-3d, .hd-path .ico-3d, .hd-head .ico-3d { margin: -4px -2px -4px -4px; }
 .home-next-tag .ico-3d { margin: -3px 0; }
-.hg-grid.g3d .hg-tile { background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding-top: 6px; }
+/* v261: every Home shortcut tile (all icon packs) is frosted glass, 80% transparent */
+.hg-grid .hg-tile, .hg-grid.g3d .hg-tile { background: color-mix(in srgb, var(--surface) 20%, transparent); border: 1px solid rgba(255, 255, 255, .16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 4px 14px rgba(0, 0, 0, .12); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+body[data-theme="light"] .hg-grid .hg-tile, body[data-theme="light"] .hg-grid.g3d .hg-tile { background: rgba(255, 255, 255, .2); border-color: rgba(15, 23, 42, .08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 4px 14px rgba(15, 23, 42, .06); }
+.hg-grid.g3d .hg-tile { padding-top: 6px; }
 .hg-grid.g3d .hg-tile:active { background: var(--glass-hi); }
 
 /* v245: tournament stepper card (circles joined by lines; done = tick, current = yellow ring, later = outlined and locked) */
