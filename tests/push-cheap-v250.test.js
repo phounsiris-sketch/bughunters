@@ -267,8 +267,8 @@ async function scenarios() {
     c.op({ k: "confirm", pid: "ps", sid: "ss", t: T0 + 20 * MIN });
     await c.run(T0 + 30 * MIN);
     const start = bangkok(2026, 10, 24, 19, 0);
-    let b = await c.run(start - 75 * MIN); assert.ok(!b.messages.some((m) => /Game in 1 hour/.test(m.title)), "75 min before: too early");
-    b = await c.run(start - 55 * MIN); assert.strictEqual(b.messages.filter((m) => /Game in 1 hour/.test(m.title)).length, 2, "both players reminded"); assert.strictEqual(b.status, "full");
+    let b = await c.run(start - 75 * MIN); assert.ok(!b.messages.some((m) => /Session in 1 hour/.test(m.title)), "75 min before: too early");
+    b = await c.run(start - 55 * MIN); assert.strictEqual(b.messages.filter((m) => /Session in 1 hour/.test(m.title)).length, 2, "both players reminded"); assert.strictEqual(b.status, "full");
     b = await c.run(start - 45 * MIN); assert.strictEqual(b.messages.length, 0, "once only"); assert.strictEqual(b.status, "idle");
   });
   // 4. daily reminder at 9:00 Bangkok, once a day; unpaid session read in the idle runs
@@ -297,9 +297,9 @@ async function scenarios() {
     c.op({ k: "request", gid: "g1", uid: "u7", msg: "hello", t: T0 + MIN });
     let b = await c.run(T0 + 5 * MIN); assert.ok(b.messages.some((m) => /invited you/.test(m.title)) && b.messages.some((m) => /Join request/.test(m.title)), "invite + request");
     c.op({ k: "joinGame", gid: "gx", uid: "u4", t: T0 + 6 * MIN }); c.op({ k: "respond", id: "ivx", status: "accepted", t: T0 + 6 * MIN }); c.op({ k: "approve", gid: "g1", uid: "u7", t: T0 + 6 * MIN });
-    b = await c.run(T0 + 10 * MIN); const ts = titles(b).join(" / "); assert.ok(/joined your game/.test(ts) && /Game full/.test(ts) && /accepted/.test(ts) && /Welcome/.test(ts), ts);
+    b = await c.run(T0 + 10 * MIN); const ts = titles(b).join(" / "); assert.ok(/joined your session/.test(ts) && /Session full/.test(ts) && /accepted/.test(ts) && /Welcome/.test(ts), ts);
     c.op({ k: "cancelGame", gid: "gx", t: T0 + 11 * MIN });
-    b = await c.run(T0 + 15 * MIN); assert.ok(/Game cancelled/.test(titles(b).join()), "game cancelled");
+    b = await c.run(T0 + 15 * MIN); assert.ok(/Session cancelled/.test(titles(b).join()), "game cancelled");
     b = await c.run(T0 + 20 * MIN); assert.strictEqual(b.status, "idle");
   });
   // 7. idle run costs a handful of reads; first run after the update builds the watch list; init
@@ -344,7 +344,7 @@ async function loadCheck() {
   const quiet = await sum(10, { days: 4, quiet: 0.93 }); // like real life: a few events a day
   const tot = dense;
   // every kind of push appeared somewhere in the simulation (so equality above is not vacuous)
-  const want = [/New poll/, /New answers/, /Voting closes/, /Voting closed/, /Enough players/, /Plan confirmed/, /Plan cancelled/, /Bill ready/, /Payment received/, /Payment reminder/, /Game in 1 hour/, /joined your game/, /Game full/, /Game cancelled/, /Join request/, /Welcome/, /invited you/, /accepted your invite/];
+  const want = [/New poll/, /New answers/, /Voting closes/, /Voting closed/, /Enough players/, /Plan confirmed/, /Plan cancelled/, /Bill ready/, /Payment received/, /Payment reminder/, /Session in 1 hour/, /joined your session/, /Session full/, /Session cancelled/, /Join request/, /Welcome/, /invited you/, /accepted your invite/];
   const seen = Object.keys(tot.titles);
   want.forEach((re) => assert.ok(seen.some((t) => re.test(t)), "never exercised: " + re + " in " + seen.join(" ; ")));
   assert.ok(quiet.idle > quiet.full * 3, "quiet days: most runs are idle");
