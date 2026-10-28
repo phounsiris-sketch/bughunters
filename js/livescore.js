@@ -109,6 +109,78 @@ function lsThemeIdx() {
   return i >= 0 && i < LS_THEMES.length ? i : 0;
 }
 
+/* ---------- v267: Swap sides (display only) ----------
+   Players change ends on court, so the referee can show team A on the right. This only changes how the two halves are DRAWN: team A / B in the
+   data, the taps (each button carries its own side), Undo and the score stay as they are. Nothing is written to Firestore.
+   The choice is kept on this device for the current game (slot "s" = the counting screen, slot "w" = the watching screen, each its own).
+   A new game (another session, a saved game, the next game of a match, a tournament game) starts normal again. */
+var LS_SWAP_KEY = "godsmash_ls_swap";
+var _lsSwapMem = { s: { k: "", on: false }, w: { k: "", on: false } };
+var _lsEndsDone = { s: "", w: "" };   // the "Change ends?" question already answered for this point of the game
+function _lsSwapSlot() { return liveMode === "watch" ? "w" : "s"; }
+function _lsSwapBoard(slot) { return slot === "w" ? _watch : live; }
+/** One id per game on this screen: it changes when a new game starts, which puts the display back to normal */
+function _lsSwapKey(st) {
+  if (!st) return "";
+  var sw = st.sw || {}, gl = st.gl || [];
+  return [st.id || "", st.sid || "", st.startedAt || 0, st.saved || 0, gl.length, (sw.A || 0) + "-" + (sw.B || 0)].join("|");
+}
+function lsSwapped(slot) {
+  slot = slot || _lsSwapSlot();
+  var k = _lsSwapKey(_lsSwapBoard(slot)), m = _lsSwapMem[slot];
+  if (!k) return false;
+  if (m.k !== k) {
+    m.k = k; m.on = false;
+    try { var s = JSON.parse(localStorage.getItem(LS_SWAP_KEY + "_" + slot) || "null"); if (s && s.k === k) m.on = !!s.v; } catch (e) {}
+  }
+  return m.on;
+}
+/** The team drawn on the left (top on a phone held upright) */
+function lsLeftSide() { return lsSwapped("s") ? "B" : "A"; }
+/** The two sides in drawing order */
+function _lsOrder(slot) { return lsSwapped(slot) ? ["B", "A"] : ["A", "B"]; }
+function lsSwap() {
+  var slot = _lsSwapSlot(), st = _lsSwapBoard(slot);
+  if (!st) return;
+  var on = !lsSwapped(slot), m = _lsSwapMem[slot];
+  m.on = on;
+  try { localStorage.setItem(LS_SWAP_KEY + "_" + slot, JSON.stringify({ k: m.k, v: on ? 1 : 0 })); } catch (e) {}
+  var code = _lsEndsCode(st);
+  if (code) _lsEndsDone[slot] = code + "|" + m.k;   // swapping answers "Change ends?"
+  try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) {}
+  lsRender();
+  var el = document.getElementById("liveScreen");
+  if (el) { el.classList.remove("ls-swapping"); void el.offsetWidth; el.classList.add("ls-swapping"); setTimeout(function () { el.classList.remove("ls-swapping"); }, 520); }
+}
+/** Badminton: players change ends after each game and at 11 in the deciding game. "start-N" = a new game of a match begins, "mid" = 11 in the deciding game. "" = no question. Only in a match of 2 or 3 games. */
+function _lsEndsCode(st) {
+  if (!st || st.over || (st.bo || 1) < 2) return "";
+  var sw = st.sw || {}, idx = (sw.A || 0) + (sw.B || 0), sa = st.sa || 0, sb = st.sb || 0;
+  if (idx >= 1 && sa + sb === 0) return "start-" + idx;
+  if ((st.bo || 1) >= 3 && idx === 2 && Math.max(sa, sb) >= 11) return "mid";
+  return "";
+}
+function _lsEndsHtml(slot) {
+  var st = _lsSwapBoard(slot), code = _lsEndsCode(st);
+  if (!code) return "";
+  lsSwapped(slot);   // make sure the key is current
+  if (_lsEndsDone[slot] === code + "|" + _lsSwapMem[slot].k) return "";
+  return '<div class="ls-ends" role="status"><span>' + t("lsChangeEnds") + '</span><button type="button" class="ls-ends-yes" onclick="lsSwap()">' + _lsSwapIcon(16) + ' ' + t("lsSwapDo") + '</button>' +
+    '<button type="button" class="ls-ends-x" aria-label="' + t("close") + '" onclick="lsEndsDismiss()">' + icon("close", 14) + '</button></div>';
+}
+function lsEndsDismiss() {
+  var slot = _lsSwapSlot(), code = _lsEndsCode(_lsSwapBoard(slot));
+  lsSwapped(slot);
+  if (code) _lsEndsDone[slot] = code + "|" + _lsSwapMem[slot].k;
+  lsRender();
+}
+function _lsSwapIcon(px) {
+  return '<svg class="ls-swap-svg" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
+}
+function _lsSwapBtn() {
+  return '<button type="button" class="ls-mid-btn ls-swap-btn' + (lsSwapped() ? ' on' : '') + '" aria-label="' + t("lsSwap") + '" aria-pressed="' + lsSwapped() + '" title="' + t("lsSwap") + '" onclick="lsSwap()">' + _lsSwapIcon(28) + '</button>';
+}
+
 function _lsSessions() {
   var today = _todayIso();
   return lastSessions.filter(function (s) { return s.status !== "cancelled" && s.status !== "completed" && _canAddGames(s) && (s.date || "") <= today && sessionStep(s) < 3; })
@@ -272,13 +344,15 @@ function _lsCountHtml() {
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, _lsShown(live).sw, _lsShown(live).gl) : '') + '</div></div>';
   };
-  var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
+  var ord = _lsOrder("s");
+  var html = half(ord[0]) + half(ord[1]) + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit ls-exit-count" onclick="lsExit()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   if (live.test) html += '<div class="ls-test">' + icon("warning", 14) + ' ' + t("lsTestBadge") + '</div>';
   html += '<div class="ls-mid"><button type="button" class="ls-mid-btn" aria-label="' + t("lsUndo") + '" onclick="lsUndo()">' + icon("history", 22) + '</button>' +
     '<span class="ls-pill">' + t("lsGameN").replace("{n}", (live.bo || 1) > 1 ? (live.sw.A + live.sw.B + 1) : live.saved + 1) + '<span class="ls-pill-x"> · ' + t("lsTo").replace("{n}", LS_START_POINTS) +
       ((live.bo || 1) > 1 ? ' · ' + _boLabel(live.bo) + ' (' + live.sw.A + '\u2013' + live.sw.B + ')' : '') + '</span></span>' +
-    '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
+    _lsSwapBtn() + '<button type="button" class="ls-mid-btn" aria-label="' + t("lsMenu") + '" onclick="lsMenu()">' + icon("settings", 22) + '</button></div>';
+  if (!live.over && liveMode !== "menu") html += _lsEndsHtml("s");
   if (gp && !live.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' · ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (liveMode === "menu") {
     html += '<div class="ls-scrim" onclick="lsMenu(false)"></div><div class="ls-menu">' +
@@ -559,7 +633,7 @@ function lsInProgress() {
    A web app cannot run on a watch, but a watch shows the Now Playing
    controls of whatever the phone plays. The app plays a silent track and
    listens to those buttons through the Media Session API:
-     previous track = point for Team A (left)   next track = point for Team B (right)
+     previous track = point for the team on the left   next track = point for the team on the right (Team A / B, or the other way round after Swap sides)
      play / pause   = undo the last point
    The title on the watch shows the score.
    ============================================================ */
@@ -586,8 +660,8 @@ function _lsRemoteStart() {
     if (!_remoteAudio) { _remoteAudio = new Audio(_silentWavUri()); _remoteAudio.loop = true; }
     var ms = navigator.mediaSession, act = function (name, fn) { try { ms.setActionHandler(name, fn); } catch (e) {} };
     var ok = function () { return liveMode === "count" && live && !live.over; };
-    act("previoustrack", function () { if (ok()) lsTap("A", 1, true); });
-    act("nexttrack", function () { if (ok()) lsTap("B", 1, true); });
+    act("previoustrack", function () { if (ok()) lsTap(lsLeftSide(), 1, true); });   // v267: previous = the team drawn on the left, also after Swap sides
+    act("nexttrack", function () { if (ok()) lsTap(lsLeftSide() === "A" ? "B" : "A", 1, true); });
     var undo = function () {
       if (ok() && Date.now() - _remoteUndoAt > 500) { _remoteUndoAt = Date.now(); lsUndo(); }
       _lsRemoteResume();
@@ -618,7 +692,7 @@ function lsRemoteMeta() {
   if (!_remoteOn || !live || !_lsRemoteOk() || typeof MediaMetadata === "undefined") return;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: "A " + live.sa + " \u2013 " + live.sb + " B",
+      title: lsSwapped("s") ? "B " + live.sb + " \u2013 " + live.sa + " A" : "A " + live.sa + " \u2013 " + live.sb + " B",
       artist: live.over ? t("lsWins").replace("{team}", t("lsTeam") + " " + live.over) : t("lsRemoteHint"),
       album: "Godsmash"
     });
@@ -859,9 +933,11 @@ function _lsWatchHtml() {
       '<div class="ls-head"><div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' + won(side) + '</div></div>';
   };
-  var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
+  var ord = _lsOrder("w");
+  var html = half(ord[0]) + half(ord[1]) + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
-  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + (_watchWait ? t("lsWaitNext") : t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '')) + '</span></div>';
+  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + (_watchWait ? t("lsWaitNext") : t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '')) + '</span>' + _lsSwapBtn() + '</div>';
+  if (!g.over && !_watchWait) html += _lsEndsHtml("w");
   if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (g.over) {
     var aft = { A: sw.A + (g.over === "A" ? 1 : 0), B: sw.B + (g.over === "B" ? 1 : 0) }, done = bo > 1 && (aft[g.over] >= (bo === 2 ? 2 : need) || aft.A + aft.B >= bo), drawn = done && aft.A === aft.B;
