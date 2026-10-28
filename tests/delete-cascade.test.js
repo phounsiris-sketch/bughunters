@@ -14,7 +14,7 @@ assert.ok(ctx.TRASH_KINDS.matches === "scoreboard" && ctx.TRASH_KINDS.hof === "t
 
 // the delete path
 var f = ses.slice(ses.indexOf("function deleteSessionById("), ses.indexOf("function trashLabelSession("));
-assert.ok(/askYes\(t\("deleteConfirm"\)/.test(f), "asks first");
+assert.ok(/askConfirm\(sessionDeleteInfo\(/.test(f) && /_deleteSessionRun\(sessionId\)/.test(f), "asks first (v260: richer confirm), then runs the cascade");
 var iM = f.indexOf("trashSessionMatches(sessionId"), iH = f.indexOf("trashSessionHof(sessionId"), iS = f.indexOf('trashDoc("session"'), iP = f.indexOf('trashDoc("poll"');
 assert.ok(iM > 0 && iM < iH && iH < iS && iS < iP, "games, record, session, poll in that order");
 assert.ok(/where\("sessionId", "==", sid\)/.test(f) && /hallOfFame/.test(f) && /hofLocalDrop/.test(f), "queries the session's games, drops the record and the local copy");

@@ -1803,8 +1803,33 @@ function settleTransfers(s, keys, value) {
    Delete Session
    ────────────────────────────────────────────────────────── */
 
+/** v260: what the delete confirm says: the session (date · time · court, Tournament) and what goes with it, with real counts.
+ *  Games = lastMatches of this session (saved games + tournament games, a game typed in twice counted once). */
+function sessionDeleteInfo(s, sessionId) {
+  var sid = sessionId || (s && s.id), tour = !!(s && typeof tourOf === "function" && tourOf(s));
+  var n = (typeof lastMatches !== "undefined" ? lastMatches : []).filter(function (m) { return m.sessionId === sid; }).length;
+  var hof = (typeof _hofStored !== "undefined" && _hofStored.some(function (r) { return r.sid === sid; })) || (typeof _hofSaved !== "undefined" && !!_hofSaved[sid]);
+  var pl = typeof _findPoll === "function" && s && s.pollId ? _findPoll(s.pollId) : null;
+  var poll = !!(pl && pl.status === "confirmed" && pl.sessionId === sid);
+  var detail = s ? fmtDate(s.date) + (s.time ? " \u00b7 " + s.time : "") + (s.courtName ? " \u00b7 " + s.courtName : "") : t("sessionsWord");
+  if (tour) detail += " \u00b7 " + t("cdTournament");
+  var lines = [];
+  if (n) lines.push("\u2022 " + t("cdMatches").replace("{n}", n));
+  if (hof) lines.push("\u2022 " + t("cdHof"));
+  if (poll) lines.push("\u2022 " + t("cdPoll"));
+  var body = (lines.length ? t("cdAlso") + "\n" + lines.join("\n") + "\n\n" : "") + t("cdUndo");
+  return { title: t("cdTitle"), detail: detail, body: body, kind: "danger", yes: t("delete") };
+}
+
 function deleteSessionById(sessionId) {
-  askYes(t("deleteConfirm"), function () {
+  var s0 = (currentSession && currentSession.id === sessionId) ? currentSession : null;
+  lastSessions.forEach(function (x) { if (x.id === sessionId) s0 = x; });
+  askConfirm(sessionDeleteInfo(s0, sessionId), function () { _deleteSessionRun(sessionId); });
+}
+
+/** The cascade itself (v241, unchanged): everything of the session to the trash, one Undo */
+function _deleteSessionRun(sessionId) {
+  (function () {
     var s = (currentSession && currentSession.id === sessionId) ? currentSession : null;
     lastSessions.forEach(function (x) { if (x.id === sessionId) s = x; });
     if (_sessionDocUnsub) { _sessionDocUnsub(); _sessionDocUnsub = null; }
@@ -1834,7 +1859,7 @@ function deleteSessionById(sessionId) {
         // Something stopped half way: put back what was already moved, so nothing is left half deleted
         if (!done.session) cascadeUndoIds(null, null, done.hof, done.matches).split(",").filter(Boolean).forEach(function (id) { restoreTrash(id, true).catch(function () {}); });
       });
-  }, { danger: true, yes: t("delete") });
+  })();
 }
 
 /** Games of this session saved in matches/ go to the trash, up to TRASH_MATCH_CHUNK per trash entry. Pushes the trash ids into out. */
