@@ -6821,12 +6821,43 @@ button.ma-game { cursor: pointer; }
 .tn-win .tn-share { align-self: center; }
 
 /* ===== v257: progress detail sheet (the former Progress tab) ===== */
-.pg-sheet { text-align: left; max-width: 560px; height: 92vh; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg); padding-left: 12px; padding-right: 12px; }
-.pg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 4px 8px; font-size: 16px; }
-.pg-head b { display: inline-flex; align-items: center; gap: 6px; }
-.pg-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 10px; outline: 0; }
-.pg-in { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
-.pg-sheet .sparkline { width: 100%; height: 120px; }
+.pg-sheet { text-align: left; max-width: 560px; height: 92vh; max-height: 92vh; display: flex; flex-direction: column; background: var(--bg); padding: 10px 16px calc(20px + env(safe-area-inset-bottom)); }   /* v264: one 16px gutter for header and cards; the safe area keeps the last card off the home bar */
+.pg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 0 8px; font-size: 16px; line-height: 1.2; }
+.pg-head b { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.pg-head .lg-close { flex: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; margin: 0 -11px 0 0; border-radius: 50%; }
+.pg-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; outline: 0; }
+.pg-in { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }
+.pg-sheet .card { margin: 0; padding: 14px; }
+.pg-sheet .settings-section { margin: 6px 0 -4px; padding: 0 2px; }
+.pg-sheet .sparkline { width: 100%; height: 100px; display: block; }
+/* v264: filter card = select, then five equal chips across the full width (3 + 2 under 360px) */
+.pg-sheet .scope-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 12px 0 0; padding: 0; }
+.pg-sheet .scope-chips .period-btn { min-width: 0; min-height: 40px; margin: 0; padding: 3px 3px; font-size: 13px; line-height: 1.15; white-space: normal; text-align: center; overflow-wrap: anywhere; display: flex; align-items: center; justify-content: center; }
+.pg-sheet .form-select { margin: 0; }
+@media (max-width: 359px) {
+  .pg-sheet .scope-chips { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pg-sheet .scope-chips .period-btn { grid-column: span 2; }
+  .pg-sheet .scope-chips .period-btn:nth-child(n+4) { grid-column: span 3; }
+}
+/* v264: chart head = two aligned columns (small label on top, big number on the shared baseline below) */
+.pg-sheet .progress-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: baseline; margin: 0 0 8px; }
+.pg-sheet .progress-head .ph-lab { margin: 0; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+.pg-sheet .progress-head .r { text-align: right; justify-self: end; }
+.pg-sheet .progress-head .ph-num { line-height: 1.15; white-space: nowrap; }
+.pg-sheet .progress-wl-n { font-size: 22px; font-weight: 800; }
+.pg-sheet .spark-legend { margin: 4px 0 0; padding: 0; }
+/* v264: stats strip = equal columns, value on top, label under it, centred (2 x 2 under 360px) */
+.pg-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 6px; }
+.pg-stat { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; text-align: center; min-width: 0; }
+.pg-stat b { font-size: 18px; line-height: 1.2; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.pg-stat small { font-size: 12px; line-height: 1.25; color: var(--text-muted); overflow-wrap: anywhere; }
+@media (max-width: 359px) { .pg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* v264: pair cards */
+.pg-sheet .ins-card .card-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; line-height: 1.2; }
+.pg-sheet .ins-row { margin: 0 0 8px; padding: 10px 12px 10px 16px; border-left: 0; box-shadow: inset 4px 0 0 transparent; }
+.pg-sheet .ins-row.good { box-shadow: inset 4px 0 0 #16a34a; } .pg-sheet .ins-row.low { box-shadow: inset 4px 0 0 #f59e0b; }
+.pg-sheet .ins-row .rank-avatars { align-self: center; }
+.pg-sheet .ins-tips-title { margin: 6px 0 6px; }
 .mh-open { cursor: pointer; border-radius: 12px; }
 .mh-open:focus-visible, .rank-row:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
