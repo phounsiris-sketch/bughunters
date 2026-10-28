@@ -310,7 +310,7 @@ function _highlightsHtml(st, scope) {
 }
 
 /* ---------- Pair rank / Player rank lists (v247: top 3 + last 3, "See all" in Head-to-head) ---------- */
-var RANK_FULL_MAX = 7;   // a list this short is shown in full
+var RANK_FULL_MAX = 10;  // a list this short is shown in full (v248: up to 10 rows)
 
 /** Which rows of a ranked list of n rows to show: everything when short, else the top 3 and the last 3.
     A row of mine in the hidden middle (meIdx) stays visible between them. Items: { i: index } or { gap: hiddenCount }. */

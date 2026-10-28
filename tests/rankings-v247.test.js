@@ -15,9 +15,10 @@ ctx.window = ctx; vm.createContext(ctx);
 
 /* ---- top 3 + last 3 slicing ---- */
 var sl = function (n, me) { return ctx.rankSliceIdx(n, me).map(function (x) { return x.gap ? "g" + x.gap : String(x.i); }).join(","); };
-assert.strictEqual(sl(7, 3), "0,1,2,3,4,5,6", "7 rows or fewer: shown in full");
+assert.strictEqual(sl(7, 3), "0,1,2,3,4,5,6", "short lists: shown in full");
+assert.strictEqual(sl(10, 5), "0,1,2,3,4,5,6,7,8,9", "10 rows or fewer: shown in full (v248)");
 assert.strictEqual(sl(0, -1), "");
-assert.strictEqual(sl(8, -1), "0,1,2,g2,5,6,7", "8 rows: top 3, gap, last 3");
+assert.strictEqual(sl(11, -1), "0,1,2,g5,8,9,10", "11 rows: top 3, gap, last 3");
 assert.strictEqual(sl(24, 0), "0,1,2,g18,21,22,23", "me in the top 3: nothing extra");
 assert.strictEqual(sl(24, 23), "0,1,2,g18,21,22,23", "me in the last 3: nothing extra");
 assert.strictEqual(sl(24, 10), "0,1,2,g7,10,g10,21,22,23", "me in the hidden middle: shown inside the gap with my own index");
@@ -51,8 +52,10 @@ assert.ok(/openMatchesAll\(''\)/.test(html) && !/recent-wrap|recent-games/.test(
 assert.ok(/statsPairGo\(this\.getAttribute\('data-k'\)\)/.test(html), "pair rows open that pair in Head-to-head");
 assert.ok(/progressUser='p\d'|progressUser='me'/.test(html), "player rows still open Progress");
 var pairs = ctx._rankLists().pairs.length;
-assert.ok(pairs > 7, "the fake data has more than 7 pairs (" + pairs + ")");
-assert.strictEqual((html.match(/rank-gap/g) || []).length >= 2, true, "both long lists have a gap row");
+assert.ok(pairs > 10, "the fake data has more than 10 pairs (" + pairs + ")");
+var players = ctx._rankLists().ranked.length;
+assert.strictEqual((html.match(/rank-gap/g) || []).length >= 1, true, "the long pair list has a gap row");
+if (players <= 10) assert.ok(!/statsSeeAll\('players'\)/.test(html), "10 players or fewer: player rank shown in full, no See all (v248)");
 assert.ok(html.indexOf("seeAllN") >= 0 && /statsSeeAll\('pairs'\)/.test(html));
 // trend: only the rating change
 var rt = ctx._rankTrend(1563, 1500);

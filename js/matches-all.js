@@ -139,26 +139,57 @@ function _maDayLabel(date) {
   return escapeHtml(weekdayShort(d.getDay()) + " " + d.getDate() + " " + monthShort(d.getMonth()));
 }
 
-/** Score of every set from the viewer's side: "21–15, 18–21" */
+/** Score of every set from the viewer's side: "21–15, 18–21" (kept for the tap detail) */
 function maScoreText(g) {
+  return maSets(g).map(function (x) { return x.me + "–" + x.them; }).join(", ");
+}
+
+/** Sets with a score, from the viewer's side: [{ me, them }] */
+function maSets(g) {
   var mineA = g.m.teamA.indexOf(g.mine[0]) >= 0;
   return (g.m.games || []).filter(function (x) { return x && (x.a != null || x.b != null); }).map(function (x) {
-    return (mineA ? x.a : x.b) + "–" + (mineA ? x.b : x.a);
-  }).join(", ");
+    return { me: mineA ? x.a : x.b, them: mineA ? x.b : x.a };
+  });
+}
+
+/** "1 game" / "5 games" (Lao has no plural: same word both ways) */
+function maGamesN(n) { return n === 1 ? t("oneGame") : n + " " + t("gamesWord"); }
+
+/** One side's avatars, overlapped, then the names */
+function _maTeamHtml(uids, cls, firstUid) {
+  var names = uids.map(function (u) { return u === firstUid ? '<b>' + escapeHtml(getUserName(u)) + '</b>' : escapeHtml(getUserName(u)); }).join(' + ');
+  return '<span class="ma-team ' + cls + '"><span class="ma-avs">' + uids.map(function (u) { return avatarHtml(u, 26); }).join('') + '</span><span class="ma-nm">' + names + '</span></span>';
+}
+
+/** Points per set, my side on top: the set's winner in a green pill, the loser grey; a draw leaves both plain */
+function _maScoreHtml(g) {
+  var sets = maSets(g);
+  if (!sets.length) return '';
+  var pill = function (v, o) { return '<span class="ma-pt' + (v > o ? ' won' : v < o ? ' lost' : '') + '">' + v + '</span>'; };
+  return '<span class="ma-sc' + (sets.length > 1 ? ' multi' : '') + '" style="--sets:' + sets.length + '">' +
+    sets.map(function (x) { return pill(x.me, x.them); }).join('') + sets.map(function (x) { return pill(x.them, x.me); }).join('') + '</span>';
 }
 
 function _maGameHtml(g, uid, sessionOpen) {
-  var name = function (u) { return escapeHtml(getUserName(u)); };
-  var partner = g.mine.filter(function (u) { return u !== uid; }), them = byNameAZ(g.them);
-  var rating = g.d === null ? '' : '<small>' + _maDeltaHtml(g.d) + '</small>';
-  var inner = '<span class="wl ' + (g.won ? 'w' : 'l') + '">' + (g.won ? t("winShort") : t("lossShort")) + '</span>' +
-    '<span class="ma-who"><span class="ma-l1"><b>' + name(uid) + '</b>' + partner.map(function (u) { return ' + ' + name(u); }).join('') + '</span>' +
-    '<span class="ma-l2">' + t("vsWord") + ' ' + them.map(name).join(' + ') + '</span></span>' +
-    '<span class="ma-sc">' + escapeHtml(maScoreText(g)) + rating + '</span>';
-  // Tap: the session's Games tab (where a game is edited); a game with no session has nothing to open
-  return sessionOpen
-    ? '<button type="button" class="ma-game" onclick="showSessionDetail(\'' + jsq(g.sid) + '\',\'games\')">' + inner + '</button>'
-    : '<div class="ma-game">' + inner + '</div>';
+  var partner = g.mine.filter(function (u) { return u !== uid; });
+  var inner = '<span class="ma-bar" aria-hidden="true"></span><span class="ma-who">' + _maTeamHtml([uid].concat(partner), 'me', uid) +
+    _maTeamHtml(byNameAZ(g.them), 'them', '') + '</span>' + _maScoreHtml(g);
+  var cls = 'ma-game ' + (g.won ? 'w' : 'l');
+  // Tap: the session's Games tab (where a game is edited). A game with no session opens a small detail instead.
+  if (sessionOpen) return '<button type="button" class="' + cls + '" onclick="showSessionDetail(\'' + jsq(g.sid) + '\',\'games\')">' + inner + '</button>';
+  var sets = maScoreText(g);
+  return '<div class="ma-gw"><button type="button" class="' + cls + '" aria-expanded="false" onclick="maToggleGame(this)">' + inner + '</button>' +
+    '<div class="ma-det" hidden><span>' + (g.won ? t("wonWord") : t("lostWord")) + (sets ? ' · ' + escapeHtml(sets) : '') + '</span>' +
+    (g.d === null ? '' : '<span>' + t("ratingWord") + ' ' + _maDeltaHtml(g.d) + '</span>') + '</div></div>';
+}
+
+/** Open / close the detail under a game that has no session */
+function maToggleGame(btn) {
+  var det = btn.parentNode && btn.parentNode.querySelector(".ma-det");
+  if (!det) return;
+  var open = det.hidden;
+  det.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
 function _maBlockHtml(title, tag, o, games, uid, canOpen) {
@@ -169,25 +200,28 @@ function _maBlockHtml(title, tag, o, games, uid, canOpen) {
 
 function _maDayHtml(day, uid, open) {
   var html = '<details class="ma-day"' + (open ? ' open' : '') + ' ontoggle="maToggleDay(\'' + jsq(day.date) + '\',this.open)"><summary><b>' + _maDayLabel(day.date) + '</b>' +
-    '<span>' + day.games.length + ' ' + t("gamesWord") + ' · ' + fmtWL(day.w, day.l) + ' · ' + _maDeltaHtml(day.delta) + '</span></summary>';
+    '<span>' + maGamesN(day.games.length) + ' · ' + fmtWL(day.w, day.l) + ' · ' + _maDeltaHtml(day.delta) + '</span></summary>';
   day.sessions.forEach(function (so) {
     var tm = maTimeRange(so.s);
-    html += _maBlockHtml(icon("court", 13) + ' ' + escapeHtml(so.s.courtName || "") + (tm ? ' · ' + escapeHtml(tm) : ''), so.tour, so, so.games, uid, true);
+    html += _maBlockHtml(icon("court", 13) + '<span class="ma-stt">' + escapeHtml(so.s.courtName || "") + (tm ? ' · ' + escapeHtml(tm) : '') + '</span>', so.tour, so, so.games, uid, true);
   });
-  if (day.other) html += _maBlockHtml(escapeHtml(t("maOther")), false, day.other, day.other.games, uid, false);
+  if (day.other) html += _maBlockHtml('<span class="ma-stt">' + escapeHtml(t("maOther")) + '</span>', false, day.other, day.other.games, uid, false);
   return html + '</details>';
 }
 
+/** Full-width segmented control, equal slots */
 function _maChips(key, cur, opts) {
-  return '<div class="period-toggle ma-chips" role="group">' + opts.map(function (o) {
-    return '<button type="button" class="period-btn' + (cur === o[0] ? ' active' : '') + '" aria-pressed="' + (cur === o[0]) + '" onclick="maSet(\'' + key + '\',\'' + o[0] + '\')">' + escapeHtml(o[1]) + '</button>';
+  return '<div class="ma-seg s' + opts.length + '" role="group">' + opts.map(function (o) {
+    return '<button type="button" class="ma-segb' + (cur === o[0] ? ' on' : '') + '" aria-pressed="' + (cur === o[0]) + '" onclick="maSet(\'' + key + '\',\'' + o[0] + '\')">' + escapeHtml(o[1]) + '</button>';
   }).join('') + '</div>';
 }
 
-function _maSelect(key, label, cur, opts) {
-  return '<select class="form-select" aria-label="' + escapeHtml(label) + '" onchange="maSet(\'' + key + '\',this.value)">' + opts.map(function (o) {
+function _maSelect(key, label, cur, opts, caption, lead) {
+  var sel = '<select class="form-select" aria-label="' + escapeHtml(label) + '" onchange="maSet(\'' + key + '\',this.value)">' + opts.map(function (o) {
     return '<option value="' + escapeHtml(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + escapeHtml(o[1]) + '</option>';
   }).join('') + '</select>';
+  if (lead) return '<div class="ma-pick"><span class="ma-pick-av" aria-hidden="true">' + lead + '</span>' + sel + '</div>';
+  return caption ? '<label class="ma-sel"><small>' + escapeHtml(caption) + '</small>' + sel + '</label>' : sel;
 }
 
 function renderMatchesAll() {
@@ -206,13 +240,13 @@ function renderMatchesAll() {
     return [["", first]].concat(out.sort(function (a, b) { return String(nm(a)).localeCompare(String(nm(b))); }).map(function (u) { return [u, nm(u)]; }));
   };
   var html = '<div class="card ma-filters">' +
-    _maSelect("user", t("maPlayer"), uid, uids.map(function (u) { return [u, nm(u) + (u === me ? ' (' + t("you") + ')' : '')]; })) +
-    _maChips("period", maPeriod, [["month", t("thisMonth")], ["30d", t("maP30")], ["1y", t("period_1y")], ["all", t("allTime")]]) +
+    _maSelect("user", t("maPlayer"), uid, uids.map(function (u) { return [u, nm(u) + (u === me ? ' (' + t("you") + ')' : '')]; }), "", avatarHtml(uid, 28)) +
+    _maChips("period", maPeriod, [["month", t("thisMonth")], ["30d", t("maP30Short")], ["1y", t("period_1y")], ["all", t("allWord")]]) +
     _maChips("result", maResult, [["all", t("allWord")], ["won", t("wonWord")], ["lost", t("lostWord")]]) +
     '<div class="ma-sels">' +
-    _maSelect("type", t("gameType"), maType, [["all", t("maTypeAll")], ["doubles", t("maTypeDoubles")], ["singles", t("gameType_singles")], ["tournament", t("tourBadge")]]) +
-    _maSelect("partner", t("maPartner"), maPartner, people("mine", t("maPartnerAll"))) +
-    _maSelect("opp", t("maOpp"), maOpp, people("them", t("maOppAll"))) + '</div></div>';
+    _maSelect("type", t("gameType"), maType, [["all", t("maTypeAll")], ["doubles", t("maTypeDoubles")], ["singles", t("gameType_singles")], ["tournament", t("tourBadge")]], t("maTypeCap")) +
+    _maSelect("partner", t("maPartner"), maPartner, people("mine", t("maPartnerAll")), t("maPartner")) +
+    _maSelect("opp", t("maOpp"), maOpp, people("them", t("maOppAll")), t("maOpp")) + '</div></div>';
   if (!all.length) {
     box.innerHTML = html + '<div class="empty-state"><div class="empty-icon">' + icon("ranking", 44) + '</div><div>' + t("noMatchesYet") + '</div></div>';
     return;
@@ -225,7 +259,7 @@ function renderMatchesAll() {
   }
   var sm = maSummary(list);
   html += '<div class="ma-sum" role="group" aria-label="' + escapeHtml(t("maSummary")) + '">' +
-    '<div><b>' + sm.n + '</b><small>' + t("gamesWord") + '</small></div><div><b>' + fmtWL(sm.w, sm.l) + '</b><small>' + t("winShort") + '–' + t("lossShort") + '</small></div>' +
+    '<div><b>' + sm.n + '</b><small>' + (sm.n === 1 ? t("maGameOne") : t("gamesWord")) + '</small></div><div><b>' + fmtWL(sm.w, sm.l) + '</b><small>' + t("winShort") + '–' + t("lossShort") + '</small></div>' +
     '<div><b>' + sm.pct + '</b><small>' + t("winRate") + '</small></div><div><b>' + _maDeltaHtml(sm.delta) + '</b><small>' + t("ratingWord") + '</small></div></div>';
   var days = maGroup(list, lastSessions), shown = days.slice(0, maDays);
   shown.forEach(function (day, i) { html += _maDayHtml(day, uid, maOpenDays[day.date] !== undefined ? maOpenDays[day.date] : i === 0); });

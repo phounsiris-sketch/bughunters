@@ -1815,3 +1815,13 @@ Found in the live console after the v228-v233 merge: `ReferenceError: jsq is not
 - Type filter: Doubles = teams of 2 (tournament games included), Singles = teams of 1, Tournament = games with `tid`.
 - UI matrix: `matches-all` added to PAGES; fake data now has games on more days, with no session, a tournament game and a singles game; the stub snapshot no longer empties `lastMatches` (so Rankings is drawn with data). New `lang` option ("en" | "la") for screenshots. Light-theme green/red change markers darkened (`.trend`, `.mh-tl em`).
 - Tests: tests/rankings-v247.test.js (slicing, markup, badges, grouping, filters, rating sum, wiring, EN + LA keys).
+
+## v248: All matches redesign, short lists in full
+- Rankings: `RANK_FULL_MAX` = 10 (commit 8848a0c). A list of 10 rows or fewer shows in full; the top 3 + gap + last 3 cut starts at 11 rows (was 7). `rankSliceIdx` unchanged otherwise.
+- All matches (js/matches-all.js, `.ma-*` in css/styles.css): each game = two lines, my team (viewed player first, bold) and the opponents (muted), with `avatarHtml(uid, 26)` overlapped (`.ma-avs`). Right column `_maScoreHtml`: one column per set, my side on top, the set winner in a green pill (`.ma-pt.won`), the loser grey; a draw leaves both plain. 4px left bar: green won, red lost. The W/L chip and the per-game rating change are gone from the row (day and session headers keep the totals).
+- Tap: a game in a session still opens its Games tab; a game with no session toggles a small detail (`maToggleGame`, result + sets + rating change, `aria-expanded`).
+- Filters: player picker full width with the avatar inside (`.ma-pick`); period (4 slots) and result (3 slots) are `.ma-seg` grids of buttons with `aria-pressed`; Type / Partner / Opponent = 3 equal selects with a caption (`.ma-sel`). New short labels: `maP30Short`, `maTypeCap`.
+- Summary is one strip (`.ma-sum`) with dividers. `maGamesN(n)` gives "1 game" (`oneGame`) / "N games"; the summary cell uses `maGameOne` for 1.
+- Session header never wraps: icon + `.ma-stt` (ellipsis) + Tournament tag + W-L in one nowrap flex line.
+- Colours: `--ma-win`, `--ma-winbg`, `--ma-loss`, `--ma-bar-w/l` set on `#page-matches-all`, darker values under `body[data-theme="light"]` (pill text 4.57:1, red 6.5:1).
+- Tests: tests/matches-all-v248.test.js. Lao strings for the new keys are not native-reviewed.
