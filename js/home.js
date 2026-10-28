@@ -294,7 +294,13 @@ function _homePulseTick() {
 }
 function _homePulseStart() { if (!_homePulse) _homePulse = setInterval(_homePulseTick, 20000); }
 
+/** v262: the bottom-bar "Dashboard" opens Home, so Home draws its icons in the dashboard pack too (clay, sticker, 3D or same) */
 function renderHome() {
+  var was = _dashCtx;
+  _dashCtx = true;
+  try { _renderHomeInner(); } finally { _dashCtx = was; }
+}
+function _renderHomeInner() {
   var el = document.getElementById("homeContent");
   if (!el || !currentUser) return;
   var me = currentUser.uid, groups = typeof GROUPS_ON !== "undefined" && GROUPS_ON;

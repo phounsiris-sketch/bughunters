@@ -61,7 +61,7 @@ assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "outside the Dashboard the c
 ctx._dashCtx = true; assert.ok(/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the clay pack is used"); ctx.currentDashPack = "same"; assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "pack 'same' follows the chosen style"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
 var dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
 assert.ok(/function _renderDashboard\(\) \{\s*_dashCtx = true;\s*try \{ _renderDashboardInner\(\); \} finally \{ _dashCtx = false; \}/.test(dashSrc), "only the Dashboard render switches the pack on, and always off again");
-assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "icons.js"; }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx = true") < 0; }), "no other page switches it on");
+assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "icons.js" && f !== "home.js"; })   /* v262: Home (the bottom-bar Dashboard) uses the pack too */.every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx = true") < 0; }), "no other page switches it on");
 (["dashPack", "dashPackHint", "dashPackClay", "dashPackSticker", "dashPackSame"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 // dashboard pack "Stickers" (v209)
 assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d", "same"]));
