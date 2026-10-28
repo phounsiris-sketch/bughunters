@@ -338,7 +338,7 @@ function renderHome() {
     tile("vote", 3, t("homeVote"), "showCreatePoll()", "poll", 44) +
     tile("court", 1, t("homeGame"), "createAdHocSession()", "game", 44) +
     tile("manual", 2, t("homeShortScore"), "homeAddScore()", "score", 44) +
-    tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()", "stats", 44) + '</div>';
+    tile("scoreboard", 4, t("homeShortLive"), "showLiveScore()", "live", 44) + '</div>';
 
   // 4. Next game (on top instead while it is being played)
   if (!nextLive) html += nextCard;

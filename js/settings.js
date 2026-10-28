@@ -304,7 +304,12 @@ function _renderSettingsPage() {
       var on = currentDashPack === p[0];
       return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setDashPack(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
         ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(p[0] === "same" ? currentIconTheme : p[0], n, 18); }).join("") + '</span><b>' + t(p[1]) + '</b></button>';
-    }).join("") + '</div>');
+    }).join("") + '</div>' + (currentDashPack === "3d" ? '<div class="settings-label" style="margin:16px 0 4px">' + t("g3dVariant") + '</div><div class="form-hint">' + t("g3dVariantHint") + '</div>' +
+      '<div class="is-grid g3d-var">' + G3D_VARIANTS.map(function (v) {
+        var on = currentG3dVariant === v;
+        return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setG3dVariant(\'' + v + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
+          _svg3d("friends", 40, "", v) + _svg3d("live", 40, "", v) + '</span><b>' + t("g3dVar_" + v) + '</b></button>';
+      }).join("") + '</div>' : ''));
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
