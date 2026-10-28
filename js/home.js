@@ -41,6 +41,12 @@ function _homePlayCard(me) {
 }
 
 /** Spending: this year's total, a small bar per month, my share */
+/** v263: size to ask icon() for on a Home shortcut tile so Clay (drawn at 1.35x) and Sticker (1.4x) end up as big as the 3D object (px); "same" keeps 24 */
+function _tilePackPx(px) {
+  if (currentDashPack === "clay") return Math.round(px / 1.35);
+  if (currentDashPack === "sticker") return Math.round(px / 1.4);
+  return 24;
+}
 function _homeSpendCard() {
   var now = new Date(), y = now.getFullYear(), byMonth = [];
   for (var m = 0; m <= now.getMonth(); m++) byMonth.push([]);
@@ -333,7 +339,7 @@ function _renderHomeInner() {
 
   // 2. Shortcuts and create: see-through glass tiles, one short word each (the page background shows through)
   // px/key: the 3D object (pack "3d", no plate behind it); other packs keep the 24px icon on its box
-  var tile = function (iconName, bx, label, onclick, key, px) { return '<button type="button" class="hg-tile" onclick="' + onclick + '">' + icon3(iconName, px, "bx" + bx, key, 24) + '<span>' + label + '</span></button>'; };
+  var tile = function (iconName, bx, label, onclick, key, px) { return '<button type="button" class="hg-tile" onclick="' + onclick + '">' + icon3(iconName, px, "bx" + bx, key, _tilePackPx(px)) + '<span>' + label + '</span></button>'; };
   var g3 = currentDashPack === "3d" ? " g3d" : "";   // 3D objects stand free: no card behind them
   if (groups) {
     html += '<div class="hg-grid' + g3 + '">' +

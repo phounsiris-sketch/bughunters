@@ -2231,3 +2231,7 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 ## v262: Icon pack applies on Home
 - Bug: since v245 the bottom-bar 'Dashboard' opens Home, but the dashboard pack (clay / sticker / 3D / same) was only applied while the old Dashboard stats page drew (`_dashCtx` in js/dashboard.js). On Home only 3D changed anything, so picking clay, sticker or same looked like it did nothing.
 - Fix: `renderHome` now draws inside `_dashCtx` (restoring the previous value), so `icon()` on Home follows the pack. Settings hint updated (EN + LA). Test: tests/pack-home-v262.test.js.
+
+## v263: Bigger Clay/Sticker tile icons, new Live icon
+- Home shortcut tiles: Clay (drawn at 1.35x the requested size) and Sticker (1.4x) looked small next to the 3D objects (54px / 44px) because tiles asked `icon()` for 24px. New `_tilePackPx(px)` (js/home.js) asks for `px / 1.35` (clay) or `px / 1.4` (sticker), so all three packs show the same visual size; "same" and 3D are unchanged. `.hg-tile .ico-clay/.ico-sticker` get the same -2px top margin as `.ico-3d`.
+- Scoreboard (Live) icon: Clay (`CLAY_ART.scoreboard`) and Sticker (new `STICKER_ART.scoreboard`; before it shared the clay art) were the old 10|2 board. Both now show 7 | 7 with a small pulsing red live dot (original art, same concept as the 3D live icon). Clay = soft blue matte body with white 7s; sticker = dark outline, dark windows with amber 7s, white sticker border from the filter. Test: tests/clay-sticker-v263.test.js.
