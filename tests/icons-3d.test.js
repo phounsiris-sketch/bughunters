@@ -9,15 +9,15 @@ var c = load("3d");
 assert.ok(c.DASH_PACKS.indexOf("3d") >= 0, "pack 3d registered");
 assert.strictEqual(c.currentDashPack, "3d", "saved pack is read");
 assert.strictEqual(load(null).currentDashPack, "clay", "default pack is unchanged (clay)");
-assert.deepStrictEqual(Object.keys(c.ART_3D).sort(), ["calendar", "clock", "court", "friends", "game", "health", "market", "poll", "score", "share", "stats", "training", "trophy", "wallet"], "14 drawings");
+assert.deepStrictEqual(Object.keys(c.ART_3D).sort(), ["calendar", "clock", "court", "game", "health", "market", "poll", "score", "share", "stats", "training", "trophy", "wallet"], "13 fixed drawings (+ Friends and Live in 3 variants, v252)");
 // every mapped name points at a drawing and renders an svg using it
 Object.keys(c.ICON_3D_MAP).forEach(function (n) {
-  var k = c.ICON_3D_MAP[n]; assert.ok(c.ART_3D[k], n + " -> " + k + " has a drawing");
-  var svg = c._svg3d(k, 40); assert.ok(/^<svg[^>]*viewBox="0 0 64 64"/.test(svg) && svg.indexOf('href="#g3d-i-' + k + '"') > 0, n + " renders");
+  var k = c.ICON_3D_MAP[n]; assert.ok(c.ART_3D[k] || c.ART_3D_VAR[k], n + " -> " + k + " has a drawing");
+  var svg = c._svg3d(k, 40); assert.ok(/^<svg[^>]*viewBox="0 0 64 64"/.test(svg) && svg.indexOf('href="#g3d-i-' + k) > 0, n + " renders");
 });
 // iconAs("3d") for the names the app really has: 3D drawing (not plain controls); fallback like clay for the rest
-var expect = { court: "court", users: "friends", user: "friends", polls: "poll", vote: "poll", shuttle: "game", scoreboard: "score", chart: "stats", ranking: "stats", dashboard: "stats", calendar: "calendar", sessions: "calendar", clock: "clock", history: "clock", trophy: "trophy", medal: "trophy", crown: "trophy", wallet: "wallet", bill: "wallet", card: "wallet" };
-Object.keys(expect).forEach(function (n) { var s = c.iconAs("3d", n, 18); assert.ok(s.indexOf('class="si ico-3d"') > 0 && s.indexOf("#g3d-i-" + expect[n] + '"') > 0, n + " -> 3D " + expect[n]); });
+var expect = { court: "court", users: "friends", user: "friends", polls: "poll", vote: "poll", shuttle: "game", scoreboard: "live", chart: "stats", ranking: "stats", dashboard: "stats", calendar: "calendar", sessions: "calendar", clock: "clock", history: "clock", trophy: "trophy", medal: "trophy", crown: "trophy", wallet: "wallet", bill: "wallet", card: "wallet" };
+Object.keys(expect).forEach(function (n) { var s = c.iconAs("3d", n, 18); assert.ok(s.indexOf('class="si ico-3d"') > 0 && s.indexOf("#g3d-i-" + expect[n]) > 0, n + " -> 3D " + expect[n]); });
 assert.ok(/^<svg class="si"/.test(c.iconAs("3d", "share", 18)) && /^<svg class="si"/.test(c.iconAs("3d", "plus", 18)), "controls stay plain line icons");
 assert.ok(/^<svg class="si"/.test(c.iconAs("3d", "trophy", 12)), "tiny inline icons stay plain");
 assert.strictEqual(c.iconAs("3d", "dinner", 18), c.iconAs("clay", "dinner", 18), "names without a drawing fall back exactly like clay");
@@ -45,7 +45,7 @@ var clayIds = (fs.readFileSync("js/icons.js", "utf8").match(/id="(clay[A-Za-z0-9
 assert.ok(!clayIds.some(function (x) { return /g3d/.test(x); }), "no clash with clay / sticker ids");
 var n = 0; c.document = { body: { insertBefore: function () { n++; } }, getElementById: function () { return n ? {} : null; }, createElement: function () { return { setAttribute: function () {}, style: {} }; } };
 vm.runInContext("_svg3d('court', 20); _svg3d('game', 20);", c); assert.strictEqual(n, 1, "defs injected once");
-assert.ok(html.length < 26000, "SVG data stays small (" + html.length + " bytes)");
+assert.ok(html.length < 48000, "SVG data stays small (" + html.length + " bytes)");
 // settings picker lists the pack with a preview and a name in both languages
 var st = fs.readFileSync("js/settings.js", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
 assert.ok(/\["3d", "dashPack3d"\]/.test(st), "picker includes 3d");
