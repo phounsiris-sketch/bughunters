@@ -22,7 +22,19 @@
     var M = [], mk = function (a, b, w, day) { return { id: "m" + M.length, groupId: "g1", date: d(day), sessionId: "s2", teamA: a, teamB: b, games: [w ? { a: 21, b: 14 } : { a: 15, b: 21 }], startAt: Date.now() - 86400000 * -day, endAt: Date.now() - 86400000 * -day + 1500000 }; };
     for (var i = 0; i < 8; i++) M.push(mk(["me", "ton"], ["al", "bo"], i % 3 !== 0, -(i % 6) - 1));
     for (var j = 0; j < 4; j++) M.push(mk(["me", "john"], ["mike", "bo"], j % 2, -j - 2));
-    lastMatches = M; try { _statsCache = null; } catch (e) {}
+    // v247: games with no session, a tournament game (tid) and a singles game, on other days, for the Rankings and All my matches pages
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-9), teamA: ["me", "al"], teamB: ["john", "bo"], games: [{ a: 21, b: 19 }, { a: 17, b: 21 }, { a: 21, b: 18 }] });
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-9), teamA: ["john", "mike"], teamB: ["me", "ton"], games: [{ a: 21, b: 12 }] });
+    M.push({ id: "t:s2:0", groupId: "g1", date: d(-3), sessionId: "s2", tid: "s2", tstage: "rot", teamA: ["me", "mike"], teamB: ["ton", "bo"], games: [{ a: 21, b: 16 }] });
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-12), teamA: ["me"], teamB: ["al"], type: "singles", games: [{ a: 15, b: 21 }] });
+    for (var k = 0; k < 6; k++) M.push({ id: "m" + M.length, groupId: "g1", date: d(-20 - k), teamA: ["ton", "mike"], teamB: ["al", "bo"], games: [{ a: 21, b: 10 + k }] });   // pairs that grow the lists past 7 rows
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-21), teamA: ["john", "al"], teamB: ["ton", "bo"], games: [{ a: 21, b: 17 }] });
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-22), teamA: ["mike", "bo"], teamB: ["me", "al"], games: [{ a: 18, b: 21 }] });
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-23), teamA: ["john", "ton"], teamB: ["mike", "al"], games: [{ a: 21, b: 19 }] });
+    M.push({ id: "m" + M.length, groupId: "g1", date: d(-24), teamA: ["john", "bo"], teamB: ["ton", "al"], games: [{ a: 12, b: 21 }] });
+    M.sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+    lastMatches = M; _matchesReal = M; _matchesUnsub = function () {};   // v247: the stub snapshot would otherwise empty the list on the first Rankings visit
+    try { _statsCache = null; } catch (e) {}
     window.fxStart = function () {}; window.fxStop = function () {};
     var ac = document.getElementById("auth-container"), ap = document.getElementById("app-container"); if (ac) ac.style.display = "none"; if (ap) ap.style.display = "";
     try { hideSplash(); } catch (e) {}
@@ -95,11 +107,12 @@
       if (ix > 6 && iy > 6 && ix * iy > .25 * Math.min(A.width * A.height, B.width * B.height) && !seen["x" + sel(ctl[a]) + sel(ctl[b])]) { seen["x" + sel(ctl[a]) + sel(ctl[b])] = 1; add("overlap", ctl[a], sel(ctl[b])); }
     }
   }
-  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "public", "groups", "group-create", "trash"];
+  var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "matches-all", "public", "groups", "group-create", "trash"];
   var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d"];
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
     if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
+    if (CONFIG.lang) { currentLang = CONFIG.lang; try { applyI18n(); } catch (e) {} }   // "en" | "la": the harness starts in Lao
     if (CONFIG.pre) { try { window.eval(CONFIG.pre); } catch (e) { D.errors.push("pre: " + e.message); } }   // e.g. pfTab="badminton" to open a tab before the render
     var T = themes(); if (CONFIG.themes) T = T.filter(function (x) { return CONFIG.themes.indexOf(x.n) >= 0; }); var ti = 0, ii = 0, pi = 0;
     function step() {

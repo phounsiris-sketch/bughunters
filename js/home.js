@@ -71,18 +71,6 @@ function _homePayCard() {
   return _hsCard("hs-pay", "wallet", t("homePayments"), "showMyPayments()", inner);
 }
 
-/** Badges: how many I have, and which */
-function _homeBadgeCard(me) {
-  var list = badgesFor(me), got = list.filter(function (b) { return b.earned; }).length;
-  var icons = list.slice(0, 5).map(function (b) {
-    return '<span class="hs-badge' + (b.earned ? ' on' : '') + '">' + icon(b.icon, 22) + '</span>';
-  }).join("");
-  var pct = list.length ? Math.round(got / list.length * 100) : 0;
-  return _hsCard("hs-badges", "medal", t("homeBadges"), "showPage('profile')",
-    '<div class="hs-big">' + got + ' <small>' + t("homeEarned").replace("{m}", list.length) + '</small></div>' +
-    '<div class="hs-badge-row">' + icons + '</div><div class="hs-track"><i style="width:' + pct + '%"></i></div>');
-}
-
 /** Rating: my number and how it moved */
 function _homeRatingCard(me) {
   var p = computeStats().players[me];
@@ -329,7 +317,8 @@ function renderHome() {
   var cards = [];
   if (groups) cards.push(_homePlayCard(me));
   cards.push(_homeSpendCard(), _homePayCard());
-  if (groups) cards.push(_homeRatingCard(me), typeof homeHealthCardHtml === "function" ? homeHealthCardHtml() : "", _homeBadgeCard(me));
+  if (groups) cards.push(_homeRatingCard(me), typeof homeHealthCardHtml === "function" ? homeHealthCardHtml() : "");
+  cards = cards.filter(function (c) { return !!c; });   // a card with nothing to show (e.g. Health off) must not get a dot
   html += '<div class="hs-strip" id="homeStrip" onscroll="_homeStripDots()">' + cards.join("") + '</div>' +
     '<div class="hs-dots-nav" id="homeStripDots">' + cards.map(function (c, i) { return '<i class="' + (i === 0 ? 'on' : '') + '"></i>'; }).join("") + '</div>';
 

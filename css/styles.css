@@ -4582,9 +4582,6 @@ body.zone-public .app-header { background: linear-gradient(135deg, #7c3aed, #db2
 
 /* Ranking rows: rank arrow + score change */
 .rk-side { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; min-width: 44px; }
-.rk-chg { font-size: 12px; font-weight: 700; }
-.rk-chg.up { color: #16a34a; } .rk-chg.down { color: #ef4444; }
-.rk-chg.same { color: var(--text-muted); } .rk-chg.new { color: #2563eb; font-size: 12px; letter-spacing: .5px; }
 .rk-side .trend { font-size: 12px; font-weight: 600; }
 
 /* Progress line: hollow Start dot + legend */
@@ -6651,3 +6648,75 @@ body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-sha
 .tn-bdg { position: absolute; top: -9px; right: -11px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; line-height: 1; background: #f59e0b; border: 2px solid var(--card); }
 .tn-s:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
 @media (max-width: 380px) { .tn-c { width: 34px; height: 34px; font-size: 15px; } .tn-li + .tn-li::before { top: 17px; } .tn-s { font-size: 11px; } }
+
+/* ===== v247: Rankings shortened (top 3 + last 3), faded provisional rows, badge button + sheet, All my matches ===== */
+/* Fewer than the minimum games: rating still settling (explained once under the list). Number, picture and name fade;
+   the small line and the change marker keep full colour, because faded small text drops under 3:1 (checked: name >= 4.5:1 at .6, my own name 3.2:1 at .72) */
+.rank-row.prov > :not(.rank-text):not(.rk-side) { opacity: .55; }
+.rank-row.prov .rank-text b { opacity: .6; }
+.rank-row.prov.me .rank-text b { opacity: .72; }
+.rank-gap { text-align: center; color: var(--text-muted); font-size: 13px; padding: 6px 0; letter-spacing: .08em; border-bottom: 1px solid var(--border); }
+.rank-note { margin: 8px 2px 0; }
+.rank-see { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-height: 40px; margin-top: 8px; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip-bg); color: var(--accent); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+[data-theme="light"] .rank-see { color: var(--primary); }
+.h2h-all .period-toggle { justify-content: flex-start; margin: 0 0 6px; flex-wrap: wrap; }
+.h2h-all .period-btn { padding: 7px 11px; min-height: 36px; }
+.rank-row .rk-side { min-width: 48px; }
+
+.how-btn.badge-btn { width: auto; min-width: 28px; padding: 0 9px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: rgba(245, 158, 11, .18); border-color: transparent; color: #fcd34d; font-size: 13px; }
+[data-theme="light"] .how-btn.badge-btn { background: #fef3c7; color: #92400e; }
+.mh-all { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 4px; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+[data-theme="light"] .mh-all { color: var(--primary); }
+.my-hero .form-strip { flex-wrap: wrap; }
+
+.bd-sheet { text-align: left; max-height: 85vh; max-height: 85dvh; overflow-y: auto; }
+.bd-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 16px; }
+.bd-head b { display: inline-flex; align-items: center; gap: 6px; }
+.bd-count { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.bd-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bd-item { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 4px 8px; border-radius: 12px; background: var(--chip-bg); border: 1px solid var(--border); text-align: center; }
+.bd-item.earned { border-color: rgba(245, 158, 11, .55); }
+.bd-ico { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(245, 158, 11, .16); color: #f59e0b; }
+.bd-item.locked .bd-ico { background: var(--surface); color: var(--text-muted); filter: grayscale(1); }
+.bd-name { font-size: 13px; font-weight: 700; line-height: 1.2; color: var(--text); }
+.bd-bar { width: 80%; height: 4px; border-radius: 4px; background: var(--surface); overflow: hidden; }
+.bd-bar i { display: block; height: 100%; background: #f59e0b; border-radius: 4px; }
+.bd-item.locked .bd-bar i { background: var(--text-muted); }
+.bd-prog { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+.ma-filters { display: grid; gap: 10px; }
+.ma-chips { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px; margin: 0; }
+.ma-chips .period-btn { flex: 0 0 auto; padding: 7px 11px; min-height: 36px; }
+.ma-sels { display: flex; flex-wrap: wrap; gap: 6px; }
+.ma-sels > * { flex: 1 1 calc(50% - 6px); min-width: 0; }
+.ma-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; text-align: center; margin: 12px 0; }
+.ma-sum > div { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 2px; min-width: 0; }
+.ma-sum b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+.ma-sum small { font-size: 12px; color: var(--text-muted); }
+.ma-sum .up, .ma-day .up { color: #15803d; } .ma-sum .down, .ma-day .down { color: #dc2626; }
+body:not([data-theme="light"]) .ma-day .up, body:not([data-theme="light"]) .ma-sum .up { color: #4ade80; }
+body:not([data-theme="light"]) .ma-day .down, body:not([data-theme="light"]) .ma-sum .down { color: #f87171; }
+.ma-day { margin-bottom: 12px; }
+.ma-day > summary { list-style: none; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding: 8px 2px; cursor: pointer; font-size: 14px; }
+.ma-day > summary::-webkit-details-marker { display: none; }
+.ma-day > summary > span { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ma-day > summary::before { content: "\25B8"; color: var(--text-muted); transition: transform .15s; }
+.ma-day[open] > summary::before { transform: rotate(90deg); }
+.ma-ses { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); margin-bottom: 8px; }
+.ma-sh { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 10px; background: var(--chip-bg); font-size: 13px; }
+.ma-st { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-weight: 600; }
+.ma-tag { background: rgba(245, 158, 11, .2); color: #b45309; border-radius: 6px; padding: 0 6px; font-weight: 800; font-size: 12px; }
+body:not([data-theme="light"]) .ma-tag { color: #fcd34d; }
+.ma-r { margin-left: auto; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ma-game { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; padding: 8px 10px; border: 0; border-top: 1px solid var(--border); background: none; color: var(--text); font: inherit; font-size: 13px; text-align: left; }
+button.ma-game { cursor: pointer; }
+.ma-game .wl { width: 24px; height: 24px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; }
+.ma-game .wl.w { background: #16a34a; } .ma-game .wl.l { background: #dc2626; }
+.ma-who { display: grid; min-width: 0; }
+.ma-l1, .ma-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ma-l2 { color: var(--text-muted); font-size: 12px; }
+.ma-sc { display: grid; justify-items: end; font-weight: 800; font-variant-numeric: tabular-nums; max-width: 120px; text-align: right; }
+.ma-sc small { font-size: 12px; font-weight: 700; }
+[data-theme="light"] .trend.up { color: #15803d; } [data-theme="light"] .trend.down { color: #b91c1c; }   /* 3:1+ on a white card */
+.mh-tl em.down, .trend.down { color: #f87171; } [data-theme="light"] .mh-tl em.down, [data-theme="light"] .trend.down { color: #b91c1c; }   /* v247: red on a dark card was 2.8:1 */
+[data-theme="light"] .mh-tl em.up { color: #15803d; }

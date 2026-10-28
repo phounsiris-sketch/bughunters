@@ -479,6 +479,8 @@ function _refreshCurrentPageNow(reason) {
     renderStats();
   } else if (currentPage === "public" && /^(courts|restaurants)$/.test(reason) && typeof renderPublic === "function") {
     renderPublic();   // a new / edited court or restaurant shows on the maps
+  } else if (currentPage === "matches-all" && typeof renderMatchesAll === "function") {
+    renderMatchesAll();
   } else if (currentPage === "matches" && typeof renderMatchesPage === "function") {
     renderMatchesPage();
   } else if (currentPage === "session-detail" && reason !== "form" && typeof refreshSessionDetail === "function") {
@@ -513,7 +515,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v246"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v247"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.

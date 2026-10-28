@@ -5,7 +5,7 @@ var ctx = { console: console, GROUPS_ON: true, currentGroupId: "g", currentUser:
   t: function (k) { return { insLineBest: "You win {pct} with {name}.", insLineTough: "Only {pct} with {name}." }[k] || k; }, getUserName: function (u) { return names[u] || u; }, escapeHtml: function (x) { return String(x); }, icon: function () { return ""; },
   _todayIso: function () { return "2026-10-18"; }, avatarHtml: function () { return ""; }, personHtml: function (u) { return "[" + names[u] + "]"; },
   findUser: function () { return {}; }, memberOf: function () { return null; }, normLevel: function (x) { return x || ""; }, levelBadgeHtml: function () { return ""; },
-  badgesHtml: function () { return ""; }, byNameAZ: function (a) { return a; }, fmtDate: function (d) { return d; }, plainUserName: function () { return ""; }, setBreadcrumb: function () {}, refreshCurrentPage: function () {}, document: {}, setTimeout: setTimeout };
+  badgesHtml: function () { return ""; }, byNameAZ: function (a) { return a; }, fmtDate: function (d) { return d; }, plainUserName: function () { return ""; }, setBreadcrumb: function () {}, refreshCurrentPage: function () {}, document: {}, setTimeout: setTimeout, lastSessions: [] };
 ctx.window = ctx; vm.createContext(ctx);
 ["js/stats.js", "js/stats-core.js"].forEach(function (f) { vm.runInContext(fs.readFileSync(f, "utf8"), ctx, { filename: f }); });
 function G(a, b, wins, date) { return { id: date + a.join(""), date: date, teamA: a, teamB: b, games: [wins ? { a: 21, b: 10 } : { a: 10, b: 21 }] }; }
