@@ -6879,3 +6879,10 @@ button.ma-game { cursor: pointer; }
 body:not([data-theme="light"]) .cm-item.danger { color: #f87171; }   /* v260: readable red on dark sheets */
 .cm-sep { height: 1px; background: var(--border); margin: 6px 0; }
 .sheet.ask .sheet-body { white-space: pre-line; }
+
+/* v265: a 3rd place / final game that can be played before the up-next game; the live screen follows the next game */
+.tn-game.open { border-color: var(--tn-curline); border-style: dashed; }
+.tn-any { font-size: 12px; color: var(--text-muted); }
+@keyframes ls-follow-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.live-screen.ls-follow > .ls-half { animation: ls-follow-in .5s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .live-screen.ls-follow > .ls-half { animation: none; } }

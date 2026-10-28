@@ -601,7 +601,7 @@ console.log("tournament v228 ok");
 // ---- v238: the screen: three buttons in one row, the sheet shows photos, asks first ----
 (function () {
   var tn = fs.readFileSync("js/tournament.js", "utf8"), css = fs.readFileSync("css/styles.css", "utf8"), ls = fs.readFileSync("js/livescore.js", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
-  var row = tn.match(/else if \(cur\) h \+= '<div class="tn-gbtns">[^\n]*\n[^\n]*\n[^\n]*/);
+  var row = tn.match(/else if \(cur \|\| open\) h \+= '<div class="tn-gbtns">[^\n]*\n[^\n]*\n[^\n]*/);
   assert.ok(row && /data-act="live"/.test(row[0]) && /data-act="edit"/.test(row[0]) && /data-act="sub"/.test(row[0]), "Live score, Add score and Replace player sit in the same .tn-gbtns row");
   assert.ok(/\.tn-gbtns\{display:flex;gap:6px;flex-wrap:nowrap\}/.test(css), "the row never wraps");
   assert.ok(/tn-pchip[^\n]*avatarHtml\(tourUid\(T, i\), 24\)/.test(tn) && /tn-pick[^\n]*avatarHtml\(tourUid\(T, i\), 28\)/.test(tn), "who cannot play and who steps in show the profile picture");

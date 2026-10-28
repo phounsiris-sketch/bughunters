@@ -646,6 +646,7 @@ function _lsDev() {
 }
 var _liveListUnsub = null, _watchUnsub = null, _watch = null, _shareTimer = null, _shared = false;
 var _shareLast = 0, _syncPendingSince = 0, _syncFailed = false, _hbTimer = null, _watchSeenAt = 0, _syncTick = null;
+var _watchWait = null, _watchWaitTimer = null, LS_FOLLOW_MS = 15 * 60e3;   // v265: the watched game ended and the board is gone: wait this long for the next game of the same session
 var LS_HB_MS = 15000, LS_DELAY_MS = 40000;
 
 /** Publish the running game. The first tap goes out at once; fast taps after it are bundled into one write 250 ms later. */
@@ -694,6 +695,7 @@ function lsSyncUpdate() {
   if (liveMode === "watch") {
     var ago = _watchSeenAt ? Date.now() - _watchSeenAt : 0;
     if (typeof navigator !== "undefined" && navigator.onLine === false) { cls = "bad"; txt = t("lsSyncOffline"); }
+    else if (_watchWait) { txt = ""; }   // v265: waiting for the next game: the phone is not writing, that is normal
     else if (ago > LS_DELAY_MS) { cls = "warn"; txt = t("lsSyncDelayed").replace("{s}", Math.round(ago / 1000)); }
     else { cls = "ok"; txt = t("lsSyncLive"); }
   } else if (live && _shared) {
@@ -742,6 +744,7 @@ function liveWatchStart() {
       if (x.dev !== _lsDev() && !ended && Date.now() - (x.updatedAt || 0) < LIVE_STALE_MS) list.push(x);
     });
     liveNow = list;
+    if (_watchWait) lsFollowFromList();   // v265: the watching screen is waiting for the next game: this listener sees it start (no extra read)
     if (typeof refreshCurrentPage === "function" && currentPage === "home") refreshCurrentPage("live");
   }, function (e) { dbOnError(e, "liveGames"); });
 }
@@ -762,21 +765,79 @@ function liveNowHtml() {
 function lsWatch(id) {
   var g = liveNow.filter(function (x) { return x.id === id; })[0];
   if (!g) return;
-  _watch = g; live = null; liveMode = "watch"; _watchSeenAt = Date.now();
+  _watch = g; live = null; liveMode = "watch"; _watchSeenAt = Date.now(); _lsFollowWaitStop();
   if (_watchUnsub) _watchUnsub();
   _watchUnsub = fsdb.collection("liveGames").doc(id).onSnapshot(function (doc) {
-    if (!doc.exists) { showToast(t("lsEnded")); lsWatchStop(); return; }
+    if (!doc.exists) {
+      // v265: the scorer saved the finished game (the board is removed): stay on the result and wait for the next game of this session
+      if (_watch && _watch.over && liveMode === "watch") { _lsFollowWaitStart(); return; }
+      showToast(t("lsEnded")); lsWatchStop(); return;
+    }
     if (!doc.metadata.fromCache) _watchSeenAt = Date.now();
     var nd = _lsClean(doc.data());
     // An older update that arrives late must not roll the score back
     if (_watch && _watch.id === doc.id && (nd.updatedAt || 0) < (_watch.updatedAt || 0)) { lsSyncUpdate(); return; }
+    var kind = lsFollowKind(_watch, nd);
+    if (kind === "other") { showToast(t("lsEnded")); lsWatchStop(); return; }   // the phone moved on to another session: do not follow it
+    if (kind === "next") { nd.id = doc.id; _lsFollowGo(nd); return; }
     var changed = !_watch || nd.updatedAt !== _watch.updatedAt;
     _watch = nd; _watch.id = doc.id;
     if (liveMode === "watch") { if (changed) lsRender(); else lsSyncUpdate(); }
-  }, function () { lsWatchStop(); });
+  }, function () { if (_watchWait) return; lsWatchStop(); });   // while waiting, the group list listener still sees the next game
   _lsShow();
 }
+
+/* ---- v265: the watching screen follows the next game of the same session ----
+   One phone counts a whole session (liveGames/{hostUid}). When a game ends the board is rewritten (Save and next match) or removed and
+   written again (a tournament game: the phone goes back to the tournament screen and starts the next one). The screen that watches keeps
+   the doc listener it already has and the group list listener of Home; no new listener and no polling. */
+/** What a new board state means for the screen that shows `prev`: "next" = a new game of the same session began, "other" = another session,
+    "update" = the same game moved on, "keep" = nothing to compare */
+function lsFollowKind(prev, nd) {
+  if (!prev || !nd) return "keep";
+  if (prev.sid !== nd.sid) return "other";
+  if (prev.over && !nd.over) return "next";
+  return "update";
+}
+/** "A + B vs C + D" for the toast */
+function lsFollowTeams(g) {
+  var nm = function (u) { return plainUserName(findUser(u)); };
+  return byNameAZ(g.a || []).map(nm).join(" + ") + " vs " + byNameAZ(g.b || []).map(nm).join(" + ");
+}
+function _lsFollowWaitStart() {
+  if (_watchWaitTimer) clearTimeout(_watchWaitTimer);
+  _watchWait = { sid: _watch.sid, id: _watch.id };
+  _watchWaitTimer = setTimeout(function () { _watchWaitTimer = null; if (!_watchWait) return; _watchWait = null; showToast(t("lsEnded")); lsWatchStop(); }, LS_FOLLOW_MS);
+  if (liveMode === "watch") lsRender();
+}
+function _lsFollowWaitStop() {
+  if (_watchWaitTimer) { clearTimeout(_watchWaitTimer); _watchWaitTimer = null; }
+  _watchWait = null;
+}
+/** Switch the watching screen to the new game: short slide-in and a toast */
+function _lsFollowGo(nd) {
+  var id = _watch && _watch.id;
+  _lsFollowWaitStop();
+  _watch = nd; _watch.id = nd.id || id; _watchSeenAt = Date.now();
+  if (liveMode === "watch") {
+    var el = document.getElementById("liveScreen");
+    if (el) { el.classList.add("ls-follow"); setTimeout(function () { el.classList.remove("ls-follow"); }, 800); }
+    lsRender();
+  }
+  showToast(t("lsNextUp").replace("{teams}", lsFollowTeams(nd)));
+}
+/** The group list shows the board of the game being watched again: switch to it when it is a new game of the same session */
+function lsFollowFromList() {
+  if (!_watchWait || !_watch) return;
+  var nd = null;
+  liveNow.forEach(function (x) { if (x.id === _watch.id) nd = x; });
+  if (!nd || (nd.updatedAt || 0) < (_watch.updatedAt || 0)) return;
+  var kind = lsFollowKind(_watch, nd);
+  if (kind === "next") _lsFollowGo(nd);
+  else if (kind === "other") { showToast(t("lsEnded")); lsWatchStop(); }
+}
 function lsWatchStop(quiet) {
+  _lsFollowWaitStop();
   if (_watchUnsub) { _watchUnsub(); _watchUnsub = null; }
   if (_syncTick) { clearInterval(_syncTick); _syncTick = null; }
   _watch = null;
@@ -800,7 +861,7 @@ function _lsWatchHtml() {
   };
   var html = half("A") + half("B") + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
-  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '') + '</span></div>';
+  html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + (_watchWait ? t("lsWaitNext") : t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '')) + '</span></div>';
   if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (g.over) {
     var aft = { A: sw.A + (g.over === "A" ? 1 : 0), B: sw.B + (g.over === "B" ? 1 : 0) }, done = bo > 1 && (aft[g.over] >= (bo === 2 ? 2 : need) || aft.A + aft.B >= bo), drawn = done && aft.A === aft.B;
