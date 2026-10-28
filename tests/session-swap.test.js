@@ -6,7 +6,7 @@ var ctx = { console: console, Math: Math, JSON: JSON, isFinite: isFinite };
 vm.createContext(ctx); vm.runInContext(fs.readFileSync("js/tournament.js", "utf8"), ctx);
 function seeded(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 var U = ["mb", "u1", "u2", "u3", "u4", "u5", "u6", "u7"];
-function fresh(n, seed) { return ctx.tourNew(U.slice(0, n), seeded(seed || 3)); }
+function fresh(n, seed) { return ctx.tourNewV1(U.slice(0, n), seeded(seed || 3)); }
 function play(T, k) { for (var i = 0; i < k; i++) { var g = ctx.tourNext(T); assert.ok(g); ctx.tourApply(T, g, 21, 15); } }
 function onList(g) { var on = ctx.tourOn(g); return on.a.concat(on.b); }
 function uidsIn(T, gi) { var g = ctx.tourAll(T)[gi]; return onList(g).map(function (p) { return ctx.tourUid(T, p, gi); }); }

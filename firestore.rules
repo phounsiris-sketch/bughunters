@@ -109,7 +109,7 @@ service cloud.firestore {
     function hofOk(d) {
       return d.keys().hasOnly(['v', 'sid', 'gid', 'date', 'n', 'champion', 'runnerUp', 'third', 'finalScore', 'finalGames', 'outs', 'createdBy', 'createdAt'])
         && d.sid is string && d.sid.size() <= 80 && d.get('date', '') is string && d.get('date', '').size() <= 10
-        && d.n in [6, 8] && d.champion is map && hofTeamOk(d.champion) && hofTeamOk(d.get('runnerUp', null)) && hofTeamOk(d.get('third', null))
+        && d.n is int && d.n >= 4 && d.n <= 20 && d.champion is map && hofTeamOk(d.champion) && hofTeamOk(d.get('runnerUp', null)) && hofTeamOk(d.get('third', null))
         && d.get('finalScore', '') is string && d.get('finalScore', '').size() <= 8
         && d.get('finalGames', []) is list && d.get('finalGames', []).size() <= 3
         && d.get('outs', []) is list && d.get('outs', []).size() <= 4

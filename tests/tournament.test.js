@@ -15,7 +15,7 @@ function pairKey(a, b) { return a < b ? a + "-" + b : b + "-" + a; }
 [6, 8].forEach(function (n) {
   var G = n === 8 ? 6 : 9, per = G * 4 / n;
   for (var seed = 1; seed <= 40; seed++) {
-    var T = ctx.tourNew(uids(n), seeded(seed));
+    var T = ctx.tourNewV1(uids(n), seeded(seed));
     assert.strictEqual(T.games.length, G, n + " players play " + G + " rotation games");
     var plays = {}, partners = {};
     T.games.forEach(function (g) {
@@ -38,8 +38,8 @@ function pairKey(a, b) { return a < b ? a + "-" + b : b + "-" + a; }
     assert.strictEqual(J(T.coin.slice().sort()), J(uids(n).map(function (u, i) { return i; })), "the coin is a full shuffle");
   }
 });
-assert.strictEqual(ctx.tourNew(uids(8), seeded(5)).ids.length, 8);
-assert.ok(ctx.tourSizeOk(6) && ctx.tourSizeOk(8) && !ctx.tourSizeOk(7) && !ctx.tourSizeOk(4));
+assert.strictEqual(ctx.tourNewV1(uids(8), seeded(5)).ids.length, 8);
+assert.ok(ctx.tourSizeOk(6) && ctx.tourSizeOk(8) && ctx.tourSizeOk(7) && ctx.tourSizeOk(4) && !ctx.tourSizeOk(3) && !ctx.tourSizeOk(21));   // v249: 4–20
 
 // ---- 2. scores ----
 assert.ok(ctx.tourScoreOk(21, 15) && ctx.tourScoreOk(30, 29) && ctx.tourScoreOk(0, 1));
@@ -71,7 +71,7 @@ function playRotation(T, fn) { while (!ctx.tourRotDone(T)) playNext(T, fn); }
 
 // ---- 4. best with worst ----
 (function () {
-  var T = ctx.tourNew(uids(8), seeded(11));
+  var T = ctx.tourNewV1(uids(8), seeded(11));
   // make player k win more the lower k is: team with the lower total index wins
   playRotation(T, function (g) { var sa = g.a[0] + g.a[1], sb = g.b[0] + g.b[1]; return sa < sb ? [21, 10] : [10, 21]; });
   var rank = ctx.tourStats(T).map(function (x) { return x.id; });
@@ -80,14 +80,14 @@ function playRotation(T, fn) { while (!ctx.tourRotDone(T)) playNext(T, fn); }
   assert.strictEqual(J(sets), J(want), "pairs are #1+#8, #2+#7, #3+#6, #4+#5");
   assert.strictEqual(P.length, 4);
   assert.ok(P.every(function (p, i) { return p.seed === i + 1; }) && P.every(function (p, i) { return i === 0 || P[i - 1].diff >= p.diff; }), "seeded by combined point diff");
-  var T6 = ctx.tourNew(uids(6), seeded(3)); playRotation(T6);
+  var T6 = ctx.tourNewV1(uids(6), seeded(3)); playRotation(T6);
   var r6 = ctx.tourStats(T6).map(function (x) { return x.id; });
   assert.strictEqual(J(ctx.tourPairs(T6).map(function (p) { return p.m.slice().sort().join("-"); }).sort()), J([0, 1, 2].map(function (k) { return [r6[k], r6[5 - k]].sort().join("-"); }).sort()), "6 players: #1+#6, #2+#5, #3+#4");
 })();
 
 // ---- 5. 8 players: draw, semis, 3rd place, best of 3 final ----
 function eightToSemis(seed) {
-  var T = ctx.tourNew(uids(8), seeded(seed));
+  var T = ctx.tourNewV1(uids(8), seeded(seed));
   playRotation(T, function (g, t) { var x = g.a[0] + g.a[1] + g.b[0]; return x % 2 ? [21, 12 + (x % 5)] : [13 + (x % 6), 21]; });
   assert.strictEqual(ctx.tourPhase(T), 1);
   assert.strictEqual(T.po.length, 0, "no playoff before the draw");
@@ -137,7 +137,7 @@ function eightToSemis(seed) {
 
 // ---- 6. 6 players: draw pairs, round robin ----
 (function () {
-  var T = ctx.tourNew(uids(6), seeded(8));
+  var T = ctx.tourNewV1(uids(6), seeded(8));
   playRotation(T);
   assert.strictEqual(ctx.tourPhase(T), 1);
   assert.ok(ctx.tourDraw(T, seeded(9)));
@@ -150,7 +150,7 @@ function eightToSemis(seed) {
   assert.ok(ctx.tourComplete(T) && ctx.tourAll(T).length === 12, "9 + 3 games");
   assert.strictEqual(J(ctx.tourOrder(T)), J([0, 1, 2]));
   // a 3-way tie in wins: point diff, then the game between two
-  var U = ctx.tourNew(uids(6), seeded(8)); playRotation(U); ctx.tourDraw(U, seeded(1));
+  var U = ctx.tourNewV1(uids(6), seeded(8)); playRotation(U); ctx.tourDraw(U, seeded(1));
   U.po.forEach(function (g) { delete g.sa; });
   var pc = {}; U.po.forEach(function (g) { pc[g.lab] = g; });
   ctx.tourApply(U, pc.R1, 21, 19); ctx.tourApply(U, pc.R2, 19, 21); ctx.tourApply(U, pc.R3, 21, 19);   // 0>1, 2>0, 1>2: everyone 1-1
@@ -253,7 +253,7 @@ function eightToSemis(seed) {
   click("save"); assert.ok(sess.tourney.games.filter(function (g) { return g.sa !== null; }).length === 1, "the up-next game got its score");
   while (!ctx.tourRotDone(sess.tourney)) { var g = ctx.tourNext(sess.tourney); ctx.tourApply(sess.tourney, g, 21, 10); }
   c2.tourRender();
-  assert.ok(/tourBtnSemi/.test(rd()) && /tourDrawHint/.test(rd()), "after the rotation the button is the semifinal draw");
+  assert.ok(/tourBtnMake/.test(rd()) && /tourDrawHint/.test(rd()), "after the mix games the button makes the pairs (v249: semis follow the table)");
   click("stage");
   assert.ok(sess.tourney.drawn && sess.tourney.po.length === 2 && /tourBracketTitle/.test(rd()), "the draw builds the bracket");
   while (ctx.tourNext(sess.tourney)) { var g2 = ctx.tourNext(sess.tourney); ctx.tourApply(sess.tourney, g2, 21, 15); }
@@ -305,7 +305,7 @@ console.log("tournament OK");
    v228: a pair that is out (walkovers), and tournament games as stats records
    ============================================================ */
 function playRot(T) { T.games.forEach(function (g, i) { ctx.tourApply(T, g, 21, 10 + (i % 7)); }); }
-function drawn(n, seed) { var T = ctx.tourNew(uids(n), seeded(seed)); playRot(T); ctx.tourDraw(T, seeded(seed + 100)); return T; }
+function drawn(n, seed) { var T = ctx.tourNewV1(uids(n), seeded(seed)); playRot(T); ctx.tourDraw(T, seeded(seed + 100)); return T; }
 function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
 
 // ---- 8 players: a semifinal pair is out -> walkover, the rest of the bracket carries on ----
@@ -415,7 +415,7 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
 
 // ---- cannot mark out before the draw, nor after the end ----
 (function () {
-  var T = ctx.tourNew(uids(8), seeded(5)); assert.strictEqual(ctx.tourMarkOut(T, 0, "injury"), false, "before the pairs are drawn: no");
+  var T = ctx.tourNewV1(uids(8), seeded(5)); assert.strictEqual(ctx.tourMarkOut(T, 0, "injury"), false, "before the pairs are drawn: no");
   playRot(T); assert.strictEqual(ctx.tourMarkOut(T, 0, "injury"), false, "rotation done but not drawn: no");
   var U = drawn(8, 41); play(U, U.po[0], 21, 5); play(U, U.po[1], 21, 5); play(U, U.po[2], 21, 5); play(U, ctx.tourFinals(U)[0], 21, 5); play(U, ctx.tourFinals(U)[1], 21, 5);
   assert.ok(ctx.tourComplete(U)); assert.strictEqual(ctx.tourMarkOut(U, 0, "injury"), false, "finished: no");
@@ -481,7 +481,7 @@ function play(T, g, a, b) { ctx.tourApply(T, g, a, b); }
 })();
 // ---- v237: what each step tab shows ----
 (function () {
-  var T = ctx.tourNew(uids(8), seeded(9));
+  var T = ctx.tourNewV1(uids(8), seeded(9));
   assert.strictEqual(J(ctx.tourTabParts(T, 0)), J(["rule", "hint", "rot", "meet", "rest", "stand"]));
   assert.strictEqual(J(ctx.tourTabParts(T, 1)), J(["sum", "stand", "pairs", "drawsec"]), "before the draw: summary and the draw");
   assert.strictEqual(J(ctx.tourTabParts(T, 2)), J(["bracket", "po"]));
@@ -499,7 +499,7 @@ console.log("tournament v228 ok");
 (function () {
   function onList(g) { var o = ctx.tourOn(g); return o.a.concat(o.b); }
   // ---- eligibility: never someone on court, never someone out ----
-  var T = ctx.tourNew(uids(6), seeded(61));
+  var T = ctx.tourNewV1(uids(6), seeded(61));
   playNext(T); playNext(T); playNext(T);   // games 1-3 played
   var gi = 3, g = T.games[gi], from = g.a[0], on = onList(g);
   var el = ctx.tourEligible(T, g, from);
@@ -531,7 +531,7 @@ console.log("tournament v228 ok");
   var ms = ctx.tourMatches({ id: "S", tourney: T, date: "2026-10-26" }, "G"), m = ms.filter(function (x) { return x.id === "t:S:" + gi; })[0];
   assert.ok(m.teamA.concat(m.teamB).indexOf("u" + to) >= 0 && m.teamA.concat(m.teamB).indexOf("u" + from) < 0, "Rankings and Elo: the stand-in played it");
   // ---- all games left: every later game of the hurt player gets a stand-in ----
-  var U = ctx.tourNew(uids(6), seeded(67)); playNext(U);
+  var U = ctx.tourNewV1(uids(6), seeded(67)); playNext(U);
   var g1 = ctx.tourNext(U), gi1 = ctx.tourAll(U).indexOf(g1), h = g1.b[1], e1 = ctx.tourEligible(U, g1, h);
   assert.ok(ctx.tourSub(U, gi1, h, e1[0], "injury", "", true, nm), "replace for all games left");
   assert.strictEqual(U.hurt.length, 1); assert.strictEqual(U.hurt[0].i, h);
@@ -551,7 +551,7 @@ console.log("tournament v228 ok");
   open.forEach(function (x) { assert.ok(!(x.subs || []).some(function (sb) { return sb.from === h; })); });
   assert.strictEqual(ctx.tourBackIn(U, h, nm), false, "not out: nothing to undo");
   // ---- nobody free: walkover ----
-  var V = ctx.tourNew(uids(6), seeded(71)), vg = V.games[0], vrest = [0, 1, 2, 3, 4, 5].filter(function (i) { return onList(vg).indexOf(i) < 0; });
+  var V = ctx.tourNewV1(uids(6), seeded(71)), vg = V.games[0], vrest = [0, 1, 2, 3, 4, 5].filter(function (i) { return onList(vg).indexOf(i) < 0; });
   V.hurt = vrest.map(function (i) { return { i: i, why: "left", note: "" }; });   // both resting players already left
   var vh = vg.a[0];
   assert.strictEqual(ctx.tourEligible(V, vg, vh).length, 0, "nobody free");
@@ -562,9 +562,9 @@ console.log("tournament v228 ok");
   var vs = ctx.tourStats(V), vp = vs.filter(function (x) { return x.id === vh; })[0];
   assert.strictEqual(vp.p, 0, "the hurt player gets no game for the walkover");
   assert.strictEqual(ctx.tourMatches({ id: "V", tourney: V }, "G").length, 0, "walkovers are not stats games");
-  var W = ctx.tourNew(uids(6), seeded(73)); assert.strictEqual(ctx.tourSub(W, 0, W.games[0].a[0], -1, "injury", "", false, nm), false, "no walkover while someone is free");
+  var W = ctx.tourNewV1(uids(6), seeded(73)); assert.strictEqual(ctx.tourSub(W, 0, W.games[0].a[0], -1, "injury", "", false, nm), false, "no walkover while someone is free");
   // ---- old data without subs or hurt stays valid ----
-  var old = ctx.tourNew(uids(8), seeded(79)); delete old.out; playRot(old);
+  var old = ctx.tourNewV1(uids(8), seeded(79)); delete old.out; playRot(old);
   assert.ok(ctx.tourOf({ tourney: old }), "no hurt / subs fields: still a tournament");
   assert.doesNotThrow(function () { ctx.tourStats(old); ctx.tourDraw(old, seeded(2)); ctx.tourMatches({ id: "o", tourney: old }); });
   // ---- 8 players: a semi stand-in comes from the other semi ----
@@ -577,7 +577,7 @@ console.log("tournament v228 ok");
 
 // ---- v238: mid-game in live score: the stand-in finishes, the whole game counts for them ----
 (function () {
-  var T = ctx.tourNew(uids(6), seeded(89)); playNext(T);
+  var T = ctx.tourNewV1(uids(6), seeded(89)); playNext(T);
   var g = ctx.tourNext(T), gi = ctx.tourAll(T).indexOf(g), id = function (p) { return T.ids[p]; };
   var a = g.a.map(id), b = g.b.map(id), restP = [0, 1, 2, 3, 4, 5].filter(function (i) { return g.a.indexOf(i) < 0 && g.b.indexOf(i) < 0; });
   var hurtU = a[1], subU = id(restP[0]);
@@ -627,7 +627,7 @@ console.log("tournament v228 ok");
     askYes: function (msg, yes, o) { c4.__ask = o || {}; c4.__yes = yes; }, askConfirm: function (o, yes) { c4.__ask = o; c4.__yes = yes; }
   };
   vm.createContext(c4); vm.runInContext(src, c4);
-  sess.tourney = c4.tourNew(uids(6), seeded(97));
+  sess.tourney = c4.tourNewV1(uids(6), seeded(97));
   var T = sess.tourney; c4.tourApply(T, T.games[0], 21, 10);
   c4._tnOpen("s1");
   var h = els.tnBody.innerHTML, cur = c4.tourNext(T), gi = c4.tourAll(T).indexOf(cur);
