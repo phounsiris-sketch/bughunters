@@ -150,6 +150,26 @@ function hofSave(s) {
   });
 }
 
+/** v268: clearing a tournament takes its Hall of Fame record with it. Resolves with the record (for Undo) or null when there is none; rejects when the rules refuse the delete. */
+function hofTake(sid) {
+  if (typeof GROUPS_ON === "undefined" || !GROUPS_ON || !currentGroupId || typeof fsdb === "undefined") return Promise.resolve(null);
+  hofLocalDrop(currentGroupId, sid); delete _hofSaved[sid];   // a copy kept on this phone must not bring it back
+  var ref = _hofCol().doc(sid);
+  return ref.get().then(function (d) {
+    if (!d.exists) return null;
+    var rec = Object.assign({}, d.data(), { sid: d.id });
+    return ref.delete().then(function () { return rec; });
+  });
+}
+/** v268: Undo of a clear: write the record back with the same id and the same data. Never rejects; resolves true when it is back. */
+function hofRestore(rec) {
+  if (!rec || !rec.sid || typeof GROUPS_ON === "undefined" || !GROUPS_ON || !currentGroupId || typeof fsdb === "undefined") return Promise.resolve(false);
+  return _hofCol().doc(rec.sid).set(rec).then(function () {
+    _hofSaved[rec.sid] = JSON.stringify([rec.champion, rec.runnerUp, rec.third, rec.finalScore, rec.finalGames, rec.outs, rec.date]);   // same signature as hofSave: it will not rewrite it with another createdBy
+    return true;
+  }, function () { return false; });
+}
+
 function _hofCanRemove(r) { return r.src === "stored" && typeof currentUser !== "undefined" && currentUser && ((typeof isGroupAdminMe === "function" && isGroupAdminMe()) || r.createdBy === currentUser.uid); }
 
 function hofRemove(sid) {
