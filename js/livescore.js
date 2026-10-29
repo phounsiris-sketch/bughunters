@@ -610,7 +610,7 @@ function lsSaveGame(next) {
       showToast(t("gameSaved") + " ✔");
       if (tour && typeof tourFromLive === "function") {   // v236: a tournament game goes back to the tournament screen
         live = null; lsSave(); liveMode = "count"; lsClose();
-        tourFromLive(tour, a, b, la, lb);
+        tourFromLive(tour, a, b, la, lb, win);
         return;
       }
       if (!live) return;

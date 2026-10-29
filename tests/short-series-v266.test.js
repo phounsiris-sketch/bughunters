@@ -124,7 +124,7 @@ assert.ok(html.indexOf('data-act="rm"') > 0 && html.indexOf("Remove this match")
 assert.ok(ctx._tnGame(T8, byLab(T8, "T1"), 1, false, "x", true).indexOf('data-act="rm"') < 0, "game 1 card has not");
 assert.ok(ctx._tnGame(T8, byLab(T8, "T2"), 1, false, "x", false).indexOf('data-act="rm"') < 0, "a viewer does not");
 var box0 = ctx._tnSeriesBox(T8, "th", false, true);
-assert.ok(box0.indexOf('data-act="short"') > 0 && box0.indexOf("3rd place · best of 3") > 0 && box0.indexOf("tn-onetag") < 0);
+assert.ok(box0.indexOf('data-act="fmt"') > 0 && box0.indexOf("3rd place · best of 3") > 0 && box0.indexOf("tn-fmt") > 0);
 asked.length = 0; puts.length = 0;
 ctx.tourAskRemove(s8, gi8);
 assert.strictEqual(asked.length, 1, "asks first (askConfirm)");
@@ -138,9 +138,9 @@ assert.strictEqual(labs(s8.tourney), "S1,S2,T1,F1");
 assert.strictEqual(puts.length, 1); assert.deepStrictEqual(Object.keys(puts[0].patch), ["tourney"]); assert.deepStrictEqual(JSON.parse(JSON.stringify(puts[0].patch.tourney.bo)), { th: 1 });
 assert.strictEqual(ctx.tourMatches(s8).length, mBefore - 1);
 var box1 = ctx._tnSeriesBox(s8.tourney, "th", false, true);
-assert.ok(box1.indexOf("3rd place · 1 match") > 0 && box1.indexOf("tn-onetag") > 0 && box1.indexOf("1 match decides") > 0, "tag on the series");
+assert.ok(box1.indexOf("3rd place · 1 match") > 0 && box1.indexOf("tn-fmt") > 0 && box1.indexOf("1 match decides") > 0, "format on the series");
 assert.strictEqual((box1.match(/tn-pip/g) || []).length, 2, "one pip per side");
-assert.ok(box1.indexOf('data-act="long"') > 0 && box1.indexOf('data-act="short"') < 0);
+assert.ok(box1.indexOf('data-act="fmt"') > 0 && box1.indexOf('data-act="long"') < 0);   // v270: one chip instead of two buttons
 // Undo brings the whole tournament back (game 2 and 3 with the scores)
 ctx.tourUndoShorten(s8);
 assert.strictEqual(labs(s8.tourney), "S1,S2,T1,T2,T3,F1"); assert.ok(!s8.tourney.bo);
@@ -151,8 +151,7 @@ asked.length = 0; ctx.tourAskRemove(s8, gi8); asked[0].yes();
 ctx._tnPut(s8); ctx.tourUndoShorten(s8); assert.strictEqual(s8.tourney.bo.th, 1, "no undo after a later save");
 
 // ---- 9. strings: EN and LA have every new key ----
-var keys = ["tourRmGame", "tourRmTitle", "tourRmBody", "tourRmYes", "tourRmDone", "tourBo1Btn", "tourBo1Title", "tourBo1Body", "tourBo1Loses", "tourBo1Yes", "tourBo1Done",
-  "tourBo3Back", "tourBo3Title", "tourBo3Body", "tourBo3Yes", "tourBo3Done", "tourOneTag", "tourFirstTo1", "tourThirdBo1", "tourFinalBo1", "tourSerFinal", "tourSerThird", "tourUndone"];
+var keys = ["tourRmGame", "tourRmTitle", "tourRmBody", "tourRmYes", "tourRmDone", "tourFirstTo1", "tourThirdBo1", "tourFinalBo1", "tourSerFinal", "tourSerThird", "tourUndone"];   // v270: the Decide-by-1 / Back-to-best-of-3 buttons became the format chip (series-format-v270 checks those strings)
 var src = fs.readFileSync("js/i18n.js", "utf8");
 keys.forEach(function (k) { assert.strictEqual((src.match(new RegExp("^\\s*" + k + ":", "gm")) || []).length, 2, k + " in EN and LA"); });
 console.log("short-series-v266: ok");
