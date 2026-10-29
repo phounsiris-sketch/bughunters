@@ -29,6 +29,7 @@ function hofRecord(s, gid, nameOf, me) {
   if (tourKind(T) !== "rr") {   // v249: a final (top 4 or top 8); a round robin (top 6) has none
     var fs = tourFinals(T), w = tourFinalWins(T), champIsA = fs.length && order[0] === fs[0].pa;
     rec.finalScore = (champIsA ? w.wa : w.wb) + "–" + (champIsA ? w.wb : w.wa);
+    if (w.wa === w.wb) { var pt = tourSerPoints(T, "fin"); rec.finalScore = (champIsA ? pt.pa : pt.pb) + "–" + (champIsA ? pt.pb : pt.pa); }   // v270: 1–1 decided by the total points: the points are the score
     rec.finalGames = fs.slice(0, 3).map(function (g) { return g.v ? "-" : g.wo ? "W/O" : (champIsA ? g.sa + "–" + g.sb : g.sb + "–" + g.sa); });
   } else {
     var row = tourPairTable(T).filter(function (x) { return x.i === order[0]; })[0];

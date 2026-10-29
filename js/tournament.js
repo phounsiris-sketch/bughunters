@@ -49,11 +49,15 @@ function tourKind(T) { var q = tourQ(T); return q === 4 ? "final" : q === 6 ? "r
 /** Rotation (mix) games of a new tournament; kept for format 1 sessions in tests: 6 -> 9, 8 -> 6 */
 function tourRounds(n) { return tourSizeOk(n) ? tourMixGames(n) : 0; }
 
-/** Pure estimate at `per` minutes a game (default TOUR_MIN_PER_GAME). Playoff games: final bo3 2–3, round robin 3, bracket 2 semis + 3rd bo3 + final bo3. */
-function tourEstimate(n, per) {
+/** v270: matches a series of format f needs: 1 match = 1, 2 matches (points decide) = 2–3 (a 3rd only when the points are equal), best of 3 = 2–3 */
+function _tourSerRange(f) { return f === 1 ? [1, 1] : [2, 3]; }
+/** Pure estimate at `per` minutes a match (default TOUR_MIN_PER_GAME). Playoff matches: final series, round robin 3, bracket 2 semis + 3rd series + final series.
+    T (optional) = the tournament, for the format of each series (T.bo); without it every series is best of 3. */
+function tourEstimate(n, per, T) {
   per = per || TOUR_MIN_PER_GAME;
   var q = tourPlayoffSize(n), kind = q === 4 ? "final" : q === 6 ? "rr" : "bracket", mix = tourMixGames(n);
-  var po = kind === "final" ? [2, 3] : kind === "rr" ? [3, 3] : [6, 8];
+  var fr = _tourSerRange(tourSerFmt(T, "fin")), tr = _tourSerRange(tourSerFmt(T, "th"));
+  var po = kind === "final" ? fr : kind === "rr" ? [3, 3] : [2 + tr[0] + fr[0], 2 + tr[1] + fr[1]];
   return { n: n, k: tourK(n), mix: mix, rest: n - 4, q: q, kind: kind, poMin: po[0], poMax: po[1], minGames: mix + po[0], maxGames: mix + po[1], minMin: (mix + po[0]) * per, maxMin: (mix + po[1]) * per, per: per };
 }
 /** 135 -> "2h15", 120 -> "2h00" (pad) or "2h" (no pad) */
@@ -65,8 +69,45 @@ function tourFmtDur(min, pad) {
 function tourEstimateText(e) { return e.minMin === e.maxMin ? tourFmtDur(e.minMin, true) : tourFmtDur(e.minMin, true) + "\u2013" + tourFmtDur(e.maxMin, true); }
 /** Games a tournament has in all, { min, max }: used for "game k of m" and the progress bar */
 function tourTotals(T) {
-  if (tourFmt(T) === 2) { var e = tourEstimate(T.n); return { min: e.minGames, max: e.maxGames }; }
+  if (tourFmt(T) === 2) { var e = tourEstimate(T.n, 0, T); return { min: e.minGames, max: e.maxGames }; }
   return T.n === 8 ? { min: 11, max: 12 } : { min: 12, max: 12 };
+}
+/* ---- v270: minutes per match come from the matches played: 15 until one real duration is known, then the average of the real ones ---- */
+var TOUR_REAL_MIN = 3, TOUR_REAL_MAX = 60;   // a played match shorter / longer than this (minutes) is an outlier (a forgotten stop, a restarted board) and is ignored
+/** minutes between two timestamps (ms) when they make a believable match, else 0 */
+function _tourSpanMin(t0, t1) {
+  if (typeof t0 !== "number" || typeof t1 !== "number" || !isFinite(t0) || !isFinite(t1)) return 0;
+  var m = (t1 - t0) / 60000;
+  return m >= TOUR_REAL_MIN && m <= TOUR_REAL_MAX ? m : 0;
+}
+/** Real minutes of every played match of a session tournament, in match order (matches without timing and outliers are left out).
+    A match scored on the live board carries g.t0 / g.t1 (first point, save) since v270; older ones fall back to the saved match document
+    (startAt / endAt in `real` = the matches/ list), a score typed in by hand has neither and is ignored. */
+function tourRealMinutes(s, real) {
+  var T = tourOf(s), out = [];
+  if (!T) return out;
+  var docs = {}, recs = {};
+  (real || []).forEach(function (m) { if (m && !m.tid && m.sessionId === s.id && m.startAt && m.endAt && m.teamA && m.teamB && m.games && m.games[0]) docs[_tourMKey(m)] = m; });
+  tourMatches(s).forEach(function (m) { recs[m.id] = m; });
+  tourAll(T).forEach(function (g, i) {
+    if (!tourDone(g) || g.wo || g.v) return;
+    var m = _tourSpanMin(g.t0, g.t1);
+    if (!m) { var r = recs["t:" + s.id + ":" + i], d = r && docs[_tourMKey(r)]; if (d) m = _tourSpanMin(d.startAt, d.endAt); }
+    if (m) out.push(m);
+  });
+  return out;
+}
+/** { per, auto, n }: minutes per match for the estimate, whether it comes from played matches, and how many */
+function tourPerMatch(s, real) {
+  var m = tourRealMinutes(s, real);
+  if (!m.length) return { per: TOUR_MIN_PER_GAME, auto: false, n: 0 };
+  var sum = 0; m.forEach(function (x) { sum += x; });
+  return { per: Math.max(1, Math.round(sum / m.length)), auto: true, n: m.length };
+}
+/** Minutes left (min..max) from the matches still to play at `per` minutes each */
+function tourTimeLeft(T, per) {
+  var tt = tourTotals(T), played = tourAll(T).filter(tourDone).length;
+  return { minMin: Math.max(0, tt.min - played) * per, maxMin: Math.max(0, tt.max - played) * per };
 }
 /** Booked minutes of a session (duration is in hours), 0 when unknown */
 function tourBookedMin(s) { var d = s && +s.duration; return d > 0 ? Math.round(d * 60) : 0; }
@@ -303,9 +344,38 @@ function tourFinals(T) { return T.po.filter(function (g) { return g.fin; }); }
 function tourThirds(T) { return T.po.filter(function (g) { return g.th; }); }
 function _tourSer(T, key) { return T.po.filter(function (g) { return g[key]; }); }
 function _tourSerWins(T, key) { var wa = 0, wb = 0; _tourSer(T, key).forEach(function (g) { if (tourDone(g) && !g.v) { if (g.sa > g.sb) wa++; else wb++; } }); return { wa: wa, wb: wb }; }
-/** v266: wins that decide a series: 2 (best of 3, the default) or 1 when the organiser shortened it (T.bo = { th: 1 } and / or { fin: 1 }) */
-function tourSerNeed(T, key) { return T && T.bo && T.bo[key] === 1 ? 1 : 2; }
-function _tourSerDecided(T, key) { var f = _tourSer(T, key); if (f.length && f[0].v) return true; var w = _tourSerWins(T, key), n = tourSerNeed(T, key); return w.wa >= n || w.wb >= n; }
+/** v270: the format of a series: 1 = one match, 2 = two matches (points decide), 3 = best of 3 (the default, also when nothing is stored).
+    T.bo = { th: 1|2|3, fi: 1|2|3 } (v266 stored { th: 1 } and, for the final, { fin: 1 }: still read). Anything else = 3. */
+function _tourBoKey(key) { return key === "fin" ? "fi" : key; }
+function tourSerFmt(T, key) {
+  var b = T && T.bo && typeof T.bo === "object" ? T.bo : null, v = b ? b[_tourBoKey(key)] : undefined;
+  if (v === undefined && b && key === "fin") v = b.fin;
+  return v === 1 || v === 2 ? v : 3;
+}
+/** wins that decide a series (also the cap of the points rule): 1 for one match, else 2 */
+function tourSerNeed(T, key) { return tourSerFmt(T, key) === 1 ? 1 : 2; }
+/** total points of each side over the played matches of a series (a walkover counts as played: its 21–0 is in the totals) */
+function tourSerPoints(T, key) { var pa = 0, pb = 0; _tourSer(T, key).forEach(function (g) { if (tourDone(g) && !g.v) { pa += g.sa; pb += g.sb; } }); return { pa: pa, pb: pb }; }
+/** does a series of format fmt stop after these results (wins, points)? 2–0 or 2–1: yes. 1–1: format 3 plays match 3; format 2 stops when the points differ (match 3 only when equal). */
+function _tourSerStop(fmt, wa, wb, pa, pb) {
+  if (fmt === 1) return wa + wb >= 1;
+  if (wa >= 2 || wb >= 2) return true;
+  return fmt === 2 && wa + wb >= 2 && pa !== pb;
+}
+function _tourSerDecided(T, key) {
+  var f = _tourSer(T, key); if (f.length && f[0].v) return true;
+  var w = _tourSerWins(T, key), p = tourSerPoints(T, key);
+  return _tourSerStop(tourSerFmt(T, key), w.wa, w.wb, p.pa, p.pb);
+}
+/** "a" / "b" = the side that wins the series, "" = not decided (or void). Equal wins (1–1, format 2) = the higher total points. */
+function tourSerWinner(T, key) {
+  var f = _tourSer(T, key);
+  if (!f.length || f[0].v || !_tourSerDecided(T, key)) return "";
+  var w = _tourSerWins(T, key);
+  if (w.wa !== w.wb) return w.wa > w.wb ? "a" : "b";
+  var p = tourSerPoints(T, key);
+  return p.pa > p.pb ? "a" : "b";
+}
 function tourFinalWins(T) { return _tourSerWins(T, "fin"); }
 function tourFinalDecided(T) { return _tourSerDecided(T, "fin"); }
 function tourThirdWins(T) { return _tourSerWins(T, "th"); }
@@ -316,15 +386,16 @@ function _tourL(g) { return g.v ? -1 : (g.sa > g.sb ? g.pb : g.pa); }
 function _tourSide(P, x) { return x >= 0 && P[x] ? P[x].m : []; }
 /** The out mark of a pair (seed - 1), or null */
 function tourOutOf(T, p) { var o = T.out || []; for (var i = 0; i < o.length; i++) if (o[i].p === p) return o[i]; return null; }
-/** How many games of a best-of-3 series the current results need (the series ends at 2 wins) */
+/** How many matches of a series the current results need (v270: the format decides when it ends) */
 function _tourSerKeep(T, key) {
-  var f = _tourSer(T, key), wa = 0, wb = 0, keep = 0;
+  var f = _tourSer(T, key), fmt = tourSerFmt(T, key), wa = 0, wb = 0, pa = 0, pb = 0, keep = 0;
   for (var i = 0; i < f.length; i++) {
-    if (wa >= tourSerNeed(T, key) || wb >= tourSerNeed(T, key)) break;
+    if (_tourSerStop(fmt, wa, wb, pa, pb)) break;
     keep = i + 1;
     if (!tourDone(f[i])) break;
     if (f[i].v) break;
     if (f[i].sa > f[i].sb) wa++; else wb++;
+    pa += f[i].sa; pb += f[i].sb;
   }
   return keep;
 }
@@ -345,8 +416,8 @@ function _tourSerGrow(T, key, prefix) {
   var f = _tourSer(T, key), kept = f.slice(0, _tourSerKeep(T, key));
   var rest = T.po.filter(function (g) { return !g[key]; });
   T.po = rest.concat(kept);
-  var w = _tourSerWins(T, key), need = tourSerNeed(T, key);
-  if (kept.length && kept.every(tourDone) && !kept[0].v && w.wa < need && w.wb < need && kept.length < 3) {
+  var w = _tourSerWins(T, key), pt = tourSerPoints(T, key);
+  if (kept.length && kept.every(tourDone) && !kept[0].v && !_tourSerStop(tourSerFmt(T, key), w.wa, w.wb, pt.pa, pt.pb) && kept.length < 3) {
     var k = kept[0], ng = { ph: "po", a: k.a, b: k.b, pa: k.pa, pb: k.pb, lab: prefix + (kept.length + 1), sa: null, sb: null };
     ng[key] = true; T.po.push(ng);
   }
@@ -361,24 +432,40 @@ function tourSync(T) {
   _tourRemap(T, oldAll);
 }
 
-/** v266: the played games a shortening of the series would drop (every played game after game 1; walkovers and void games are not counted) */
-function tourShortenLoss(T, key) { return _tourSer(T, key).slice(1).filter(function (g) { return tourDone(g) && !g.wo && !g.v; }).length; }
-/** v266: can this series be decided by game 1 (it exists, is best of 3 now, and game 1 is not a void game) */
-function tourCanShorten(T, key) { var f = T && (key === "th" || key === "fin") ? _tourSer(T, key) : []; return !!f.length && tourSerNeed(T, key) === 2 && !f[0].v; }
-/** v266: decide the series by ONE game: later games go (the played ones too), tourSync does not make them again, the winner is the winner of game 1 */
-function tourShorten(T, key) {
-  if (!tourCanShorten(T, key)) return false;
-  T.bo = Object.assign({}, T.bo || {}); T.bo[key] = 1;
+/** v270: can this series change format (the tournament is not finished; the series is the final, or the 3rd place series of format 2; match 1 is not void) */
+function tourCanFormat(T, key) {
+  if (!T || tourComplete(T) || !(key === "fin" || (key === "th" && tourFmt(T) === 2))) return false;
+  var f = _tourSer(T, key);
+  return !(f.length && f[0].v);
+}
+function _tourSerPlayed(T, key) { return _tourSer(T, key).filter(function (g) { return tourDone(g) && !g.wo && !g.v; }).length; }
+function _tourPutFmt(T, key, fmt) {
+  T.bo = Object.assign({}, T.bo || {});
+  if (key === "fin") delete T.bo.fin;   // v266 wrote the final as `fin`, from v270 it is `fi`
+  if (fmt === 3) delete T.bo[_tourBoKey(key)]; else T.bo[_tourBoKey(key)] = fmt;
+  if (!Object.keys(T.bo).length) delete T.bo;
+}
+/** v270: the played matches (walkovers and void ones are not counted) a change of format would drop, worked out on a copy */
+function tourFormatLoss(T, key, fmt) {
+  if (!T) return 0;
+  var C = JSON.parse(JSON.stringify(T)); _tourPutFmt(C, key, fmt); tourResolve(C);
+  return Math.max(0, _tourSerPlayed(T, key) - _tourSerPlayed(C, key));
+}
+/** v270: change the format of a series. Matches the new format no longer needs go (the played ones too), tourSync adds the ones it now needs. false = refused or unchanged. */
+function tourSetFormat(T, key, fmt) {
+  if ((fmt !== 1 && fmt !== 2 && fmt !== 3) || !tourCanFormat(T, key) || tourSerFmt(T, key) === fmt) return false;
+  _tourPutFmt(T, key, fmt);
   tourResolve(T);
   return true;
 }
+/** v266: the played matches a shortening of the series would drop (every played match after match 1) */
+function tourShortenLoss(T, key) { return tourFormatLoss(T, key, 1); }
+/** v266: can this series be decided by match 1 (it exists, is not one match already, match 1 is not void) */
+function tourCanShorten(T, key) { return !!T && tourCanFormat(T, key) && tourSerFmt(T, key) !== 1 && _tourSer(T, key).length > 0; }
+/** v266: decide the series by ONE match */
+function tourShorten(T, key) { return tourCanShorten(T, key) && tourSetFormat(T, key, 1); }
 /** v266: back to best of 3 (not once the tournament is finished: its champion and Hall of Fame record are settled) */
-function tourLengthen(T, key) {
-  if (!T || tourSerNeed(T, key) !== 1 || tourComplete(T)) return false;
-  delete T.bo[key]; if (!Object.keys(T.bo).length) delete T.bo;
-  tourResolve(T);
-  return true;
-}
+function tourLengthen(T, key) { return tourSetFormat(T, key, 3); }
 /** v266: remove one played game of a series (game 2 or 3) = decide the series by game 1. Returns { key, lost } or null. */
 function tourRemoveGame(T, gi) {
   var g = T && tourAll(T)[gi], key = g && g.th ? "th" : g && g.fin ? "fin" : "";
@@ -458,16 +545,16 @@ function tourOrder(T) {
   if (!tourComplete(T)) return null;
   var kind = tourKind(T);
   if (kind === "final") {
-    var ff = tourFinals(T), fw2 = tourFinalWins(T);
+    var ff = tourFinals(T), fa2 = tourSerWinner(T, "fin") === "a";
     if (ff[0].v) return [-1, -1];
-    return [fw2.wa > fw2.wb ? ff[0].pa : ff[0].pb, fw2.wa > fw2.wb ? ff[0].pb : ff[0].pa];
+    return [fa2 ? ff[0].pa : ff[0].pb, fa2 ? ff[0].pb : ff[0].pa];
   }
   if (kind === "bracket") {
-    var f0 = tourFinals(T)[0], fw = tourFinalWins(T), third;
-    if (tourFmt(T) === 2) { var ts = tourThirds(T), tw = tourThirdWins(T); third = !ts.length || ts[0].v ? -1 : (tw.wa > tw.wb ? ts[0].pa : ts[0].pb); }
+    var f0 = tourFinals(T)[0], fa = tourSerWinner(T, "fin") === "a", third;
+    if (tourFmt(T) === 2) { var ts = tourThirds(T); third = !ts.length || ts[0].v ? -1 : (tourSerWinner(T, "th") === "a" ? ts[0].pa : ts[0].pb); }
     else third = _tourW(T.po[2]);
     if (f0.v) return [-1, -1, third];
-    return [fw.wa > fw.wb ? f0.pa : f0.pb, fw.wa > fw.wb ? f0.pb : f0.pa, third];
+    return [fa ? f0.pa : f0.pb, fa ? f0.pb : f0.pa, third];
   }
   return tourPairTable(T).map(function (x) { return x.i; });
 }
@@ -700,7 +787,7 @@ function _tourSameSet(x, y) { return x.length === y.length && x.every(function (
 /** A live score game came back. tour.subs = [{ from, to, why, note, all }] as user ids, in the order they were made in live score.
     The teams must be the game's players with those stand-ins (either side first). The stand-ins are written first, then the score.
     Returns false (and changes nothing) when the teams do not match or a stand-in is not allowed any more. */
-function tourLiveApply(T, tour, sa, sb, la, lb, nameOf) {
+function tourLiveApply(T, tour, sa, sb, la, lb, nameOf, win) {
   var gi = tour ? tourResolveGi(T, tour.gi, tour.lab) : -1, g = T && tourAll(T)[gi];   // v265: games of another series may have been played meanwhile and moved this one
   if (!g || tourDone(g) || g.wo || g.v) return false;
   var on = tourOn(g), id = function (p) { return tourUid(T, p, gi); }, ea = on.a.map(id), eb = on.b.map(id), subs = tour.subs || [];
@@ -719,7 +806,9 @@ function tourLiveApply(T, tour, sa, sb, la, lb, nameOf) {
   }
   if (subs.length && !put(JSON.parse(JSON.stringify(T)))) return false;   // tried on a copy first: a refused stand-in leaves the game as it was
   put(T);
-  tourApply(T, tourAll(T)[gi], flip ? sb : sa, flip ? sa : sb);
+  var gg = tourAll(T)[gi];
+  tourApply(T, gg, flip ? sb : sa, flip ? sa : sb);
+  if (win && typeof win.startAt === "number" && typeof win.endAt === "number" && win.endAt > win.startAt) { gg.t0 = win.startAt; gg.t1 = win.endAt; }   // v270: real duration for the estimate
   return true;
 }
 
@@ -938,7 +1027,7 @@ function _tnKey(e) {
 }
 function tourClose() {
   _tnInfoClose(true); _tnFairClose(true);
-  clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null; _tnUndo = null;
+  _tnFmtClose(true); clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnSid = null; _tnUndo = null;
   var el = document.getElementById("tnScreen"); if (el) el.remove();
   document.body.classList.remove("tn-open");
   document.removeEventListener("keydown", _tnKey, true);
@@ -1046,9 +1135,9 @@ function tourStartLive(s, gi) {
 }
 function _tnSame(x, y) { return x.length === y.length && x.every(function (u) { return y.indexOf(u) >= 0; }); }
 /** The live score screen saved a game that was started from the tournament: put its score on that game */
-function tourFromLive(tour, sa, sb, la, lb) {
+function tourFromLive(tour, sa, sb, la, lb, win) {
   var s = _tnSession(tour.sid), T = tourOf(s);
-  var ok = tourLiveApply(T, tour, sa, sb, la, lb, function (i) { return _tnPlain(T, i); });
+  var ok = tourLiveApply(T, tour, sa, sb, la, lb, function (i) { return _tnPlain(T, i); }, win);
   if (ok) { _tnToast = t("tourLiveSaved"); _tnPut(s); }
   else _tnToast = t("tourLiveMismatch");
   _tnToastKeep = true;
@@ -1090,8 +1179,7 @@ function _tnClick(ev) {
   else if (act === "out-save" && _tnOut) tourSaveOut(s);
   else if (act === "out-undo") tourAskUndoOut(s, +b.getAttribute("data-p"));
   else if (act === "rm") tourAskRemove(s, +b.getAttribute("data-i"));
-  else if (act === "short") tourAskShorten(s, b.getAttribute("data-k"));
-  else if (act === "long") tourAskLengthen(s, b.getAttribute("data-k"));
+  else if (act === "fmt") tourOpenFmt(s.id, b.getAttribute("data-k"), b);
   else if (act === "undo") { if (_tnUndo && _tnUndo.clear) tourUndoClear(s); else tourUndoShorten(s); }
   else if (act === "sub") _tnSubFromScreen(s, +b.getAttribute("data-i"));
   else if (act === "back-in") tourAskBackIn(s, +b.getAttribute("data-p"));
@@ -1179,12 +1267,12 @@ function tourSaveScore(s) {
    so dropping the game from the tourney removes its match everywhere. The Hall of Fame record is rewritten by hofSave in _tnPut when the tournament is finished. */
 function _tnSerName(key) { return t(key === "fin" ? "tourSerFinal" : "tourSerThird"); }
 /** Change the series after the yes: snap = the tournament before (one Undo), then save */
-function _tnShortGo(s, key, fn, msgKey) {
+function _tnShortGo(s, key, fn, msgKey, fmt) {
   var cur = _tnSession(s.id) || s, T2 = tourOf(cur);
   if (!T2) return;
   var snap = JSON.parse(JSON.stringify(T2));
   if (!fn(T2)) { tourRender(); return; }
-  _tnEdit = null; _tnTab = null; _tnToast = _tnFill(t(msgKey), { s: _tnSerName(key) });
+  _tnEdit = null; _tnTab = null; _tnToast = _tnFill(t(msgKey), { s: _tnSerName(key), f: fmt ? _tnFmtName(fmt) : "" });
   _tnPut(cur);
   _tnUndo = { sid: cur.id, snap: snap };
   tourRender(); _tnScroll(".tn-game.cur");
@@ -1201,20 +1289,57 @@ function tourAskRemove(s, gi) {
     _tnShortGo(s, key, function (X) { return !!tourRemoveGame(X, tourResolveGi(X, gi, g.lab)); }, "tourRmDone");
   });
 }
-function tourAskShorten(s, key) {
+/* ---- v270: series format chooser: a "Format: Best of 3 ▾" chip on the series card opens a sheet with the three formats ---- */
+var TOUR_FMTS = [1, 2, 3];
+function _tnFmtName(f) { return t("tourFmtName" + f); }
+/** Change the format of a series: asks first (askConfirm) only when played matches would go; always leaves an Undo (_tnUndo) */
+function tourAskFormat(s, key, fmt) {
   var T = tourOf(s);
-  if (!T || !tourCanShorten(T, key)) return;
-  var lost = tourShortenLoss(T, key);
-  askConfirm({ title: _tnFill(t("tourBo1Title"), { s: _tnSerName(key) }), body: _tnFill(t("tourBo1Body"), { s: _tnSerName(key) }) + (lost ? " " + _tnFill(t("tourBo1Loses"), { k: lost }) : ""), kind: lost ? "danger" : "warn", yes: t("tourBo1Yes"), no: t("cancel") }, function () {
-    _tnShortGo(s, key, function (X) { return tourShorten(X, key); }, "tourBo1Done");
-  });
+  if (!T || !tourCanFormat(T, key) || tourSerFmt(T, key) === fmt) return;
+  var lost = tourFormatLoss(T, key, fmt), nm = _tnSerName(key);
+  function go() { _tnShortGo(s, key, function (X) { return tourSetFormat(X, key, fmt); }, "tourFmtDone" + fmt, fmt); }
+  if (!lost) { go(); return; }
+  askConfirm({ title: _tnFill(t("tourFmtAskTitle"), { s: nm, f: _tnFmtName(fmt) }), body: _tnFill(t("tourFmtLoses"), { k: lost, s: nm }), kind: "danger", yes: t("tourFmtYes"), no: t("cancel") }, go);
 }
-function tourAskLengthen(s, key) {
-  var T = tourOf(s);
-  if (!T || tourSerNeed(T, key) !== 1 || tourComplete(T)) return;
-  askConfirm({ title: _tnFill(t("tourBo3Title"), { s: _tnSerName(key) }), body: t("tourBo3Body"), kind: "warn", yes: t("tourBo3Yes"), no: t("cancel") }, function () {
-    _tnShortGo(s, key, function (X) { return tourLengthen(X, key); }, "tourBo3Done");
-  });
+var _tnFmtOpener = null;
+function tourOpenFmt(sid, key, opener) {
+  var s = _tnSession(sid), T = tourOf(s);
+  if (!T || !tourCanFormat(T, key)) return;
+  _tnFmtClose(true);
+  _tnFmtOpener = opener || document.activeElement;
+  var cur = tourSerFmt(T, key), el = document.createElement("div");
+  el.id = "tnFmtSheet"; el.className = "sheet-wrap tn-subwrap";
+  el.onclick = function (ev) {
+    var o = ev.target.closest ? ev.target.closest("[data-fmt]") : null;
+    if (o) { var f = +o.getAttribute("data-fmt"); _tnFmtClose(); tourAskFormat(_tnSession(sid) || s, key, f); }
+    else if (ev.target === el || (ev.target.closest && ev.target.closest("[data-fclose]"))) _tnFmtClose();
+  };
+  el.innerHTML = '<div class="sheet tn-subsheet tn-fmtsheet" role="dialog" aria-modal="true" aria-labelledby="tnFmtT"><div class="sheet-grab"></div>' +
+    '<div class="sheet-title" id="tnFmtT">' + escapeHtml(_tnFill(t("tourFmtTitle"), { s: _tnSerName(key) })) + '</div>' +
+    '<div class="tn-fopts" role="radiogroup" aria-labelledby="tnFmtT">' + TOUR_FMTS.map(function (f) {
+      return '<button type="button" class="tn-fopt' + (f === cur ? ' on' : '') + '" role="radio" aria-checked="' + (f === cur) + '" data-fmt="' + f + '"><span class="tn-fo-dot" aria-hidden="true"></span>' +
+        '<span class="tn-fo-tx"><b>' + escapeHtml(_tnFmtName(f)) + (f === 3 ? ' <i>' + escapeHtml(t("tourFmtDefault")) + '</i>' : '') + '</b><small>' + escapeHtml(t("tourFmtDesc" + f)) + '</small></span></button>';
+    }).join('') + '</div>' +
+    '<div class="tn-btns"><button type="button" class="tn-b" data-fclose="1">' + escapeHtml(t("cancel")) + '</button></div></div>';
+  document.body.appendChild(el);
+  document.addEventListener("keydown", _tnFmtKey, true);
+  try { (el.querySelector(".tn-fopt.on") || el.querySelector(".tn-fopt")).focus(); } catch (e) {}
+}
+function _tnFmtKey(e) {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); _tnFmtClose(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    var all = Array.prototype.slice.call(document.querySelectorAll("#tnFmtSheet .tn-fopt")), i = all.indexOf(document.activeElement);
+    if (!all.length) return;
+    e.preventDefault(); all[(i + (e.key === "ArrowDown" ? 1 : all.length - 1)) % all.length].focus();
+  }
+}
+function _tnFmtClose(quiet) {
+  var el = document.getElementById("tnFmtSheet");
+  document.removeEventListener("keydown", _tnFmtKey, true);
+  if (!el) return;
+  el.remove();
+  var o = _tnFmtOpener; _tnFmtOpener = null;
+  if (!quiet && o && o.focus && document.contains(o)) { try { o.focus(); } catch (e) {} }
 }
 function tourUndoShorten(s) {
   var u = _tnUndo;
@@ -1405,7 +1530,7 @@ function _tnInfoBtn(attrs) { return '<button type="button" class="tn-info" ' + a
 /** "#1+#4, #2+#3" for the playoff of q players */
 function tourPairsList(q) { var o = []; for (var k = 1; k <= q / 2; k++) o.push("#" + k + "+#" + (q + 1 - k)); return o.join(", "); }
 /** What the sheet says, as sections [{ h, p:[text] }] (plain strings, no HTML). T = the tournament when there is one (format 1 gets the old rules), n = players. */
-function tourInfoModel(n, T) {
+function tourInfoModel(n, T, per) {
   var secs = [], hurt = { h: t("tourInfoH5"), p: [t("tourInfoHurt")] };
   if (T && tourFmt(T) === 1) {   // a tournament started before v249: same rules as always
     secs.push({ h: t("tourInfoHOld"), p: [t(T.n === 8 ? "tourRule8" : "tourRule6"), t(T.n === 8 ? "tourHow8" : "tourHowRR")] });
@@ -1413,11 +1538,11 @@ function tourInfoModel(n, T) {
     return { title: t("tourInfoTitle"), sub: _tnFill(t("tourInfoFor"), { n: T.n }), secs: secs };
   }
   if (!tourSizeOk(n)) return { title: t("tourInfoTitle"), sub: "", secs: [{ h: "", p: [_tnFill(t(n < TOUR_MIN_N ? "tourNeedMin" : "tourNeedMax"), { n: n }), t("tourInfoRange")] }, hurt] };
-  var e = tourEstimate(n), pairs = tourPairsList(e.q), po = [_tnFill(t("tourInfoPoIntro"), { q: e.q, pairs: pairs })];
+  var e = tourEstimate(n, per, T), pairs = tourPairsList(e.q), po = [_tnFill(t("tourInfoPoIntro"), { q: e.q, pairs: pairs })];
   if (e.kind === "final") po.push(t("tourInfoPoFinal"));
   else if (e.kind === "rr") po.push(t("tourInfoPoRR"));
   else po.push(t("tourInfoPoBracket"));
-  if (e.kind !== "rr") po.push(t("tourInfoBo3"));
+  if (e.kind !== "rr") { po.push(t("tourInfoBo3")); po.push(t("tourInfoFormats")); }
   if (n > e.q) po.push(t("tourInfoBelow"));
   secs.push({ h: t("tourInfoH1"), p: [_tnFill(t("tourInfoMix"), { k: e.k, g: e.mix }), _tnFill(t("tourInfoRest"), { r: e.rest })] });
   secs.push({ h: t("tourInfoH2"), p: [t("tourInfoTable")] });
@@ -1430,7 +1555,7 @@ function tourOpenInfo(sid, opener) {
   var s = _tnSession(sid), T = tourOf(s), n = T ? T.n : ((s && s.players) || []).length;
   _tnInfoClose(true);
   _tnInfoOpener = opener || document.activeElement;
-  var m = tourInfoModel(n, T), el = document.createElement("div");
+  var m = tourInfoModel(n, T, T ? tourPerMatch(s, typeof _matchesReal !== "undefined" ? _matchesReal : []).per : 0), el = document.createElement("div");
   el.id = "tnInfoSheet"; el.className = "sheet-wrap tn-subwrap";
   el.onclick = function (ev) { if (ev.target === el || (ev.target.closest && ev.target.closest("[data-iact]"))) _tnInfoClose(); };
   el.innerHTML = '<div class="sheet tn-subsheet tn-infosheet" role="dialog" aria-modal="true" aria-labelledby="tnInfoT"><div class="sheet-grab"></div>' +
@@ -1626,21 +1751,31 @@ function _tnSemiBox(T, g, cur) {
   return '<div class="tn-pb' + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(_tnLab(g)) + '</span><span>' + (d ? escapeHtml(g.v ? t("tourOutVoid") : g.wo ? t("tourWO") : t("tourFinalScore")) : (cur ? escapeHtml(t("tourUpNext")) : escapeHtml(t("tourWaiting")))) + '</span></div>' +
     _tnPbRow(T, g, "a", d ? _tnShow(g, "a") : "–", aw, bw, '') + _tnPbRow(T, g, "b", d ? _tnShow(g, "b") : "–", bw, aw, '') + '</div>';
 }
-/** A best-of-3 series box: key "fin" = the final, "th" = 3rd place (v249) */
+/** v270: the "Format: Best of 3 ▾" chip of a series card (organisers, not once the tournament is finished) */
+function _tnFmtChip(T, key) {
+  var f = tourSerFmt(T, key);
+  return '<div class="tn-one"><button type="button" class="tn-fmt" data-act="fmt" data-k="' + key + '" aria-haspopup="dialog" aria-label="' + escapeHtml(_tnFill(t("tourFmtChipAria"), { s: _tnSerName(key), f: _tnFmtName(f) })) + '">' +
+    '<span>' + escapeHtml(t("tourFmtLabel")) + '</span><b>' + escapeHtml(t("tourFmtShort" + f)) + '</b><span class="tn-fmt-c" aria-hidden="true">\u25BE</span></button></div>';
+}
+/** A series box: key "fin" = the final, "th" = 3rd place (v249). Format 1 / 2 / 3 matches (v270). */
 function _tnSeriesBox(T, key, cur, org) {
-  var f = _tourSer(T, key), isF = key === "fin", one = tourSerNeed(T, key) === 1, ttl = t(isF ? (one ? "tourFinalBo1" : "tourFinalBo3") : (one ? "tourThirdBo1" : "tourThirdBo3"));
-  if (!f.length) return '<div class="tn-pb' + (isF ? ' fin' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span></div><div class="tn-pn tbd">' + escapeHtml(t(isF ? "tourFinalTbd" : "tourThirdTbd")) + '</div></div>';
-  var w = _tourSerWins(T, key), dec = _tourSerDecided(T, key), k = f[0], vd = !!k.v;
-  function pips(n) { return '<span class="tn-pip' + (n >= 1 ? ' on' : '') + '"></span>' + (one ? '' : '<span class="tn-pip' + (n >= 2 ? ' on' : '') + '"></span>'); }
+  var f = _tourSer(T, key), isF = key === "fin", fmt = tourSerFmt(T, key), chip = org && tourCanFormat(T, key) ? _tnFmtChip(T, key) : "";
+  var ttl = t((isF ? "tourFinalBo" : "tourThirdBo") + fmt);
+  if (!f.length) return '<div class="tn-pb' + (isF ? ' fin' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span></div><div class="tn-pn tbd">' + escapeHtml(t(isF ? "tourFinalTbd" : "tourThirdTbd")) + '</div>' + chip + '</div>';
+  var w = _tourSerWins(T, key), dec = _tourSerDecided(T, key), k = f[0], vd = !!k.v, wn = dec && !vd ? tourSerWinner(T, key) : "";
+  function pips(n) { return '<span class="tn-pip' + (n >= 1 ? ' on' : '') + '"></span>' + (fmt === 1 ? '' : '<span class="tn-pip' + (n >= 2 ? ' on' : '') + '"></span>'); }
   var kk = f.filter(function (g) { return !tourDone(g); })[0] || f[f.length - 1];   // v238: the lineup of the game being played (stand-ins included)
   function row(side, wins, win, pi) {
     return '<div class="tn-pr' + (win ? ' w' : (dec && !vd ? ' l' : '')) + '"><div class="tn-pn">' + _tnSide(T, kk, side, 22) + _tnOutTag(T, pi) + '</div><span class="tn-ps">' + (win && isF ? TN_CROWN : '') + pips(wins) + '</span></div>';
   }
+  var pts = '';
+  if (fmt === 2 && !vd && w.wa === 1 && w.wb === 1) {   // 1–1: the total points decide (equal = a 3rd match)
+    var pp = tourSerPoints(T, key), sd = pp.pa === pp.pb;
+    pts = '<div class="tn-pts' + (sd ? ' tie' : '') + '"><b>' + escapeHtml(_tnFill(t("tourSerPts"), { a: pp.pa, b: pp.pb })) + '</b> ' + escapeHtml(t(sd ? "tourSerPtsTie" : "tourSerPtsWin")) + '</div>';
+  }
   return '<div class="tn-pb' + (isF ? ' fin' : '') + (cur ? ' cur' : '') + '"><div class="tn-pbt"><span>' + escapeHtml(ttl) + '</span><span>' + (dec && !vd ? escapeHtml(t(isF ? "tourChampion" : "tourPlace3")) : (vd ? escapeHtml(t("tourOutVoid")) : '')) + '</span></div>' +
-    row("a", w.wa, w.wa >= tourSerNeed(T, key), k.pa) + row("b", w.wb, w.wb >= tourSerNeed(T, key), k.pb) +
-    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t(one ? "tourFirstTo1" : "tourFirstTo2")) + '</div>' +
-    (one ? '<div class="tn-one"><span class="tn-onetag">' + escapeHtml(t("tourOneTag")) + '</span>' + (org && !tourComplete(T) ? '<button type="button" class="tn-b sm" data-act="long" data-k="' + key + '">' + escapeHtml(t("tourBo3Back")) + '</button>' : '') + '</div>'
-      : (org && !tourComplete(T) && tourCanShorten(T, key) ? '<div class="tn-one"><button type="button" class="tn-b sm" data-act="short" data-k="' + key + '">' + escapeHtml(t("tourBo1Btn")) + '</button></div>' : '')) + '</div>';
+    row("a", w.wa, wn === "a", k.pa) + row("b", w.wb, wn === "b", k.pb) + pts +
+    '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t("tourFirstTo" + fmt)) + '</div>' + chip + '</div>';
 }
 function _tnFinalBox(T, cur) { return _tnSeriesBox(T, "fin", cur); }
 function _tnBracket(T, ng, org) {
@@ -1715,6 +1850,14 @@ function _tnSummary(T, org) {
   if (org) h += '<button type="button" class="tn-btn big" data-act="stage">' + TN_DICE + '<span>' + escapeHtml(_tnDrawBtn(T)) + '</span></button>';
   return h + '</div>';
 }
+/** v270: "≈ 18 min/match (from played matches)" or "(estimate)", the time left and about when it ends */
+function _tnTimeLine(s, T) {
+  var pm = tourPerMatch(s, typeof _matchesReal !== "undefined" ? _matchesReal : []), left = tourTimeLeft(T, pm.per);
+  var end = new Date(Date.now() + left.maxMin * 60000), hh = ("0" + end.getHours()).slice(-2) + ":" + ("0" + end.getMinutes()).slice(-2);
+  var lt = left.minMin === left.maxMin ? tourFmtDur(left.maxMin) : tourFmtDur(left.minMin) + "\u2013" + tourFmtDur(left.maxMin);
+  return '<div class="tn-time" role="note"><span>' + escapeHtml(_tnFill(t(pm.auto ? "tourPerAuto" : "tourPerEst"), { m: pm.per })) + '</span>' +
+    '<span>' + escapeHtml(_tnFill(t("tourTimeLeft"), { left: lt, end: hh })) + '</span></div>';
+}
 var _tnSumSeen = "";
 function tourRender() {
   var body = document.getElementById("tnBody");
@@ -1739,6 +1882,7 @@ function tourRender() {
   h += _tnSteps(now, view);
   h += '<div class="tn-prog"><span>' + escapeHtml(ph === 3 ? _tnFill(t("tourLineDone"), { k: played }) : _tnFill(t("tourProgress"), { k: played + 1, m: _tnTotalsTxt(T) })) + '</span><span>' + escapeHtml(_tnFill(t("tourPlayed"), { k: played })) + '</span></div>';
   h += '<div class="tn-bar"><i style="width:' + (ph === 3 ? 100 : Math.round(played / tourTotals(T).max * 100)) + '%"></i></div>';
+  if (ph !== 3) h += _tnTimeLine(s, T);
   h += _tnHurtCard(T, org);
   if (view !== now) h += '<button type="button" class="tn-b sm tn-back" data-act="tab" data-k="' + now + '">' + escapeHtml(_tnFill(t("tourBackToNow"), { step: t(TOUR_LABELS[now]) })) + '</button>';
   if (_tnAnim) h += _tnDrawCard(T);

@@ -100,11 +100,11 @@ var Q = ctx.tourNew(uids(8), seeded(11)); while (!ctx.tourRotDone(Q)) ctx.tourAp
 ctx.tourDraw(Q, seeded(5)); ["S1", "S2", "T1"].forEach(function (l) { ctx.tourApply(Q, Q.po.filter(function (g) { return g.lab === l; })[0], 21, 15); });
 var sq = { id: "Q", players: uids(8), createdBy: "u0", tourney: Q };
 var runPanel = ctx._tnPanel(Q, 2, null, 2, true, sq);
-assert.ok(!ctx.tourComplete(Q) && /data-act="short"/.test(runPanel), "running: Decide by 1 match is offered");
+assert.ok(!ctx.tourComplete(Q) && /data-act="fmt"/.test(runPanel), "running: the series format chip is offered");
 while (ctx.tourNext(Q)) ctx.tourApply(Q, ctx.tourNext(Q), 21, 15);
 assert.ok(ctx.tourComplete(Q));
 var donePanel = ctx._tnPanel(Q, 3, null, 3, true, sq) + ctx._tnPanel(Q, 2, null, 3, true, sq);
-assert.ok(!/data-act="short"/.test(donePanel) && !/data-act="long"/.test(donePanel), "finished: no Decide by 1 / Back to best of 3");
+assert.ok(!/data-act="fmt"/.test(donePanel), "finished: no series format chip");
 assert.ok(/data-act="edit"/.test(donePanel), "Correct score stays for admins");
 
 // ---- 6. source rules ----
