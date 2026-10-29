@@ -2270,3 +2270,10 @@ Counts of changed keys by class: play-day 67, match 212, bill 2 (total 281 keys,
 - "Change ends?" (never automatic): in a best-of-3 / 2-game match, `_lsEndsCode` = "start-N" at 0-0 of every game after the first, and "mid" at 11 in the deciding game. A small bubble with Swap and a close button; answering (either) hides it for that point (`_lsEndsDone`). Not shown for single games.
 - Watch remote (v-earlier): previous track = the team drawn on the LEFT, next = right, so they follow the screen after a swap; the title on the watch is "B 5 - 8 A" when swapped. The hint text still says Team A / Team B.
 - New strings (Lao not native-reviewed): lsSwap "Swap sides" / "ສະຫຼັບຝັ່ງ", lsSwapDo "Swap" / "ສະຫຼັບ", lsChangeEnds "Change ends?" / "ປ່ຽນຝັ່ງ?". Test: tests/live-swap-v267.test.js.
+
+## v269: Swap sides follows the scorer on the viewer
+- The scorer's swap is one boolean `swap` in the live doc `liveGames/{hostUid}`, written by `_lsSend` (the normal debounced `set`, with the score). `lsSwap()` on the counting screen calls `lsShare()` after toggling, so no extra write path, listener or polling. firestore.rules `liveOk` has no key whitelist, so no rules change.
+- Viewer (`lsSwapped('w')`): display = scorer `swap` XOR local mirror (`_lsViewSwapped`). Missing field = false (older scorer/viewer). `_lsClean` normalises it to a boolean.
+- The viewer's own button is now "Mirror this screen" (`lsMirror`, aria-label/title), for an iPad on the opposite side of the court. Kept per DEVICE in localStorage `godsmash_ls_mirror` (NOT per game: the iPad stays where it stands), default off. Old `godsmash_ls_swap_w` is no longer used.
+- When the scorer changes ends in the same game, the watch snapshot handler animates the halves (`_lsSwapAnim`) and toasts `lsSidesChanged` "Sides changed". A new game: scorer swap resets (v267 key), the doc carries `swap:false`, the viewer follows it (v265 follow toast only). The "Change ends?" prompt is not shown on the viewer (the scorer decides).
+- Watch remote still uses the scorer's own `lsSwapped('s')`. Test: tests/swap-sync-v269.test.js. New strings: lsMirror, lsSidesChanged (Lao not native-reviewed).

@@ -125,8 +125,23 @@ function _lsSwapKey(st) {
   var sw = st.sw || {}, gl = st.gl || [];
   return [st.id || "", st.sid || "", st.startedAt || 0, st.saved || 0, gl.length, (sw.A || 0) + "-" + (sw.B || 0)].join("|");
 }
+/* v269: the watching screen follows the scorer. The scorer's choice travels in the live doc (field `swap`, written by _lsSend with the score, no extra write path or listener).
+   The viewer's own button is a "Mirror this screen" flip for an iPad on the opposite side of the court. It is kept per DEVICE (not per game, the iPad stays where it stands).
+   Viewer display = scorer swap XOR local mirror. A missing field (older scorer) counts as false. */
+var LS_MIRROR_KEY = "godsmash_ls_mirror", _lsMirrorOn = null;
+function lsMirror() {
+  if (_lsMirrorOn === null) { try { _lsMirrorOn = localStorage.getItem(LS_MIRROR_KEY) === "1"; } catch (e) { _lsMirrorOn = false; } }
+  return _lsMirrorOn;
+}
+/** What the watching screen shows: scorer swap XOR local mirror */
+function _lsViewSwapped(remote, mirror) { return !!remote !== !!mirror; }
+function _lsSwapAnim() {
+  var el = document.getElementById("liveScreen");
+  if (el) { el.classList.remove("ls-swapping"); void el.offsetWidth; el.classList.add("ls-swapping"); setTimeout(function () { el.classList.remove("ls-swapping"); }, 520); }
+}
 function lsSwapped(slot) {
   slot = slot || _lsSwapSlot();
+  if (slot === "w") return _watch ? _lsViewSwapped(_watch.swap, lsMirror()) : lsMirror();
   var k = _lsSwapKey(_lsSwapBoard(slot)), m = _lsSwapMem[slot];
   if (!k) return false;
   if (m.k !== k) {
@@ -142,6 +157,12 @@ function _lsOrder(slot) { return lsSwapped(slot) ? ["B", "A"] : ["A", "B"]; }
 function lsSwap() {
   var slot = _lsSwapSlot(), st = _lsSwapBoard(slot);
   if (!st) return;
+  if (slot === "w") {   // v269: the viewer's button = local mirror only
+    _lsMirrorOn = !lsMirror();
+    try { localStorage.setItem(LS_MIRROR_KEY, _lsMirrorOn ? "1" : "0"); } catch (e) {}
+    lsRender(); _lsSwapAnim();
+    return;
+  }
   var on = !lsSwapped(slot), m = _lsSwapMem[slot];
   m.on = on;
   try { localStorage.setItem(LS_SWAP_KEY + "_" + slot, JSON.stringify({ k: m.k, v: on ? 1 : 0 })); } catch (e) {}
@@ -149,8 +170,8 @@ function lsSwap() {
   if (code) _lsEndsDone[slot] = code + "|" + m.k;   // swapping answers "Change ends?"
   try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) {}
   lsRender();
-  var el = document.getElementById("liveScreen");
-  if (el) { el.classList.remove("ls-swapping"); void el.offsetWidth; el.classList.add("ls-swapping"); setTimeout(function () { el.classList.remove("ls-swapping"); }, 520); }
+  _lsSwapAnim();
+  lsShare();   // v269: the watchers get the new side state with the next normal write
 }
 /** Badminton: players change ends after each game and at 11 in the deciding game. "start-N" = a new game of a match begins, "mid" = 11 in the deciding game. "" = no question. Only in a match of 2 or 3 games. */
 function _lsEndsCode(st) {
@@ -178,7 +199,8 @@ function _lsSwapIcon(px) {
   return '<svg class="ls-swap-svg" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></svg>';
 }
 function _lsSwapBtn() {
-  return '<button type="button" class="ls-mid-btn ls-swap-btn' + (lsSwapped() ? ' on' : '') + '" aria-label="' + t("lsSwap") + '" aria-pressed="' + lsSwapped() + '" title="' + t("lsSwap") + '" onclick="lsSwap()">' + _lsSwapIcon(28) + '</button>';
+  var w = liveMode === "watch", on = w ? lsMirror() : lsSwapped(), lab = t(w ? "lsMirror" : "lsSwap");
+  return '<button type="button" class="ls-mid-btn ls-swap-btn' + (on ? ' on' : '') + '" aria-label="' + lab + '" aria-pressed="' + on + '" title="' + lab + '" onclick="lsSwap()">' + _lsSwapIcon(28) + '</button>';
 }
 
 function _lsSessions() {
@@ -737,7 +759,7 @@ function _lsSend() {
   if (!_syncPendingSince) _syncPendingSince = Date.now();
   fsdb.collection("liveGames").doc(currentUser.uid).set({
     hostId: currentUser.uid, dev: _lsDev(), groupId: currentGroupId, sid: live.sid, type: live.type, a: live.a, b: live.b,
-    test: !!live.test, bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, gl: live.gl || [], sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
+    test: !!live.test, swap: lsSwapped("s"), bo: live.bo || 1, sw: live.sw || { A: 0, B: 0 }, gl: live.gl || [], sa: live.sa, sb: live.sb, serve: live.serve || "A", over: live.over || null, saved: live.saved || 0,
     theme: lsThemeIdx(), startedAt: live.startedAt || Date.now(), updatedAt: Date.now(), hb: Date.now()
   }).then(function () { _syncPendingSince = 0; _syncFailed = false; lsSyncUpdate(); })
     .catch(function () { _syncFailed = true; lsSyncUpdate(); });   // watching is a bonus: counting never fails because of it
@@ -803,7 +825,7 @@ function _lsClean(x) {
   x.a = ids(x.a); x.b = ids(x.b); x.sw = { A: n(sw.A, 5), B: n(sw.B, 5) };
   x.gl = (Array.isArray(x.gl) ? x.gl : []).slice(0, 9).map(function (g) { g = g || {}; return { a: n(g.a), b: n(g.b) }; });
   x.serve = x.serve === "B" ? "B" : "A"; x.over = x.over === "A" || x.over === "B" ? x.over : null;
-  x.theme = n(x.theme, 99); x.test = !!x.test;
+  x.theme = n(x.theme, 99); x.test = !!x.test; x.swap = x.swap === true;
   return x;
 }
 /** Which games are being counted now by others in my group (for the Home banner) */
@@ -855,8 +877,12 @@ function lsWatch(id) {
     if (kind === "other") { showToast(t("lsEnded")); lsWatchStop(); return; }   // the phone moved on to another session: do not follow it
     if (kind === "next") { nd.id = doc.id; _lsFollowGo(nd); return; }
     var changed = !_watch || nd.updatedAt !== _watch.updatedAt;
+    var sideMoved = !!_watch && _watch.id === doc.id && !!_watch.swap !== !!nd.swap;   // v269: the scorer changed ends
     _watch = nd; _watch.id = doc.id;
-    if (liveMode === "watch") { if (changed) lsRender(); else lsSyncUpdate(); }
+    if (liveMode === "watch") {
+      if (changed) lsRender(); else lsSyncUpdate();
+      if (sideMoved) { _lsSwapAnim(); showToast(t("lsSidesChanged")); }
+    }
   }, function () { if (_watchWait) return; lsWatchStop(); });   // while waiting, the group list listener still sees the next game
   _lsShow();
 }
@@ -937,7 +963,6 @@ function _lsWatchHtml() {
   var html = half(ord[0]) + half(ord[1]) + '<div id="lsSync" class="ls-sync" hidden></div>';
   html += '<button type="button" class="ls-exit" onclick="lsWatchStop()">' + icon("back", 18) + ' ' + t("lsExit") + '</button>';
   html += '<div class="ls-mid"><span class="ls-pill">' + icon("scoreboard", 14) + ' ' + (_watchWait ? t("lsWaitNext") : t("lsWatching") + (g.test ? ' \u00B7 ' + t("lsTestBadge") : '') + ' \u00B7 ' + t("lsGameN").replace("{n}", bo > 1 ? sw.A + sw.B + 1 : (g.saved || 0) + 1) + (bo > 1 ? ' \u00B7 ' + _boLabel(bo) : '')) + '</span>' + _lsSwapBtn() + '</div>';
-  if (!g.over && !_watchWait) html += _lsEndsHtml("w");
   if (gp && !g.over) html += '<div class="ls-gp"><span>' + t("lsGamePoint") + ' \u00B7 ' + t("lsTeam") + ' ' + gp + '</span></div>';
   if (g.over) {
     var aft = { A: sw.A + (g.over === "A" ? 1 : 0), B: sw.B + (g.over === "B" ? 1 : 0) }, done = bo > 1 && (aft[g.over] >= (bo === 2 ? 2 : need) || aft.A + aft.B >= bo), drawn = done && aft.A === aft.B;

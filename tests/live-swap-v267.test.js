@@ -110,7 +110,7 @@ assert.strictEqual(JSON.parse(store["godsmash_ls_swap_s"]).v, 1, "the scorer kee
 setLive(G({ startedAt: 11 })); run("_watch = { id: 'host', sid: 'S1', type: 'md', a: ['a','b'], b: ['c','d'], sa: 3, sb: 2, bo: 1, sw: {A:0,B:0}, gl: [], serve: 'B', over: null, saved: 0, startedAt: 50, theme: 0 }; live = null; liveMode = 'watch';");
 assert.deepStrictEqual(watchOrder(), ["B", "A"], "viewer choice kept while the same game goes on");
 run("_watch = { id: 'host', sid: 'S1', type: 'md', a: ['e','f'], b: ['g','h'], sa: 0, sb: 0, bo: 1, sw: {A:0,B:0}, gl: [], serve: 'A', over: null, saved: 1, startedAt: 90, theme: 0 };");   // v265: the next game of the session
-assert.deepStrictEqual(watchOrder(), ["A", "B"], "followed to the next game: normal again");
+assert.deepStrictEqual(watchOrder(), ["B", "A"], "v269: the viewer's button is a per-device mirror, it stays for the next game (the scorer's own swap resets via the doc)");
 assert.strictEqual(fsWrites, w0, "viewer swap writes nothing");
 
 console.log("live-swap-v267 OK");
