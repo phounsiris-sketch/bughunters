@@ -1092,19 +1092,63 @@ function _tnClick(ev) {
   else if (act === "rm") tourAskRemove(s, +b.getAttribute("data-i"));
   else if (act === "short") tourAskShorten(s, b.getAttribute("data-k"));
   else if (act === "long") tourAskLengthen(s, b.getAttribute("data-k"));
-  else if (act === "undo") tourUndoShorten(s);
+  else if (act === "undo") { if (_tnUndo && _tnUndo.clear) tourUndoClear(s); else tourUndoShorten(s); }
   else if (act === "sub") _tnSubFromScreen(s, +b.getAttribute("data-i"));
   else if (act === "back-in") tourAskBackIn(s, +b.getAttribute("data-p"));
-  else if (act === "reset") {
-    askYes(t("tourResetTitle"), function () {
-      var cur = _tnSession(s.id); if (!cur) return;
-      clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnToast = "";
-      cur.tourney = null;
-      _tnBusy = true;
-      dbUpdateSession(cur.id, { tourney: firebase.firestore.FieldValue.delete() }).then(function () { _tnBusy = false; }, function (e) { _tnBusy = false; dbOnError(e, "sessions"); showToast(t("tourSaveFail")); });
-      tourClose();
-    }, { kind: "danger", body: t("tourResetBody"), yes: tourComplete(T) ? t("tourReset") : t("tourCancelYes"), no: t("tourKeepPlaying") });
-  }
+  else if (act === "reset") tourAskClear(s);
+}
+
+/* ---- v268: clear the tournament. The danger row sits at the bottom of the Winner step (not between the champion and the bracket);
+   the sheet says what goes: matches scored, playoff state, champion. One Undo brings the whole tournament back (same snapshot idea as v266). ---- */
+function _tnClearLines(T) {
+  var all = tourAll(T), played = all.filter(tourDone).length, done = tourComplete(T), L = [];
+  L.push(!T.drawn ? t("tourClrPoNone") : done ? t("tourClrPoDone") : _tnFill(t("tourClrPoRun"), { a: T.po.filter(tourDone).length, b: T.po.length }));
+  var order = done ? tourOrder(T) : null, P = order && order[0] >= 0 ? tourPairs(T) : null;
+  if (P && P[order[0]]) { var champ = _tnPairPlain(T, P[order[0]].m); L.push(_tnFill(t("tourClrChamp"), { c: champ }), _tnFill(t("tourClrHof"), { c: champ })); }
+  L.push(t("tourClrStay"));
+  return { played: played, text: L.join("\n") };
+}
+function tourAskClear(s) {
+  var T = tourOf(s);
+  if (!T || !tourCanRun(s)) return;
+  var info = _tnClearLines(T);
+  askConfirm({ title: t("tourClrTitle"), detail: _tnFill(t("tourClrDetail"), { k: info.played }), body: info.text, kind: "danger", yes: t("tourClrYes"), no: tourComplete(T) ? t("cancel") : t("tourKeepPlaying") }, function () {
+    var cur = _tnSession(s.id); if (!cur || !tourOf(cur)) return;
+    var snap = JSON.parse(JSON.stringify(cur.tourney)), wasDone = tourComplete(cur.tourney);
+    clearInterval(_tnTimer); _tnAnim = null; _tnEdit = null; _tnOut = null; _tnTab = null;
+    cur.tourney = null;
+    _tnBusy = true;
+    dbUpdateSession(cur.id, { tourney: firebase.firestore.FieldValue.delete() }).then(function () { _tnBusy = false; }, function (e) { _tnBusy = false; dbOnError(e, "sessions"); showToast(t("tourSaveFail")); });
+    _tnToast = t("tourClrDone");
+    var u = _tnUndo = { sid: cur.id, snap: snap, clear: true, hofP: null };
+    if (wasDone && typeof hofTake === "function") {
+      // the Hall of Fame record goes too; its data waits in the undo. A refused delete never blocks the clear: a soft note instead.
+      u.hofP = hofTake(cur.id).catch(function () {
+        if (_tnSid === cur.id && _tnUndo === u) { _tnToast = t("tourClrDone") + " " + t("tourClrHofKept"); tourRender(); }
+        return null;
+      });
+    }
+    tourRender();   // stays on the screen (now "no tournament"); the toast with Undo stays until the next action
+  });
+}
+/** v268: Undo of a clear = the tournament snapshot AND the Hall of Fame record (same id), record first so hofSave does not write another one */
+function tourUndoClear(s) {
+  var u = _tnUndo;
+  if (!u || u.sid !== s.id || !u.clear) return;
+  _tnUndo = null;
+  Promise.resolve(u.hofP).then(function (rec) { return rec ? hofRestore(rec) : false; }).then(function () {
+    var cur = _tnSession(s.id) || s;
+    cur.tourney = u.snap;
+    _tnToast = t("tourUndone");
+    _tnPut(cur);
+    tourRender();
+  });
+}
+/** v268: the "Manage tournament" card, last on the Winner step, organisers only */
+function _tnManage() {
+  return '<section class="tn-sec tn-manage" aria-labelledby="tnMgT"><h3 id="tnMgT">' + escapeHtml(t("tourManage")) + '</h3>' +
+    '<button type="button" class="tn-mrow" data-act="reset"><span class="tn-mico" aria-hidden="true">' + icon("trash", 20) + '</span>' +
+    '<span class="tn-mtx"><b>' + escapeHtml(t("tourReset")) + '</b><small>' + escapeHtml(t("tourManageSub")) + '</small></span></button></section>';
 }
 
 function tourSaveScore(s) {
@@ -1596,7 +1640,7 @@ function _tnSeriesBox(T, key, cur, org) {
     row("a", w.wa, w.wa >= tourSerNeed(T, key), k.pa) + row("b", w.wb, w.wb >= tourSerNeed(T, key), k.pb) +
     '<div class="tn-pbn">' + f.map(function (g, i) { return 'G' + (i + 1) + ' ' + escapeHtml(_tnGameTxt(g)); }).join(' \u00b7 ') + ' \u00b7 ' + escapeHtml(t(one ? "tourFirstTo1" : "tourFirstTo2")) + '</div>' +
     (one ? '<div class="tn-one"><span class="tn-onetag">' + escapeHtml(t("tourOneTag")) + '</span>' + (org && !tourComplete(T) ? '<button type="button" class="tn-b sm" data-act="long" data-k="' + key + '">' + escapeHtml(t("tourBo3Back")) + '</button>' : '') + '</div>'
-      : (org && tourCanShorten(T, key) ? '<div class="tn-one"><button type="button" class="tn-b sm" data-act="short" data-k="' + key + '">' + escapeHtml(t("tourBo1Btn")) + '</button></div>' : '')) + '</div>';
+      : (org && !tourComplete(T) && tourCanShorten(T, key) ? '<div class="tn-one"><button type="button" class="tn-b sm" data-act="short" data-k="' + key + '">' + escapeHtml(t("tourBo1Btn")) + '</button></div>' : '')) + '</div>';
 }
 function _tnFinalBox(T, cur) { return _tnSeriesBox(T, "fin", cur); }
 function _tnBracket(T, ng, org) {
@@ -1699,6 +1743,7 @@ function tourRender() {
   if (view !== now) h += '<button type="button" class="tn-b sm tn-back" data-act="tab" data-k="' + now + '">' + escapeHtml(_tnFill(t("tourBackToNow"), { step: t(TOUR_LABELS[now]) })) + '</button>';
   if (_tnAnim) h += _tnDrawCard(T);
   h += '<div class="tn-panel">' + _tnPanel(T, view, ng, ph, org, s) + '</div>';
+  if (org && view === 3 && !_tnAnim) h += _tnManage();   // v268: the clear control lives in its own card at the very bottom
   body.innerHTML = h;
   if (view === 1 && !T.drawn && _tnSumSeen !== _tnSid) { _tnSumSeen = _tnSid; _tnScroll(".tn-sum"); }
 }
@@ -1748,7 +1793,7 @@ function _tnPanel(T, view, ng, ph, org, s) {
     if (part === "pairs") return P ? _tnPairCard(T, P, org) : '';
     if (part === "drawsec") return '<div class="tn-sec"><h3>' + escapeHtml(t("tourPlayoffTitle")) + '</h3><p>' + escapeHtml(_tnFill(t("tourDrawHint"), { w: _tnDrawBtn(T) })) + '</p></div>';
     if (part === "bracket") return _tnBracket(T, ng, org);
-    if (part === "winner") return _tnWinner(T, s.id) + (org ? '<button type="button" class="tn-b dng" data-act="reset">' + escapeHtml(t("tourReset")) + '</button>' : '');
+    if (part === "winner") return _tnWinner(T, s.id);
     if (part === "po") {
       if (!T.drawn || !P) return '';
       var h = '<div class="tn-sec"><h3>' + escapeHtml(_tnFill(t("tourPlayoffGames"), { a: T.games.length + 1, b: tourTotals(T).max })) + '</h3>';
