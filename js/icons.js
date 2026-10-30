@@ -241,6 +241,7 @@ function setDashPack(id) {
   if (DASH_PACKS.indexOf(id) < 0) return;
   currentDashPack = id;
   try { localStorage.setItem("dashPack", id); } catch (e) {}
+  _chromeKey = "reset"; applyChromeIcons();   // v271: the nav bar may follow the pack
   if (typeof renderSettings === "function") renderSettings();
 }
 
@@ -279,11 +280,38 @@ function icon(name, size, cls) {
 /** The nav bar and the app bar are drawn once at startup from the page shell: when the style changes they are drawn again */
 var _chromeKey = "";
 function applyChromeIcons() {
-  var key = currentIconTheme;
+  var key = currentIconTheme + "|" + currentNavIcons + "|" + currentDashPack;   // v271: the nav bar can follow the icon style or the dashboard pack
   if (key === _chromeKey) return;
   _chromeKey = key;
-  try { document.body.setAttribute("data-icons", key); } catch (e) {}
+  try { document.body.setAttribute("data-icons", currentIconTheme); } catch (e) {}
   try { ["bottom-nav", "app-header"].forEach(function (cls) { var root = document.querySelector("." + cls); if (root && typeof fillStaticIcons === "function") fillStaticIcons(root); }); } catch (e) {}
+}
+
+/* v271 Nav bar icons: "plain" (the line glyph, default), "style" (same as Icon style) or "pack" (same as Dashboard icons). Saved in localStorage "navIcons". */
+var NAV_ICON_MODES = ["plain", "style", "pack"];
+var currentNavIcons = "plain";
+try { var _ni = localStorage.getItem("navIcons"); if (NAV_ICON_MODES.indexOf(_ni) >= 0) currentNavIcons = _ni; } catch (e) {}
+/* How much bigger than its glyph size each style draws (plate or object), so the nav can ask for a visual size */
+var NAV_FIT = { box: 1.7, neu: 1.7, glass: 1.7, tiles: 1.65, clay: 1.35, sticker: 1.4, "3d": 1.35 };
+var NAV_VISUAL = 26;   // px an inactive icon takes in the bar; the active one is scaled up in CSS (.nav-rich) to about 34px inside the bubble
+/** The style the nav bar draws in, or "" when it stays plain (also when the chosen style is the plain classic glyph itself) */
+function navIconTheme(mode) {
+  mode = mode || currentNavIcons;
+  var th = mode === "style" ? currentIconTheme : mode === "pack" ? (currentDashPack === "same" ? currentIconTheme : currentDashPack) : "";
+  return NAV_FIT[th] ? th : "";
+}
+/** One nav icon as HTML. visual = px it should take (default NAV_VISUAL). Plain returns exactly the old markup. */
+function navIconHtml(name, size, mode, visual) {
+  var th = navIconTheme(mode);
+  if (!th) return iconAs("classic", name, size || 24);
+  return iconAs(th, name, Math.max(14, Math.round((visual || NAV_VISUAL) / NAV_FIT[th])));
+}
+function setNavIcons(id) {
+  if (NAV_ICON_MODES.indexOf(id) < 0) return;
+  currentNavIcons = id;
+  try { localStorage.setItem("navIcons", id); } catch (e) {}
+  _chromeKey = "reset"; applyChromeIcons();
+  if (typeof renderSettings === "function") renderSettings();
 }
 
 function setIconTheme(id) {

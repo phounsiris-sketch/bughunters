@@ -294,7 +294,7 @@ function _renderSettingsPage() {
   var spCur = SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0];
   html += _fold('special', 'medal', t("specialThemes"), spCur ? t(spCur[1]) : t("specialOff"), spH);
   // Icon style: applies to the Dashboard page only
-  html += _fold('icons', 'dashboard', t("iconStyle"), t("icon_" + currentIconTheme), '<div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
+  html += _fold('icons', 'dashboard', t("iconsGroup"), t("icon_" + currentIconTheme), '<div class="settings-label" style="margin:4px 0 4px">' + t("iconStyle") + '</div><div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
     ICON_THEMES.map(function (id) {
       var on = currentIconTheme === id;
       return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
@@ -309,7 +309,14 @@ function _renderSettingsPage() {
         var on = currentG3dVariant === v;
         return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setG3dVariant(\'' + v + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
           _svg3d("friends", 40, "", v) + _svg3d("live", 40, "", v) + '</span><b>' + t("g3dVar_" + v) + '</b></button>';
-      }).join("") + '</div>' : ''));
+      }).join("") + '</div>' : '') +
+    // v271: Nav bar icons, the third icon setting; each option previews the 5 bar icons the way the bar would draw them
+    '<div class="settings-label" style="margin:16px 0 4px">' + t("navIcons") + '</div><div class="form-hint">' + t("navIconsHint") + '</div>' +
+    '<div class="is-grid nav-var">' + [["plain", "navIconsPlain"], ["style", "navIconsStyle"], ["pack", "navIconsPack"]].map(function (m) {
+      var on = currentNavIcons === m[0];
+      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setNavIcons(\'' + m[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
+        ["dashboard", "sessions", "ranking", "globe", "settings"].map(function (n) { return navIconHtml(n, 20, m[0], 24); }).join("") + '</span><b>' + t(m[1]) + '</b></button>';
+    }).join("") + '</div>');
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");

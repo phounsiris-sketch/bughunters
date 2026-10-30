@@ -59,7 +59,7 @@
     document.documentElement.setAttribute("data-theme", th.mode);   // v260: the real app sets it on <html> too (_syncColorScheme); rules like :root:not([data-theme="light"]) need it
     b.setAttribute("data-theme", th.mode); if (th.sp) b.setAttribute("data-special", th.sp); else b.removeAttribute("data-special");
     b.setAttribute("data-palette", currentPalette); b.setAttribute("data-lpalette", currentLightPalette);
-    var ip = String(icons).split("+"); currentIconTheme = ip[0]; currentDashPack = ip[1] || "clay"; _chromeKey = "reset"; applyChromeIcons();   // "box+3d" = icon style box with the dashboard pack 3d
+    var ip = String(icons).split("+"); currentIconTheme = ip[0]; currentDashPack = ip[1] || "clay"; currentNavIcons = ip[2] || "plain"; _chromeKey = "reset"; applyChromeIcons();   // "box+3d+pack" = icon style box, dashboard pack 3d, nav bar follows the pack (third part plain|style|pack, default plain)
   }
   function sel(el) {
     var s = el.tagName.toLowerCase(), c = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(function (x) { return x && !/^(active|on|open|sel)$/.test(x); }).slice(0, 2).join(".") : "";
@@ -139,7 +139,7 @@
     }
   }
   var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "matches-all", "public", "groups", "group-create", "trash"];
-  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d"];
+  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d", "box+3d+pack", "glass+sticker+pack", "neu+clay+style"];   // v271: the last three also draw the nav bar from the pack / style
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
     if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
