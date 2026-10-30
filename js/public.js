@@ -89,6 +89,8 @@ function _cityFilterHtml() {
 function renderPublic() {
   var box = document.getElementById("publicContent");
   if (!box) return;
+  var ttl = document.getElementById("publicTitle");
+  if (ttl) ttl.outerHTML = menuTitleHtml("globe", "navCommunity").replace('class="me-title"', 'class="me-title" id="publicTitle"');
   if ((publicTab === "courts" || publicTab === "restaurants") && document.activeElement && document.activeElement.id === "cmQ") return;   // typing in the map search
   if (publicTab === "buddies") box.innerHTML = _cityFilterHtml() + _renderBuddies();
   else if (publicTab === "groups") box.innerHTML = _cityFilterHtml() + _renderPublicGroups();

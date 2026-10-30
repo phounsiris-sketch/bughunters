@@ -58,10 +58,9 @@ function _periodLabel() {
 
 /* ---------- Main render ---------- */
 
-/** The Dashboard draws its icons in the dashboard pack (js/icons.js, "3D clay"); every other page keeps the chosen icon style */
+/** v272: the Dashboard detail page draws the System icons like every other page (the Menu icons pack is only for the bar, page titles and Home tiles) */
 function _renderDashboard() {
-  _dashCtx = true;
-  try { _renderDashboardInner(); } finally { _dashCtx = false; }
+  _renderDashboardInner();
 }
 
 function _renderDashboardInner() {
