@@ -515,7 +515,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v270"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v271"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.
@@ -571,8 +571,11 @@ function fillStaticIcons(root) {
   var els = (root || document).querySelectorAll("[data-icon]");
   for (var i = 0; i < els.length; i++) {
     var nm = els[i].getAttribute("data-icon"), sz = parseInt(els[i].getAttribute("data-size"), 10) || 18;
-    // data-plain: the bottom bar always shows the plain glyph, whatever the icon style (v245)
-    els[i].innerHTML = els[i].hasAttribute("data-plain") ? iconAs("classic", nm, sz) : icon(nm, sz);
+    // data-plain: the bottom bar shows the plain glyph unless "Nav bar icons" (v271) asks for the icon style or the dashboard pack
+    if (els[i].hasAttribute("data-plain")) {
+      els[i].innerHTML = navIconHtml(nm, sz);
+      els[i].classList.toggle("nav-rich", !!navIconTheme());
+    } else els[i].innerHTML = icon(nm, sz);
   }
 }
 fillStaticIcons();

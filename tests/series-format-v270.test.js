@@ -209,5 +209,5 @@ var src = fs.readFileSync("js/i18n.js", "utf8");
 ["tourFinalBo2", "tourThirdBo2", "tourFirstTo2", "tourFirstTo3", "tourFmtLabel", "tourFmtName1", "tourFmtName2", "tourFmtName3", "tourFmtShort1", "tourFmtShort2", "tourFmtShort3", "tourFmtDesc1", "tourFmtDesc2", "tourFmtDesc3",
   "tourFmtDefault", "tourFmtTitle", "tourFmtChipAria", "tourFmtAskTitle", "tourFmtLoses", "tourFmtYes", "tourFmtDone1", "tourFmtDone2", "tourFmtDone3", "tourSerPts", "tourSerPtsWin", "tourSerPtsTie", "tourInfoFormats",
   "tourPerAuto", "tourPerEst", "tourTimeLeft"].forEach(function (k) { assert.strictEqual((src.match(new RegExp("^\\s*" + k + ":", "gm")) || []).length, 2, k + " in EN and LA"); });
-assert.ok(/APP_VERSION = "v270"/.test(fs.readFileSync("js/app.js", "utf8")) && /godsmash-v270/.test(fs.readFileSync("sw.js", "utf8")));
+assert.strictEqual(fs.readFileSync("js/app.js", "utf8").match(/APP_VERSION = "(v\d+)"/)[1], fs.readFileSync("sw.js", "utf8").match(/godsmash-(v\d+)/)[1], "version bumped together");
 console.log("series-format-v270: ok");
