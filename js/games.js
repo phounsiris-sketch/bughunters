@@ -164,7 +164,7 @@ function renderGames() {
   var past = all.filter(function (x) { return !_gameUpcoming(x); }).sort(function (a, b) { return (b.date + b.time).localeCompare(a.date + a.time); });
   var shown = gamesFilter === "upcoming" ? up : gamesFilter === "past" ? past : up.concat(past);
   var tabs = [["upcoming", "gamesUpcoming"], ["past", "gamesPast"], ["all", "gamesAll"]];
-  var html = '<div class="dashboard-tabs">' + tabs.map(function (x) {
+  var html = menuTitleHtml("sessions", "navGames") + '<div class="dashboard-tabs">' + tabs.map(function (x) {
     return '<button class="dash-tab' + (gamesFilter === x[0] ? ' active' : '') + '" onclick="setGamesFilter(\'' + x[0] + '\')">' + t(x[1]) + '</button>';
   }).join("") + '</div>';
   html += '<div class="games-links"><button class="btn-secondary" onclick="showPage(\'polls\')">' + icon("vote", 16) + ' ' + t("gamesAllVotes") + '</button>' +

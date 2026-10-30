@@ -6660,7 +6660,7 @@ body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-sha
 .pk-pulse { animation: g3dPulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }   /* v263: Live dot of the clay/sticker scoreboard */
 @media (prefers-reduced-motion: reduce) { .g3d-pulse { animation: none; } .pk-pulse { animation: none; } }
 .hs-title .ico-3d { margin: -5px 0 -5px -3px; }
-.hv-path .ico-3d, .me-title .ico-3d, .hd-path .ico-3d, .hd-head .ico-3d { margin: -4px -2px -4px -4px; }
+.hv-path .ico-3d, .hd-path .ico-3d, .hd-head .ico-3d { margin: -4px -2px -4px -4px; }
 .home-next-tag .ico-3d { margin: -3px 0; }
 /* v261: every Home shortcut tile (all icon packs) is frosted glass, 80% transparent */
 .hg-grid .hg-tile, .hg-grid.g3d .hg-tile { background: color-mix(in srgb, var(--surface) 20%, transparent); border: 1px solid rgba(255, 255, 255, .16); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 4px 14px rgba(0, 0, 0, .12); backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
@@ -6954,3 +6954,13 @@ body:not([data-theme="light"]) .tn-mtx b { color: #f87171; }
 .tn-pts b { color: var(--accent); font-variant-numeric: tabular-nums; }
 .tn-pts.tie { background: rgba(245, 158, 11, .16); }
 .tn-time { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* v272 two icon sets: the Menu icons pack in a page title takes the same 30px box in every pack (3D, clay, sticker), centred on the text */
+.me-title { min-height: 34px; }
+.me-title .ico-3d, .me-title .ico-clay, .me-title .ico-sticker { margin: 0; flex: none; }
+/* Settings > Icons: a preview row of the current choice, and the Menu icons options one per row (5 icons each) */
+.ic-preview { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-height: 40px; margin-top: 8px; padding: 8px 10px; border-radius: 14px; background: var(--chip-bg); color: var(--accent-text); }
+.is-grid.nav-var { grid-template-columns: minmax(0, 1fr); }
+/* v272: the active bubble is near-white in dark mode too, so pale pack icons (clay gear / chart, 3D globe) get a soft dark edge and the clay ones a deeper colour to stand out on it */
+.nav-item.active .nav-icon.nav-rich > .si { filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }
+.nav-item.active .nav-icon.nav-rich > .ico-clay { filter: saturate(1.35) brightness(.86) drop-shadow(0 1px 1.5px rgba(15, 23, 42, .45)); }

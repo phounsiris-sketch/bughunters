@@ -215,7 +215,7 @@ function setStatsPeriod(p) { setStatsScope(p); }
 function renderStats() {
   var box = document.getElementById("statsContent");
   if (!box) return;
-  var tabs = '<div class="me-title">' + icon("ranking", 22) + ' ' + t("navRankings") + '</div>' +
+  var tabs = menuTitleHtml("ranking", "navRankings") +
     '<div class="dashboard-tabs stats-tabs" role="tablist">' + [["ranking", "statsRanking", "ranking"], ["h2h", "headToHead", "users"], ["hof", "hofTab", "trophy"]].map(function (x) {
     return '<button role="tab" class="dash-tab' + (statsTab === x[0] ? ' active' : '') + '" onclick="setStatsTab(\'' + x[0] + '\')">' + icon(x[2], 14) + ' ' + t(x[1]) + '</button>';
   }).join('') + '</div>';

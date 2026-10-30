@@ -19,7 +19,7 @@ function loadHome() {
 
 function _hsCard(cls, iconName, title, onclick, inner, key3d) {
   return '<button type="button" class="hs-card ' + cls + '" onclick="' + onclick + '">' +
-    '<div class="hs-title">' + icon3(iconName, 28, "", key3d, 16) + ' ' + title + '</div>' + inner + '</button>';
+    '<div class="hs-title">' + icon(iconName, 16) + ' ' + title + '</div>' + inner + '</button>';
 }
 
 /** Play: games this month, my last results as dots, rating and win rate */
@@ -41,7 +41,7 @@ function _homePlayCard(me) {
 }
 
 /** Spending: this year's total, a small bar per month, my share */
-/** v263: size to ask icon() for on a Home shortcut tile so Clay (drawn at 1.35x) and Sticker (1.4x) end up as big as the 3D object (px); "same" keeps 24 */
+/** v263: size to ask the pack for on a Home shortcut tile so Clay (drawn at 1.35x) and Sticker (1.4x) end up as big as the 3D object (px) */
 function _tilePackPx(px) {
   if (currentDashPack === "clay") return Math.round(px / 1.35);
   if (currentDashPack === "sticker") return Math.round(px / 1.4);
@@ -199,15 +199,15 @@ function _homeNextCard() {
   var g = _homeNextGame();
   _homeNextKey = g ? g.kind + g.id + (g.phase || "") : "";
   if (!g) {
-    return '<div class="home-next empty"><div class="hs-title">' + icon3("sessions", 28, "", null, 16) + ' ' + t("homeNextGame") + '</div>' +
+    return '<div class="home-next empty"><div class="hs-title">' + icon("sessions", 16) + ' ' + t("homeNextGame") + '</div>' +
       '<div class="hs-muted" style="margin:6px 0 12px">' + t("homeNoNext") + '</div>' +
       '<button class="btn-next" onclick="showCreatePoll()">' + icon("vote", 18) + ' ' + t("homeVote") + '</button></div>';
   }
   var d = new Date(g.date + "T00:00:00"), live = g.phase === "live";
   var tag = live
     ? '<span class="home-live-tag"><i class="live-dot"></i>' + t("momLive") + (g.win && g.win.timed ? ' \u00B7 <span id="homeElapsed" data-start="' + g.win.start + '">' + _elapsedText(Date.now() - g.win.start) + '</span>' : '') + '</span>'
-    : '<span class="home-next-tag">' + icon3(g.kind === "poll" ? "vote" : "court", 20, "", g.kind === "poll" ? "poll" : "game", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span>';
-  var inner = '<div class="home-next-top"><div class="hs-title">' + icon3("sessions", 28, "", null, 16) + ' ' + t(live ? "momPlayingNow" : "homeNextGame") + '</div>' + tag + '</div>' +
+    : '<span class="home-next-tag">' + icon(g.kind === "poll" ? "vote" : "court", 14) + ' ' + (g.kind === "poll" ? t("homeVote") : t("homeGame")) + '</span>';
+  var inner = '<div class="home-next-top"><div class="hs-title">' + icon("sessions", 16) + ' ' + t(live ? "momPlayingNow" : "homeNextGame") + '</div>' + tag + '</div>' +
     '<div class="home-next-body"><div class="home-next-date"><span>' + weekdayShort(d.getDay()) + '</span><b>' + d.getDate() + '</b></div>' +
     '<div class="home-next-info"><div>' + icon("clock", 18) + ' ' + escapeHtml(g.time || "–") + '</div><div>' + icon("pin", 18) + ' ' + escapeHtml(g.court || "–") + '</div></div></div>';
   if (g.kind === "poll") {
@@ -300,17 +300,15 @@ function _homePulseTick() {
 }
 function _homePulseStart() { if (!_homePulse) _homePulse = setInterval(_homePulseTick, 20000); }
 
-/** v262: the bottom-bar "Dashboard" opens Home, so Home draws its icons in the dashboard pack too (clay, sticker, 3D or same) */
+/** v272: Home draws its title icon and its shortcut tiles in the Menu icons pack; everything else on it uses the System icons */
 function renderHome() {
-  var was = _dashCtx;
-  _dashCtx = true;
-  try { _renderHomeInner(); } finally { _dashCtx = was; }
+  _renderHomeInner();
 }
 function _renderHomeInner() {
   var el = document.getElementById("homeContent");
   if (!el || !currentUser) return;
   var me = currentUser.uid, groups = typeof GROUPS_ON !== "undefined" && GROUPS_ON;
-  var html = '';
+  var html = menuTitleHtml("dashboard", "navDashboard");
 
   // A live score still being counted on this phone
   var running = typeof lsInProgress === "function" ? lsInProgress() : null;

@@ -70,7 +70,7 @@ function renderSettings() {
     return;
   }
   var container = document.getElementById("settingsContent");
-  if (container) { setBreadcrumb(null); container.innerHTML = _meTitleHtml("settings", "navSettings") + _renderSettingsPage(); }
+  if (container) { setBreadcrumb(null); container.innerHTML = menuTitleHtml("settings", "navSettings") + _renderSettingsPage(); }
 }
 
 function _renderConfigPage() {
@@ -293,30 +293,21 @@ function _renderSettingsPage() {
   spH += '</div>' + (currentSpecial ? '<button type="button" class="btn-secondary sp-off" onclick="setSpecial(\'\')">' + t("specialOff") + '</button>' : '');
   var spCur = SPECIALS.filter(function (x) { return x[0] === currentSpecial; })[0];
   html += _fold('special', 'medal', t("specialThemes"), spCur ? t(spCur[1]) : t("specialOff"), spH);
-  // Icon style: applies to the Dashboard page only
-  html += _fold('icons', 'dashboard', t("iconsGroup"), t("icon_" + currentIconTheme), '<div class="settings-label" style="margin:4px 0 4px">' + t("iconStyle") + '</div><div class="form-hint">' + t("iconStyleHint") + '</div><div class="is-grid">' +
-    ICON_THEMES.map(function (id) {
-      var on = currentIconTheme === id;
-      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setIconTheme(\'' + id + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join("") + '</span><b>' + t("icon_" + id) + '</b></button>';
-    }).join("") + '</div><div class="settings-label" style="margin:16px 0 4px">' + t("dashPack") + '</div><div class="form-hint">' + t("dashPackHint") + '</div>' +
-    '<div class="is-grid">' + [["clay", "dashPackClay"], ["sticker", "dashPackSticker"], ["3d", "dashPack3d"], ["same", "dashPackSame"]].map(function (p) {
-      var on = currentDashPack === p[0];
-      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setDashPack(\'' + p[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(p[0] === "same" ? currentIconTheme : p[0], n, 18); }).join("") + '</span><b>' + t(p[1]) + '</b></button>';
-    }).join("") + '</div>' + (currentDashPack === "3d" ? '<div class="settings-label" style="margin:16px 0 4px">' + t("g3dVariant") + '</div><div class="form-hint">' + t("g3dVariantHint") + '</div>' +
-      '<div class="is-grid g3d-var">' + G3D_VARIANTS.map(function (v) {
-        var on = currentG3dVariant === v;
-        return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setG3dVariant(\'' + v + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-          _svg3d("friends", 40, "", v) + _svg3d("live", 40, "", v) + '</span><b>' + t("g3dVar_" + v) + '</b></button>';
-      }).join("") + '</div>' : '') +
-    // v271: Nav bar icons, the third icon setting; each option previews the 5 bar icons the way the bar would draw them
-    '<div class="settings-label" style="margin:16px 0 4px">' + t("navIcons") + '</div><div class="form-hint">' + t("navIconsHint") + '</div>' +
-    '<div class="is-grid nav-var">' + [["plain", "navIconsPlain"], ["style", "navIconsStyle"], ["pack", "navIconsPack"]].map(function (m) {
-      var on = currentNavIcons === m[0];
-      return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="setNavIcons(\'' + m[0] + '\')"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' +
-        ["dashboard", "sessions", "ranking", "globe", "settings"].map(function (n) { return navIconHtml(n, 20, m[0], 24); }).join("") + '</span><b>' + t(m[1]) + '</b></button>';
-    }).join("") + '</div>');
+  // v272: exactly two icon settings. System icons = the Solar icons everywhere (lists, cards, buttons, inside pages); Menu icons = the pack for the bottom bar, the 5 page titles and the Home shortcuts
+  var _opt = function (on, click, prev, label) {
+    return '<button type="button" class="is-opt' + (on ? ' active' : '') + '" onclick="' + click + '"' + (on ? ' aria-pressed="true"' : '') + '><span class="is-prev">' + prev + '</span><b>' + label + '</b></button>';
+  };
+  var sysPrev = function (id, px) { return ["trophy", "bill", "users", "court", "settings"].map(function (n) { return iconAs(id, n, px); }).join(""); };
+  var menuPrev = function (pack, px) { return ["dashboard", "sessions", "ranking", "globe", "settings"].map(function (n) { return menuIconFit(n, px, "", pack); }).join(""); };
+  html += _fold('icons', 'dashboard', t("iconsGroup"), t("icon_" + currentIconTheme) + " · " + t("dashPack_" + currentDashPack),
+    '<div class="settings-label" style="margin:4px 0 4px">' + t("sysIcons") + '</div><div class="form-hint">' + t("sysIconsHint") + '</div>' +
+    '<div class="ic-preview" id="sysIconsPreview" aria-hidden="true">' + sysPrev(currentIconTheme, 20) + '</div><div class="is-grid">' +
+    ICON_THEMES.map(function (id) { return _opt(currentIconTheme === id, "setIconTheme(\'" + id + "\')", ["trophy", "bill", "users", "court"].map(function (n) { return iconAs(id, n, 18); }).join(""), t("icon_" + id)); }).join("") + '</div>' +
+    '<div class="settings-label" style="margin:16px 0 4px">' + t("menuIcons") + '</div><div class="form-hint">' + t("menuIconsHint") + '</div>' +
+    '<div class="ic-preview" id="menuIconsPreview" aria-hidden="true">' + menuPrev(currentDashPack, 30) + '</div><div class="is-grid nav-var">' +
+    DASH_PACKS.map(function (id) { return _opt(currentDashPack === id, "setDashPack(\'" + id + "\')", menuPrev(id, 24), t("dashPack_" + id)); }).join("") + '</div>' +
+    (currentDashPack === "3d" ? '<div class="settings-label" style="margin:16px 0 4px">' + t("g3dVariant") + '</div><div class="form-hint">' + t("g3dVariantHint") + '</div>' +
+      '<div class="is-grid g3d-var">' + G3D_VARIANTS.map(function (v) { return _opt(currentG3dVariant === v, "setG3dVariant(\'" + v + "\')", _svg3d("friends", 40, "", v) + _svg3d("live", 40, "", v), t("g3dVar_" + v)); }).join("") + '</div>' : ''));
 
   // 3. Notifications & data — notifications sit next to Recently deleted
   html += _settingsSection("secNotifData");
