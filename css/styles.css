@@ -7012,15 +7012,12 @@ body:not([data-theme="light"]) .tn-mtx b { color: #f87171; }
 .nav-item.active .nav-icon.nav-rich .ico-neu .si { color: var(--nav-ico) !important; opacity: 1; filter: none; }
 
 /* v274: push bell (this phone's state) + notification log sheet */
-.push-bell { margin-right: 6px; }
-.push-bell .pb-dot { position: absolute; right: 3px; bottom: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; background: #16a34a; box-sizing: border-box; }
-.push-bell[data-st="off"] .pb-dot { background: #94a3b8; }
-.push-bell[data-st="blocked"] .pb-dot { background: #dc2626; }
-.push-bell[data-st="unsupported"] .pb-dot { background: #f59e0b; }
-/* a slash across the bell whenever it is not On, so the state is not colour only */
-.push-bell .pb-slash { display: none; position: absolute; left: 9px; right: 9px; top: 50%; height: 2px; background: #fff; border-radius: 2px; transform: rotate(-45deg); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
-.push-bell:not([data-st="on"]) .pb-slash { display: block; }
-.push-bell .pb-new { position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; box-sizing: border-box; }
+/* v276: one bell. A small dot on the in-app bell (no count): push Off / Blocked, or an unseen log entry */
+.bell-btn .bell-dot { position: absolute; right: 4px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; box-sizing: border-box; }
+.notif-push { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.notif-push b { flex: 1; font-weight: 600; }
+.notif-push small { color: var(--text-muted); font-size: 12px; }
+.notif-push .pb-new { width: 10px; height: 10px; border-radius: 50%; background: #dc2626; flex: none; }
 .pb-sheet { max-height: 86dvh; overflow-y: auto; text-align: left; }
 .pb-sheet .sheet-title, .pb-sheet .sheet-body { text-align: center; }
 .pb-sheet .sheet-body { line-height: 1.45; margin: 8px 0; }

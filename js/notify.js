@@ -187,6 +187,7 @@ function updateNotifications() {
   var events = computeNotifications();
   var unread = events.filter(function (e) { return e.time > seen; }).length;
   _setBadge("bellBadge", unread);
+  if (typeof pbRefresh === "function") pbRefresh();
 
   // Tab badges: things waiting for you
   var me = currentUser.uid;
@@ -224,6 +225,7 @@ function toggleNotifications(e) {
   panel.classList.add("open");
   try { localStorage.setItem(_seenKey(), String(Date.now())); } catch (err) {}
   _setBadge("bellBadge", 0);
+  if (typeof pbRefresh === "function") pbRefresh();
 }
 
 function setNotifFilter(f, e) {
@@ -269,6 +271,7 @@ function _renderNotifPanel(events, seen) {
 
   var html = '<div class="notif-head"><span>' + t("notifications") + '</span>' +
     (events.length ? '<button class="notif-clear" onclick="clearAllNotifs(event)">' + icon("trash", 14) + ' ' + t("clearAll") + '</button>' : '') + '</div>';
+  if (typeof pbBellRows === "function") html += pbBellRows();
   html += '<div class="notif-filters">' + [["all", t("allWord")], ["remind", t("reminders")], ["notif", t("notificationsWord")]].map(function (f) {
     return '<button class="notif-chip c-' + f[0] + (notifFilter === f[0] ? ' active' : '') + '" onclick="setNotifFilter(\'' + f[0] + '\',event)">' + f[1] + ' <b>' + counts[f[0]] + '</b></button>';
   }).join('') + '</div>';

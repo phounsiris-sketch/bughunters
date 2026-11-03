@@ -76,19 +76,21 @@ assert.ok(/pbNotDelivered/.test(html) && /<i>bell<\/i>/.test(html), "failed mark
 
 // unseen dot: first refresh reads one newest entry; a newer one than last-seen shows the dot
 var shown = {};
-var els = { pushBell: { setAttribute: function () {}, title: "" }, pushBellNew: { style: {} } };
+// v276: the dot lives on the single in-app bell (bellDot); bellBadge hidden = no unread count
+var els = { bellBtn: { setAttribute: function () {} }, bellBadge: { style: { display: "none" } }, bellDot: { style: {} } };
 ctx.document.getElementById = function (id) { return els[id] || null; };
+store["pushOn_u1"] = "1";   // push On, so only the unseen log can raise the dot
 docs = [{ at: { toMillis: function () { return 5000; } } }];
 vm.runInContext("pbRefresh()", ctx);
 return_later();
 function return_later() {
   setTimeout(function () {
     assert.deepStrictEqual(calls, ["orderBy at desc", "limit 1", "get userPrivate/u1/pushLog"], "one-doc probe: " + calls.join(","));
-    assert.strictEqual(els.pushBellNew.style.display, "", "dot shown: newer than last seen");
+    assert.strictEqual(els.bellDot.style.display, "", "dot shown: newer than last seen");
     calls.length = 0; store["pushLogSeen_u1"] = "9000";
     vm.runInContext("pbRefresh()", ctx);
     assert.strictEqual(calls.length, 0, "no second read in the same sign-in");
-    assert.strictEqual(els.pushBellNew.style.display, "none", "dot hidden once seen");
+    assert.strictEqual(els.bellDot.style.display, "none", "dot hidden once seen");
     // opening the log: one get(), orderBy at desc, limit 20
     calls.length = 0; docs = [];
     els.pushSheet = { innerHTML: "" };
@@ -104,7 +106,7 @@ function return_later() {
 function finish() {
   /* ---- wiring + i18n + hygiene ---- */
   var idx = fs.readFileSync("index.html", "utf8");
-  assert.ok(/id="pushBell"[^>]*onclick="pbOpen\(\)"/.test(idx), "bell button in the app header");
+  assert.ok(!/id="pushBell"/.test(idx) && /id="bellDot"/.test(idx), "v276: no second header bell; the dot is on the in-app bell");
   assert.ok(/pbRefresh/.test(fs.readFileSync("js/app.js", "utf8")), "refresh hook");
   var ictx = { console: console, localStorage: { getItem: function () { return null; }, setItem: function () {} } }; ictx.window = ictx; vm.createContext(ictx);
   vm.runInContext(fs.readFileSync("js/i18n.js", "utf8") + "\n;this.__tr = translations;", ictx);
