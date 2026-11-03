@@ -451,6 +451,7 @@ function refreshCurrentPage(reason) {
 function _refreshCurrentPageNow(reason) {
   if (!currentUser) return;
   if (typeof updateNotifications === "function") updateNotifications();
+  if (typeof pbRefresh === "function") pbRefresh();
   if ((currentPage === "settings" || currentPage === "profile" || currentPage === "profile-sub" || currentPage === "config") && typeof renderSettings === "function") {
     renderSettings();
   } else if (currentPage === "user" && typeof loadUserProfile === "function") {
@@ -515,7 +516,7 @@ function initApp() {
 
 // ── Service Worker ─────────────────────────────────────────
 
-var APP_VERSION = "v273"; // keep in step with CACHE_NAME in sw.js
+var APP_VERSION = "v274"; // keep in step with CACHE_NAME in sw.js
 
 // A new version took over (v232): reload once so the page runs the new code too, but only when nothing is being typed or open.
 // Otherwise a slim "Update ready, tap to reload" bar waits for the person. The very first install (no worker before) needs no reload.

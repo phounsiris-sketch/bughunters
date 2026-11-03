@@ -6968,3 +6968,36 @@ body:not([data-theme="light"]) .tn-mtx b { color: #f87171; }
 .nav-item.active .nav-icon.nav-rich .ico-gl { background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .nav-item.active .nav-icon.nav-rich .ico-gl .si { color: var(--gd) !important; opacity: 1; filter: none; }
 .nav-item.active .nav-icon.nav-rich .ico-neu .si { color: var(--nav-ico) !important; opacity: 1; filter: none; }
+
+/* v274: push bell (this phone's state) + notification log sheet */
+.push-bell { margin-right: 6px; }
+.push-bell .pb-dot { position: absolute; right: 3px; bottom: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; background: #16a34a; box-sizing: border-box; }
+.push-bell[data-st="off"] .pb-dot { background: #94a3b8; }
+.push-bell[data-st="blocked"] .pb-dot { background: #dc2626; }
+.push-bell[data-st="unsupported"] .pb-dot { background: #f59e0b; }
+/* a slash across the bell whenever it is not On, so the state is not colour only */
+.push-bell .pb-slash { display: none; position: absolute; left: 9px; right: 9px; top: 50%; height: 2px; background: #fff; border-radius: 2px; transform: rotate(-45deg); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.push-bell:not([data-st="on"]) .pb-slash { display: block; }
+.push-bell .pb-new { position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; box-sizing: border-box; }
+.pb-sheet { max-height: 86dvh; overflow-y: auto; text-align: left; }
+.pb-sheet .sheet-title, .pb-sheet .sheet-body { text-align: center; }
+.pb-sheet .sheet-body { line-height: 1.45; margin: 8px 0; }
+.pb-st { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #16a34a; vertical-align: middle; }
+.pb-st[data-st="off"] { background: #94a3b8; }
+.pb-st[data-st="blocked"] { background: #dc2626; }
+.pb-st[data-st="unsupported"] { background: #f59e0b; }
+.pb-how { margin: 8px 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+.pb-how li { margin-bottom: 6px; }
+.pb-note { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 13px; text-align: center; }
+.pb-sheet .ask-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pb-list { margin-top: 6px; }
+.pb-day { margin: 12px 0 4px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.pb-item { display: flex; gap: 10px; align-items: flex-start; width: 100%; min-height: 44px; padding: 8px 6px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; font: inherit; }
+button.pb-item { cursor: pointer; }
+.pb-ico { flex: none; display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); color: var(--primary); }
+.pb-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.pb-txt b { font-size: 14px; }
+.pb-txt small { color: var(--text-muted); font-size: 12px; }
+.pb-item.bad .pb-txt small { color: #dc2626; }
+.pb-empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.pb-err .btn-primary { margin-top: 10px; }
