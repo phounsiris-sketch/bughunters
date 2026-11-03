@@ -116,7 +116,7 @@ function localTestPush() {
 }
 
 /* ---------- v274: push bell (this phone's state) + notification log ----------
-   The header button next to the in-app bell shows On / Off / Blocked / Not supported; tap = a sheet with the
+   (v276: now a row in the in-app bell list) shows On / Off / Blocked / Not supported; tap = a sheet with the
    explanation, the action and the log. The log is userPrivate/{uid}/pushLog (written by push/send.js,
    read here once per open: orderBy at desc, limit 20, no live listener). */
 
@@ -131,22 +131,43 @@ function pbSeen() { try { return parseInt(localStorage.getItem(pbSeenKey()), 10)
 function pbMarkSeen(ms) { try { localStorage.setItem(pbSeenKey(), String(ms || Date.now())); } catch (e) {} }
 
 var _pbLatest = 0, _pbLatestUid = "";
-/** Redraws the header button (cheap, local). First call per sign-in also reads the newest log entry (1 read) for the dot. */
+/** Pure: should the bell show its small dot? (red count wins, so no dot while the count shows) */
+function pbBellDot(unread, st, unseenLog) {
+  if (unread > 0) return false;
+  return st === "off" || st === "blocked" || !!unseenLog;
+}
+
+/** Redraws the dot on the in-app bell (cheap, local). First call per sign-in also reads the newest log entry (1 read) for the unseen dot. */
 function pbRefresh() {
-  var btn = document.getElementById("pushBell");
-  if (!btn || !currentUser) return;
-  var st = pbState();
-  btn.setAttribute("data-st", st);
-  btn.setAttribute("aria-label", t("pbLabel") + ": " + t("pbSt_" + st));
-  btn.title = t("pbLabel") + ": " + t("pbSt_" + st);
-  var dot = document.getElementById("pushBellNew");
-  if (dot) dot.style.display = _pbLatest > pbSeen() ? "" : "none";
+  if (!currentUser) return;
+  var badge = document.getElementById("bellBadge"), dot = document.getElementById("bellDot");
+  var st = pbState(), unread = badge && badge.style.display !== "none" ? 1 : 0;
+  if (dot) dot.style.display = pbBellDot(unread, st, _pbLatest > pbSeen()) ? "" : "none";
+  var btn = document.getElementById("bellBtn");
+  if (btn && dot && dot.style.display !== "none") btn.setAttribute("aria-label", t("notifications") + " (" + t("pbLabel") + ": " + t("pbSt_" + st) + ")");
+  else if (btn) btn.setAttribute("aria-label", t("notifications"));
   if (_pbLatestUid !== currentUser.uid && typeof fsdb !== "undefined") {
     _pbLatestUid = currentUser.uid;
     fsdb.collection("userPrivate").doc(currentUser.uid).collection("pushLog").orderBy("at", "desc").limit(1).get().then(function (snap) {
       if (!snap.empty) { _pbLatest = pbAtMs(snap.docs[0].data().at); pbRefresh(); }
     }).catch(function () {});
   }
+}
+
+/** Top rows of the bell list: "This phone: On/Off/..." (state dot + text) and "Notification log" */
+function pbBellRows() {
+  if (!currentUser) return "";
+  var st = pbState();
+  return '<button type="button" class="notif-push" onclick="pbFromBell(event,\'state\')"><span class="pb-st" data-st="' + st + '"></span>' +
+    '<b>\ud83d\udcf1 ' + t("pbThisPhone") + ': ' + t("pbSt_" + st) + '</b><small>' + icon("next", 14) + '</small></button>' +
+    '<button type="button" class="notif-push" onclick="pbFromBell(event,\'log\')">' + icon("bell", 16) + '<b>' + t("pbLogLink") + '</b>' +
+    (_pbLatest > pbSeen() ? '<span class="pb-new" role="img" aria-label="' + t("pbNewLog") + '"></span>' : '') + '<small>' + icon("next", 14) + '</small></button>';
+}
+function pbFromBell(e, which) {
+  if (e) e.stopPropagation();
+  var panel = document.getElementById("notifPanel");
+  if (panel) panel.classList.remove("open");
+  if (which === "log") pbLogOpen(); else pbOpen();
 }
 
 function pbAtMs(x) { return x && typeof x.toMillis === "function" ? x.toMillis() : typeof x === "number" ? x : 0; }

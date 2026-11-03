@@ -6,7 +6,7 @@ ctx.window = ctx; vm.createContext(ctx);
 vm.runInContext(fs.readFileSync("js/i18n.js", "utf8") + "\n;this.__tr = translations;", ctx, { filename: "js/i18n.js" });
 var T = ctx.__tr, en = T.en, la = T.la;
 // v273: Live score inner units are Game / ເກມ again (the whole match = Match). These keys are the user's choice, like sessionTabGames.
-var LS_GAME_KEYS = ["lsTestAgain", "lsNewGame", "lsGamesWon", "lsGamesWonCap", "lsGameShort", "lsGameResult", "lsSingleGame", "lsTabSingle", "lsTabBo3", "lsBestOf", "lsEnded", "lsWaitNext", "lsGameN", "lsGamePoint", "lsExitTestConfirm", "lsSaveNext", "lsNoMore", "lsCurrentGame", "lsResetConfirm", "lsNewPairHint"];
+var LS_GAME_KEYS = ["lsTestAgain", "lsNewGame", "lsGamesWon", "lsGamesWonCap", "lsGameShort", "lsGameResult", "lsSingleGame", "lsTabSingle", "lsTabBo3", "lsBestOf", "lsEnded", "lsWaitNext", "lsGameN", "lsGamePoint", "lsExitTestConfirm", "lsSaveNext", "lsNoMore", "lsCurrentGame", "lsResetConfirm", "lsNewPairHint", "lsFormat"];
 
 assert.deepStrictEqual(Object.keys(en).sort(), Object.keys(la).sort(), "EN and LA have the same key set");
 assert.strictEqual(en.navGames, "Session"); assert.strictEqual(la.navGames, "ເຊດຊັນ");   // v254: user named the bar item
