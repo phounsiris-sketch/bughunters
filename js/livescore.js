@@ -362,7 +362,7 @@ function _lsCountHtml() {
     return '<div class="ls-half' + _lsWinCls(side, live) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, live) +
       '<button type="button" class="ls-zone ls-minus" aria-label="' + t("lsMinus") + '" onclick="lsTap(\'' + side + '\',-1)"><span>' + icon("minus", 18) + '</span></button>' +
       '<button type="button" class="ls-zone ls-plus" aria-label="' + t("lsPlus") + '" onclick="lsTap(\'' + side + '\',1)"><span>' + icon("plus", 24) + '</span></button>' +
-      '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-head"><div class="ls-team">' + (live.serve === side ? icon("shuttle", 26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
+      '<div class="ls-info">' + _lsCrown(side, live) + '<div class="ls-head"><div class="ls-team">' + (live.serve === side ? serveShuttleHtml(26) + ' ' : '') + '<span class="ls-tname">' + t("lsTeam") + ' ' + side + '</span></div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' +
       ((live.bo || 1) > 1 ? flipBoardHtml(side, _lsShown(live).sw, _lsShown(live).gl) : '') + '</div></div>';
   };
@@ -398,7 +398,7 @@ function _lsSummaryHtml(decided, draw, title, after) {
   }).join("") + '<div class="ls-sum-row total"><i>' + t("lsMatchScoreShort") + '</i><b class="' + (after.A > after.B ? 'w' : '') + '">' + after.A + '</b><b class="' + (after.B > after.A ? 'w' : '') + '">' + after.B + '</b></div>';
   var btns = live.test
     ? '<button class="btn-primary" onclick="lsTestAgain()">' + icon("scoreboard", 16) + ' ' + t("lsRematch") + '</button><button class="btn-secondary" onclick="lsExit()">' + t("lsExit") + '</button>'
-    : '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsRematch") + '</button><button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>';
+    : '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t("lsRematch") + '</button>' + _lsNewPairBtn(true) + '<button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>';
   return '<div class="ls-scrim dark sum"></div><div class="ls-over ls-sum"><div class="ls-over-cap">' + t("lsConfirmMatch") + '</div>' +
     '<div class="ls-over-title">' + icon(draw ? "medal" : "trophy", 30) + ' ' + title + '</div><div class="ls-sum">' + rows + '</div>' +
     (live.test ? '<div class="form-hint">' + t("lsTestBadge") + '</div>' : '') + btns + '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
@@ -424,6 +424,7 @@ function _lsOverHtml() {
   return '<div class="ls-scrim dark"></div><div class="ls-over"><div class="ls-over-title">' + icon("medal", 28) + ' ' + title + '</div>' +
     gcap + '<div class="ls-over-score">' + live.sa + ' \u2013 ' + live.sb + '</div>' + series + '<div class="ls-over-people">' + ids.map(function (u) { return personHtml(u, 30); }).join("") + '</div>' +
     '<button class="btn-primary" onclick="lsSaveGame(true)">' + icon("check", 16) + ' ' + t(decided ? "lsRematch" : "lsSaveNext") + '</button>' +
+    _lsNewPairBtn(decided) +
     '<button class="btn-secondary" onclick="lsSaveGame(false)">' + t("lsSaveFinish") + '</button>' +
     '<button class="link-btn" onclick="lsUndo()">' + t("lsUndo") + '</button></div>';
 }
@@ -482,14 +483,15 @@ function _lsSetupHtml() {
     '<button type="button" class="ls-current" onclick="lsChangeGame()">' + dateBlockHtml(s.date) + '<span><b>' + escapeHtml(s.courtName || "–") + '</b><small>' + t("lsCurrentGame") + '</small></span><i>' + t("lsChange") + '</i></button>' +
     '<div class="seg seg-wrap">' + ["md", "wd", "xd", "singles"].map(function (x) { return '<button type="button" class="seg-btn' + (live.type === x ? ' active' : '') + '" onclick="lsType(\'' + x + '\')">' + t("gameType_" + x) + '</button>'; }).join("") + '</div>' +
     '<div class="card"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsFormat") + '</div>' + _boSegHtml() + '</div>' +
-    (live.saved > 0 ? '<div class="ls-same">' + icon("users", 18) + '<span><b>' + t("lsSamePlayers") + '</b><small>' + t("lsSamePlayersHint") + '</small></span></div>' : '') +
+    (live.np && live.a.length ? '<div class="ls-same">' + icon("users", 18) + '<span><b>' + t("lsNewPairTitle") + '</b><small>' + t("lsNewPairHint") + '</small></span></div>'
+      : live.saved > 0 ? '<div class="ls-same">' + icon("users", 18) + '<span><b>' + t("lsSamePlayers") + '</b><small>' + t("lsSamePlayersHint") + '</small></span></div>' : '') +
     team("A", live.a, th[1], th[2]) + team("B", live.b, th[3], th[4]) +
     '<div class="card"><div class="card-title">' + icon("users", 14) + ' ' + t("lsPickPlayers") + '</div><div class="ls-pool">' +
     (pool.length ? pool.map(function (u) { return '<button type="button" class="ls-pool-chip" onclick="lsAdd(\'' + jsq(u) + '\')">' + personHtml(u, 30) + '</button>'; }).join("") : '<div class="form-hint">' + t("lsNoMore") + '</div>') +
     '</div></div>' +
     '<div class="card ls-rules"><div class="card-title">' + icon("medal", 14) + ' ' + t("lsRules") + '</div>' +
     '<div>' + icon("medal", 16) + ' ' + t("lsRule1").replace("{n}", LS_START_POINTS) + '</div><div>' + icon("check", 16) + ' ' + t("lsRule2") + '</div>' +
-    '<div>' + icon("crown", 16) + ' ' + t("lsRule3").replace("{cap}", maxPoints()) + '</div><div>' + icon("shuttle", 16) + ' ' + t("lsRule4") + '</div></div></div>' +
+    '<div>' + icon("crown", 16) + ' ' + t("lsRule3").replace("{cap}", maxPoints()) + '</div><div>' + serveShuttleHtml(16) + ' ' + t("lsRule4") + '</div></div></div>' +
     '<div class="ls-foot"><button class="btn-primary" ' + (_lsReady(live) ? '' : 'disabled') + ' onclick="lsStart()">' + icon("scoreboard", 18) + ' ' + t("lsStart") + '</button></div>';
   return html;
 }
@@ -554,7 +556,71 @@ function lsAdd(uid) {
   lsSave(); lsRender();
 }
 function lsRemove(side, uid) { var k = side === "A" ? "a" : "b"; live[k] = live[k].filter(function (u) { return u !== uid; }); lsSave(); lsRender(); }
-function lsStart() { if (!_lsReady(live)) return; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; lsSave(); liveMode = "count"; lsRender(); }
+function lsStart() { if (!_lsReady(live)) return; delete live.np; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; lsSave(); liveMode = "count"; lsRender(); }
+
+/* ---------- v273: Continue with a new pair ---------- */
+
+/** The "Continue \u00B7 new pair" button of the finish prompt: a normal session only (a tournament decides its own next game; a practice game is not saved),
+    and only when the match is over (single game or a decided series: inside a running series the pairs must stay the same). */
+function _lsNewPairBtn(decided) {
+  if (!live || live.test || live.tour) return '';
+  if ((live.bo || 1) > 1 && !decided) return '';
+  return '<button class="btn-secondary" onclick="lsSaveGame(\'pair\')">' + icon("users", 16) + ' ' + t("lsNewPair") + '</button>';
+}
+
+/** Pure: who plays next, as { a: [uids], b: [uids] } or null when too few players.
+    players = uids in the session, games = [{ a: [uids], b: [uids] }] played in it (oldest first), type = "singles" or a doubles type.
+    1) the 2 x size players with the fewest games, 2) among equal ones the player who played longest ago (or never) goes first,
+    3) of the possible splits into two teams the one with the fewest repeats: the same two teams meeting again (x100), the same partners (x10), the same opponents (x1). */
+function lsSuggestPair(players, games, type) {
+  var size = type === "singles" ? 1 : 2, need = size * 2, list = [], seen = {};
+  (players || []).forEach(function (u) { if (!seen[u]) { seen[u] = 1; list.push(u); } });
+  if (list.length < need) return null;
+  var cnt = {}, last = {}, tog = {}, vs = {}, whole = {};
+  var key = function (x, y) { return x < y ? x + "|" + y : y + "|" + x; };
+  var teamKey = function (arr) { return arr.slice().sort().join("+"); };
+  (games || []).forEach(function (g, i) {
+    var A = g.a || [], B = g.b || [];
+    A.concat(B).forEach(function (u) { cnt[u] = (cnt[u] || 0) + 1; last[u] = i; });
+    [A, B].forEach(function (T) { for (var x = 0; x < T.length; x++) for (var y = x + 1; y < T.length; y++) { var k = key(T[x], T[y]); tog[k] = (tog[k] || 0) + 1; } });
+    A.forEach(function (u) { B.forEach(function (v) { var k = key(u, v); vs[k] = (vs[k] || 0) + 1; }); });
+    var wk = key(teamKey(A), teamKey(B)); whole[wk] = (whole[wk] || 0) + 1;
+  });
+  var order = list.map(function (u, i) { return { u: u, i: i, c: cnt[u] || 0, l: last[u] == null ? -1 : last[u] }; });
+  order.sort(function (p, q) { return p.c - q.c || p.l - q.l || p.i - q.i; });
+  var pick = order.slice(0, need).map(function (o) { return o.u; });
+  var splits = size === 1 ? [[[pick[0]], [pick[1]]]] : [[[pick[0], pick[1]], [pick[2], pick[3]]], [[pick[0], pick[2]], [pick[1], pick[3]]], [[pick[0], pick[3]], [pick[1], pick[2]]]];
+  var best = null, bestScore = 1e9;
+  splits.forEach(function (sp) {
+    var sc = 100 * (whole[key(teamKey(sp[0]), teamKey(sp[1]))] || 0);
+    sp.forEach(function (T) { if (T.length === 2) sc += 10 * (tog[key(T[0], T[1])] || 0); });
+    sp[0].forEach(function (u) { sp[1].forEach(function (v) { sc += vs[key(u, v)] || 0; }); });
+    if (sc < bestScore) { bestScore = sc; best = sp; }
+  });
+  return { a: best[0], b: best[1] };
+}
+
+/** Games already played in the session (the saved ones of this phone's list, plus the one that was just saved when the list does not have it yet), as teams */
+function _lsSessionGames(s, la, lb, sinceAt) {
+  var out = [], has = false;
+  (typeof sessionMatches === "function" ? sessionMatches(s.id) : []).forEach(function (m) {
+    if (!m.teamA || !m.teamB) return;
+    out.push({ a: m.teamA, b: m.teamB, at: m.createdAt || m.endAt || 0 });
+    if ((m.createdAt || 0) >= sinceAt - 2000 && m.live && _lsTeamEq(m.teamA, la) && _lsTeamEq(m.teamB, lb)) has = true;
+  });
+  out.sort(function (x, y) { return x.at - y.at; });
+  if (!has) out.push({ a: la, b: lb, at: Date.now() });
+  return out;
+}
+function _lsTeamEq(x, y) { return x.length === y.length && x.slice().sort().join("+") === y.slice().sort().join("+"); }
+
+/** Fill the teams of the next live game with the suggestion (the finished game's pair is the last game); the setup screen shows them so they can be changed */
+function lsApplyNextPair(s, la, lb) {
+  // the game saved a moment ago counts as 'recent' (last minute) when the list already has it
+  var sug = lsSuggestPair(s.players || [], _lsSessionGames(s, la, lb, Date.now() - 60000), live.type);
+  live.a = sug ? sug.a : []; live.b = sug ? sug.b : [];
+  live.np = 1;   // the setup screen says the pair is a suggestion; lsStart clears it
+}
 
 /** Reset everything counted in this match: the score, the games won (best of) and who serves. The pairs stay. */
 function lsReset() {
@@ -590,7 +656,7 @@ function lsGameWindow(st, now) {
 
 /** Save the finished game like "Add game score" does, then continue or finish */
 var _lsSaving = false;
-function lsSaveGame(next) {
+function lsSaveGame(next) {   // next: true = continue with the same pairs, "pair" = continue with a new pair (v273), false = finish
   if (!live || live.test) return;   // practice games are never saved
   if (_lsSaving) return;            // a double tap must not write two games
   var s = _lsSession(live.sid);
@@ -619,6 +685,12 @@ function lsSaveGame(next) {
         live.gl = decided ? [] : (live.gl || []).concat([{ a: live.sa, b: live.sb }]);
         live.sw = decided ? { A: 0, B: 0 } : lsSeriesAfter(live, winner);   // a decided match starts again from 0\u20130
         live.saved += 1; live.sa = 0; live.sb = 0; live.hist = []; live.over = null; live.serve = winner; live.startedAt = Date.now(); live.firstAt = null;
+        if (next === "pair" && !live.tour) {   // v273: new pair: the setup screen opens with a suggestion, the player picks stay editable
+          live.gl = []; live.sw = { A: 0, B: 0 };
+          lsApplyNextPair(s, la, lb);
+          lsSave(); liveMode = "setup"; lsRender();
+          return;
+        }
         lsSave(); liveMode = "count"; lsRender();   // the same pairs play on; Settings \u2192 change teams to swap players
       } else {
         live = null; lsSave(); liveMode = "count";   // session over: leave nothing behind, the next open starts from a clean page
@@ -955,7 +1027,7 @@ function _lsWatchHtml() {
     var score = side === "A" ? g.sa : g.sb, from = side === "A" ? th[1] : th[3], to = side === "A" ? th[2] : th[4];
     var ids = byNameAZ(side === "A" ? g.a : g.b);
     return '<div class="ls-half ls-watch' + _lsWinCls(side, g) + '" style="background:linear-gradient(160deg,' + from + ',' + to + ')">' + _lsConfetti(side, g) +
-      '<div class="ls-info">' + _lsCrown(side, g) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? icon("shuttle", 64, "ls-serve-big") : '') + '</div>' +
+      '<div class="ls-info">' + _lsCrown(side, g) + '<div class="ls-serve-slot">' + (g.serve === side && !g.over ? serveShuttleHtml(64, "ls-serve-big") : '') + '</div>' +
       '<div class="ls-head"><div class="ls-team">' + t("lsTeam") + ' ' + side + '</div>' +
       '<div class="ls-chips">' + _lsTeam(side, ids) + '</div></div><div class="ls-score" data-d="' + String(score).length + '">' + score + '</div>' + won(side) + '</div></div>';
   };

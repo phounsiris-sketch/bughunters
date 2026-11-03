@@ -6964,3 +6964,7 @@ body:not([data-theme="light"]) .tn-mtx b { color: #f87171; }
 /* v272: the active bubble is near-white in dark mode too, so pale pack icons (clay gear / chart, 3D globe) get a soft dark edge and the clay ones a deeper colour to stand out on it */
 .nav-item.active .nav-icon.nav-rich > .si { filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }
 .nav-item.active .nav-icon.nav-rich > .ico-clay { filter: saturate(1.35) brightness(.86) drop-shadow(0 1px 1.5px rgba(15, 23, 42, .45)); }
+/* v273: a glass / neu plate that ever lands in the active bubble (near-white in every theme) draws its glyph dark and fully opaque: >= 4.5:1, never the pale dark-mode tone */
+.nav-item.active .nav-icon.nav-rich .ico-gl { background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.nav-item.active .nav-icon.nav-rich .ico-gl .si { color: var(--gd) !important; opacity: 1; filter: none; }
+.nav-item.active .nav-icon.nav-rich .ico-neu .si { color: var(--nav-ico) !important; opacity: 1; filter: none; }

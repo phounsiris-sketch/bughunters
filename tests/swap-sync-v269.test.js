@@ -4,7 +4,7 @@ var fs = require("fs"), vm = require("vm"), assert = require("assert");
 var store = {}, fsWrites = 0, classes = {}, timers = [];
 var el = { classList: { add: function (c) { classes[c] = 1; }, remove: function (c) { delete classes[c]; } }, innerHTML: "", offsetWidth: 1 };
 var ctx = { console: console, Math: Math, JSON: JSON, Date: Date, isFinite: isFinite, Object: Object, Array: Array, String: String, Number: Number, parseInt: parseInt,
-  t: function (k) { return k; }, showToast: function () {}, icon: function () { return ""; }, jsq: String, avatarHtml: function () { return ""; }, getUserName: function (u) { return u; },
+  t: function (k) { return k; }, showToast: function () {}, icon: function () { return ""; }, serveShuttleHtml: function () { return ""; }, jsq: String, avatarHtml: function () { return ""; }, getUserName: function (u) { return u; },
   byNameAZ: function (l) { return l.slice().sort(); }, maxPoints: function () { return 30; },
   currentUser: { uid: "host" }, currentGroupId: "g1", lastSessions: [], currentPage: "home",
   fsdb: { collection: function () { return { doc: function () { return { set: function () { fsWrites++; return { then: function () { return { catch: function () {} }; } }; }, update: function () { fsWrites++; return { catch: function () {} }; }, delete: function () { fsWrites++; return { catch: function () {} }; }, onSnapshot: function () { return function () {}; } }; } }; } },

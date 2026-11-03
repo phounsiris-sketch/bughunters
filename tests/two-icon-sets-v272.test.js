@@ -111,5 +111,5 @@ assert.strictEqual(tr.__tr.en.sysIcons, "System icons"); assert.strictEqual(tr._
 // uimatrix: "<System>+<pack>" only
 assert.ok(/"box\+3d", "glass\+sticker", "neu\+clay"/.test(fs.readFileSync("tools/uimatrix/driver.js", "utf8")), "uimatrix icons combos are two-part");
 // version
-assert.strictEqual(src("app").match(/APP_VERSION = "(v\d+)"/)[1], "v272"); assert.ok(/godsmash-v272/.test(fs.readFileSync("sw.js", "utf8")));
+var _appV = src("app").match(/APP_VERSION = "(v\d+)"/)[1]; assert.ok(Number(_appV.slice(1)) >= 272); assert.ok(fs.readFileSync("sw.js", "utf8").indexOf("godsmash-" + _appV) > 0, "APP_VERSION and CACHE_NAME agree");   // v273: no hard-coded version
 console.log("two-icon-sets-v272 OK");

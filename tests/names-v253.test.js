@@ -5,6 +5,8 @@ var ctx = { console: console, localStorage: { getItem: function () { return null
 ctx.window = ctx; vm.createContext(ctx);
 vm.runInContext(fs.readFileSync("js/i18n.js", "utf8") + "\n;this.__tr = translations;", ctx, { filename: "js/i18n.js" });
 var T = ctx.__tr, en = T.en, la = T.la;
+// v273: Live score inner units are Game / ເກມ again (the whole match = Match). These keys are the user's choice, like sessionTabGames.
+var LS_GAME_KEYS = ["lsTestAgain", "lsNewGame", "lsGamesWon", "lsGamesWonCap", "lsGameShort", "lsGameResult", "lsSingleGame", "lsTabSingle", "lsTabBo3", "lsBestOf", "lsEnded", "lsWaitNext", "lsGameN", "lsGamePoint", "lsExitTestConfirm", "lsSaveNext", "lsNoMore", "lsCurrentGame", "lsResetConfirm", "lsNewPairHint"];
 
 assert.deepStrictEqual(Object.keys(en).sort(), Object.keys(la).sort(), "EN and LA have the same key set");
 assert.strictEqual(en.navGames, "Session"); assert.strictEqual(la.navGames, "ເຊດຊັນ");   // v254: user named the bar item
@@ -17,11 +19,11 @@ assert.strictEqual(en.homeGame, "Session"); assert.strictEqual(la.homeGame, "ນ
 assert.strictEqual(la.lastNGames, "{n} ແມັດລ່າສຸດ"); assert.strictEqual(en.maCrumb, "All matches"); assert.strictEqual(la.maCrumb, "ແມັດທັງໝົດ");
 
 Object.keys(la).forEach(function (k) {
-  if (k === "navGames" || k === "sessionTabGames") return;   // v254: the bar item is "ເຊດຊັນ" by the user's choice
+  if (k === "navGames" || k === "sessionTabGames" || LS_GAME_KEYS.indexOf(k) >= 0) return;   // v254: the bar item is "ເຊດຊັນ" by the user's choice
   assert.ok(!/ເກມ|ເຊດຊັນ|ເຊສຊັ່ນ/.test(la[k]), "LA " + k + " still uses an old word: " + la[k]);
 });
 Object.keys(en).forEach(function (k) {
-  if (k === "sessionTabGames") return;   // v258: the session tab is "Games" by the user's choice
+  if (k === "sessionTabGames" || LS_GAME_KEYS.indexOf(k) >= 0) return;   // v258: the session tab is "Games" by the user's choice
   var v = en[k].replace(/\{\w+\}/g, "");   // placeholders such as {game} / {games} are code names, not text
   assert.ok(!/\bgames?\b/i.test(v), "EN " + k + " still says game: " + en[k]);
 });
