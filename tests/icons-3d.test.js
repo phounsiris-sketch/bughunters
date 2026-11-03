@@ -39,7 +39,7 @@ assert.ok(/ico-bx/.test(c.iconAs("box", "court", 22)) && c.ICON_FIXED.shuttle ==
 // defs: injected once, unique ids, all gradients referenced exist
 var html = c._g3dDefsHtml(), ids = (html.match(/\bid="[^"]+"/g) || []).map(function (x) { return x.slice(4, -1); });
 assert.strictEqual(ids.length, new Set(ids).size, "no duplicate ids in the 3D defs");
-ids.forEach(function (i) { assert.ok(/^g3d-/.test(i), "id prefixed: " + i); });
+ids.forEach(function (i) { assert.ok(/^g3[da]-/.test(i), "id prefixed: " + i); });
 (html.match(/url\(#[^)]+\)|href="#[^"]+"/g) || []).forEach(function (r) { var id = r.replace(/^url\(#|^href="#|\)$|"$/g, ""); assert.ok(ids.indexOf(id) >= 0, "reference resolves: " + id); });
 var clayIds = (fs.readFileSync("js/icons.js", "utf8").match(/id="(clay[A-Za-z0-9]*|stk[A-Za-z0-9]*)"/g) || []);
 assert.ok(!clayIds.some(function (x) { return /g3d/.test(x); }), "no clash with clay / sticker ids");

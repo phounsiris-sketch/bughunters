@@ -60,9 +60,9 @@ assert.ok(!/ico-clay/.test(ctx.iconAs("clay", "calendar", 12)), "tiny icons stay
 ctx.currentDashPack = "clay"; assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "v272: icon() always draws the System icons style, never the pack"); assert.ok(/ico-clay/.test(ctx.menuIcon("trophy", 20)), "menuIcon() draws the pack");
 var dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
 assert.ok(!/_dashCtx/.test(dashSrc) && fs.readdirSync("js").every(function (f) { return !/\.js$/.test(f) || fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx") < 0; }), "v272: the broad _dashCtx context is gone everywhere");
-(["dashPack_clay", "dashPack_sticker", "dashPack_3d"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+(["dashPack_clay", "dashPack_sticker", "dashPack_3d", "dashPack_classic"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 // dashboard pack "Stickers" (v209)
-assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d"]));
+assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d", "classic"]));
 var stk = ctx.iconAs("sticker", "trophy", 22); assert.ok(/ico-sticker/.test(stk) && stk.indexOf('filter="url(#stkF)"') > 0, "sticker icon: die-cut outline filter");
 assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("sticker", "bell", 22).indexOf("stk-g") > 0, "icons without a drawing fall back to a glossy tile with the glyph");
 // the shuttlecock is the default drawing in every style (v212)

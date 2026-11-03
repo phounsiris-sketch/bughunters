@@ -304,6 +304,12 @@ service cloud.firestore {
     match /userPrivate/{uid} {
       allow read: if isOwner(uid);
       allow write: if isOwner(uid) && healthOk(request.resource.data) && mineOk(request.resource.data);
+
+      // v274: the pushes sent to you (written only by the sender through the Admin SDK, which ignores rules)
+      match /pushLog/{logId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
     }
     // Rackets and shoes (photos in images/)
     match /gear/{id} {

@@ -6659,6 +6659,48 @@ body .home-next .ico-neu, body[data-theme="light"] .home-next .ico-neu { box-sha
 .g3d-pulse { animation: g3dPulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .pk-pulse { animation: g3dPulse 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }   /* v263: Live dot of the clay/sticker scoreboard */
 @media (prefers-reduced-motion: reduce) { .g3d-pulse { animation: none; } .pk-pulse { animation: none; } }
+/* v275: "Animated" Friends and Live (3D objects pack). The classes sit inside the <use> clone of the symbol. Only transform and opacity move, 3s loops.
+   Static for reduced motion: the second digit stays 7, the heart and the LIVE dot stay solid. */
+@keyframes g3aBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes g3aWave { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(16deg); } }
+@keyframes g3aHeart { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: .75; } }
+@keyframes g3aDot { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+@keyframes g3aFlipOut { 0%, 44% { transform: scaleY(1); } 50%, 94% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+@keyframes g3aFlipIn { 0%, 44% { transform: scaleY(0); } 50%, 94% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+.g3a-bob, .g3a-wave, .g3a-heart, .g3a-dot, .g3a-flip { transform-box: fill-box; transform-origin: center; }
+.g3a-bob { animation: g3aBob 3s ease-in-out infinite; }
+.g3a-bob2 { animation-delay: -1.5s; }
+.g3a-wave { transform-origin: 50% 100%; animation: g3aWave 1.5s ease-in-out infinite; }
+.g3a-heart { animation: g3aHeart 1.5s ease-in-out infinite; }
+.g3a-dot { animation: g3aDot 1.5s steps(1, end) infinite; }
+.g3a-flip { animation: g3aFlipOut 3s ease-in-out infinite; }
+.g3a-flip2 { transform: scaleY(0); animation-name: g3aFlipIn; }
+@media (prefers-reduced-motion: reduce) { .g3a-bob, .g3a-wave, .g3a-heart, .g3a-dot, .g3a-flip { animation: none; } .g3a-flip2 { transform: scaleY(0); } }
+/* v276: the other five Home objects move too (ART_3D_ANIM in js/icons.js). transform / opacity only, 2.6-3.6s loops; the -dN classes only shift the start so the tiles are never in step. */
+@keyframes g3aFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.2px); } }
+@keyframes g3aFly { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3.5px) rotate(5deg); } }
+@keyframes g3aShd { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.86); opacity: .7; } }
+@keyframes g3aShine { 0% { transform: translateX(0); opacity: 0; } 8% { opacity: .6; } 38% { transform: translateX(100px); opacity: .6; } 46%, 100% { transform: translateX(100px); opacity: 0; } }
+@keyframes g3aSway { 0%, 100% { transform: rotate(-1.4deg) skewX(3deg); } 50% { transform: rotate(1.4deg) skewX(-3deg); } }
+@keyframes g3aLens { 0%, 100% { transform: rotate(-9deg) scale(1); } 50% { transform: rotate(9deg) scale(1.12); } }
+@keyframes g3aDrop { 0% { transform: translateY(-12px); opacity: 0; } 14% { opacity: 1; } 38%, 78% { transform: translateY(0); opacity: 1; } 94% { transform: translateY(9px); opacity: 1; } 100% { transform: translateY(9px); opacity: 0; } }
+@keyframes g3aTick { 0%, 40% { transform: scale(0); opacity: 0; } 52% { transform: scale(1.3); opacity: 1; } 60%, 94% { transform: scale(1); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+.g3a-float, .g3a-fly, .g3a-shd, .g3a-shine, .g3a-sway, .g3a-lens, .g3a-drop, .g3a-tick { transform-box: fill-box; transform-origin: center; }
+.g3a-float { animation: g3aFloat 3.4s ease-in-out infinite; }
+.g3a-fly { animation: g3aFly 2.6s ease-in-out infinite; }
+.g3a-shd { animation: g3aShd 3.4s ease-in-out infinite; }
+.g3a-shd2 { animation-duration: 2.6s; }
+.g3a-shine { animation: g3aShine 3.6s ease-in-out infinite; }
+.g3a-sway { transform-origin: 50% 0; animation: g3aSway 3.2s ease-in-out infinite; }
+.g3a-lens { transform-origin: 50% 90%; animation: g3aLens 3.6s ease-in-out infinite; }
+.g3a-drop { animation: g3aDrop 3.8s ease-in-out infinite; }
+.g3a-tick { animation: g3aTick 3.8s ease-out infinite; }
+.g3a-d1 { animation-delay: -.4s; } .g3a-d2 { animation-delay: -1.1s; } .g3a-d3 { animation-delay: -1.9s; } .g3a-d4 { animation-delay: -2.6s; } .g3a-d5 { animation-delay: -.7s; }
+@media (prefers-reduced-motion: reduce) { .g3a-float, .g3a-fly, .g3a-shd, .g3a-shine, .g3a-sway, .g3a-lens, .g3a-drop, .g3a-tick { animation: none; } }
+/* v275: Classic Menu icons pack = the plain flat Solar glyph in the accent colour (bar, page titles, Home tiles) */
+.hg-tile .ico-mcl { color: var(--accent); margin: 2px 0 1px; }
+.me-title .ico-mcl { color: var(--accent); }
+.nav-item.active .nav-icon.nav-rich > .ico-mcl { color: var(--accent); filter: none; }
 .hs-title .ico-3d { margin: -5px 0 -5px -3px; }
 .hv-path .ico-3d, .hd-path .ico-3d, .hd-head .ico-3d { margin: -4px -2px -4px -4px; }
 .home-next-tag .ico-3d { margin: -3px 0; }
@@ -6964,3 +7006,40 @@ body:not([data-theme="light"]) .tn-mtx b { color: #f87171; }
 /* v272: the active bubble is near-white in dark mode too, so pale pack icons (clay gear / chart, 3D globe) get a soft dark edge and the clay ones a deeper colour to stand out on it */
 .nav-item.active .nav-icon.nav-rich > .si { filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }
 .nav-item.active .nav-icon.nav-rich > .ico-clay { filter: saturate(1.35) brightness(.86) drop-shadow(0 1px 1.5px rgba(15, 23, 42, .45)); }
+/* v273: a glass / neu plate that ever lands in the active bubble (near-white in every theme) draws its glyph dark and fully opaque: >= 4.5:1, never the pale dark-mode tone */
+.nav-item.active .nav-icon.nav-rich .ico-gl { background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.nav-item.active .nav-icon.nav-rich .ico-gl .si { color: var(--gd) !important; opacity: 1; filter: none; }
+.nav-item.active .nav-icon.nav-rich .ico-neu .si { color: var(--nav-ico) !important; opacity: 1; filter: none; }
+
+/* v274: push bell (this phone's state) + notification log sheet */
+.push-bell { margin-right: 6px; }
+.push-bell .pb-dot { position: absolute; right: 3px; bottom: 3px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; background: #16a34a; box-sizing: border-box; }
+.push-bell[data-st="off"] .pb-dot { background: #94a3b8; }
+.push-bell[data-st="blocked"] .pb-dot { background: #dc2626; }
+.push-bell[data-st="unsupported"] .pb-dot { background: #f59e0b; }
+/* a slash across the bell whenever it is not On, so the state is not colour only */
+.push-bell .pb-slash { display: none; position: absolute; left: 9px; right: 9px; top: 50%; height: 2px; background: #fff; border-radius: 2px; transform: rotate(-45deg); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+.push-bell:not([data-st="on"]) .pb-slash { display: block; }
+.push-bell .pb-new { position: absolute; right: -3px; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; box-sizing: border-box; }
+.pb-sheet { max-height: 86dvh; overflow-y: auto; text-align: left; }
+.pb-sheet .sheet-title, .pb-sheet .sheet-body { text-align: center; }
+.pb-sheet .sheet-body { line-height: 1.45; margin: 8px 0; }
+.pb-st { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #16a34a; vertical-align: middle; }
+.pb-st[data-st="off"] { background: #94a3b8; }
+.pb-st[data-st="blocked"] { background: #dc2626; }
+.pb-st[data-st="unsupported"] { background: #f59e0b; }
+.pb-how { margin: 8px 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.45; }
+.pb-how li { margin-bottom: 6px; }
+.pb-note { margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 13px; text-align: center; }
+.pb-sheet .ask-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pb-list { margin-top: 6px; }
+.pb-day { margin: 12px 0 4px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.pb-item { display: flex; gap: 10px; align-items: flex-start; width: 100%; min-height: 44px; padding: 8px 6px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; font: inherit; }
+button.pb-item { cursor: pointer; }
+.pb-ico { flex: none; display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg); color: var(--primary); }
+.pb-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.pb-txt b { font-size: 14px; }
+.pb-txt small { color: var(--text-muted); font-size: 12px; }
+.pb-item.bad .pb-txt small { color: #dc2626; }
+.pb-empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.pb-err .btn-primary { margin-top: 10px; }

@@ -5,6 +5,7 @@
 const admin = require("firebase-admin");
 const { Filter } = require("firebase-admin/firestore");
 const { runOnce } = require("./runner");
+const { pushLogDoc } = require("./pushlog");
 
 const APP_URL = process.env.APP_URL || "https://phounsiris-sketch.github.io/bughunters/";
 /* v250: runner.js does the two-phase run (a few small queries first, the full
@@ -60,6 +61,8 @@ function makeDeliver(db) {
   return async function deliver(messages, tokens) {
     let sent = 0, failed = 0;
     const dead = {}; // uid -> [bad tokens]
+    const logs = []; // v274: one log doc per push sent to a user (written below, in batches, no reads)
+    const expireAt = admin.firestore.Timestamp.fromMillis(Date.now() + 60 * 86400e3); // optional Firestore TTL policy on "expireAt"
     for (const m of messages) {
       const list = tokens[m.uid] || [];
       if (!list.length) continue;
@@ -70,6 +73,8 @@ function makeDeliver(db) {
         data: { tag: m.tag || m.link },
         webpush: { fcmOptions: { link: m.link }, notification: { tag: m.tag || m.link } }
       });
+      logs.push({ uid: m.uid, doc: pushLogDoc(m, { successCount: res.successCount, failureCount: res.failureCount,
+        firstError: (res.responses.find((r) => !r.success) || {}).error && res.responses.find((r) => !r.success).error.code }, admin.firestore.FieldValue.serverTimestamp(), expireAt) });
       res.responses.forEach((r, i) => {
         if (r.success) sent++;
         else {
@@ -86,6 +91,14 @@ function makeDeliver(db) {
       dead[uid].forEach((tk) => (upd["tokens." + tk] = admin.firestore.FieldValue.delete()));
       await db.collection("pushTokens").doc(uid).update(upd).catch(() => {});
     }
+    // The log must never stop the sender: a failed write is only reported
+    try {
+      for (let i = 0; i < logs.length; i += 400) {
+        const b = db.batch();
+        logs.slice(i, i + 400).forEach((l) => b.set(db.collection("userPrivate").doc(l.uid).collection("pushLog").doc(), l.doc));
+        await b.commit();
+      }
+    } catch (e) { console.log("  (push log not written: " + e.message + ")"); }
     return { sent, failed };
   };
 }
