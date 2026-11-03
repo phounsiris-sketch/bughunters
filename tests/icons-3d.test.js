@@ -8,7 +8,7 @@ function load(pack) {
 var c = load("3d");
 assert.ok(c.DASH_PACKS.indexOf("3d") >= 0, "pack 3d registered");
 assert.strictEqual(c.currentDashPack, "3d", "saved pack is read");
-assert.strictEqual(load(null).currentDashPack, "clay", "default pack is unchanged (clay)");
+assert.strictEqual(load(null).currentDashPack, "3d", "v272: a missing key means 3d");
 assert.deepStrictEqual(Object.keys(c.ART_3D).sort(), ["calendar", "clock", "court", "game", "health", "market", "poll", "score", "share", "stats", "training", "trophy", "wallet"], "13 fixed drawings (+ Friends and Live in 3 variants, v252)");
 // every mapped name points at a drawing and renders an svg using it
 Object.keys(c.ICON_3D_MAP).forEach(function (n) {
@@ -25,14 +25,14 @@ assert.strictEqual(c.iconAs("3d", "nope", 18), "", "unknown name");
 // size: 18 -> 24px like clay
 assert.ok(c.iconAs("3d", "trophy", 18).indexOf('width="24"') > 0);
 // the dashboard context uses the pack; elsewhere the chosen style
-assert.ok(c.icon("trophy", 20).indexOf("ico-3d") < 0, "outside the Dashboard the chosen style is used");
-c._dashCtx = true; assert.ok(c.icon("trophy", 20).indexOf("ico-3d") > 0, "Dashboard page draws the 3D object"); c._dashCtx = false;
+assert.ok(c.icon("trophy", 20).indexOf("ico-3d") < 0, "v272: icon() is always the System icons style");
+assert.ok(c.menuIcon("trophy", 20).indexOf("ico-3d") > 0, "menuIcon draws the 3D object");
 // icon3(): tiles. 3d on: drawing by explicit key (Home market = name "other"); pack off: the normal icon, size fb
 assert.ok(c.icon3("other", 54, "bx4", "market", 24).indexOf("#g3d-i-market") > 0 && c.icon3("other", 54, "bx4", "market", 24).indexOf('width="54"') > 0);
 assert.ok(c.icon3("chart", 40, "", "health", 18).indexOf("#g3d-i-health") > 0, "heart-rate zones tile = health drawing, not trophy");
 assert.ok(c.icon3("dinner", 40, "", null, 18).indexOf("ico-3d") < 0, "no drawing: normal icon");
 var off = load("clay");
-assert.strictEqual(off.icon3("other", 54, "bx4", "market", 24), off.icon("other", 24, "bx4"), "pack off: unchanged icon for the tile");
+assert.strictEqual(off.icon3("other", 54, "bx4", "market", 24), off.iconAs("clay", "other", 24, "bx4"), "clay pack: the tile is the clay icon");
 // other packs/styles untouched
 ["box", "neu", "glass", "classic", "tiles", "clay", "sticker"].forEach(function (th) { assert.ok(c.iconAs(th, "court", 22).indexOf("ico-3d") < 0, th + " not affected"); });
 assert.ok(/ico-bx/.test(c.iconAs("box", "court", 22)) && c.ICON_FIXED.shuttle === 1 && c.PLATE_GLYPH.court === "shuttle" && c.PLATE_GLYPH.scoreboard === "scoreboard", "v239 plate rules kept");
@@ -48,6 +48,6 @@ vm.runInContext("_svg3d('court', 20); _svg3d('game', 20);", c); assert.strictEqu
 assert.ok(html.length < 48000, "SVG data stays small (" + html.length + " bytes)");
 // settings picker lists the pack with a preview and a name in both languages
 var st = fs.readFileSync("js/settings.js", "utf8"), i18n = fs.readFileSync("js/i18n.js", "utf8");
-assert.ok(/\["3d", "dashPack3d"\]/.test(st), "picker includes 3d");
-assert.strictEqual((i18n.match(/dashPack3d:/g) || []).length, 2, "dashPack3d in EN and LA");
+assert.ok(/DASH_PACKS\.map/.test(st), "picker lists every pack");
+assert.strictEqual((i18n.match(/dashPack_3d:/g) || []).length, 2, "dashPack_3d in EN and LA");
 console.log("icons-3d OK");

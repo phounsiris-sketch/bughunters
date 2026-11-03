@@ -48,23 +48,21 @@ ctx.currentIconTheme = "box"; ctx._chromeKey = ""; calls.length = 0; ctx.applyCh
 assert.ok(calls.some(function (c) { return c[0] === ".bottom-nav"; }), "box style: the nav bar is boxed on every page, even Settings");
 assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f); }).every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_iconCtx") < 0; }), "no page switches an icon context any more");
 var i18n = fs.readFileSync("js/i18n.js", "utf8");
-["iconStyle", "iconStyleHint", "icon_box", "icon_neu", "icon_glass", "icon_classic", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+["sysIcons", "sysIconsHint", "menuIcons", "menuIconsHint", "icon_box", "icon_neu", "icon_glass", "icon_classic", "icon_tiles"].forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 console.log("icons OK");
 ctx.document.getElementById = function () { return {}; };   // the hidden defs already "exist" in this fake page
 // dashboard pack "3D clay": dashboard only
-assert.strictEqual(ctx.currentDashPack, "clay", "clay is the default dashboard pack");
+assert.strictEqual(ctx.currentDashPack, "3d", "v272: 3d is the default Menu icons pack (missing key)");
 assert.ok(/ico-clay ico-cl6/.test(ctx.iconAs("clay", "trophy", 22)) && ctx.iconAs("clay", "trophy", 22).indexOf('filter="url(#clayF)"') > 0, "clay icon: colour class by meaning + the clay filter");
 assert.ok(ctx.iconAs("clay", "court", 22).indexOf("clayG2") > 0, "the racket is hand drawn in clay");
 ["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-clay/.test(ctx.iconAs("clay", n, 20)), n + " control stays plain in clay"); });
 assert.ok(!/ico-clay/.test(ctx.iconAs("clay", "calendar", 12)), "tiny icons stay plain in clay");
-assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "outside the Dashboard the chosen style is used");
-ctx._dashCtx = true; assert.ok(/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the clay pack is used"); ctx.currentDashPack = "same"; assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "pack 'same' follows the chosen style"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
+ctx.currentDashPack = "clay"; assert.ok(!/ico-clay/.test(ctx.icon("trophy", 20)), "v272: icon() always draws the System icons style, never the pack"); assert.ok(/ico-clay/.test(ctx.menuIcon("trophy", 20)), "menuIcon() draws the pack");
 var dashSrc = fs.readFileSync("js/dashboard.js", "utf8");
-assert.ok(/function _renderDashboard\(\) \{\s*_dashCtx = true;\s*try \{ _renderDashboardInner\(\); \} finally \{ _dashCtx = false; \}/.test(dashSrc), "only the Dashboard render switches the pack on, and always off again");
-assert.ok(fs.readdirSync("js").filter(function (f) { return /\.js$/.test(f) && f !== "dashboard.js" && f !== "icons.js" && f !== "home.js"; })   /* v262: Home (the bottom-bar Dashboard) uses the pack too */.every(function (f) { return fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx = true") < 0; }), "no other page switches it on");
-(["dashPack", "dashPackHint", "dashPackClay", "dashPackSticker", "dashPackSame"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
+assert.ok(!/_dashCtx/.test(dashSrc) && fs.readdirSync("js").every(function (f) { return !/\.js$/.test(f) || fs.readFileSync("js/" + f, "utf8").indexOf("_dashCtx") < 0; }), "v272: the broad _dashCtx context is gone everywhere");
+(["dashPack_clay", "dashPack_sticker", "dashPack_3d"]).forEach(function (k) { assert.strictEqual((i18n.match(new RegExp("^\\s+" + k + ":", "gm")) || []).length, 2, k + " in EN + LA"); });
 // dashboard pack "Stickers" (v209)
-assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d", "same"]));
+assert.deepStrictEqual(JSON.stringify(ctx.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d"]));
 var stk = ctx.iconAs("sticker", "trophy", 22); assert.ok(/ico-sticker/.test(stk) && stk.indexOf('filter="url(#stkF)"') > 0, "sticker icon: die-cut outline filter");
 assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("sticker", "bell", 22).indexOf("stk-g") > 0, "icons without a drawing fall back to a glossy tile with the glyph");
 // the shuttlecock is the default drawing in every style (v212)
@@ -75,7 +73,7 @@ assert.ok(/ico-sticker/.test(ctx.iconAs("sticker", "bell", 22)) && ctx.iconAs("s
 });
 ["chevron", "plus", "close"].forEach(function (n) { assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", n, 20)), n + " control stays plain in stickers"); });
 assert.ok(!/ico-sticker/.test(ctx.iconAs("sticker", "calendar", 12)), "tiny icons stay plain in stickers");
-ctx._dashCtx = true; ctx.currentDashPack = "sticker"; assert.ok(/ico-sticker/.test(ctx.icon("trophy", 20)) && !/ico-clay/.test(ctx.icon("trophy", 20)), "on the Dashboard the sticker pack is used"); ctx.currentDashPack = "clay"; ctx._dashCtx = false;
+ctx.currentDashPack = "sticker"; assert.ok(/ico-sticker/.test(ctx.menuIcon("trophy", 20)) && !/ico-clay/.test(ctx.menuIcon("trophy", 20)), "menuIcon: the sticker pack is used"); ctx.currentDashPack = "clay";
 // v239: v212 icons again. Shuttle and Live score (scoreboard) use the Solar glyphs; on box, neu, glass plates Court shows the shuttlecock and Live score the 7|7 board
 ["box", "neu", "glass"].forEach(function (th) {
   assert.ok(ctx.iconAs(th, "court", 22).indexOf(ctx.SOLAR.shuttle) > 0 && ctx.iconAs(th, "court", 22).indexOf(ctx.SOLAR_BOLD.court) < 0, th + ": Court is the shuttlecock, no ball");

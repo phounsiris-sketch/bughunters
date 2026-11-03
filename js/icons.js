@@ -103,10 +103,20 @@ var ICON_BOX = { calendar: 0, sessions: 0, check: 0, pin: 0, vote: 0, polls: 0, 
 /* ───── Dashboard pack "3D clay" (v195): the Dashboard page only. Original art, not a download: the Solar Bold glyphs get a puffy clay
    look from one SVG filter (blurred bevel + specular light + soft shadow) and a light-to-dark gradient per colour; the badminton
    icons (shuttle = shuttlecock, court = racket) are drawn by hand. Same colour-by-meaning map as the box style. ───── */
-var DASH_PACKS = ["clay", "sticker", "3d", "same"];
-var currentDashPack = "clay";
-try { var _dp = localStorage.getItem("dashPack"); if (DASH_PACKS.indexOf(_dp) >= 0) currentDashPack = _dp; } catch (e) {}
-var _dashCtx = false;   // true only while the Dashboard page is being drawn
+/* v272 two icon sets: "System icons" (currentIconTheme, drawn by icon()) and "Menu icons" (this pack, drawn only by menuIcon / menuIconFit / icon3 for the
+   bottom bar, the 5 menu page titles and the Home shortcut tiles). The pack keeps its old localStorage key "dashPack" so a saved clay / sticker / 3d choice
+   survives; the old option "same" and a missing key both become "3d"; the v271 key "navIcons" is deleted. */
+var DASH_PACKS = ["clay", "sticker", "3d"];
+var currentDashPack = "3d";
+/** v271 -> v272 migration. saved = the stored "dashPack", nav = the v271 stored "navIcons" (plain | style | pack).
+    A valid pack is kept. "same" and a missing key become 3d, except a v271 user whose bar followed the pack (nav "pack") and never picked one: the bar showed the
+    old default, clay, so they keep clay. nav "plain" / "style" need nothing more: the bar now always draws the pack, the System icons keep the saved iconTheme. */
+function menuPackFromSaved(saved, nav) {
+  if (DASH_PACKS.indexOf(saved) >= 0) return saved;
+  return saved == null && nav === "pack" ? "clay" : "3d";
+}
+try { currentDashPack = menuPackFromSaved(localStorage.getItem("dashPack"), localStorage.getItem("navIcons")); } catch (e) {}
+try { if (localStorage.getItem("dashPack") !== currentDashPack) localStorage.setItem("dashPack", currentDashPack); localStorage.removeItem("navIcons"); } catch (e) {}
 var CLAY_COLORS = [["#bbf7d0", "#16a34a"], ["#fecaca", "#dc2626"], ["#99f6e4", "#0d9488"], ["#bfdbfe", "#2563eb"], ["#fed7aa", "#ea580c"], ["#e9d5ff", "#9333ea"], ["#fef08a", "#d97706"], ["#fbcfe8", "#db2777"]];
 var CLAY_ART = {
   shuttle: '<g transform="rotate(32 12 12)"><path d="M8.6 15.8 4.6 3.9Q12 1.6 19.4 3.9L15.4 15.8Z" fill="url(#clayW)"/><path d="M8.6 15.8 6.6 3.4M12 15.8V2.6M15.4 15.8 17.4 3.4M10.3 15.8 9.2 3M13.7 15.8 14.8 3" fill="none" stroke="#94a3b8" stroke-width=".6"/><path d="M5.6 6.9Q12 8.6 18.4 6.9" fill="none" stroke="#f97316" stroke-width="1.1" stroke-linecap="round"/><circle cx="12" cy="18.1" r="3.3" fill="url(#clayCork)"/></g>',
@@ -225,24 +235,23 @@ function _svg3d(key, px, cls, variant) {
   if (ART_3D_VAR[key]) key += "-" + (G3D_VARIANTS.indexOf(variant) >= 0 ? variant : currentG3dVariant);   // Friends and Live follow the chosen style (v252)
   return '<svg class="si ico-3d' + (cls ? ' ' + cls : '') + '" width="' + px + '" height="' + px + '" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#g3d-i-' + key + '"/></svg>';
 }
-/** A 3D object for a tile (Home shortcuts, Health tiles) when the pack is "3d", else the normal icon. key (optional) names the drawing, for names the app uses for something else (Home Market = "other"). px = size of the object, fb = size of the normal icon when the pack is not 3d */
+/** A Menu-icons tile for the Home shortcuts (the only tile user): the 3D object when the pack is "3d", else the name drawn in the clay / sticker pack. key (optional) names the 3D drawing, for names the app uses for something else (Home Market = "other"). px = size of the object, fb = size of the glyph given to the pack when it is not 3d */
 function icon3(name, px, cls, key, fb) {
   var k = key || ICON_3D_MAP[name];
-  if (currentDashPack !== "3d" || !k || !(ART_3D[k] || ART_3D_VAR[k])) return icon(name, fb || 24, cls);
+  if (currentDashPack !== "3d" || !k || !(ART_3D[k] || ART_3D_VAR[k])) return iconAs(currentDashPack, name, fb || 24, cls);
   return _svg3d(k, px, cls);
 }
 function setG3dVariant(id) {
   if (G3D_VARIANTS.indexOf(id) < 0) return;
   currentG3dVariant = id;
   try { localStorage.setItem("g3dVariant", id); } catch (e) {}
-  if (typeof renderSettings === "function") renderSettings();
+  _afterIconChange();   // the Friends / Live tiles on Home follow it
 }
 function setDashPack(id) {
   if (DASH_PACKS.indexOf(id) < 0) return;
   currentDashPack = id;
   try { localStorage.setItem("dashPack", id); } catch (e) {}
-  _chromeKey = "reset"; applyChromeIcons();   // v271: the nav bar may follow the pack
-  if (typeof renderSettings === "function") renderSettings();
+  _afterIconChange();
 }
 
 /** One icon in a given style (used by the Settings preview too); falls back to the classic icon when a set lacks the name */
@@ -274,43 +283,51 @@ function iconAs(theme, name, size, cls) {
 
 function icon(name, size, cls) {
   if (!SOLAR[name]) return "";
-  return iconAs(_dashCtx && currentDashPack !== "same" ? currentDashPack : currentIconTheme, name, size, cls);
+  return iconAs(currentIconTheme, name, size, cls);
 }
 
 /** The nav bar and the app bar are drawn once at startup from the page shell: when the style changes they are drawn again */
 var _chromeKey = "";
 function applyChromeIcons() {
-  var key = currentIconTheme + "|" + currentNavIcons + "|" + currentDashPack;   // v271: the nav bar can follow the icon style or the dashboard pack
+  var key = currentIconTheme + "|" + currentDashPack;   // the app bar follows the System icons, the bottom bar the Menu icons
   if (key === _chromeKey) return;
   _chromeKey = key;
   try { document.body.setAttribute("data-icons", currentIconTheme); } catch (e) {}
   try { ["bottom-nav", "app-header"].forEach(function (cls) { var root = document.querySelector("." + cls); if (root && typeof fillStaticIcons === "function") fillStaticIcons(root); }); } catch (e) {}
 }
 
-/* v271 Nav bar icons: "plain" (the line glyph, default), "style" (same as Icon style) or "pack" (same as Dashboard icons). Saved in localStorage "navIcons". */
-var NAV_ICON_MODES = ["plain", "style", "pack"];
-var currentNavIcons = "plain";
-try { var _ni = localStorage.getItem("navIcons"); if (NAV_ICON_MODES.indexOf(_ni) >= 0) currentNavIcons = _ni; } catch (e) {}
-/* How much bigger than its glyph size each style draws (plate or object), so the nav can ask for a visual size */
-var NAV_FIT = { box: 1.7, neu: 1.7, glass: 1.7, tiles: 1.65, clay: 1.35, sticker: 1.4, "3d": 1.35 };
+/* v272 Menu icons: the pack (clay / sticker / 3d) in the 5 bottom bar buttons, the title of each menu page and the Home shortcut tiles. Nowhere else. */
+/* How much bigger than its glyph size each style draws (plate or object), so a caller can ask for a visual size */
+var NAV_FIT = { clay: 1.35, sticker: 1.4, "3d": 1.35 };
 var NAV_VISUAL = 26;   // px an inactive icon takes in the bar; the active one is scaled up in CSS (.nav-rich) to about 34px inside the bubble
-/** The style the nav bar draws in, or "" when it stays plain (also when the chosen style is the plain classic glyph itself) */
-function navIconTheme(mode) {
-  mode = mode || currentNavIcons;
-  var th = mode === "style" ? currentIconTheme : mode === "pack" ? (currentDashPack === "same" ? currentIconTheme : currentDashPack) : "";
-  return NAV_FIT[th] ? th : "";
+var MENU_TITLE_VISUAL = 30;   // px of a page title icon, the same in every pack
+/* The Dashboard is a chart in every pack (the plain "dashboard" glyph is a house); in the 3D pack the Ranking is the trophy so it differs from the chart */
+var MENU_NAME = { dashboard: "chart" };
+var MENU_3D = { ranking: "trophy" };
+/** One Menu icon in the chosen pack (pack = another pack, for the Settings previews). size = glyph size handed to the pack (clay / sticker draw it 1.35-1.4x bigger, 3D 1.35x) */
+function menuIcon(name, size, cls, pack) {
+  pack = pack || currentDashPack;
+  name = MENU_NAME[name] || name;
+  size = size || 24;
+  if (pack === "3d" && MENU_3D[name]) return _svg3d(MENU_3D[name], Math.round(size * NAV_FIT["3d"]), cls);
+  return iconAs(pack, name, size, cls);
 }
-/** One nav icon as HTML. visual = px it should take (default NAV_VISUAL). Plain returns exactly the old markup. */
-function navIconHtml(name, size, mode, visual) {
-  var th = navIconTheme(mode);
-  if (!th) return iconAs("classic", name, size || 24);
-  return iconAs(th, name, Math.max(14, Math.round((visual || NAV_VISUAL) / NAV_FIT[th])));
+/** A Menu icon that ends up about `visual` px wide whatever the pack */
+function menuIconFit(name, visual, cls, pack) {
+  return menuIcon(name, Math.max(14, Math.round((visual || NAV_VISUAL) / NAV_FIT[pack || currentDashPack])), cls, pack);
 }
-function setNavIcons(id) {
-  if (NAV_ICON_MODES.indexOf(id) < 0) return;
-  currentNavIcons = id;
-  try { localStorage.setItem("navIcons", id); } catch (e) {}
+/** One bottom bar icon as HTML (size is not used any more: the bar always draws NAV_VISUAL px) */
+function navIconHtml(name, size, visual) {
+  return menuIconFit(name, visual || NAV_VISUAL);
+}
+/** The title row of a menu page: Menu icon + text. key = i18n key */
+function menuTitleHtml(name, key) {
+  return '<div class="me-title">' + menuIconFit(name, MENU_TITLE_VISUAL) + ' ' + t(key) + '</div>';
+}
+/** After either icon setting changes: redraw the two bars, the page on screen (titles, Home tiles) and the Settings preview */
+function _afterIconChange() {
   _chromeKey = "reset"; applyChromeIcons();
+  if (typeof refreshCurrentPage === "function") { try { refreshCurrentPage("icons"); } catch (e) {} }
   if (typeof renderSettings === "function") renderSettings();
 }
 
@@ -318,8 +335,7 @@ function setIconTheme(id) {
   if (ICON_THEMES.indexOf(id) < 0) return;
   currentIconTheme = id;
   try { localStorage.setItem("iconTheme", id); } catch (e) {}
-  _chromeKey = "reset"; applyChromeIcons();
-  if (typeof renderSettings === "function") renderSettings();
+  _afterIconChange();
 }
 
 /** Icons for the cost types used across sessions, dashboard and Messenger */
