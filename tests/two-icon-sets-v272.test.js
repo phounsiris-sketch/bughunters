@@ -34,7 +34,7 @@ cases.forEach(function (c) {
   assert.strictEqual(store.iconTheme, ic, "System icons theme untouched: " + c[2]);
 });
 var keep = load({ iconTheme: "glass", navIcons: "style" }); assert.strictEqual(keep.currentIconTheme, "glass", "System icons keep the saved style");
-assert.deepStrictEqual(JSON.stringify(keep.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d"]), "packs: clay, sticker, 3d (no 'same')");
+assert.deepStrictEqual(JSON.stringify(keep.DASH_PACKS), JSON.stringify(["clay", "sticker", "3d", "classic"]), "packs: clay, sticker, 3d, classic (no 'same'; classic added v275)");
 ["currentNavIcons", "NAV_ICON_MODES", "navIconTheme", "setNavIcons", "_dashCtx"].forEach(function (n) { assert.strictEqual(typeof keep[n], "undefined", n + " is gone"); });
 
 // 2. icon() = System icons always; menuIcon() = pack always

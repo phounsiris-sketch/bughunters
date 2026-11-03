@@ -45,6 +45,7 @@ function _homePlayCard(me) {
 function _tilePackPx(px) {
   if (currentDashPack === "clay") return Math.round(px / 1.35);
   if (currentDashPack === "sticker") return Math.round(px / 1.4);
+  if (currentDashPack === "classic") return Math.round(px * 0.75);   // v275: bare glyph, no plate: about 75% of the 3D object box (54 -> 40, 44 -> 33)
   return 24;
 }
 function _homeSpendCard() {

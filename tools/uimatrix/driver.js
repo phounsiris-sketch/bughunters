@@ -139,7 +139,7 @@
     }
   }
   var PAGES = CONFIG.pages || ["home", "dashboard", "games", "polls", "sessions", "payments", "settings", "stats", "health", "config", "group-settings", "group-members", "profile", "profile-sub", "matches", "matches-all", "public", "groups", "group-create", "trash"];
-  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d", "glass+sticker", "neu+clay"];   // v272: "<System icons>+<Menu icons pack>"; the bar, titles and Home tiles always use the pack
+  var ICONS = CONFIG.icons || ["box", "neu", "glass", "classic", "tiles", "box+3d", "glass+sticker", "neu+clay", "tiles+classic"];   // v272: "<System icons>+<Menu icons pack>"; the bar, titles and Home tiles always use the pack
   function run() {
     try { setup(); } catch (e) { D.errors.push("setup: " + e.message); }
     if (CONFIG.eval) { try { D.eval = String(window.eval(CONFIG.eval)); } catch (e) { D.eval = "ERR " + e.message; } finish(); return; }   // debugging: evaluate one expression in the harness page
