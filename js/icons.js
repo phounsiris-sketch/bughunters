@@ -208,7 +208,7 @@ var currentG3dVariant = "real";
 try { var _gv = localStorage.getItem("g3dVariant"); if (G3D_VARIANTS.indexOf(_gv) >= 0) currentG3dVariant = _gv; } catch (e) {}
 var G3D_VAR_DEFS = '<linearGradient id="g3d-v-sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd8b5"/><stop offset="1" stop-color="#f2b58a"/></linearGradient><linearGradient id="g3d-v-teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#0f766e"/></linearGradient><linearGradient id="g3d-v-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient><linearGradient id="g3d-v-red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f87171"/><stop offset="1" stop-color="#b91c1c"/></linearGradient><linearGradient id="g3d-v-scr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#475569"/><stop offset="1" stop-color="#0f172a"/></linearGradient><radialGradient id="g3d-v-shd" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><linearGradient id="g3d-v-clT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#99f6e4"/><stop offset="1" stop-color="#14b8a6"/></linearGradient><linearGradient id="g3d-v-clP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6fe"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient><linearGradient id="g3d-v-clR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fecaca"/><stop offset="1" stop-color="#ef4444"/></linearGradient><radialGradient id="g3d-v-clHi" cx=".35" cy=".3" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><linearGradient id="g3d-v-glB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#93c5fd"/><stop offset=".5" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient><linearGradient id="g3d-v-glG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset=".5" stop-color="#f59e0b"/><stop offset="1" stop-color="#92400e"/></linearGradient><linearGradient id="g3d-v-glR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fda4af"/><stop offset=".5" stop-color="#e11d48"/><stop offset="1" stop-color="#881337"/></linearGradient>';
 /* v275 "Animated" Friends and Live: own gradients (g3a-), own CSS keyframes (g3a-*, css/styles.css). Only transform / opacity move; reduced motion stops them. */
-var G3A_DEFS = '<linearGradient id="g3a-skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe0c2"/><stop offset="1" stop-color="#f4b78b"/></linearGradient><linearGradient id="g3a-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient><linearGradient id="g3a-lime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a3e635"/><stop offset="1" stop-color="#16a34a"/></linearGradient><linearGradient id="g3a-rose" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#e11d48"/></linearGradient><linearGradient id="g3a-board" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0b1220"/></linearGradient><radialGradient id="g3a-shd" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>';
+var G3A_DEFS = '<linearGradient id="g3a-skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe0c2"/><stop offset="1" stop-color="#f4b78b"/></linearGradient><linearGradient id="g3a-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient><linearGradient id="g3a-lime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a3e635"/><stop offset="1" stop-color="#16a34a"/></linearGradient><linearGradient id="g3a-rose" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#e11d48"/></linearGradient><linearGradient id="g3a-board" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#334155"/><stop offset="1" stop-color="#0b1220"/></linearGradient><radialGradient id="g3a-shd" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><clipPath id="g3a-cl-court"><path d="M17.6 19.2 Q18.2 18 20 18 L44 18 Q45.8 18 46.4 19.2 L60 45 Q61 47 58.6 47 L5.4 47 Q3 47 4 45 Z"/></clipPath>';
 var G3A_DIGIT = 'fill="none" stroke="#fbbf24" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"';
 var ART_3D_VAR = {
   friends: {
@@ -224,9 +224,38 @@ var ART_3D_VAR = {
     animated: '<ellipse cx="32" cy="57" rx="24" ry="4" fill="url(#g3a-shd)"/><rect x="8" y="16" width="48" height="36" rx="7" fill="url(#g3a-board)" stroke="#94a3b8" stroke-opacity=".5"/><rect x="13" y="26" width="16" height="20" rx="3" fill="#0b1220"/><rect x="35" y="26" width="16" height="20" rx="3" fill="#0b1220"/><path d="M16.500 31.500H25.500L20.500 42" ' + G3A_DIGIT + '/><g class="g3a-flip"><path d="M38.500 31.500H47.500L42.500 42" ' + G3A_DIGIT + '/></g><g class="g3a-flip g3a-flip2"><path d="M40 31.500H46V36.500H40ZM40 36.500H46V42H40Z" ' + G3A_DIGIT + '/></g><rect x="30.600" y="28" width="2.800" height="16" rx="1.400" fill="#94a3b8"/><rect x="14" y="6" width="36" height="13" rx="6.500" fill="url(#g3a-rose)" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/><circle class="g3a-dot" cx="22" cy="12.500" r="2.800" fill="#fff"/><path d="M28 9.500V15.500H31 M33.200 9.500V15.500 M35 9.500L36.800 15.500L38.600 9.500 M42.600 9.500H40V15.500H42.600 M40 12.500H42" stroke="#fff" stroke-width="1.500" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
   }
 };
+/* v276: the other five Home tiles animate too in the "animated" style. Built from the existing ART_3D drawings (same look when still): the shadow ellipse and the moving parts get g3a- classes,
+   motion is CSS (css/styles.css). Symbol id = g3d-i-<key>-animated. Only icon3 (the Home tiles) asks for it, so bar, titles and lists keep the still drawings. */
+var G3A_STROKE = 'stroke="#fff" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+function _g3aMake(key, d, cls, shdCls, edit) {
+  var m = /^(<ellipse[^>]*\/>)([\s\S]*)$/.exec(ART_3D[key]), body = edit ? edit(m[2]) : m[2];
+  if (!cls) return m[1] + body;   // a fixture (stall, ballot box, board) stands still: only its parts move
+  return '<g class="' + shdCls + ' g3a-d' + d + '">' + m[1] + '</g><g class="' + cls + ' g3a-d' + d + '">' + body + '</g>';
+}
+var ART_3D_ANIM = {
+  court: _g3aMake("court", 1, "g3a-float", "g3a-shd", function (b) {   // floats; a light streak sweeps over the court
+    return b + '<g clip-path="url(#g3a-cl-court)"><g transform="skewX(-24)"><rect class="g3a-shine" x="-16" y="14" width="9" height="36" fill="#fff" opacity="0"/></g></g>';
+  }),
+  market: _g3aMake("market", 2, "", "", function (b) {   // awning sways, the magnifier swings and zooms
+    return b.replace('<path d="M7 14h50l-3 12H10z"', '<g class="g3a-sway g3a-d2"><path d="M7 14h50l-3 12H10z"')
+      .replace('<path d="M7 14h50l-.6 2.4H7.6z" fill="#fff" opacity=".35"/>', '<path d="M7 14h50l-.6 2.4H7.6z" fill="#fff" opacity=".35"/></g>')
+      .replace('<g transform="rotate(-25 40 34)">', '<g class="g3a-lens g3a-d3"><g transform="rotate(-25 40 34)">') + '</g>';
+  }),
+  poll: _g3aMake("poll", 4, "", "", function (b) {   // the ballot slides in, the tick pops, the paper sinks into the box
+    return b.replace('<g transform="rotate(-6 32 24)">', '<g transform="rotate(-6 32 24)"><g class="g3a-drop g3a-d4">')
+      .replace('<path d="M26.5 18.5 L30.5 22.5 L38 13.5"', '<path class="g3a-tick g3a-d4" d="M26.5 18.5 L30.5 22.5 L38 13.5"')
+      .replace(' </g></g> <rect x="20.4"', ' </g></g></g> <rect x="20.4"');
+  }),
+  game: _g3aMake("game", 3, "g3a-fly", "g3a-shd g3a-shd2"),   // shuttlecock in flight: rises, tilts, its shadow shrinks
+  score: _g3aMake("score", 5, "", "", function (b) {   // right-hand 7 flips to 8 (like Live)
+    return b.replace('<path d="M38 21.8 H48.4 L41.8 35.8"/> </g>', '</g><g class="g3a-flip g3a-d5" ' + G3A_STROKE + '><path d="M38 21.8 H48.4 L41.8 35.8"/></g>' +
+      '<g class="g3a-flip g3a-flip2 g3a-d5" ' + G3A_STROKE + '><path d="M43.2 28.8C40.8 28.8 39.6 27.5 39.6 25.5S41 22 43.2 22 46.8 23.5 46.8 25.5 45.6 28.8 43.2 28.8ZM43.2 28.8C40.3 28.8 38.9 30.3 38.9 32.4S40.5 35.8 43.2 35.8 47.5 34.5 47.5 32.4 46.1 28.8 43.2 28.8Z"/></g>');
+  })
+};
 function _g3dDefsHtml() {
   return '<svg width="0" height="0"><defs>' + G3D_DEFS + G3D_VAR_DEFS + G3A_DEFS + '</defs>' + Object.keys(ART_3D).map(function (k) { return '<symbol id="g3d-i-' + k + '" viewBox="0 0 64 64">' + ART_3D[k] + '</symbol>'; }).join("") +
-    Object.keys(ART_3D_VAR).map(function (k) { return G3D_VARIANTS.map(function (v) { return '<symbol id="g3d-i-' + k + '-' + v + '" viewBox="0 0 64 64">' + ART_3D_VAR[k][v] + '</symbol>'; }).join(""); }).join("") + '</svg>';
+    Object.keys(ART_3D_VAR).map(function (k) { return G3D_VARIANTS.map(function (v) { return '<symbol id="g3d-i-' + k + '-' + v + '" viewBox="0 0 64 64">' + ART_3D_VAR[k][v] + '</symbol>'; }).join(""); }).join("") +
+    Object.keys(ART_3D_ANIM).map(function (k) { return '<symbol id="g3d-i-' + k + '-animated" viewBox="0 0 64 64">' + ART_3D_ANIM[k] + '</symbol>'; }).join("") + '</svg>';
 }
 function _g3dDefs() {
   if (typeof document === "undefined" || !document.body || document.getElementById("g3dDefs")) return;
@@ -237,7 +266,8 @@ function _g3dDefs() {
 /** key = a drawing of ART_3D; px = the final size in pixels */
 function _svg3d(key, px, cls, variant) {
   _g3dDefs();
-  if (ART_3D_VAR[key]) key += "-" + (G3D_VARIANTS.indexOf(variant) >= 0 ? variant : currentG3dVariant);   // Friends and Live follow the chosen style (v252)
+  if (ART_3D_ANIM[key] && variant === "animated") key += "-animated";   // v276: asked for by icon3 only
+  else if (ART_3D_VAR[key]) key += "-" + (G3D_VARIANTS.indexOf(variant) >= 0 ? variant : currentG3dVariant);   // Friends and Live follow the chosen style (v252)
   return '<svg class="si ico-3d' + (cls ? ' ' + cls : '') + '" width="' + px + '" height="' + px + '" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#g3d-i-' + key + '"/></svg>';
 }
 /** A Menu-icons tile for the Home shortcuts (the only tile user): the 3D object when the pack is "3d", else the name drawn in the clay / sticker pack. key (optional) names the 3D drawing, for names the app uses for something else (Home Market = "other"). px = size of the object, fb = size of the glyph given to the pack when it is not 3d */
@@ -250,7 +280,7 @@ function icon3(name, px, cls, key, fb) {
   if (currentDashPack === "classic") return _classicMenuSvg(CLASSIC_TILE[key] || name, fb || 24, cls);
   var k = key || ICON_3D_MAP[name];
   if (currentDashPack !== "3d" || !k || !(ART_3D[k] || ART_3D_VAR[k])) return iconAs(currentDashPack, name, fb || 24, cls);
-  return _svg3d(k, px, cls);
+  return _svg3d(k, px, cls, currentG3dVariant === "animated" ? "animated" : undefined);   // v276: the Animated style moves all seven Home objects
 }
 function setG3dVariant(id) {
   if (G3D_VARIANTS.indexOf(id) < 0) return;
